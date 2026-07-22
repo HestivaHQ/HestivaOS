@@ -1,6 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+function getSupabaseProjectUrl(value: string) {
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL must be a valid absolute URL.');
+  }
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,7 +18,7 @@ export async function createClient() {
     throw new Error('Missing Supabase environment variables.');
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(getSupabaseProjectUrl(supabaseUrl), supabaseAnonKey.trim(), {
     cookies: {
       getAll() {
         return cookieStore.getAll();
