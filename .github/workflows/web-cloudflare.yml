@@ -10,6 +10,9 @@ on:
       - '.github/workflows/web-cloudflare.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: web-cloudflare-${{ github.ref }}
   cancel-in-progress: true
