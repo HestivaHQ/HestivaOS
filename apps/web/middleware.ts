@@ -32,20 +32,22 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login');
+  const pathname = request.nextUrl.pathname;
+  const isLoginRoute = pathname.startsWith('/login');
+  const isAuthCallbackRoute = pathname.startsWith('/auth/');
+  const isPublicRoute = isLoginRoute || isAuthCallbackRoute;
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('next', request.nextUrl.pathname);
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isAuthRoute) {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = '/';
-    homeUrl.search = '';
-    return NextResponse.redirect(homeUrl);
+  if (user && isLoginRoute) {
+    const nextPath = request.nextUrl.searchParams.get('next');
+    const destination = nextPath?.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/';
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return response;
