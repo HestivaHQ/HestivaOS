@@ -1,3 +1,6 @@
+import { createClient } from '../lib/supabase/server';
+import { SignOutButton } from './components/sign-out-button';
+
 type HealthResponse = {
   data: {
     status: string;
@@ -18,21 +21,29 @@ async function getHealth(): Promise<HealthResponse | null> {
 }
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const health = await getHealth();
   const healthy = health?.data.status === 'healthy';
 
   return (
     <main className="shell">
       <section className="card">
-        <p className="eyebrow">Stage 1 · Foundation</p>
+        <p className="eyebrow">Stage 2 · Authentication</p>
         <h1>Maintenance Marshall Operating System</h1>
-        <p className="summary">The first working application checkpoint.</p>
+        <p className="summary">Signed in as {user?.email ?? 'authenticated user'}.</p>
         <div className="statusRow">
           <span className={`indicator ${healthy ? 'healthy' : 'offline'}`} aria-hidden="true" />
           <div>
             <strong>System Status: {healthy ? 'Healthy' : 'Unavailable'}</strong>
-            <p>{healthy ? `Database connected · ${health.data.environment}` : 'Start the API and database to complete the health check.'}</p>
+            <p>{healthy ? `Database connected · ${health.data.environment}` : 'The API health check is currently unavailable.'}</p>
           </div>
+        </div>
+        <div style={{ marginTop: 24 }}>
+          <SignOutButton />
         </div>
       </section>
     </main>
