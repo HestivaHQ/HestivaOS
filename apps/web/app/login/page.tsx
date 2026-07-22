@@ -1,11 +1,16 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
+
+function getSafeNextPath(value: string | null) {
+  return value?.startsWith('/') && !value.startsWith('//') ? value : '/';
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -18,10 +23,18 @@ export default function LoginPage() {
     setMessage(null);
 
     const supabase = createClient();
+    const nextPath = getSafeNextPath(searchParams.get('next'));
+
     const result =
       mode === 'sign-in'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(nextPath)}`,
+            },
+          });
 
     setLoading(false);
 
@@ -35,7 +48,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/');
+    router.replace(nextPath);
     router.refresh();
   }
 
