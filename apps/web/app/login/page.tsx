@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 
 function getSafeNextPath(value: string | null) {
@@ -10,7 +10,6 @@ function getSafeNextPath(value: string | null) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -23,7 +22,8 @@ export default function LoginPage() {
     setMessage(null);
 
     const supabase = createClient();
-    const nextPath = getSafeNextPath(searchParams.get('next'));
+    const params = new URLSearchParams(window.location.search);
+    const nextPath = getSafeNextPath(params.get('next'));
 
     const result =
       mode === 'sign-in'
