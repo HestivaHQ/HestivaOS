@@ -3,23 +3,21 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Customer, Property, WorkOrder } from '../../lib/api';
 
-const emptyForm = { customerId: '', propertyId: '', title: '', description: '', status: 'OPEN' as const, priority: 'NORMAL' as const, scheduledAt: '', completedAt: '' };
+type WorkOrderForm = { customerId: string; propertyId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
+const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', title: '', description: '', status: 'OPEN', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
 
 export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const [items, setItems] = useState<WorkOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<WorkOrderForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
-
   const availableProperties = useMemo(() => properties.filter((p) => !form.customerId || p.customerId === form.customerId), [properties, form.customerId]);
 
   async function load() {
     try {
-      const [workData, customerData, propertyData] = await Promise.all([
-        api.workOrders('?page=1&pageSize=100'), api.customers('?page=1&pageSize=100'), api.properties('?page=1&pageSize=100'),
-      ]);
+      const [workData, customerData, propertyData] = await Promise.all([api.workOrders('?page=1&pageSize=100'), api.customers('?page=1&pageSize=100'), api.properties('?page=1&pageSize=100')]);
       setItems(workData.items); setCustomers(customerData.items); setProperties(propertyData.items);
       setForm((current) => current.customerId || !customerData.items[0] ? current : { ...current, customerId: customerData.items[0].id, propertyId: propertyData.items.find((p) => p.customerId === customerData.items[0].id)?.id ?? '' });
       setError('');
