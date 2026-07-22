@@ -1,4 +1,4 @@
-# Maintenance Marshall Operating System 
+# Maintenance Marshall Operating System
 
 Stage 1 foundation scaffold.
 
