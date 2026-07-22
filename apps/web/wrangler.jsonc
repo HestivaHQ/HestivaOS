@@ -5,7 +5,7 @@
   "compatibility_date": "2026-07-22",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "API_URL": "https://mmapi-production-b622.up.railway.app/api/v1"
+    "API_URL": "https://mmapi-production-b622.up.railway.app"
   },
   "assets": {
     "directory": ".open-next/assets",
