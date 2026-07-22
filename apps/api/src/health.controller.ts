@@ -1,0 +1,19 @@
+import { Controller, Get } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+@Controller('health')
+export class HealthController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get()
+  async getHealth(): Promise<{ data: { status: string; database: string; environment: string } }> {
+    await this.prisma.$queryRaw`SELECT 1`;
+    return {
+      data: {
+        status: 'healthy',
+        database: 'connected',
+        environment: process.env.NODE_ENV ?? 'development',
+      },
+    };
+  }
+}
