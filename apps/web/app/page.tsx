@@ -185,13 +185,26 @@ export default async function HomePage() {
           <div className="panelHeader">
             <div>
               <p className="eyebrow">Quick actions</p>
-              <h3>Create a record</h3>
+              <h3>Manage operations</h3>
             </div>
           </div>
-          <nav className="navList" aria-label="Dashboard quick actions">
-            <Link className="navLink" href="/customers">New customer</Link>
-            <Link className="navLink" href="/properties">New property</Link>
-            <Link className="navLink" href="/work-orders">New work order</Link>
+          <nav className="quickActionGrid" aria-label="Dashboard quick actions">
+            <Link className="quickActionCard" href="/work-orders">
+              <strong>New Work Order</strong>
+              <span>Create and assign maintenance work.</span>
+            </Link>
+            <Link className="quickActionCard" href="/customers">
+              <strong>Customers</strong>
+              <span>View and manage customer records.</span>
+            </Link>
+            <Link className="quickActionCard" href="/properties">
+              <strong>Properties</strong>
+              <span>View and manage property details.</span>
+            </Link>
+            <Link className="quickActionCard" href="/technicians">
+              <strong>Technicians</strong>
+              <span>View and manage technician assignments.</span>
+            </Link>
           </nav>
         </section>
       </section>

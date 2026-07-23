@@ -69,6 +69,11 @@ h1, h2, h3, p { margin-top: 0; }
 .statusPill { padding: 6px 9px; border-radius: 999px; background: #e8f1f5; color: #244e60; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
 .emptyState { padding: 56px 20px; text-align: center; color: #61727d; }
 .emptyState strong { display: block; margin-bottom: 8px; color: #17202a; }
+.quickActionGrid { display: grid; grid-template-columns: 1fr; gap: 12px; padding-top: 18px; }
+.quickActionCard { display: grid; gap: 6px; min-height: 104px; align-content: center; padding: 20px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
+.quickActionCard strong { font-size: 17px; }
+.quickActionCard span { color: #61727d; font-size: 14px; line-height: 1.4; }
+.quickActionCard:hover, .quickActionCard:focus-visible { border-color: #176b87; background: #eef7fa; }
 
 .resourceGrid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .resourceForm { display: grid; gap: 16px; }
@@ -85,6 +90,9 @@ h1, h2, h3, p { margin-top: 0; }
 
 @media (max-width: 1000px) {
   .resourceGrid { grid-template-columns: 1fr; }
+}
+@media (min-width: 680px) {
+  .quickActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .appShell { grid-template-columns: 1fr; }
