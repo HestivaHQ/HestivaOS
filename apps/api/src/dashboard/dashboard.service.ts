@@ -3,11 +3,13 @@ import { WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 const ACTIVE_WORK_ORDER_STATUSES: WorkOrderStatus[] = [
-  WorkOrderStatus.DRAFT,
-  WorkOrderStatus.OPEN,
-  WorkOrderStatus.SCHEDULED,
-  WorkOrderStatus.IN_PROGRESS,
-  WorkOrderStatus.ON_HOLD,
+  WorkOrderStatus.NEW,
+  WorkOrderStatus.ASSIGNED,
+  WorkOrderStatus.ACCEPTED,
+  WorkOrderStatus.TRAVELLING,
+  WorkOrderStatus.ON_SITE,
+  WorkOrderStatus.WAITING_FOR_PARTS,
+  WorkOrderStatus.COMPLETED,
 ];
 
 @Injectable()

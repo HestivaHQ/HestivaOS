@@ -2,10 +2,24 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { api, Customer, Property, Technician, WorkOrder } from '../../lib/api';
+import { api, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderStatus } from '../../lib/api';
 
 type WorkOrderForm = { customerId: string; propertyId: string; technicianId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
-const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', title: '', description: '', status: 'OPEN', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
+const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', title: '', description: '', status: 'NEW', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
+const NEXT_STATUSES: Record<WorkOrderStatus, WorkOrderStatus[]> = {
+  NEW: ['ASSIGNED', 'CANCELLED'], ASSIGNED: ['ACCEPTED', 'NEW', 'CANCELLED'], ACCEPTED: ['TRAVELLING', 'ON_SITE', 'ASSIGNED', 'CANCELLED'], TRAVELLING: ['ON_SITE', 'ACCEPTED', 'CANCELLED'], ON_SITE: ['WAITING_FOR_PARTS', 'COMPLETED', 'CANCELLED'], WAITING_FOR_PARTS: ['ON_SITE', 'COMPLETED', 'CANCELLED'], COMPLETED: ['CLOSED', 'ON_SITE'], CLOSED: [], CANCELLED: [],
+};
+
+function readableStatus(status: WorkOrderStatus) { return status.replaceAll('_', ' '); }
+function activityDescription(activity: WorkOrderActivity) {
+  if (activity.type === 'WORK_ORDER_CREATED') return 'Work order created';
+  if (activity.type === 'TECHNICIAN_ASSIGNED') return 'Technician assigned';
+  if (activity.type === 'TECHNICIAN_CHANGED') return 'Technician changed';
+  if (activity.type === 'TECHNICIAN_REMOVED') return 'Technician removed';
+  if (activity.type === 'WORK_ORDER_CLOSED') return 'Work order closed';
+  if (activity.type === 'WORK_ORDER_CANCELLED') return 'Work order cancelled';
+  return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
+}
 
 export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const searchParams = useSearchParams();
@@ -17,6 +31,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const [form, setForm] = useState<WorkOrderForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [timeline, setTimeline] = useState<WorkOrderActivity[]>([]);
   const availableProperties = useMemo(() => properties.filter((p) => !form.customerId || p.customerId === form.customerId), [properties, form.customerId]);
 
   async function load() {
@@ -52,7 +67,11 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
         scheduledAt: form.scheduledAt || undefined,
         completedAt: form.completedAt || undefined,
       };
-      if (editingId) await api.updateWorkOrder(editingId, payload);
+      if (editingId) {
+        const { status, ...updates } = payload;
+        const updated = await api.updateWorkOrder(editingId, updates);
+        if (status !== updated.status) await api.changeWorkOrderStatus(editingId, { status, actorId: createdById });
+      }
       else await api.createWorkOrder({ ...payload, createdById });
       setEditingId(null);
       setForm({ ...emptyForm, customerId: customers[0]?.id ?? '', propertyId: properties.find((p) => p.customerId === customers[0]?.id)?.id ?? '' });
@@ -63,6 +82,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   function edit(workOrder: WorkOrder) {
     setEditingId(workOrder.id);
     setForm({ customerId: workOrder.customerId, propertyId: workOrder.propertyId, technicianId: workOrder.technicianId ?? '', title: workOrder.title, description: workOrder.description ?? '', status: workOrder.status, priority: workOrder.priority, scheduledAt: workOrder.scheduledAt?.slice(0, 16) ?? '', completedAt: workOrder.completedAt?.slice(0, 16) ?? '' });
+    void api.workOrderTimeline(workOrder.id).then(setTimeline).catch((err) => setError(err instanceof Error ? err.message : 'Unable to load work order timeline.'));
   }
 
   async function remove(id: string) {
@@ -81,15 +101,15 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
         <label>Technician<select value={form.technicianId} onChange={(e) => setForm({ ...form, technicianId: e.target.value })}><option value="">Unassigned</option>{technicians.filter((t) => t.status === 'ACTIVE' || t.id === form.technicianId).map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}{t.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
         <label>Title<input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
         <label>Description<textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-        <label>Status<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as WorkOrder['status'] })}>{['DRAFT','OPEN','SCHEDULED','IN_PROGRESS','ON_HOLD','COMPLETED','CANCELLED'].map((v) => <option key={v}>{v}</option>)}</select></label>
+        <label>Status<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as WorkOrder['status'] })} disabled={!editingId}><option value={form.status}>{readableStatus(form.status)}</option>{editingId ? NEXT_STATUSES[form.status].map((status) => <option key={status} value={status}>{readableStatus(status)}</option>) : null}</select></label>
         <label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as WorkOrder['priority'] })}>{['LOW','NORMAL','HIGH','URGENT'].map((v) => <option key={v}>{v}</option>)}</select></label>
         <label>Scheduled at<input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} /></label>
-        <div className="formActions"><button className="primaryButton">Save work order</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button> : null}</div>
+        <div className="formActions"><button className="primaryButton">Save work order</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); setTimeline([]); }}>Cancel</button> : null}</div>
       </form>
       <section className="panel"><div className="panelHeader"><h3>Work queue</h3></div><div className="dataList">
         {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrder.title}</strong><p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</p></div><div className="rowActions"><span className="statusPill">{workOrder.status.replaceAll('_', ' ')}</span><span className="priorityText">{workOrder.priority}</span><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
         {!items.length ? <div className="emptyState"><strong>No work orders found</strong><p>Create a customer and property, then schedule the first job.</p></div> : null}
-      </div></section>
+      </div>{editingId ? <div className="timeline"><h3>Timeline</h3>{timeline.length ? timeline.map((activity) => <article className="timelineItem" key={activity.id}><strong>{activityDescription(activity)}</strong><p>{activity.actor ? `${activity.actor.firstName} ${activity.actor.lastName} · ` : ''}{new Intl.DateTimeFormat('en-ZA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(activity.createdAt))}</p>{activity.note ? <p>{activity.note}</p> : null}</article>) : <p className="emptyState">No activity recorded yet.</p>}</div> : null}</section>
     </div>
   </>;
 }

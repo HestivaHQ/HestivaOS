@@ -48,6 +48,10 @@ h1, h2, h3, p { margin-top: 0; }
 .workItem:last-child, .dataRow:last-child { border-bottom: 0; }
 .workItem p, .dataRow p { margin: 5px 0 0; color: #61727d; font-size: 14px; }
 .workMeta { display: grid; justify-items: end; gap: 8px; color: #61727d; font-size: 13px; }
+.timeline { margin-top: 24px; border-top: 1px solid #e5ebee; padding-top: 20px; }
+.timeline h3 { margin: 0 0 12px; font-size: 18px; }
+.timelineItem { padding: 12px 0; border-bottom: 1px solid #edf1f3; }
+.timelineItem p { margin: 5px 0 0; color: #61727d; font-size: 14px; }
 .statusPill { padding: 6px 9px; border-radius: 999px; background: #e8f1f5; color: #244e60; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
 .emptyState { padding: 56px 20px; text-align: center; color: #61727d; }
 .emptyState strong { display: block; margin-bottom: 8px; color: #17202a; }
