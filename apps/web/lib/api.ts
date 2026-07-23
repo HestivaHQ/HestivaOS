@@ -5,7 +5,13 @@ export type PaginatedResponse<T> = { items: T[]; total: number; page: number; pa
 export type AppUser = { id: string; authUserId: string; email: string; firstName: string; lastName: string };
 export type Customer = { id: string; ownerId: string; name: string; contactName: string | null; email: string | null; phone: string | null; notes?: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; customerId: string; customer?: Customer };
-export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; title: string; description?: string | null; status: 'DRAFT' | 'OPEN' | 'SCHEDULED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED'; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; customer: Customer; property: Property };
+export type WorkOrderStatus = 'DRAFT' | 'OPEN' | 'SCHEDULED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property };
+export type DashboardOverview = {
+  totals: { customers: number; properties: number; openWorkOrders: number; completedWorkOrders: number };
+  recentWorkOrders: WorkOrder[];
+  statusBreakdown: Record<WorkOrderStatus, number>;
+};
 
 export type CustomerInput = { ownerId: string; name: string; contactName?: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };
 export type PropertyInput = { customerId: string; name: string; addressLine1: string; addressLine2?: string; city: string; province?: string; postalCode?: string; country?: string; accessNotes?: string };
@@ -28,6 +34,7 @@ const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 
 export const api = {
   syncUser: (input: { authUserId: string; email: string; firstName?: string; lastName?: string }) => apiFetch<AppUser>('/users/sync', { method: 'POST', ...json(input) }),
+  dashboard: () => apiFetch<DashboardOverview>('/dashboard'),
   customers: (query = '') => apiFetch<PaginatedResponse<Customer>>(`/customers${query}`),
   createCustomer: (input: CustomerInput) => apiFetch<Customer>('/customers', { method: 'POST', ...json(input) }),
   updateCustomer: (id: string, input: Partial<Omit<CustomerInput, 'ownerId'>>) => apiFetch<Customer>(`/customers/${id}`, { method: 'PATCH', ...json(input) }),
