@@ -48,12 +48,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
   const dashboard = await getDashboardData();
 
-  const statusCards: Array<{ label: string; value: number }> = [
-    { label: 'New', value: dashboard.statusBreakdown.NEW },
-    { label: 'Assigned', value: dashboard.statusBreakdown.ASSIGNED },
-    { label: 'On site', value: dashboard.statusBreakdown.ON_SITE },
-    { label: 'Waiting for parts', value: dashboard.statusBreakdown.WAITING_FOR_PARTS },
-  ];
+  const statusCards: Array<{ status: WorkOrderStatus; label: string; value: number }> = Object.entries(dashboard.statusBreakdown).filter(([status]) => !['CLOSED', 'CANCELLED'].includes(status)).map(([status, value]) => ({ status: status as WorkOrderStatus, label: readableStatus(status), value }));
 
   return (
     <main className="appShell">
@@ -86,30 +81,19 @@ export default async function HomePage() {
           </span>
         </header>
 
+        <section className="panel">
+          <div className="panelHeader"><div><p className="eyebrow">Current workload</p><h3>Work requiring attention</h3></div><Link href="/work-orders">Manage work</Link></div>
+          <div className="metricGrid">
+            {statusCards.map((status) => <Link className="metricCard" href={`/work-orders?status=${status.status}`} key={status.status}><span>{status.label}</span><strong>{status.value}</strong></Link>)}
+          </div>
+        </section>
+
         <div className="metricGrid">
           <article className="metricCard"><span>Total customers</span><strong>{dashboard.totals.customers}</strong></article>
           <article className="metricCard"><span>Total properties</span><strong>{dashboard.totals.properties}</strong></article>
           <article className="metricCard"><span>Open work orders</span><strong>{dashboard.totals.openWorkOrders}</strong></article>
           <article className="metricCard"><span>Completed work orders</span><strong>{dashboard.totals.completedWorkOrders}</strong></article>
         </div>
-
-        <section className="panel">
-          <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Current workload</p>
-              <h3>Status overview</h3>
-            </div>
-            <Link href="/work-orders">Manage work</Link>
-          </div>
-          <div className="metricGrid">
-            {statusCards.map((status) => (
-              <article className="metricCard" key={status.label}>
-                <span>{status.label}</span>
-                <strong>{status.value}</strong>
-              </article>
-            ))}
-          </div>
-        </section>
 
         <section className="panel">
           <div className="panelHeader">
