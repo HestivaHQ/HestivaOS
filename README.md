@@ -23,8 +23,9 @@ API health: http://localhost:4000/api/v1/health
 
 ## Railway API deployment
 
-Railway deploys the API from the repository root using Nixpacks. The build command is
-`npm ci && npm run build --workspace @mm/api`; startup runs `npm run deploy:api`.
+Railway deploys the API from the repository root using Nixpacks on Node.js 24. The
+Nixpacks install phase runs `npm ci`, and the configured build command is
+`npm run build --workspace @mm/api`; startup runs `npm run deploy:api`.
 That command executes `prisma migrate deploy --schema apps/api/prisma/schema.prisma`
 before starting NestJS, so the API does not start when a migration fails.
 
