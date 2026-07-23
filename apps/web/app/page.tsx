@@ -3,6 +3,8 @@ import { api, DashboardOverview, WorkOrderStatus } from '../lib/api';
 import { createClient } from '../lib/supabase/server';
 import { SignOutButton } from './components/sign-out-button';
 
+export const dynamic = 'force-dynamic';
+
 const EMPTY_STATUS_BREAKDOWN: Record<WorkOrderStatus, number> = {
   NEW: 0,
   ASSIGNED: 0,

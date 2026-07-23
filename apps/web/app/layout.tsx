@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import './styles.css';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Maintenance Marshall Operating System',
   description: 'Maintenance Marshall business operations platform',
