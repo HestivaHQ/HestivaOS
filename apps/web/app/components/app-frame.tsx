@@ -7,6 +7,7 @@ export function AppFrame({ active, email, children }: { active: string; email: s
     ['/', 'Dashboard'],
     ['/customers', 'Customers'],
     ['/properties', 'Properties'],
+    ['/technicians', 'Technicians'],
     ['/work-orders', 'Work orders'],
   ];
 
