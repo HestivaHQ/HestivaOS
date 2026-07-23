@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { api, DashboardOverview, WorkOrderStatus } from '../lib/api';
+import { api, DashboardOverview, WorkOrderActivity, WorkOrderStatus } from '../lib/api';
 import { createClient } from '../lib/supabase/server';
 import { SignOutButton } from './components/sign-out-button';
 
@@ -24,7 +24,8 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
   } catch {
     return {
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
-      recentWorkOrders: [],
+      recentWorkOrderActivities: [],
+      todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
     };
@@ -41,6 +42,26 @@ function formatDate(value: string | null | undefined) {
 
 function readableStatus(status: string) {
   return status.replaceAll('_', ' ');
+}
+
+function formatTime(value: string | null) {
+  if (!value) return 'Not scheduled';
+  return new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(value));
+}
+
+function activityDescription(activity: WorkOrderActivity) {
+  if (activity.type === 'WORK_ORDER_CREATED') return 'Work order created';
+  if (activity.type === 'TECHNICIAN_ASSIGNED') return 'Technician assigned';
+  if (activity.type === 'TECHNICIAN_CHANGED') return 'Technician changed';
+  if (activity.type === 'TECHNICIAN_REMOVED') return 'Technician removed';
+  if (activity.type === 'WORK_ORDER_CLOSED') return 'Work order closed';
+  if (activity.type === 'WORK_ORDER_CANCELLED') return 'Work order cancelled';
+  return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
+}
+
+function activityUser(activity: WorkOrderActivity) {
+  if (!activity.actor) return 'System';
+  return activity.actor.displayName ?? `${activity.actor.firstName} ${activity.actor.lastName}`;
 }
 
 export default async function HomePage() {
@@ -100,31 +121,64 @@ export default async function HomePage() {
         <section className="panel">
           <div className="panelHeader">
             <div>
-              <p className="eyebrow">Latest activity</p>
-              <h3>Recent work orders</h3>
+              <p className="eyebrow">Today&apos;s schedule</p>
+              <h3>Scheduled work orders</h3>
             </div>
             <Link href="/work-orders">View all</Link>
           </div>
 
-          {dashboard.recentWorkOrders.length ? (
+          {dashboard.todayScheduledWorkOrders.length ? (
             <div className="workList">
-              {dashboard.recentWorkOrders.map((workOrder) => (
-                <Link className="workItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
-                  <div>
-                    <strong>{workOrder.title}</strong>
-                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'} · {workOrder.priority} priority</p>
+              {dashboard.todayScheduledWorkOrders.map((workOrder) => (
+                <Link className="workItem scheduledWorkItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+                  <div className="scheduledWorkDetails">
+                    <strong>{workOrder.customer.name}</strong>
+                    <p>{workOrder.property.name}</p>
+                    <dl>
+                      <div><dt>Assigned technician</dt><dd>{workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</dd></div>
+                      <div><dt>Scheduled time</dt><dd><time dateTime={workOrder.scheduledAt ?? undefined}>{formatTime(workOrder.scheduledAt)}</time></dd></div>
+                      <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
+                    </dl>
                   </div>
                   <div className="workMeta">
                     <span className="statusPill">{readableStatus(workOrder.status)}</span>
-                    <time>{formatDate(workOrder.scheduledAt ?? workOrder.createdAt)}</time>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
             <div className="emptyState">
-              <strong>No work orders yet</strong>
-              <p>Create a work order and it will appear here.</p>
+              <strong>No work scheduled for today.</strong>
+            </div>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Recent activity</p>
+              <h3>Latest work-order updates</h3>
+            </div>
+            <Link href="/work-orders">View all</Link>
+          </div>
+
+          {dashboard.recentWorkOrderActivities.length ? (
+            <div className="workList">
+              {dashboard.recentWorkOrderActivities.map((activity) => (
+                <Link className="workItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id}>
+                  <div>
+                    <strong>{activityDescription(activity)}</strong>
+                    <p>{activityUser(activity)} · Work order: {activity.workOrder.title}</p>
+                  </div>
+                  <div className="workMeta">
+                    <time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No recent activity.</strong>
             </div>
           )}
         </section>
@@ -133,13 +187,26 @@ export default async function HomePage() {
           <div className="panelHeader">
             <div>
               <p className="eyebrow">Quick actions</p>
-              <h3>Create a record</h3>
+              <h3>Manage operations</h3>
             </div>
           </div>
-          <nav className="navList" aria-label="Dashboard quick actions">
-            <Link className="navLink" href="/customers">New customer</Link>
-            <Link className="navLink" href="/properties">New property</Link>
-            <Link className="navLink" href="/work-orders">New work order</Link>
+          <nav className="quickActionGrid" aria-label="Dashboard quick actions">
+            <Link className="quickActionCard" href="/work-orders">
+              <strong>New Work Order</strong>
+              <span>Create and assign maintenance work.</span>
+            </Link>
+            <Link className="quickActionCard" href="/customers">
+              <strong>Customers</strong>
+              <span>View and manage customer records.</span>
+            </Link>
+            <Link className="quickActionCard" href="/properties">
+              <strong>Properties</strong>
+              <span>View and manage property details.</span>
+            </Link>
+            <Link className="quickActionCard" href="/technicians">
+              <strong>Technicians</strong>
+              <span>View and manage technician assignments.</span>
+            </Link>
           </nav>
         </section>
       </section>

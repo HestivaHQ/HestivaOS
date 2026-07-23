@@ -5,7 +5,7 @@
     "buildCommand": "npm run build --workspace @mm/api"
   },
   "deploy": {
-    "startCommand": "npm run deploy:api",
+    "startCommand": "npm run start",
     "healthcheckPath": "/api/v1/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE"
