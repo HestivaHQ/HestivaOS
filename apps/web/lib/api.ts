@@ -1,4 +1,5 @@
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const rawApiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const API_URL = rawApiUrl.trim().replace(/\/+$/, '').replace(/\/api\/v1$/, '');
 
 export type PaginatedResponse<T> = { items: T[]; total: number; page: number; pageSize: number };
 export type AppUser = { id: string; authUserId: string; email: string; firstName: string; lastName: string };
