@@ -1,12 +1,15 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api, Customer, Property, Technician, WorkOrder } from '../../lib/api';
 
 type WorkOrderForm = { customerId: string; propertyId: string; technicianId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
 const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', title: '', description: '', status: 'OPEN', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
 
 export function WorkOrdersManager({ createdById }: { createdById: string }) {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
   const [items, setItems] = useState<WorkOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -34,6 +37,11 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   }
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    const workOrder = items.find((item) => item.id === editId);
+    if (workOrder && editingId !== workOrder.id) edit(workOrder);
+  }, [editId, editingId, items]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

@@ -22,7 +22,13 @@ export class TechniciansService {
     if (!input.firstName?.trim() || !input.lastName?.trim()) {
       throw new BadRequestException('firstName and lastName are required.');
     }
-    return this.prisma.technician.create({ data: this.clean(input) });
+    return this.prisma.technician.create({
+      data: {
+        ...this.clean(input),
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+      },
+    });
   }
 
   async findAll(page = 1, pageSize = 20, search?: string, status?: TechnicianStatus) {

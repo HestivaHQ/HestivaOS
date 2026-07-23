@@ -15,6 +15,12 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview() {
+    const groupedStatusesQuery = this.prisma.workOrder.groupBy({
+      by: ['status'],
+      orderBy: { status: 'asc' },
+      _count: { _all: true },
+    });
+
     const [customers, properties, openWorkOrders, completedWorkOrders, recentWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
@@ -24,12 +30,9 @@ export class DashboardService {
         this.prisma.workOrder.findMany({
           orderBy: { createdAt: 'desc' },
           take: 5,
-          include: { customer: true, property: true, createdBy: true },
+          include: { customer: true, property: true, createdBy: true, technician: true },
         }),
-        this.prisma.workOrder.groupBy({
-          by: ['status'],
-          _count: { _all: true },
-        }),
+        groupedStatusesQuery,
       ]);
 
     const statusBreakdown = Object.values(WorkOrderStatus).reduce<Record<WorkOrderStatus, number>>(
