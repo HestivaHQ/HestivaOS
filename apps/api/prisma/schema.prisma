@@ -18,13 +18,25 @@ enum TechnicianStatus {
 }
 
 enum WorkOrderStatus {
-  DRAFT
-  OPEN
-  SCHEDULED
-  IN_PROGRESS
-  ON_HOLD
+  NEW
+  ASSIGNED
+  ACCEPTED
+  TRAVELLING
+  ON_SITE
+  WAITING_FOR_PARTS
   COMPLETED
+  CLOSED
   CANCELLED
+}
+
+enum WorkOrderActivityType {
+  WORK_ORDER_CREATED
+  STATUS_CHANGED
+  TECHNICIAN_ASSIGNED
+  TECHNICIAN_CHANGED
+  TECHNICIAN_REMOVED
+  WORK_ORDER_CLOSED
+  WORK_ORDER_CANCELLED
 }
 
 enum WorkOrderPriority {
@@ -34,15 +46,35 @@ enum WorkOrderPriority {
   URGENT
 }
 
+enum UserRole {
+  ADMIN
+  OPERATIONS_MANAGER
+  DISPATCHER
+  SUPERVISOR
+  TECHNICIAN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id          String      @id @default(uuid()) @db.Uuid
   authUserId  String      @unique @map("auth_user_id") @db.Uuid
   email       String      @unique
   firstName   String      @map("first_name")
   lastName    String      @map("last_name")
-  status      String      @default("INVITED")
+  displayName String?     @map("display_name")
+  phoneNumber String?     @map("phone_number")
+  jobTitle    String?     @map("job_title")
+  department  String?
+  profilePhotoUrl String? @map("profile_photo_url")
+  role        UserRole   @default(TECHNICIAN)
+  status      UserStatus @default(ACTIVE)
   customers   Customer[]  @relation("CustomerOwner")
   workOrders  WorkOrder[] @relation("WorkOrderCreator")
+  workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
@@ -115,7 +147,7 @@ model WorkOrder {
   technicianId String?           @map("technician_id") @db.Uuid
   title        String
   description  String?
-  status       WorkOrderStatus   @default(OPEN)
+  status       WorkOrderStatus   @default(NEW)
   priority     WorkOrderPriority @default(NORMAL)
   scheduledAt  DateTime?         @map("scheduled_at")
   completedAt  DateTime?         @map("completed_at")
@@ -123,6 +155,7 @@ model WorkOrder {
   property     Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   createdBy    User              @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician   Technician?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  activities   WorkOrderActivity[]
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
@@ -133,4 +166,22 @@ model WorkOrder {
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderActivity {
+  id             String                @id @default(uuid()) @db.Uuid
+  workOrderId    String                @map("work_order_id") @db.Uuid
+  type           WorkOrderActivityType
+  previousStatus WorkOrderStatus?      @map("previous_status")
+  newStatus      WorkOrderStatus?      @map("new_status")
+  note           String?
+  actorId        String?               @map("actor_id") @db.Uuid
+  workOrder      WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  actor          User?                 @relation("WorkOrderActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  @@index([workOrderId])
+  @@index([createdAt])
+  @@index([workOrderId, createdAt])
+  @@map("work_order_activities")
 }

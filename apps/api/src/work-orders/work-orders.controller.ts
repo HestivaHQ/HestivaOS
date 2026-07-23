@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
-import { CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrdersService } from './work-orders.service';
+import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -25,14 +25,22 @@ export class WorkOrdersController {
     return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId);
   }
 
-  @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.workOrders.findOne(id);
+  @Get(':id/timeline')
+  findTimeline(@Param('id', new ParseUUIDPipe()) id: string) { return this.workOrders.findTimeline(id); }
+
+  @Patch(':id/status')
+  changeStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ChangeWorkOrderStatusInput) {
+    return this.workOrders.changeStatus(id, input);
   }
 
   @Patch(':id')
   update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateWorkOrderInput) {
     return this.workOrders.update(id, input);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.workOrders.findOne(id);
   }
 
   @Delete(':id')
