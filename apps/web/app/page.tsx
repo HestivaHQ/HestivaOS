@@ -4,12 +4,14 @@ import { createClient } from '../lib/supabase/server';
 import { SignOutButton } from './components/sign-out-button';
 
 const EMPTY_STATUS_BREAKDOWN: Record<WorkOrderStatus, number> = {
-  DRAFT: 0,
-  OPEN: 0,
-  SCHEDULED: 0,
-  IN_PROGRESS: 0,
-  ON_HOLD: 0,
+  NEW: 0,
+  ASSIGNED: 0,
+  ACCEPTED: 0,
+  TRAVELLING: 0,
+  ON_SITE: 0,
+  WAITING_FOR_PARTS: 0,
   COMPLETED: 0,
+  CLOSED: 0,
   CANCELLED: 0,
 };
 
@@ -47,10 +49,10 @@ export default async function HomePage() {
   const dashboard = await getDashboardData();
 
   const statusCards: Array<{ label: string; value: number }> = [
-    { label: 'Open', value: dashboard.statusBreakdown.OPEN },
-    { label: 'Scheduled', value: dashboard.statusBreakdown.SCHEDULED },
-    { label: 'In progress', value: dashboard.statusBreakdown.IN_PROGRESS },
-    { label: 'On hold', value: dashboard.statusBreakdown.ON_HOLD },
+    { label: 'New', value: dashboard.statusBreakdown.NEW },
+    { label: 'Assigned', value: dashboard.statusBreakdown.ASSIGNED },
+    { label: 'On site', value: dashboard.statusBreakdown.ON_SITE },
+    { label: 'Waiting for parts', value: dashboard.statusBreakdown.WAITING_FOR_PARTS },
   ];
 
   return (
@@ -121,16 +123,16 @@ export default async function HomePage() {
           {dashboard.recentWorkOrders.length ? (
             <div className="workList">
               {dashboard.recentWorkOrders.map((workOrder) => (
-                <article className="workItem" key={workOrder.id}>
+                <Link className="workItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
                   <div>
                     <strong>{workOrder.title}</strong>
-                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.priority} priority</p>
+                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'} · {workOrder.priority} priority</p>
                   </div>
                   <div className="workMeta">
                     <span className="statusPill">{readableStatus(workOrder.status)}</span>
                     <time>{formatDate(workOrder.scheduledAt ?? workOrder.createdAt)}</time>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           ) : (
