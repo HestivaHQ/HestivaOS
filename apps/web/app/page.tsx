@@ -121,16 +121,16 @@ export default async function HomePage() {
           {dashboard.recentWorkOrders.length ? (
             <div className="workList">
               {dashboard.recentWorkOrders.map((workOrder) => (
-                <article className="workItem" key={workOrder.id}>
+                <Link className="workItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
                   <div>
                     <strong>{workOrder.title}</strong>
-                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.priority} priority</p>
+                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'} · {workOrder.priority} priority</p>
                   </div>
                   <div className="workMeta">
                     <span className="statusPill">{readableStatus(workOrder.status)}</span>
                     <time>{formatDate(workOrder.scheduledAt ?? workOrder.createdAt)}</time>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           ) : (

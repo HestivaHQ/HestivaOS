@@ -30,7 +30,7 @@ export class DashboardService {
         this.prisma.workOrder.findMany({
           orderBy: { createdAt: 'desc' },
           take: 5,
-          include: { customer: true, property: true, createdBy: true },
+          include: { customer: true, property: true, createdBy: true, technician: true },
         }),
         groupedStatusesQuery,
       ]);
