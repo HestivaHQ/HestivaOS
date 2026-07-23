@@ -20,8 +20,9 @@ export class WorkOrdersController {
     @Query('priority') priority?: WorkOrderPriority,
     @Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string,
     @Query('propertyId', new ParseUUIDPipe({ optional: true })) propertyId?: string,
+    @Query('technicianId', new ParseUUIDPipe({ optional: true })) technicianId?: string,
   ) {
-    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId);
+    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId);
   }
 
   @Get(':id')
