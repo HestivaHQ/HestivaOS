@@ -23,6 +23,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
     return {
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
       recentWorkOrders: [],
+      todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
     };
@@ -39,6 +40,11 @@ function formatDate(value: string | null | undefined) {
 
 function readableStatus(status: string) {
   return status.replaceAll('_', ' ');
+}
+
+function formatTime(value: string | null) {
+  if (!value) return 'Not scheduled';
+  return new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(value));
 }
 
 export default async function HomePage() {
@@ -94,6 +100,41 @@ export default async function HomePage() {
           <article className="metricCard"><span>Open work orders</span><strong>{dashboard.totals.openWorkOrders}</strong></article>
           <article className="metricCard"><span>Completed work orders</span><strong>{dashboard.totals.completedWorkOrders}</strong></article>
         </div>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Today&apos;s schedule</p>
+              <h3>Scheduled work orders</h3>
+            </div>
+            <Link href="/work-orders">View all</Link>
+          </div>
+
+          {dashboard.todayScheduledWorkOrders.length ? (
+            <div className="workList">
+              {dashboard.todayScheduledWorkOrders.map((workOrder) => (
+                <Link className="workItem scheduledWorkItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+                  <div className="scheduledWorkDetails">
+                    <strong>{workOrder.customer.name}</strong>
+                    <p>{workOrder.property.name}</p>
+                    <dl>
+                      <div><dt>Assigned technician</dt><dd>{workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</dd></div>
+                      <div><dt>Scheduled time</dt><dd><time dateTime={workOrder.scheduledAt ?? undefined}>{formatTime(workOrder.scheduledAt)}</time></dd></div>
+                      <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="workMeta">
+                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No work scheduled for today.</strong>
+            </div>
+          )}
+        </section>
 
         <section className="panel">
           <div className="panelHeader">

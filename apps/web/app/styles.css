@@ -48,6 +48,12 @@ h1, h2, h3, p { margin-top: 0; }
 .workItem:last-child, .dataRow:last-child { border-bottom: 0; }
 .workItem p, .dataRow p { margin: 5px 0 0; color: #61727d; font-size: 14px; }
 .workMeta { display: grid; justify-items: end; gap: 8px; color: #61727d; font-size: 13px; }
+.scheduledWorkItem { align-items: flex-start; }
+.scheduledWorkDetails { min-width: 0; }
+.scheduledWorkDetails dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px; margin: 16px 0 0; }
+.scheduledWorkDetails dl div { min-width: 0; }
+.scheduledWorkDetails dt { color: #61727d; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.scheduledWorkDetails dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 700; }
 .timeline { margin-top: 24px; border-top: 1px solid #e5ebee; padding-top: 20px; }
 .timeline h3 { margin: 0 0 12px; font-size: 18px; }
 .timelineItem { padding: 12px 0; border-bottom: 1px solid #edf1f3; }
@@ -94,6 +100,7 @@ h1, h2, h3, p { margin-top: 0; }
   .pageHeader, .workItem, .dataRow { align-items: stretch; flex-direction: column; }
   .metricGrid { grid-template-columns: 1fr; }
   .workMeta { justify-items: start; }
+  .scheduledWorkDetails dl { grid-template-columns: 1fr; gap: 12px; }
   .rowActions { justify-content: flex-start; }
   .panelHeader { align-items: stretch; flex-direction: column; }
   .searchInput { max-width: none; }

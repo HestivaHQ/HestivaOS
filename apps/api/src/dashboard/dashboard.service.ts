@@ -17,13 +17,18 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview() {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+
     const groupedStatusesQuery = this.prisma.workOrder.groupBy({
       by: ['status'],
       orderBy: { status: 'asc' },
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, recentWorkOrders, groupedStatuses] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, recentWorkOrders, todayScheduledWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -32,6 +37,11 @@ export class DashboardService {
         this.prisma.workOrder.findMany({
           orderBy: { createdAt: 'desc' },
           take: 5,
+          include: { customer: true, property: true, createdBy: true, technician: true },
+        }),
+        this.prisma.workOrder.findMany({
+          where: { scheduledAt: { gte: todayStart, lt: tomorrowStart } },
+          orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
           include: { customer: true, property: true, createdBy: true, technician: true },
         }),
         groupedStatusesQuery,
@@ -57,6 +67,7 @@ export class DashboardService {
         completedWorkOrders,
       },
       recentWorkOrders,
+      todayScheduledWorkOrders,
       statusBreakdown,
     };
   }

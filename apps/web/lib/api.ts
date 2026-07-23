@@ -13,6 +13,7 @@ export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STAT
 export type DashboardOverview = {
   totals: { customers: number; properties: number; openWorkOrders: number; completedWorkOrders: number };
   recentWorkOrders: WorkOrder[];
+  todayScheduledWorkOrders: WorkOrder[];
   statusBreakdown: Record<WorkOrderStatus, number>;
 };
 
