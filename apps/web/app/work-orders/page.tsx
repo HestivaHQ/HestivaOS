@@ -17,7 +17,14 @@ export default async function WorkOrdersPage() {
 
     return <AppFrame active="/work-orders" email={user.email}><WorkOrdersManager createdById={appUser.id} /></AppFrame>;
   } catch (error) {
-    console.error('WORK_ORDERS_PAGE_ERROR', error);
+    console.error(
+      `WORK_ORDERS_PAGE_ERROR ${JSON.stringify({
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        cause: error instanceof Error ? String(error.cause) : undefined,
+        name: error instanceof Error ? error.name : undefined,
+      })}`
+    );
     throw error;
   }
 }
