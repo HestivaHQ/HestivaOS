@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { api, DashboardOverview, WorkOrderStatus } from '../lib/api';
+import { api, DashboardOverview, WorkOrderActivity, WorkOrderStatus } from '../lib/api';
 import { createClient } from '../lib/supabase/server';
 import { SignOutButton } from './components/sign-out-button';
 
@@ -22,7 +22,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
   } catch {
     return {
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
-      recentWorkOrders: [],
+      recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
@@ -45,6 +45,21 @@ function readableStatus(status: string) {
 function formatTime(value: string | null) {
   if (!value) return 'Not scheduled';
   return new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(value));
+}
+
+function activityDescription(activity: WorkOrderActivity) {
+  if (activity.type === 'WORK_ORDER_CREATED') return 'Work order created';
+  if (activity.type === 'TECHNICIAN_ASSIGNED') return 'Technician assigned';
+  if (activity.type === 'TECHNICIAN_CHANGED') return 'Technician changed';
+  if (activity.type === 'TECHNICIAN_REMOVED') return 'Technician removed';
+  if (activity.type === 'WORK_ORDER_CLOSED') return 'Work order closed';
+  if (activity.type === 'WORK_ORDER_CANCELLED') return 'Work order cancelled';
+  return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
+}
+
+function activityUser(activity: WorkOrderActivity) {
+  if (!activity.actor) return 'System';
+  return activity.actor.displayName ?? `${activity.actor.firstName} ${activity.actor.lastName}`;
 }
 
 export default async function HomePage() {
@@ -139,31 +154,29 @@ export default async function HomePage() {
         <section className="panel">
           <div className="panelHeader">
             <div>
-              <p className="eyebrow">Latest activity</p>
-              <h3>Recent work orders</h3>
+              <p className="eyebrow">Recent activity</p>
+              <h3>Latest work-order updates</h3>
             </div>
             <Link href="/work-orders">View all</Link>
           </div>
 
-          {dashboard.recentWorkOrders.length ? (
+          {dashboard.recentWorkOrderActivities.length ? (
             <div className="workList">
-              {dashboard.recentWorkOrders.map((workOrder) => (
-                <Link className="workItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+              {dashboard.recentWorkOrderActivities.map((activity) => (
+                <Link className="workItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id}>
                   <div>
-                    <strong>{workOrder.title}</strong>
-                    <p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'} · {workOrder.priority} priority</p>
+                    <strong>{activityDescription(activity)}</strong>
+                    <p>{activityUser(activity)} · Work order: {activity.workOrder.title}</p>
                   </div>
                   <div className="workMeta">
-                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
-                    <time>{formatDate(workOrder.scheduledAt ?? workOrder.createdAt)}</time>
+                    <time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
             <div className="emptyState">
-              <strong>No work orders yet</strong>
-              <p>Create a work order and it will appear here.</p>
+              <strong>No recent activity.</strong>
             </div>
           )}
         </section>
