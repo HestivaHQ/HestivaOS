@@ -1,0 +1,16 @@
+CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'OPERATIONS_MANAGER', 'DISPATCHER', 'SUPERVISOR', 'TECHNICIAN');
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
+ALTER TABLE "users"
+  ADD COLUMN "display_name" TEXT,
+  ADD COLUMN "phone_number" TEXT,
+  ADD COLUMN "job_title" TEXT,
+  ADD COLUMN "department" TEXT,
+  ADD COLUMN "profile_photo_url" TEXT,
+  ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'TECHNICIAN';
+
+ALTER TABLE "users" ALTER COLUMN "status" DROP DEFAULT;
+ALTER TABLE "users"
+  ALTER COLUMN "status" TYPE "UserStatus"
+  USING (CASE WHEN "status"::text = 'ACTIVE' THEN 'ACTIVE' ELSE 'INACTIVE' END)::"UserStatus";
+ALTER TABLE "users" ALTER COLUMN "status" SET DEFAULT 'ACTIVE';
