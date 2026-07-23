@@ -46,13 +46,32 @@ enum WorkOrderPriority {
   URGENT
 }
 
+enum UserRole {
+  ADMIN
+  OPERATIONS_MANAGER
+  DISPATCHER
+  SUPERVISOR
+  TECHNICIAN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id          String      @id @default(uuid()) @db.Uuid
   authUserId  String      @unique @map("auth_user_id") @db.Uuid
   email       String      @unique
   firstName   String      @map("first_name")
   lastName    String      @map("last_name")
-  status      String      @default("INVITED")
+  displayName String?     @map("display_name")
+  phoneNumber String?     @map("phone_number")
+  jobTitle    String?     @map("job_title")
+  department  String?
+  profilePhotoUrl String? @map("profile_photo_url")
+  role        UserRole   @default(TECHNICIAN)
+  status      UserStatus @default(ACTIVE)
   customers   Customer[]  @relation("CustomerOwner")
   workOrders  WorkOrder[] @relation("WorkOrderCreator")
   workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")

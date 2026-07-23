@@ -11,9 +11,11 @@
     "build": "npm run build --workspace @mm/api && npm run build --workspace @mm/web",
     "test": "npm run test --workspace @mm/api && npm run test --workspace @mm/web",
     "typecheck": "npm run typecheck --workspace @mm/api && npm run typecheck --workspace @mm/web",
-    "db:generate": "prisma generate --schema prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
-    "db:studio": "prisma studio --schema prisma/schema.prisma"
+    "db:generate": "prisma generate --schema apps/api/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema apps/api/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema apps/api/prisma/schema.prisma",
+    "db:migrate:deploy": "prisma migrate deploy --schema apps/api/prisma/schema.prisma",
+    "deploy:api": "npm run db:migrate:deploy && npm run start --workspace @mm/api"
   },
   "devDependencies": {
     "prisma": "^6.0.0",

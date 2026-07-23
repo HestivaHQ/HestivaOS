@@ -2,7 +2,8 @@ const rawApiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'htt
 const API_URL = rawApiUrl.trim().replace(/\/+$/, '').replace(/\/api\/v1$/, '');
 
 export type PaginatedResponse<T> = { items: T[]; total: number; page: number; pageSize: number };
-export type AppUser = { id: string; authUserId: string; email: string; firstName: string; lastName: string };
+export type UserRole = 'ADMIN' | 'OPERATIONS_MANAGER' | 'DISPATCHER' | 'SUPERVISOR' | 'TECHNICIAN';
+export type AppUser = { id: string; authUserId: string; email: string; firstName: string; lastName: string; displayName: string | null; phoneNumber: string | null; jobTitle: string | null; department: string | null; profilePhotoUrl: string | null; role: UserRole; status: 'ACTIVE' | 'INACTIVE' };
 export type Customer = { id: string; ownerId: string; name: string; contactName: string | null; email: string | null; phone: string | null; notes?: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; customerId: string; customer?: Customer };
 export type Technician = { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; skills: string[]; notes: string | null; status: 'ACTIVE' | 'INACTIVE' };
@@ -21,10 +22,16 @@ export type TechnicianInput = { firstName: string; lastName: string; email?: str
 export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; title: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  if (typeof window !== 'undefined' && !headers.has('Authorization')) {
+    const { createClient } = await import('./supabase/client');
+    const { data: { session } } = await createClient().auth.getSession();
+    if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`);
+  }
   const response = await fetch(`${API_URL}/api/v1${path}`, {
     cache: 'no-store',
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...Object.fromEntries(headers.entries()) },
   });
   if (!response.ok) {
     const result = await response.json().catch(() => null) as { message?: string } | null;
@@ -36,7 +43,8 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 
 export const api = {
-  syncUser: (input: { authUserId: string; email: string; firstName?: string; lastName?: string }) => apiFetch<AppUser>('/users/sync', { method: 'POST', ...json(input) }),
+  syncUser: (accessToken: string) => apiFetch<AppUser>('/users/sync', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }),
+  updateProfile: (accessToken: string, input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'displayName' | 'phoneNumber' | 'jobTitle' | 'department' | 'profilePhotoUrl'>>) => apiFetch<AppUser>('/users/me/profile', { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json(input) }),
   dashboard: () => apiFetch<DashboardOverview>('/dashboard'),
   customers: (query = '') => apiFetch<PaginatedResponse<Customer>>(`/customers${query}`),
   createCustomer: (input: CustomerInput) => apiFetch<Customer>('/customers', { method: 'POST', ...json(input) }),
