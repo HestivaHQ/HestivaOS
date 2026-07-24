@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CleaningJobTemplatesModule } from './cleaning-job-templates/cleaning-job-templates.module';
+import { CrewsModule } from './crews/crews.module';
 import { CustomersModule } from './customers/customers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
@@ -14,7 +15,7 @@ import { WorkOrderPhotosModule } from './work-order-photos/work-order-photos.mod
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
-  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule],
+  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule],
   controllers: [HealthController],
   providers: [PrismaService],
 })
