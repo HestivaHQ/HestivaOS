@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { api, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderStatus } from '../../lib/api';
+import { api, CleaningJobTemplate, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderStatus } from '../../lib/api';
 
 type WorkOrderForm = { customerId: string; propertyId: string; technicianId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
 const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', title: '', description: '', status: 'NEW', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
@@ -29,6 +29,8 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [templates, setTemplates] = useState<CleaningJobTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [form, setForm] = useState<WorkOrderForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -37,16 +39,18 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
 
   async function load() {
     try {
-      const [workData, customerData, propertyData, technicianData] = await Promise.all([
+      const [workData, customerData, propertyData, technicianData, templateData] = await Promise.all([
         api.workOrders(`?page=1&pageSize=100${alert ? `&alert=${encodeURIComponent(alert)}` : ''}`),
         api.customers('?page=1&pageSize=100'),
         api.properties('?page=1&pageSize=100'),
         api.technicians('?page=1&pageSize=100'),
+        api.cleaningJobTemplates('?page=1&pageSize=100&status=ACTIVE'),
       ]);
       setItems(workData.items);
       setCustomers(customerData.items);
       setProperties(propertyData.items);
       setTechnicians(technicianData.items);
+      setTemplates(templateData.items);
       setForm((current) => current.customerId || !customerData.items[0] ? current : { ...current, customerId: customerData.items[0].id, propertyId: propertyData.items.find((p) => p.customerId === customerData.items[0].id)?.id ?? '' });
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
@@ -75,13 +79,24 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
       }
       else await api.createWorkOrder({ ...payload, createdById });
       setEditingId(null);
+      setSelectedTemplateId('');
       setForm({ ...emptyForm, customerId: customers[0]?.id ?? '', propertyId: properties.find((p) => p.customerId === customers[0]?.id)?.id ?? '' });
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save work order.'); }
   }
 
+  function applyTemplate(templateId: string) {
+    setSelectedTemplateId(templateId);
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) return;
+    const serviceNames = template.services.map((service) => service.name).join(', ');
+    const description = [template.description, serviceNames ? `Services: ${serviceNames}` : ''].filter(Boolean).join('\n\n');
+    setForm((current) => ({ ...current, title: template.name, description }));
+  }
+
   function edit(workOrder: WorkOrder) {
     setEditingId(workOrder.id);
+    setSelectedTemplateId('');
     setForm({ customerId: workOrder.customerId, propertyId: workOrder.propertyId, technicianId: workOrder.technicianId ?? '', title: workOrder.title, description: workOrder.description ?? '', status: workOrder.status, priority: workOrder.priority, scheduledAt: workOrder.scheduledAt?.slice(0, 16) ?? '', completedAt: workOrder.completedAt?.slice(0, 16) ?? '' });
     void api.workOrderTimeline(workOrder.id).then(setTimeline).catch((err) => setError(err instanceof Error ? err.message : 'Unable to load work order timeline.'));
   }
@@ -97,6 +112,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
     <div className="resourceGrid">
       <form className="panel resourceForm" onSubmit={submit}>
         <div className="panelHeader"><h3>{editingId ? 'Edit work order' : 'New work order'}</h3></div>
+        {!editingId ? <label>Cleaning job template<select value={selectedTemplateId} onChange={(event) => applyTemplate(event.target.value)}><option value="">Start without a template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label> : null}
         <label>Customer<select required value={form.customerId} onChange={(e) => { const customerId = e.target.value; setForm({ ...form, customerId, propertyId: properties.find((p) => p.customerId === customerId)?.id ?? '' }); }}><option value="">Select customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
         <label>Property<select required value={form.propertyId} onChange={(e) => setForm({ ...form, propertyId: e.target.value })}><option value="">Select property</option>{availableProperties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <label>Technician<select value={form.technicianId} onChange={(e) => setForm({ ...form, technicianId: e.target.value })}><option value="">Unassigned</option>{technicians.filter((t) => t.status === 'ACTIVE' || t.id === form.technicianId).map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}{t.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
