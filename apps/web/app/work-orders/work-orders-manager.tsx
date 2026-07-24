@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { api, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderChecklistItem, WorkOrderStatus } from '../../lib/api';
+import { api, Crew, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderChecklistItem, WorkOrderStatus } from '../../lib/api';
 
-type WorkOrderForm = { customerId: string; propertyId: string; technicianId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
-const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', title: '', description: '', status: 'NEW', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
+type WorkOrderForm = { customerId: string; propertyId: string; technicianId: string; crewId: string; title: string; description: string; status: WorkOrder['status']; priority: WorkOrder['priority']; scheduledAt: string; completedAt: string };
+const emptyForm: WorkOrderForm = { customerId: '', propertyId: '', technicianId: '', crewId: '', title: '', description: '', status: 'NEW', priority: 'NORMAL', scheduledAt: '', completedAt: '' };
 const NEXT_STATUSES: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   NEW: ['ASSIGNED', 'CANCELLED'], ASSIGNED: ['ACCEPTED', 'NEW', 'CANCELLED'], ACCEPTED: ['TRAVELLING', 'ON_SITE', 'ASSIGNED', 'CANCELLED'], TRAVELLING: ['ON_SITE', 'ACCEPTED', 'CANCELLED'], ON_SITE: ['WAITING_FOR_PARTS', 'COMPLETED', 'CANCELLED'], WAITING_FOR_PARTS: ['ON_SITE', 'COMPLETED', 'CANCELLED'], COMPLETED: ['CLOSED', 'ON_SITE'], CLOSED: [], CANCELLED: [],
 };
@@ -17,6 +17,9 @@ function activityDescription(activity: WorkOrderActivity) {
   if (activity.type === 'TECHNICIAN_ASSIGNED') return 'Technician assigned';
   if (activity.type === 'TECHNICIAN_CHANGED') return 'Technician changed';
   if (activity.type === 'TECHNICIAN_REMOVED') return 'Technician removed';
+  if (activity.type === 'CREW_ASSIGNED') return 'Crew assigned';
+  if (activity.type === 'CREW_CHANGED') return 'Crew changed';
+  if (activity.type === 'CREW_REMOVED') return 'Crew removed';
   if (activity.type === 'WORK_ORDER_CLOSED') return 'Work order closed';
   if (activity.type === 'WORK_ORDER_CANCELLED') return 'Work order cancelled';
   return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
@@ -30,6 +33,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [crews, setCrews] = useState<Crew[]>([]);
   const [form, setForm] = useState<WorkOrderForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -37,19 +41,23 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const [checklist, setChecklist] = useState<WorkOrderChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const availableProperties = useMemo(() => properties.filter((p) => !form.customerId || p.customerId === form.customerId), [properties, form.customerId]);
+  const selectedCrew = useMemo(() => crews.find((crew) => crew.id === form.crewId), [crews, form.crewId]);
+  const assignableTechnicians = useMemo(() => selectedCrew ? selectedCrew.members.map((member) => member.technician) : technicians, [selectedCrew, technicians]);
 
   async function load() {
     try {
-      const [workData, customerData, propertyData, technicianData] = await Promise.all([
+      const [workData, customerData, propertyData, technicianData, crewData] = await Promise.all([
         api.workOrders(`?page=1&pageSize=100${alert ? `&alert=${encodeURIComponent(alert)}` : ''}`),
         api.customers('?page=1&pageSize=100'),
         api.properties('?page=1&pageSize=100'),
         api.technicians('?page=1&pageSize=100'),
+        api.crews('?page=1&pageSize=100'),
       ]);
       setItems(workData.items);
       setCustomers(customerData.items);
       setProperties(propertyData.items);
       setTechnicians(technicianData.items);
+      setCrews(crewData.items);
       setForm((current) => current.customerId || !customerData.items[0] ? current : { ...current, customerId: customerData.items[0].id, propertyId: propertyData.items.find((p) => p.customerId === customerData.items[0].id)?.id ?? '' });
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
@@ -64,7 +72,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     try {
-      const payload = { ...form, technicianId: form.technicianId || null, scheduledAt: form.scheduledAt || undefined, completedAt: form.completedAt || undefined };
+      const payload = { ...form, technicianId: form.technicianId || null, crewId: form.crewId || null, scheduledAt: form.scheduledAt || undefined, completedAt: form.completedAt || undefined };
       if (editingId) {
         const { status, ...updates } = payload;
         const updated = await api.updateWorkOrder(editingId, updates);
@@ -80,33 +88,26 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
 
   function edit(workOrder: WorkOrder) {
     setEditingId(workOrder.id);
-    setForm({ customerId: workOrder.customerId, propertyId: workOrder.propertyId, technicianId: workOrder.technicianId ?? '', title: workOrder.title, description: workOrder.description ?? '', status: workOrder.status, priority: workOrder.priority, scheduledAt: workOrder.scheduledAt?.slice(0, 16) ?? '', completedAt: workOrder.completedAt?.slice(0, 16) ?? '' });
+    setForm({ customerId: workOrder.customerId, propertyId: workOrder.propertyId, technicianId: workOrder.technicianId ?? '', crewId: workOrder.crewId ?? '', title: workOrder.title, description: workOrder.description ?? '', status: workOrder.status, priority: workOrder.priority, scheduledAt: workOrder.scheduledAt?.slice(0, 16) ?? '', completedAt: workOrder.completedAt?.slice(0, 16) ?? '' });
     void Promise.all([api.workOrderTimeline(workOrder.id), api.workOrderChecklist(workOrder.id)]).then(([activities, items]) => { setTimeline(activities); setChecklist(items); }).catch((err) => setError(err instanceof Error ? err.message : 'Unable to load work order details.'));
   }
 
   async function addChecklistItem() {
     if (!editingId || !newChecklistItem.trim()) return;
-    try {
-      await api.createWorkOrderChecklistItem(editingId, newChecklistItem);
-      setNewChecklistItem('');
-      setChecklist(await api.workOrderChecklist(editingId));
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to add checklist item.'); }
+    try { await api.createWorkOrderChecklistItem(editingId, newChecklistItem); setNewChecklistItem(''); setChecklist(await api.workOrderChecklist(editingId)); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to add checklist item.'); }
   }
 
   async function updateChecklistItem(item: WorkOrderChecklistItem, status: WorkOrderChecklistItem['status']) {
     if (!editingId) return;
-    try {
-      await api.updateWorkOrderChecklistItem(editingId, item.id, { status });
-      setChecklist(await api.workOrderChecklist(editingId));
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to update checklist item.'); }
+    try { await api.updateWorkOrderChecklistItem(editingId, item.id, { status }); setChecklist(await api.workOrderChecklist(editingId)); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update checklist item.'); }
   }
 
   async function deleteChecklistItem(itemId: string) {
     if (!editingId) return;
-    try {
-      await api.deleteWorkOrderChecklistItem(editingId, itemId);
-      setChecklist(await api.workOrderChecklist(editingId));
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete checklist item.'); }
+    try { await api.deleteWorkOrderChecklistItem(editingId, itemId); setChecklist(await api.workOrderChecklist(editingId)); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete checklist item.'); }
   }
 
   async function remove(id: string) {
@@ -115,14 +116,16 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   }
 
   return <>
-    <header className="pageHeader"><div><p className="eyebrow">Operations</p><h2>Work orders</h2><p>Schedule work, assign technicians, and complete each job checklist.</p></div></header>
+    <header className="pageHeader"><div><p className="eyebrow">Operations</p><h2>Work orders</h2><p>Schedule work, assign technicians or crews, and complete each job checklist.</p></div></header>
     {error ? <p className="errorBanner">{error}</p> : null}
     <div className="resourceGrid">
       <form className="panel resourceForm" onSubmit={submit}>
         <div className="panelHeader"><h3>{editingId ? 'Edit work order' : 'New work order'}</h3></div>
         <label>Customer<select required value={form.customerId} onChange={(e) => { const customerId = e.target.value; setForm({ ...form, customerId, propertyId: properties.find((p) => p.customerId === customerId)?.id ?? '' }); }}><option value="">Select customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
         <label>Property<select required value={form.propertyId} onChange={(e) => setForm({ ...form, propertyId: e.target.value })}><option value="">Select property</option>{availableProperties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-        <label>Technician<select value={form.technicianId} onChange={(e) => setForm({ ...form, technicianId: e.target.value })}><option value="">Unassigned</option>{technicians.filter((t) => t.status === 'ACTIVE' || t.id === form.technicianId).map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}{t.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
+        <label>Crew<select value={form.crewId} onChange={(e) => { const crewId = e.target.value; const crew = crews.find((item) => item.id === crewId); setForm({ ...form, crewId, technicianId: crew?.members.some((member) => member.technicianId === form.technicianId) ? form.technicianId : '' }); }}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}{crew.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
+        <label>{form.crewId ? 'Designated technician' : 'Technician'}<select value={form.technicianId} onChange={(e) => setForm({ ...form, technicianId: e.target.value })}><option value="">{form.crewId ? 'No designated technician' : 'Unassigned'}</option>{assignableTechnicians.filter((t) => t.status === 'ACTIVE' || t.id === form.technicianId).map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}{t.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
+        {selectedCrew ? <p className="helpText">Crew leader: {selectedCrew.leader ? `${selectedCrew.leader.firstName} ${selectedCrew.leader.lastName}` : 'Not assigned'} · Members: {selectedCrew.members.map((member) => `${member.technician.firstName} ${member.technician.lastName}`).join(', ') || 'None'}</p> : null}
         <label>Title<input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
         <label>Description<textarea rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
         <label>Status<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as WorkOrder['status'] })} disabled={!editingId}><option value={form.status}>{readableStatus(form.status)}</option>{editingId ? NEXT_STATUSES[form.status].map((status) => <option key={status} value={status}>{readableStatus(status)}</option>) : null}</select></label>
@@ -131,7 +134,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
         <div className="formActions"><button className="primaryButton">Save work order</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); setTimeline([]); setChecklist([]); }}>Cancel</button> : null}</div>
       </form>
       <section className="panel"><div className="panelHeader"><h3>Work queue</h3></div><div className="dataList">
-        {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrder.title}</strong><p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</p></div><div className="rowActions"><span className="statusPill">{readableStatus(workOrder.status)}</span><span className="priorityText">{workOrder.priority}</span><Link href={`/work-orders/${workOrder.id}`}>Open job</Link><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
+        {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrder.title}</strong><p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.crew ? `Crew: ${workOrder.crew.name}` : workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}{workOrder.crew && workOrder.technician ? ` · Designated: ${workOrder.technician.firstName} ${workOrder.technician.lastName}` : ''}</p></div><div className="rowActions"><span className="statusPill">{readableStatus(workOrder.status)}</span><span className="priorityText">{workOrder.priority}</span><Link href={`/work-orders/${workOrder.id}`}>Open job</Link><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
         {!items.length ? <div className="emptyState"><strong>No work orders found</strong><p>Create a customer and property, then schedule the first job.</p></div> : null}
       </div>
       {editingId ? <>
