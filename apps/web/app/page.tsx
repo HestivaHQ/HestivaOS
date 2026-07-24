@@ -27,6 +27,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
       statistics: { openWorkOrders: 0, completedToday: 0, overdueWorkOrders: 0, activeTechnicians: 0 },
       alerts: { overdueWorkOrders: 0, awaitingAssignment: 0, waitingForParts: 0, highPriorityJobs: 0, todayUnassignedJobs: 0 },
       performanceMetrics: { averageCompletionTimeDays: 0, completedToday: 0, completedThisWeek: 0, completedThisMonth: 0, overduePercentage: 0, onTimeCompletionRate: 0, activeWorkOrders: 0, averageJobsPerActiveTechnician: 0 },
+      technicianWorkload: [],
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
@@ -127,6 +128,31 @@ export default async function HomePage() {
           <div className="metricGrid">
             {statusCards.map((status) => <Link className="metricCard" href={`/work-orders?status=${status.status}`} key={status.status}><span>{status.label}</span><strong>{status.value}</strong></Link>)}
           </div>
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Technician workload</p>
+              <h3>Active assignments and today&apos;s scheduled jobs</h3>
+            </div>
+          </div>
+          {dashboard.technicianWorkload.length ? (
+            <div className="technicianWorkloadList">
+              {dashboard.technicianWorkload.map((technician) => (
+                <article className="technicianWorkloadItem" key={technician.technicianId}>
+                  <strong>{technician.technicianName}</strong>
+                  <dl>
+                    <div><dt>Active work orders</dt><dd>{technician.activeWorkOrderCount}</dd></div>
+                    <div><dt>Scheduled today</dt><dd>{technician.scheduledTodayCount}</dd></div>
+                    <div><dt>High priority</dt><dd>{technician.highPriorityCount}</dd></div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState"><strong>No active technicians found.</strong></div>
+          )}
         </section>
 
         <section className="panel">
