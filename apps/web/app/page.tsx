@@ -30,6 +30,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
       technicianWorkload: [],
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
+      upcomingScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
     };
@@ -206,6 +207,41 @@ export default async function HomePage() {
           ) : (
             <div className="emptyState">
               <strong>No work scheduled for today.</strong>
+            </div>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Upcoming work</p>
+              <h3>Scheduled for the next 7 days</h3>
+            </div>
+            <Link href="/work-orders">View all</Link>
+          </div>
+
+          {dashboard.upcomingScheduledWorkOrders.length ? (
+            <div className="workList">
+              {dashboard.upcomingScheduledWorkOrders.map((workOrder) => (
+                <Link className="workItem scheduledWorkItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+                  <div className="scheduledWorkDetails">
+                    <strong>{workOrder.customer.name}</strong>
+                    <p>{workOrder.property.name}</p>
+                    <dl>
+                      <div><dt>Date</dt><dd><time dateTime={workOrder.scheduledAt ?? undefined}>{formatDate(workOrder.scheduledAt)}</time></dd></div>
+                      <div><dt>Assigned technician</dt><dd>{workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</dd></div>
+                      <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="workMeta">
+                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No work scheduled for the next 7 days.</strong>
             </div>
           )}
         </section>
