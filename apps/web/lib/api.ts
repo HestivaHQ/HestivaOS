@@ -11,6 +11,7 @@ export type Service = { id: string; name: string; description: string | null; de
 export type CleaningJobTemplate = { id: string; name: string; description: string | null; estimatedDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; services: Service[]; createdAt: string; updatedAt: string };
 export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | 'ON_SITE' | 'WAITING_FOR_PARTS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null };
+export type WorkOrderChecklistItem = { id: string; workOrderId: string; description: string; status: 'PENDING' | 'COMPLETED' | 'NOT_APPLICABLE'; sortOrder: number; createdAt: string; updatedAt: string };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
 export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'title'> };
 export type DashboardOverview = {
@@ -83,5 +84,9 @@ export const api = {
   updateWorkOrder: (id: string, input: Partial<Omit<WorkOrderInput, 'createdById'>>) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'PATCH', ...json(input) }),
   changeWorkOrderStatus: (id: string, input: { status: WorkOrderStatus; note?: string; actorId?: string }) => apiFetch<WorkOrder>(`/work-orders/${id}/status`, { method: 'PATCH', ...json(input) }),
   workOrderTimeline: (id: string) => apiFetch<WorkOrderActivity[]>(`/work-orders/${id}/timeline`),
+  workOrderChecklist: (id: string) => apiFetch<WorkOrderChecklistItem[]>(`/work-orders/${id}/checklist`),
+  createWorkOrderChecklistItem: (id: string, description: string) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${id}/checklist`, { method: 'POST', ...json({ description }) }),
+  updateWorkOrderChecklistItem: (workOrderId: string, itemId: string, input: Partial<Pick<WorkOrderChecklistItem, 'description' | 'status' | 'sortOrder'>>) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${workOrderId}/checklist/${itemId}`, { method: 'PATCH', ...json(input) }),
+  deleteWorkOrderChecklistItem: (workOrderId: string, itemId: string) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${workOrderId}/checklist/${itemId}`, { method: 'DELETE' }),
   deleteWorkOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'DELETE' }),
 };

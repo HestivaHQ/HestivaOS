@@ -27,6 +27,12 @@ enum CleaningJobTemplateStatus {
   INACTIVE
 }
 
+enum WorkOrderChecklistItemStatus {
+  PENDING
+  COMPLETED
+  NOT_APPLICABLE
+}
+
 enum WorkOrderStatus {
   NEW
   ASSIGNED
@@ -196,6 +202,7 @@ model WorkOrder {
   createdBy    User              @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician   Technician?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   activities   WorkOrderActivity[]
+  checklistItems WorkOrderChecklistItem[]
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
@@ -206,6 +213,20 @@ model WorkOrder {
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderChecklistItem {
+  id          String                       @id @default(uuid()) @db.Uuid
+  workOrderId String                       @map("work_order_id") @db.Uuid
+  description String
+  status      WorkOrderChecklistItemStatus @default(PENDING)
+  sortOrder   Int                          @default(0) @map("sort_order")
+  workOrder   WorkOrder                    @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+
+  @@index([workOrderId, sortOrder])
+  @@map("work_order_checklist_items")
 }
 
 model WorkOrderActivity {
