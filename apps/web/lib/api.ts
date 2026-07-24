@@ -12,6 +12,7 @@ export type CleaningJobTemplate = { id: string; name: string; description: strin
 export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | 'ON_SITE' | 'WAITING_FOR_PARTS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null };
 export type WorkOrderChecklistItem = { id: string; workOrderId: string; description: string; status: 'PENDING' | 'COMPLETED' | 'NOT_APPLICABLE'; sortOrder: number; createdAt: string; updatedAt: string };
+export type WorkOrderPhoto = { id: string; workOrderId: string; category: 'BEFORE' | 'AFTER'; url: string; storagePath: string; uploadedBy: string; createdAt: string };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
 export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'title'> };
 export type DashboardOverview = {
@@ -89,5 +90,8 @@ export const api = {
   createWorkOrderChecklistItem: (id: string, description: string) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${id}/checklist`, { method: 'POST', ...json({ description }) }),
   updateWorkOrderChecklistItem: (workOrderId: string, itemId: string, input: Partial<Pick<WorkOrderChecklistItem, 'description' | 'status' | 'sortOrder'>>) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${workOrderId}/checklist/${itemId}`, { method: 'PATCH', ...json(input) }),
   deleteWorkOrderChecklistItem: (workOrderId: string, itemId: string) => apiFetch<WorkOrderChecklistItem>(`/work-orders/${workOrderId}/checklist/${itemId}`, { method: 'DELETE' }),
+  workOrderPhotos: (id: string) => apiFetch<WorkOrderPhoto[]>(`/work-orders/${id}/photos`),
+  createWorkOrderPhoto: (id: string, input: Pick<WorkOrderPhoto, 'category' | 'url' | 'storagePath' | 'uploadedBy'>) => apiFetch<WorkOrderPhoto>(`/work-orders/${id}/photos`, { method: 'POST', ...json(input) }),
+  deleteWorkOrderPhoto: (workOrderId: string, photoId: string) => apiFetch<WorkOrderPhoto>(`/work-orders/${workOrderId}/photos/${photoId}`, { method: 'DELETE' }),
   deleteWorkOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'DELETE' }),
 };
