@@ -20,6 +20,7 @@ export type DashboardOverview = {
   recentWorkOrderActivities: DashboardWorkOrderActivity[];
   todayScheduledWorkOrders: WorkOrder[];
   upcomingScheduledWorkOrders: WorkOrder[];
+  overdueWorkOrdersList: Array<WorkOrder & { daysOverdue: number }>;
   statusBreakdown: Record<WorkOrderStatus, number>;
 };
 

@@ -31,6 +31,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       upcomingScheduledWorkOrders: [],
+      overdueWorkOrdersList: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
     };
@@ -174,6 +175,42 @@ export default async function HomePage() {
             const actionableAlerts = alerts.filter((alert) => alert.count > 0);
             return actionableAlerts.length ? <div className="alertGrid">{actionableAlerts.map((alert) => <Link className="alertCard" href={`/work-orders?alert=${alert.alert}`} key={alert.alert}><span className={`alertSeverity ${alert.severity.toLowerCase()}`}>{alert.severity}</span><strong>{alert.title}</strong><b>{alert.count}</b></Link>)}</div> : <div className="emptyState"><strong>No alerts.</strong><p>All operational work is up to date.</p></div>;
           })()}
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Overdue work</p>
+              <h3>Work orders requiring immediate attention</h3>
+            </div>
+            <Link href="/work-orders?alert=overdue">View all</Link>
+          </div>
+
+          {dashboard.overdueWorkOrdersList.length ? (
+            <div className="workList">
+              {dashboard.overdueWorkOrdersList.map((workOrder) => (
+                <Link className="workItem scheduledWorkItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+                  <div className="scheduledWorkDetails">
+                    <strong>{workOrder.customer.name}</strong>
+                    <p>{workOrder.property.name}</p>
+                    <dl>
+                      <div><dt>Scheduled date</dt><dd><time dateTime={workOrder.scheduledAt ?? undefined}>{formatDate(workOrder.scheduledAt)}</time></dd></div>
+                      <div><dt>Assigned technician</dt><dd>{workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</dd></div>
+                      <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
+                      <div><dt>Days overdue</dt><dd>{workOrder.daysOverdue}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="workMeta">
+                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState">
+              <strong>No overdue work orders.</strong>
+            </div>
+          )}
         </section>
 
         <section className="panel">
