@@ -13,6 +13,7 @@ export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | '
 export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null };
 export type WorkOrderChecklistItem = { id: string; workOrderId: string; description: string; status: 'PENDING' | 'COMPLETED' | 'NOT_APPLICABLE'; sortOrder: number; createdAt: string; updatedAt: string };
 export type WorkOrderPhoto = { id: string; workOrderId: string; category: 'BEFORE' | 'AFTER'; url: string; storagePath: string; uploadedBy: string; createdAt: string };
+export type WorkOrderCustomerSignOff = { id: string; workOrderId: string; customerName: string; signatureDataUrl: string; note: string | null; acceptedAt: string };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
 export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'title'> };
 export type DashboardOverview = {
@@ -42,16 +43,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const { data: { session } } = await createClient().auth.getSession();
     if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`);
   }
-  const response = await fetch(`${API_URL}/api/v1${path}`, {
-    cache: 'no-store',
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...Object.fromEntries(headers.entries()) },
-  });
+  const response = await fetch(`${API_URL}/api/v1${path}`, { cache: 'no-store', ...init, headers: { 'Content-Type': 'application/json', ...Object.fromEntries(headers.entries()) } });
   if (!response.ok) {
     const result = await response.json().catch(() => null) as { message?: string } | null;
     throw new Error(result?.message ?? `API request failed with status ${response.status}`);
   }
-  return response.json() as Promise<T>;
+  return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 
 const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
@@ -93,5 +90,7 @@ export const api = {
   workOrderPhotos: (id: string) => apiFetch<WorkOrderPhoto[]>(`/work-orders/${id}/photos`),
   createWorkOrderPhoto: (id: string, input: Pick<WorkOrderPhoto, 'category' | 'url' | 'storagePath' | 'uploadedBy'>) => apiFetch<WorkOrderPhoto>(`/work-orders/${id}/photos`, { method: 'POST', ...json(input) }),
   deleteWorkOrderPhoto: (workOrderId: string, photoId: string) => apiFetch<WorkOrderPhoto>(`/work-orders/${workOrderId}/photos/${photoId}`, { method: 'DELETE' }),
+  workOrderCustomerSignOff: (id: string) => apiFetch<WorkOrderCustomerSignOff | null>(`/work-orders/${id}/customer-sign-off`),
+  createWorkOrderCustomerSignOff: (id: string, input: Pick<WorkOrderCustomerSignOff, 'customerName' | 'signatureDataUrl'> & { note?: string }) => apiFetch<WorkOrderCustomerSignOff>(`/work-orders/${id}/customer-sign-off`, { method: 'POST', ...json(input) }),
   deleteWorkOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'DELETE' }),
 };
