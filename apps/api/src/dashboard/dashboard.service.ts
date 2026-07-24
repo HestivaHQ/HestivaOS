@@ -31,7 +31,6 @@ export class DashboardService {
     });
 
     const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
-    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -66,7 +65,8 @@ export class DashboardService {
     );
 
     for (const item of groupedStatuses) {
-      statusBreakdown[item.status] = item._count._all;
+      const status = item.status as WorkOrderStatus;
+      statusBreakdown[status] = item._count._all;
     }
 
     return {
