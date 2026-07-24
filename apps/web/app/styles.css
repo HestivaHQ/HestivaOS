@@ -85,6 +85,15 @@ h1, h2, h3, p { margin-top: 0; }
 .quickActionCard span { color: #61727d; font-size: 14px; line-height: 1.4; }
 .quickActionCard:hover, .quickActionCard:focus-visible { border-color: #176b87; background: #eef7fa; }
 .statisticsGrid { margin: 18px 0 0; }
+.alertGrid { display: grid; grid-template-columns: 1fr; gap: 10px; padding-top: 18px; }
+.alertCard { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; align-items: center; min-height: 88px; padding: 16px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
+.alertCard strong { font-size: 15px; }
+.alertCard b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 28px; }
+.alertCard:hover, .alertCard:focus-visible { border-color: #176b87; background: #eef7fa; }
+.alertSeverity { width: fit-content; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.alertSeverity.critical { background: #fde7e4; color: #8b2921; }
+.alertSeverity.high { background: #fff0d9; color: #8a5100; }
+.alertSeverity.warning { background: #fff8d8; color: #796000; }
 
 .resourceGrid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .resourceForm { display: grid; gap: 16px; }
@@ -104,6 +113,7 @@ h1, h2, h3, p { margin-top: 0; }
 }
 @media (min-width: 680px) {
   .quickActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .alertGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .appShell { grid-template-columns: 1fr; }

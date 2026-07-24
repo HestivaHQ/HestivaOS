@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
-import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrdersService } from './work-orders.service';
+import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -21,8 +21,9 @@ export class WorkOrdersController {
     @Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string,
     @Query('propertyId', new ParseUUIDPipe({ optional: true })) propertyId?: string,
     @Query('technicianId', new ParseUUIDPipe({ optional: true })) technicianId?: string,
+    @Query('alert') alert?: WorkOrderAlert,
   ) {
-    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId);
+    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId, alert);
   }
 
   @Get(':id/timeline')

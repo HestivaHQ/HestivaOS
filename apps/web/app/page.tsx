@@ -25,6 +25,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
     return {
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
       statistics: { openWorkOrders: 0, completedToday: 0, overdueWorkOrders: 0, activeTechnicians: 0 },
+      alerts: { overdueWorkOrders: 0, awaitingAssignment: 0, waitingForParts: 0, highPriorityJobs: 0, todayUnassignedJobs: 0 },
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
@@ -121,6 +122,26 @@ export default async function HomePage() {
           <div className="metricGrid">
             {statusCards.map((status) => <Link className="metricCard" href={`/work-orders?status=${status.status}`} key={status.status}><span>{status.label}</span><strong>{status.value}</strong></Link>)}
           </div>
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Alerts</p>
+              <h3>Action required</h3>
+            </div>
+          </div>
+          {(() => {
+            const alerts = [
+              { title: 'Overdue work orders', count: dashboard.alerts.overdueWorkOrders, severity: 'Critical', alert: 'overdue' },
+              { title: 'Jobs awaiting assignment', count: dashboard.alerts.awaitingAssignment, severity: 'High', alert: 'awaiting-assignment' },
+              { title: 'Jobs waiting for parts', count: dashboard.alerts.waitingForParts, severity: 'Warning', alert: 'waiting-for-parts' },
+              { title: 'High priority jobs', count: dashboard.alerts.highPriorityJobs, severity: 'High', alert: 'high-priority' },
+              { title: 'Today’s unassigned jobs', count: dashboard.alerts.todayUnassignedJobs, severity: 'Warning', alert: 'today-unassigned' },
+            ];
+            const actionableAlerts = alerts.filter((alert) => alert.count > 0);
+            return actionableAlerts.length ? <div className="alertGrid">{actionableAlerts.map((alert) => <Link className="alertCard" href={`/work-orders?alert=${alert.alert}`} key={alert.alert}><span className={`alertSeverity ${alert.severity.toLowerCase()}`}>{alert.severity}</span><strong>{alert.title}</strong><b>{alert.count}</b></Link>)}</div> : <div className="emptyState"><strong>No alerts.</strong><p>All operational work is up to date.</p></div>;
+          })()}
         </section>
 
         <section className="panel">
