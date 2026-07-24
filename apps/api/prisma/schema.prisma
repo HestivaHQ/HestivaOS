@@ -22,6 +22,14 @@ enum CrewStatus {
   INACTIVE
 }
 
+enum ShiftStatus {
+  DRAFT
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
 enum ServiceStatus {
   ACTIVE
   INACTIVE
@@ -158,6 +166,7 @@ model Technician {
   notes String?
   status TechnicianStatus @default(ACTIVE)
   workOrders WorkOrder[]
+  shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
   createdAt DateTime @default(now()) @map("created_at")
@@ -175,6 +184,7 @@ model Crew {
   leader Technician? @relation("CrewLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   members CrewMember[]
   workOrders WorkOrder[]
+  shifts Shift[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([status])
@@ -190,6 +200,31 @@ model CrewMember {
   @@id([crewId, technicianId])
   @@index([crewId])
   @@map("crew_members")
+}
+
+model Shift {
+  id String @id @default(uuid()) @db.Uuid
+  title String
+  startAt DateTime @map("start_at")
+  endAt DateTime @map("end_at")
+  unpaidBreakMinutes Int @default(0) @map("unpaid_break_minutes")
+  crewId String? @map("crew_id") @db.Uuid
+  technicianId String? @map("technician_id") @db.Uuid
+  workOrderId String? @map("work_order_id") @db.Uuid
+  location String?
+  notes String?
+  status ShiftStatus @default(DRAFT)
+  crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
+  technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  workOrder WorkOrder? @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([startAt, endAt])
+  @@index([crewId, startAt])
+  @@index([technicianId, startAt])
+  @@index([workOrderId])
+  @@index([status])
+  @@map("shifts")
 }
 
 model Service {
@@ -238,6 +273,7 @@ model WorkOrder {
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
+  shifts Shift[]
   activities WorkOrderActivity[]
   checklistItems WorkOrderChecklistItem[]
   photos WorkOrderPhoto[]
