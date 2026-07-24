@@ -48,6 +48,14 @@ h1, h2, h3, p { margin-top: 0; }
 .workItem:last-child, .dataRow:last-child { border-bottom: 0; }
 .workItem p, .dataRow p { margin: 5px 0 0; color: #61727d; font-size: 14px; }
 .workMeta { display: grid; justify-items: end; gap: 8px; color: #61727d; font-size: 13px; }
+.recentActivityList { display: grid; }
+.recentActivityItem { display: grid; grid-template-columns: minmax(140px, .9fr) minmax(120px, .8fr) minmax(180px, 1.2fr) minmax(160px, 1fr); gap: 18px; padding: 18px 0; border-bottom: 1px solid #edf1f3; color: inherit; text-decoration: none; }
+.recentActivityItem:last-child { border-bottom: 0; }
+.recentActivityItem:hover, .recentActivityItem:focus-visible { background: #f8fbfc; }
+.recentActivityField { display: grid; gap: 5px; min-width: 0; }
+.recentActivityField > span { color: #61727d; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.recentActivityField strong, .recentActivityField time { overflow-wrap: anywhere; font-size: 14px; }
+.recentActivityField time { color: #61727d; }
 .scheduledWorkItem { align-items: flex-start; }
 .scheduledWorkDetails { min-width: 0; }
 .scheduledWorkDetails dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px; margin: 16px 0 0; }
@@ -70,10 +78,23 @@ h1, h2, h3, p { margin-top: 0; }
 .emptyState { padding: 56px 20px; text-align: center; color: #61727d; }
 .emptyState strong { display: block; margin-bottom: 8px; color: #17202a; }
 .quickActionGrid { display: grid; grid-template-columns: 1fr; gap: 12px; padding-top: 18px; }
-.quickActionCard { display: grid; gap: 6px; min-height: 104px; align-content: center; padding: 20px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
+.quickActionCard { display: flex; align-items: center; gap: 14px; min-height: 104px; padding: 20px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
+.quickActionCard > div { display: grid; gap: 6px; min-width: 0; }
+.quickActionIcon { flex: 0 0 auto; width: 24px; height: 24px; color: #176b87; }
 .quickActionCard strong { font-size: 17px; }
 .quickActionCard span { color: #61727d; font-size: 14px; line-height: 1.4; }
 .quickActionCard:hover, .quickActionCard:focus-visible { border-color: #176b87; background: #eef7fa; }
+.statisticsGrid { margin: 18px 0 0; }
+.performanceMetricsGrid { margin: 18px 0 0; }
+.alertGrid { display: grid; grid-template-columns: 1fr; gap: 10px; padding-top: 18px; }
+.alertCard { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; align-items: center; min-height: 88px; padding: 16px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
+.alertCard strong { font-size: 15px; }
+.alertCard b { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 28px; }
+.alertCard:hover, .alertCard:focus-visible { border-color: #176b87; background: #eef7fa; }
+.alertSeverity { width: fit-content; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.alertSeverity.critical { background: #fde7e4; color: #8b2921; }
+.alertSeverity.high { background: #fff0d9; color: #8a5100; }
+.alertSeverity.warning { background: #fff8d8; color: #796000; }
 
 .resourceGrid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .resourceForm { display: grid; gap: 16px; }
@@ -93,6 +114,7 @@ h1, h2, h3, p { margin-top: 0; }
 }
 @media (min-width: 680px) {
   .quickActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .alertGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .appShell { grid-template-columns: 1fr; }
@@ -111,5 +133,7 @@ h1, h2, h3, p { margin-top: 0; }
   .scheduledWorkDetails dl { grid-template-columns: 1fr; gap: 12px; }
   .rowActions { justify-content: flex-start; }
   .panelHeader { align-items: stretch; flex-direction: column; }
+  .recentActivityItem { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .recentActivityTime { grid-column: 1 / -1; }
   .searchInput { max-width: none; }
 }
