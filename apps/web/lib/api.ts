@@ -16,6 +16,7 @@ export type DashboardOverview = {
   statistics: { openWorkOrders: number; completedToday: number; overdueWorkOrders: number; activeTechnicians: number };
   alerts: { overdueWorkOrders: number; awaitingAssignment: number; waitingForParts: number; highPriorityJobs: number; todayUnassignedJobs: number };
   performanceMetrics: { averageCompletionTimeDays: number; completedToday: number; completedThisWeek: number; completedThisMonth: number; overduePercentage: number; onTimeCompletionRate: number; activeWorkOrders: number; averageJobsPerActiveTechnician: number };
+  technicianWorkload: Array<{ technicianId: string; technicianName: string; status: string; activeWorkOrderCount: number; scheduledTodayCount: number; highPriorityCount: number }>;
   recentWorkOrderActivities: DashboardWorkOrderActivity[];
   todayScheduledWorkOrders: WorkOrder[];
   statusBreakdown: Record<WorkOrderStatus, number>;
