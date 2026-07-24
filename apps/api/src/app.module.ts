@@ -7,6 +7,7 @@ import { HealthController } from './health.controller';
 import { PrismaService } from './prisma.service';
 import { PropertiesModule } from './properties/properties.module';
 import { ServicesModule } from './services/services.module';
+import { ShiftsModule } from './shifts/shifts.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { UsersModule } from './users/users.module';
 import { WorkOrderChecklistsModule } from './work-order-checklists/work-order-checklists.module';
@@ -15,7 +16,7 @@ import { WorkOrderPhotosModule } from './work-order-photos/work-order-photos.mod
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
-  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule],
+  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule, ShiftsModule],
   controllers: [HealthController],
   providers: [PrismaService],
 })
