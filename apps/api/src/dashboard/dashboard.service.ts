@@ -44,7 +44,7 @@ export class DashboardService {
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses, technicianWorkloadRecords, upcomingScheduledWorkOrders] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses, technicianWorkloadRecords, upcomingScheduledWorkOrders, overdueWorkOrderRecords] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -98,6 +98,14 @@ export class DashboardService {
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
           include: { customer: true, property: true, createdBy: true, technician: true },
         }),
+        this.prisma.workOrder.findMany({
+          where: {
+            status: { in: OVERDUE_WORK_ORDER_STATUSES },
+            scheduledAt: { lt: todayStart },
+          },
+          orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
+          include: { customer: true, property: true, createdBy: true, technician: true },
+        }),
       ]);
 
     const completedTimingCount = completedWorkOrderTimings.length;
@@ -123,6 +131,11 @@ export class DashboardService {
         };
       })
       .sort((left, right) => right.activeWorkOrderCount - left.activeWorkOrderCount || right.highPriorityCount - left.highPriorityCount || left.technicianName.localeCompare(right.technicianName));
+
+    const overdueWorkOrdersList = overdueWorkOrderRecords.map((workOrder) => ({
+      ...workOrder,
+      daysOverdue: Math.max(1, Math.floor((todayStart.getTime() - workOrder.scheduledAt!.getTime()) / 86_400_000)),
+    }));
 
     const statusBreakdown = Object.values(WorkOrderStatus).reduce<Record<WorkOrderStatus, number>>(
       (result, status) => {
@@ -155,6 +168,7 @@ export class DashboardService {
       recentWorkOrderActivities,
       todayScheduledWorkOrders,
       upcomingScheduledWorkOrders,
+      overdueWorkOrdersList,
       statusBreakdown,
     };
   }
