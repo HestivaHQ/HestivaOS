@@ -31,6 +31,7 @@ export class DashboardService {
     });
 
     const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
