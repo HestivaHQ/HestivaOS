@@ -33,7 +33,7 @@ export class DashboardService {
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -94,6 +94,16 @@ export class DashboardService {
       },
       statistics: { openWorkOrders, completedToday, overdueWorkOrders, activeTechnicians },
       alerts: { overdueWorkOrders, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs },
+      performanceMetrics: {
+        averageCompletionTimeDays,
+        completedToday,
+        completedThisWeek,
+        completedThisMonth,
+        overduePercentage: actionableWorkOrders ? overdueWorkOrders / actionableWorkOrders * 100 : 0,
+        onTimeCompletionRate,
+        activeWorkOrders: actionableWorkOrders,
+        averageJobsPerActiveTechnician: activeTechnicians ? actionableWorkOrders / activeTechnicians : 0,
+      },
       recentWorkOrderActivities,
       todayScheduledWorkOrders,
       statusBreakdown,
