@@ -48,7 +48,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const result = await response.json().catch(() => null) as { message?: string } | null;
     throw new Error(result?.message ?? `API request failed with status ${response.status}`);
   }
-  return response.status === 204 ? undefined as T : response.json() as Promise<T>;
+  if (response.status === 204) return undefined as T;
+
+  const body = await response.text();
+  if (!body.trim()) return null as T;
+
+  return JSON.parse(body) as T;
 }
 
 const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
