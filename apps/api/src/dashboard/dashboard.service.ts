@@ -12,6 +12,15 @@ const ACTIVE_WORK_ORDER_STATUSES: WorkOrderStatus[] = [
   WorkOrderStatus.COMPLETED,
 ];
 
+const TECHNICIAN_WORKLOAD_STATUSES: WorkOrderStatus[] = [
+  WorkOrderStatus.NEW,
+  WorkOrderStatus.ASSIGNED,
+  WorkOrderStatus.ACCEPTED,
+  WorkOrderStatus.TRAVELLING,
+  WorkOrderStatus.ON_SITE,
+  WorkOrderStatus.WAITING_FOR_PARTS,
+];
+
 const OVERDUE_WORK_ORDER_STATUSES = ACTIVE_WORK_ORDER_STATUSES.filter((status) => status !== WorkOrderStatus.COMPLETED);
 
 @Injectable()
@@ -33,7 +42,7 @@ export class DashboardService {
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses, technicianWorkloadRecords] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -61,6 +70,24 @@ export class DashboardService {
           include: { customer: true, property: true, createdBy: true, technician: true },
         }),
         groupedStatusesQuery,
+        this.prisma.technician.findMany({
+          where: { status: 'ACTIVE' },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            status: true,
+            workOrders: {
+              where: {
+                OR: [
+                  { status: { in: TECHNICIAN_WORKLOAD_STATUSES } },
+                  { status: { not: WorkOrderStatus.CANCELLED }, scheduledAt: { gte: todayStart, lt: tomorrowStart } },
+                ],
+              },
+              select: { status: true, priority: true, scheduledAt: true },
+            },
+          },
+        }),
       ]);
 
     const completedTimingCount = completedWorkOrderTimings.length;
@@ -71,6 +98,21 @@ export class DashboardService {
     const onTimeCompletionRate = scheduledCompletions.length
       ? scheduledCompletions.filter((workOrder) => workOrder.completedAt! <= workOrder.scheduledAt!).length / scheduledCompletions.length * 100
       : 0;
+
+    const technicianWorkload = technicianWorkloadRecords
+      .map((technician) => {
+        const technicianName = `${technician.firstName} ${technician.lastName}`.trim();
+        const activeWorkOrders = technician.workOrders.filter((workOrder) => TECHNICIAN_WORKLOAD_STATUSES.includes(workOrder.status));
+        return {
+          technicianId: technician.id,
+          technicianName,
+          status: technician.status,
+          activeWorkOrderCount: activeWorkOrders.length,
+          scheduledTodayCount: technician.workOrders.filter((workOrder) => workOrder.status !== WorkOrderStatus.CANCELLED && workOrder.scheduledAt && workOrder.scheduledAt >= todayStart && workOrder.scheduledAt < tomorrowStart).length,
+          highPriorityCount: activeWorkOrders.filter((workOrder) => workOrder.priority === 'HIGH' || workOrder.priority === 'URGENT').length,
+        };
+      })
+      .sort((left, right) => right.activeWorkOrderCount - left.activeWorkOrderCount || right.highPriorityCount - left.highPriorityCount || left.technicianName.localeCompare(right.technicianName));
 
     const statusBreakdown = Object.values(WorkOrderStatus).reduce<Record<WorkOrderStatus, number>>(
       (result, status) => {
@@ -104,6 +146,7 @@ export class DashboardService {
         activeWorkOrders: actionableWorkOrders,
         averageJobsPerActiveTechnician: activeTechnicians ? actionableWorkOrders / activeTechnicians : 0,
       },
+      technicianWorkload,
       recentWorkOrderActivities,
       todayScheduledWorkOrders,
       statusBreakdown,
