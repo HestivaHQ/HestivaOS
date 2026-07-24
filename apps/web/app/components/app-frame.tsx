@@ -9,6 +9,7 @@ export function AppFrame({ active, email, user, children }: { active: string; em
     ['/customers', 'Customers'],
     ['/properties', 'Properties'],
     ['/services', 'Services'],
+    ['/cleaning-job-templates', 'Cleaning templates'],
     ['/technicians', 'Technicians'],
     ['/work-orders', 'Work orders'],
     ['/profile', 'My profile'],
@@ -17,7 +18,7 @@ export function AppFrame({ active, email, user, children }: { active: string; em
   return (
     <main className="appShell">
       <aside className="sidebar">
-        <div><p className="eyebrow">Maintenance Marshall</p><h1 className="brand">Operations</h1></div>
+        <div><p className="eyebrow">Cleaning Marshall</p><h1 className="brand">Operations</h1></div>
         <nav className="navList" aria-label="Primary navigation">
           {links.map(([href, label]) => <Link key={href} className={`navLink ${active === href ? 'active' : ''}`} href={href}>{label}</Link>)}
         </nav>
