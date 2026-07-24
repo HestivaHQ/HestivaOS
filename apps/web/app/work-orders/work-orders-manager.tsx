@@ -24,6 +24,7 @@ function activityDescription(activity: WorkOrderActivity) {
 export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
+  const alert = searchParams.get('alert');
   const [items, setItems] = useState<WorkOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -37,7 +38,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   async function load() {
     try {
       const [workData, customerData, propertyData, technicianData] = await Promise.all([
-        api.workOrders('?page=1&pageSize=100'),
+        api.workOrders(`?page=1&pageSize=100${alert ? `&alert=${encodeURIComponent(alert)}` : ''}`),
         api.customers('?page=1&pageSize=100'),
         api.properties('?page=1&pageSize=100'),
         api.technicians('?page=1&pageSize=100'),
@@ -51,7 +52,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [alert]);
 
   useEffect(() => {
     const workOrder = items.find((item) => item.id === editId);

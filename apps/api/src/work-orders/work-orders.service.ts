@@ -17,6 +17,7 @@ export type CreateWorkOrderInput = {
 
 export type UpdateWorkOrderInput = Partial<Omit<CreateWorkOrderInput, 'createdById'>>;
 export type ChangeWorkOrderStatusInput = { status: WorkOrderStatus; note?: string; actorId?: string };
+export type WorkOrderAlert = 'overdue' | 'awaiting-assignment' | 'waiting-for-parts' | 'high-priority' | 'today-unassigned';
 
 const workOrderInclude = { customer: true, property: true, createdBy: true, technician: true } as const;
 const validTransitions: Record<WorkOrderStatus, WorkOrderStatus[]> = {
@@ -30,6 +31,8 @@ const validTransitions: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   CLOSED: [],
   CANCELLED: [],
 };
+const nonActionableStatuses: WorkOrderStatus[] = [WorkOrderStatus.COMPLETED, WorkOrderStatus.CLOSED, WorkOrderStatus.CANCELLED];
+const actionableStatuses = Object.values(WorkOrderStatus).filter((status) => !nonActionableStatuses.includes(status));
 
 @Injectable()
 export class WorkOrdersService {
@@ -80,11 +83,22 @@ export class WorkOrdersService {
     });
   }
 
-  async findAll(page = 1, pageSize = 20, search?: string, status?: WorkOrderStatus, priority?: WorkOrderPriority, customerId?: string, propertyId?: string, technicianId?: string) {
+  async findAll(page = 1, pageSize = 20, search?: string, status?: WorkOrderStatus, priority?: WorkOrderPriority, customerId?: string, propertyId?: string, technicianId?: string, alert?: WorkOrderAlert) {
     const safePage = Math.max(1, page);
     const safePageSize = Math.min(100, Math.max(1, pageSize));
     const term = search?.trim();
-    const where: Prisma.WorkOrderWhereInput = { status, priority, customerId, propertyId, technicianId, ...(term ? { OR: [{ title: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }] } : {}) };
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    const alertWhere: Record<WorkOrderAlert, Prisma.WorkOrderWhereInput> = {
+      overdue: { status: { in: actionableStatuses }, scheduledAt: { lt: todayStart } },
+      'awaiting-assignment': { status: WorkOrderStatus.NEW, technicianId: null },
+      'waiting-for-parts': { status: WorkOrderStatus.WAITING_FOR_PARTS },
+      'high-priority': { status: { in: actionableStatuses }, priority: { in: [WorkOrderPriority.HIGH, WorkOrderPriority.URGENT] } },
+      'today-unassigned': { status: { in: actionableStatuses }, technicianId: null, scheduledAt: { gte: todayStart, lt: tomorrowStart } },
+    };
+    const where: Prisma.WorkOrderWhereInput = { status, priority, customerId, propertyId, technicianId, ...(alert ? alertWhere[alert] : {}), ...(term ? { OR: [{ title: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }] } : {}) };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.workOrder.findMany({ where, orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }], skip: (safePage - 1) * safePageSize, take: safePageSize, include: workOrderInclude }),
       this.prisma.workOrder.count({ where }),
