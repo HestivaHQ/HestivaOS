@@ -17,6 +17,11 @@ enum TechnicianStatus {
   INACTIVE
 }
 
+enum CrewStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum ServiceStatus {
   ACTIVE
   INACTIVE
@@ -56,6 +61,9 @@ enum WorkOrderActivityType {
   TECHNICIAN_ASSIGNED
   TECHNICIAN_CHANGED
   TECHNICIAN_REMOVED
+  CREW_ASSIGNED
+  CREW_CHANGED
+  CREW_REMOVED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
 }
@@ -150,10 +158,38 @@ model Technician {
   notes String?
   status TechnicianStatus @default(ACTIVE)
   workOrders WorkOrder[]
+  crewMembership CrewMember?
+  ledCrews Crew[] @relation("CrewLeader")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([lastName, firstName])
   @@map("technicians")
+}
+
+model Crew {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  description String?
+  leaderId String? @map("leader_id") @db.Uuid
+  status CrewStatus @default(ACTIVE)
+  leader Technician? @relation("CrewLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  members CrewMember[]
+  workOrders WorkOrder[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([status])
+  @@map("crews")
+}
+
+model CrewMember {
+  crewId String @map("crew_id") @db.Uuid
+  technicianId String @unique @map("technician_id") @db.Uuid
+  crew Crew @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@id([crewId, technicianId])
+  @@index([crewId])
+  @@map("crew_members")
 }
 
 model Service {
@@ -190,6 +226,7 @@ model WorkOrder {
   propertyId String @map("property_id") @db.Uuid
   createdById String @map("created_by_id") @db.Uuid
   technicianId String? @map("technician_id") @db.Uuid
+  crewId String? @map("crew_id") @db.Uuid
   title String
   description String?
   status WorkOrderStatus @default(NEW)
@@ -200,6 +237,7 @@ model WorkOrder {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   activities WorkOrderActivity[]
   checklistItems WorkOrderChecklistItem[]
   photos WorkOrderPhoto[]
@@ -210,6 +248,7 @@ model WorkOrder {
   @@index([propertyId])
   @@index([createdById])
   @@index([technicianId])
+  @@index([crewId])
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")

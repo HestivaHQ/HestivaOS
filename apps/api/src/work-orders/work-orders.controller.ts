@@ -21,9 +21,10 @@ export class WorkOrdersController {
     @Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string,
     @Query('propertyId', new ParseUUIDPipe({ optional: true })) propertyId?: string,
     @Query('technicianId', new ParseUUIDPipe({ optional: true })) technicianId?: string,
+    @Query('crewId', new ParseUUIDPipe({ optional: true })) crewId?: string,
     @Query('alert') alert?: WorkOrderAlert,
   ) {
-    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId, alert);
+    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId, crewId, alert);
   }
 
   @Get(':id/timeline')

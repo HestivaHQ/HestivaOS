@@ -10,6 +10,7 @@ export function AppFrame({ active, email, user, children }: { active: string; em
     ['/properties', 'Properties'],
     ['/services', 'Services'],
     ['/technicians', 'Technicians'],
+    ['/crews', 'Crews'],
     ['/work-orders', 'Work orders'],
     ['/profile', 'My profile'],
   ];
