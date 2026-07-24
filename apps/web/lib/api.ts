@@ -80,6 +80,7 @@ export const api = {
   updateCleaningJobTemplate: (id: string, input: Partial<CleaningJobTemplateInput>) => apiFetch<CleaningJobTemplate>(`/cleaning-job-templates/${id}`, { method: 'PATCH', ...json(input) }),
   deleteCleaningJobTemplate: (id: string) => apiFetch<CleaningJobTemplate>(`/cleaning-job-templates/${id}`, { method: 'DELETE' }),
   workOrders: (query = '') => apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
+  workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
   createWorkOrder: (input: WorkOrderInput) => apiFetch<WorkOrder>('/work-orders', { method: 'POST', ...json(input) }),
   updateWorkOrder: (id: string, input: Partial<Omit<WorkOrderInput, 'createdById'>>) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'PATCH', ...json(input) }),
   changeWorkOrderStatus: (id: string, input: { status: WorkOrderStatus; note?: string; actorId?: string }) => apiFetch<WorkOrder>(`/work-orders/${id}/status`, { method: 'PATCH', ...json(input) }),
