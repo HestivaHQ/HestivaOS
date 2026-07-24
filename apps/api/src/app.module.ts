@@ -9,10 +9,11 @@ import { ServicesModule } from './services/services.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { UsersModule } from './users/users.module';
 import { WorkOrderChecklistsModule } from './work-order-checklists/work-order-checklists.module';
+import { WorkOrderPhotosModule } from './work-order-photos/work-order-photos.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
-  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, DashboardModule, TechniciansModule],
+  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, DashboardModule, TechniciansModule],
   controllers: [HealthController],
   providers: [PrismaService],
 })
