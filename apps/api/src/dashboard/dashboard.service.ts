@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { WorkOrderStatus } from '@prisma/client';
+import { WorkOrderActivityType, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 const ACTIVE_WORK_ORDER_STATUSES: WorkOrderStatus[] = [
@@ -11,6 +11,8 @@ const ACTIVE_WORK_ORDER_STATUSES: WorkOrderStatus[] = [
   WorkOrderStatus.WAITING_FOR_PARTS,
   WorkOrderStatus.COMPLETED,
 ];
+
+const OVERDUE_WORK_ORDER_STATUSES = ACTIVE_WORK_ORDER_STATUSES.filter((status) => status !== WorkOrderStatus.COMPLETED);
 
 @Injectable()
 export class DashboardService {
@@ -28,12 +30,15 @@ export class DashboardService {
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
         this.prisma.workOrder.count({ where: { status: { in: ACTIVE_WORK_ORDER_STATUSES } } }),
         this.prisma.workOrder.count({ where: { status: WorkOrderStatus.COMPLETED } }),
+        this.prisma.workOrderActivity.count({ where: { type: WorkOrderActivityType.STATUS_CHANGED, newStatus: WorkOrderStatus.COMPLETED, createdAt: { gte: todayStart, lt: tomorrowStart } } }),
+        this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES }, scheduledAt: { lt: todayStart } } }),
+        this.prisma.technician.count({ where: { status: 'ACTIVE' } }),
         this.prisma.workOrderActivity.findMany({
           orderBy: { createdAt: 'desc' },
           take: 10,
@@ -66,6 +71,7 @@ export class DashboardService {
         openWorkOrders,
         completedWorkOrders,
       },
+      statistics: { openWorkOrders, completedToday, overdueWorkOrders, activeTechnicians },
       recentWorkOrderActivities,
       todayScheduledWorkOrders,
       statusBreakdown,
