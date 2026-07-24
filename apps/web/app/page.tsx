@@ -26,6 +26,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
       statistics: { openWorkOrders: 0, completedToday: 0, overdueWorkOrders: 0, activeTechnicians: 0 },
       alerts: { overdueWorkOrders: 0, awaitingAssignment: 0, waitingForParts: 0, highPriorityJobs: 0, todayUnassignedJobs: 0 },
+      performanceMetrics: { averageCompletionTimeDays: 0, completedToday: 0, completedThisWeek: 0, completedThisMonth: 0, overduePercentage: 0, onTimeCompletionRate: 0, activeWorkOrders: 0, averageJobsPerActiveTechnician: 0 },
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
@@ -49,6 +50,10 @@ function readableStatus(status: string) {
 function formatTime(value: string | null) {
   if (!value) return 'Not scheduled';
   return new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatDecimal(value: number, suffix = '') {
+  return `${Number.isFinite(value) ? value.toFixed(1) : '0.0'}${suffix}`;
 }
 
 function activityDescription(activity: WorkOrderActivity) {
@@ -257,6 +262,25 @@ export default async function HomePage() {
             <article className="metricCard"><span>Completed today</span><strong>{dashboard.statistics.completedToday}</strong></article>
             <article className="metricCard"><span>Overdue work orders</span><strong>{dashboard.statistics.overdueWorkOrders}</strong></article>
             <article className="metricCard"><span>Active technicians</span><strong>{dashboard.statistics.activeTechnicians}</strong></article>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Performance metrics</p>
+              <h3>Management overview</h3>
+            </div>
+          </div>
+          <div className="metricGrid performanceMetricsGrid">
+            <article className="metricCard"><span>Average completion time</span><strong>{formatDecimal(dashboard.performanceMetrics.averageCompletionTimeDays, ' days')}</strong></article>
+            <article className="metricCard"><span>Completed today</span><strong>{dashboard.performanceMetrics.completedToday}</strong></article>
+            <article className="metricCard"><span>Completed this week</span><strong>{dashboard.performanceMetrics.completedThisWeek}</strong></article>
+            <article className="metricCard"><span>Completed this month</span><strong>{dashboard.performanceMetrics.completedThisMonth}</strong></article>
+            <article className="metricCard"><span>Overdue percentage</span><strong>{formatDecimal(dashboard.performanceMetrics.overduePercentage, '%')}</strong></article>
+            <article className="metricCard"><span>On-time completion rate</span><strong>{formatDecimal(dashboard.performanceMetrics.onTimeCompletionRate, '%')}</strong></article>
+            <article className="metricCard"><span>Active work orders</span><strong>{dashboard.performanceMetrics.activeWorkOrders}</strong></article>
+            <article className="metricCard"><span>Average jobs per technician</span><strong>{formatDecimal(dashboard.performanceMetrics.averageJobsPerActiveTechnician)}</strong></article>
           </div>
         </section>
       </section>

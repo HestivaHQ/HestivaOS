@@ -23,6 +23,9 @@ export class DashboardService {
     todayStart.setUTCHours(0, 0, 0, 0);
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    const weekStart = new Date(todayStart);
+    weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
+    const monthStart = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1));
 
     const groupedStatusesQuery = this.prisma.workOrder.groupBy({
       by: ['status'],
@@ -43,6 +46,10 @@ export class DashboardService {
         this.prisma.workOrder.count({ where: { status: WorkOrderStatus.WAITING_FOR_PARTS } }),
         this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES }, priority: { in: ['HIGH', 'URGENT'] } } }),
         this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES }, technicianId: null, scheduledAt: { gte: todayStart, lt: tomorrowStart } } }),
+        this.prisma.workOrderActivity.count({ where: { type: WorkOrderActivityType.STATUS_CHANGED, newStatus: WorkOrderStatus.COMPLETED, createdAt: { gte: weekStart, lt: tomorrowStart } } }),
+        this.prisma.workOrderActivity.count({ where: { type: WorkOrderActivityType.STATUS_CHANGED, newStatus: WorkOrderStatus.COMPLETED, createdAt: { gte: monthStart, lt: tomorrowStart } } }),
+        this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES } } }),
+        this.prisma.workOrder.findMany({ where: { status: { not: WorkOrderStatus.CANCELLED }, completedAt: { not: null } }, select: { createdAt: true, completedAt: true, scheduledAt: true } }),
         this.prisma.workOrderActivity.findMany({
           orderBy: { createdAt: 'desc' },
           take: 10,
@@ -55,6 +62,15 @@ export class DashboardService {
         }),
         groupedStatusesQuery,
       ]);
+
+    const completedTimingCount = completedWorkOrderTimings.length;
+    const averageCompletionTimeDays = completedTimingCount
+      ? completedWorkOrderTimings.reduce((total, workOrder) => total + Math.max(0, workOrder.completedAt!.getTime() - workOrder.createdAt.getTime()) / 86_400_000, 0) / completedTimingCount
+      : 0;
+    const scheduledCompletions = completedWorkOrderTimings.filter((workOrder) => workOrder.scheduledAt);
+    const onTimeCompletionRate = scheduledCompletions.length
+      ? scheduledCompletions.filter((workOrder) => workOrder.completedAt! <= workOrder.scheduledAt!).length / scheduledCompletions.length * 100
+      : 0;
 
     const statusBreakdown = Object.values(WorkOrderStatus).reduce<Record<WorkOrderStatus, number>>(
       (result, status) => {

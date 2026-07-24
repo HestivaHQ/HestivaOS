@@ -85,6 +85,7 @@ h1, h2, h3, p { margin-top: 0; }
 .quickActionCard span { color: #61727d; font-size: 14px; line-height: 1.4; }
 .quickActionCard:hover, .quickActionCard:focus-visible { border-color: #176b87; background: #eef7fa; }
 .statisticsGrid { margin: 18px 0 0; }
+.performanceMetricsGrid { margin: 18px 0 0; }
 .alertGrid { display: grid; grid-template-columns: 1fr; gap: 10px; padding-top: 18px; }
 .alertCard { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; align-items: center; min-height: 88px; padding: 16px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; color: #17202a; text-decoration: none; }
 .alertCard strong { font-size: 15px; }
