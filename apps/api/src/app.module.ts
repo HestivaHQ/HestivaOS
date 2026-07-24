@@ -4,12 +4,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
 import { PrismaService } from './prisma.service';
 import { PropertiesModule } from './properties/properties.module';
+import { ServicesModule } from './services/services.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { UsersModule } from './users/users.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
 
 @Module({
-  imports: [UsersModule, CustomersModule, PropertiesModule, WorkOrdersModule, DashboardModule, TechniciansModule],
+  imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, WorkOrdersModule, DashboardModule, TechniciansModule],
   controllers: [HealthController],
   providers: [PrismaService],
 })
