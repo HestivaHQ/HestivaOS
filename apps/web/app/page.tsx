@@ -24,6 +24,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
   } catch {
     return {
       totals: { customers: 0, properties: 0, openWorkOrders: 0, completedWorkOrders: 0 },
+      statistics: { openWorkOrders: 0, completedToday: 0, overdueWorkOrders: 0, activeTechnicians: 0 },
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
@@ -62,6 +63,17 @@ function activityDescription(activity: WorkOrderActivity) {
 function activityUser(activity: WorkOrderActivity) {
   if (!activity.actor) return 'System';
   return activity.actor.displayName ?? `${activity.actor.firstName} ${activity.actor.lastName}`;
+}
+
+function QuickActionIcon({ name }: { name: 'workOrder' | 'customers' | 'properties' | 'technicians' }) {
+  const paths = {
+    workOrder: <><path d="M12 5v14M5 12h14" /></>,
+    customers: <><circle cx="9" cy="8" r="3" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0M17 11a3 3 0 1 0-1.7-5.47M18.5 20a5.5 5.5 0 0 0-3.2-5" /></>,
+    properties: <><path d="M4 21V5l8-3v19M12 9h8v12M8 7h.01M8 11h.01M8 15h.01M16 13h.01M16 17h.01" /><path d="M2 21h20" /></>,
+    technicians: <><path d="m14.7 6.3 3-3 3 3-3 3zM4 20l5.2-5.2M7 17l-2-2 6.7-6.7 2 2z" /></>,
+  };
+
+  return <svg className="quickActionIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
 export default async function HomePage() {
@@ -111,13 +123,6 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <div className="metricGrid">
-          <article className="metricCard"><span>Total customers</span><strong>{dashboard.totals.customers}</strong></article>
-          <article className="metricCard"><span>Total properties</span><strong>{dashboard.totals.properties}</strong></article>
-          <article className="metricCard"><span>Open work orders</span><strong>{dashboard.totals.openWorkOrders}</strong></article>
-          <article className="metricCard"><span>Completed work orders</span><strong>{dashboard.totals.completedWorkOrders}</strong></article>
-        </div>
-
         <section className="panel">
           <div className="panelHeader">
             <div>
@@ -163,15 +168,24 @@ export default async function HomePage() {
           </div>
 
           {dashboard.recentWorkOrderActivities.length ? (
-            <div className="workList">
+            <div className="recentActivityList" role="list">
               {dashboard.recentWorkOrderActivities.map((activity) => (
-                <Link className="workItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id}>
-                  <div>
-                    <strong>{activityDescription(activity)}</strong>
-                    <p>{activityUser(activity)} · Work order: {activity.workOrder.title}</p>
-                  </div>
-                  <div className="workMeta">
+                <Link className="recentActivityItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id} role="listitem">
+                  <div className="recentActivityField recentActivityTime">
+                    <span>Time</span>
                     <time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>User</span>
+                    <strong>{activityUser(activity)}</strong>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>Action</span>
+                    <strong>{activityDescription(activity)}</strong>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>Work order reference</span>
+                    <strong>{activity.workOrder.title}</strong>
                   </div>
                 </Link>
               ))}
@@ -192,22 +206,37 @@ export default async function HomePage() {
           </div>
           <nav className="quickActionGrid" aria-label="Dashboard quick actions">
             <Link className="quickActionCard" href="/work-orders">
-              <strong>New Work Order</strong>
-              <span>Create and assign maintenance work.</span>
+              <QuickActionIcon name="workOrder" />
+              <div><strong>New Work Order</strong><span>Create and assign maintenance work.</span></div>
             </Link>
             <Link className="quickActionCard" href="/customers">
-              <strong>Customers</strong>
-              <span>View and manage customer records.</span>
+              <QuickActionIcon name="customers" />
+              <div><strong>Customers</strong><span>View and manage customer records.</span></div>
             </Link>
             <Link className="quickActionCard" href="/properties">
-              <strong>Properties</strong>
-              <span>View and manage property details.</span>
+              <QuickActionIcon name="properties" />
+              <div><strong>Properties</strong><span>View and manage property details.</span></div>
             </Link>
             <Link className="quickActionCard" href="/technicians">
-              <strong>Technicians</strong>
-              <span>View and manage technician assignments.</span>
+              <QuickActionIcon name="technicians" />
+              <div><strong>Technicians</strong><span>View and manage technician assignments.</span></div>
             </Link>
           </nav>
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <p className="eyebrow">Statistics</p>
+              <h3>Operational summary</h3>
+            </div>
+          </div>
+          <div className="metricGrid statisticsGrid">
+            <article className="metricCard"><span>Open work orders</span><strong>{dashboard.statistics.openWorkOrders}</strong></article>
+            <article className="metricCard"><span>Completed today</span><strong>{dashboard.statistics.completedToday}</strong></article>
+            <article className="metricCard"><span>Overdue work orders</span><strong>{dashboard.statistics.overdueWorkOrders}</strong></article>
+            <article className="metricCard"><span>Active technicians</span><strong>{dashboard.statistics.activeTechnicians}</strong></article>
+          </div>
         </section>
       </section>
     </main>
