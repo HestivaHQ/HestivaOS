@@ -19,6 +19,7 @@ export type DashboardOverview = {
   technicianWorkload: Array<{ technicianId: string; technicianName: string; status: string; activeWorkOrderCount: number; scheduledTodayCount: number; highPriorityCount: number }>;
   recentWorkOrderActivities: DashboardWorkOrderActivity[];
   todayScheduledWorkOrders: WorkOrder[];
+  upcomingScheduledWorkOrders: WorkOrder[];
   statusBreakdown: Record<WorkOrderStatus, number>;
 };
 
