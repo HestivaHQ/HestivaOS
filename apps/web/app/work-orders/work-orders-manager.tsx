@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api, Customer, Property, Technician, WorkOrder, WorkOrderActivity, WorkOrderChecklistItem, WorkOrderStatus } from '../../lib/api';
@@ -130,7 +131,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
         <div className="formActions"><button className="primaryButton">Save work order</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); setTimeline([]); setChecklist([]); }}>Cancel</button> : null}</div>
       </form>
       <section className="panel"><div className="panelHeader"><h3>Work queue</h3></div><div className="dataList">
-        {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrder.title}</strong><p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</p></div><div className="rowActions"><span className="statusPill">{readableStatus(workOrder.status)}</span><span className="priorityText">{workOrder.priority}</span><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
+        {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrder.title}</strong><p>{workOrder.customer.name} · {workOrder.property.name} · {workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</p></div><div className="rowActions"><span className="statusPill">{readableStatus(workOrder.status)}</span><span className="priorityText">{workOrder.priority}</span><Link href={`/work-orders/${workOrder.id}`}>Open job</Link><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
         {!items.length ? <div className="emptyState"><strong>No work orders found</strong><p>Create a customer and property, then schedule the first job.</p></div> : null}
       </div>
       {editingId ? <>
