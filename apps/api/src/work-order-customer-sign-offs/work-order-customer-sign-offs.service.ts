@@ -17,7 +17,15 @@ export class WorkOrderCustomerSignOffsService {
   async create(workOrderId: string, input: CreateCustomerSignOffInput) {
     const workOrder = await this.prisma.workOrder.findUnique({ where: { id: workOrderId }, select: { id: true, status: true } });
     if (!workOrder) throw new NotFoundException('Work order not found.');
-    if (![WorkOrderStatus.COMPLETED, WorkOrderStatus.CLOSED].includes(workOrder.status)) throw new BadRequestException('Customer sign-off is available only after the work order is completed.');
+
+    const isCompleted =
+      workOrder.status === WorkOrderStatus.COMPLETED ||
+      workOrder.status === WorkOrderStatus.CLOSED;
+
+    if (!isCompleted) {
+      throw new BadRequestException('Customer sign-off is available only after the work order is completed.');
+    }
+
     if (!input.customerName?.trim()) throw new BadRequestException('Customer name is required.');
     if (!input.signatureDataUrl?.startsWith('data:image/png;base64,') || input.signatureDataUrl.length > 250_000) throw new BadRequestException('A valid signature is required.');
     const existing = await this.prisma.workOrderCustomerSignOff.findUnique({ where: { workOrderId }, select: { id: true } });
