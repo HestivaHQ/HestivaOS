@@ -7,6 +7,7 @@ export type AppUser = { id: string; authUserId: string; email: string; firstName
 export type Customer = { id: string; ownerId: string; name: string; contactName: string | null; email: string | null; phone: string | null; notes?: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; customerId: string; customer?: Customer };
 export type Technician = { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; skills: string[]; notes: string | null; status: 'ACTIVE' | 'INACTIVE' };
+export type Service = { id: string; name: string; description: string | null; defaultDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string; updatedAt: string };
 export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | 'ON_SITE' | 'WAITING_FOR_PARTS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
@@ -27,6 +28,7 @@ export type DashboardOverview = {
 export type CustomerInput = { ownerId: string; name: string; contactName?: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };
 export type PropertyInput = { customerId: string; name: string; addressLine1: string; addressLine2?: string; city: string; province?: string; postalCode?: string; country?: string; accessNotes?: string };
 export type TechnicianInput = { firstName: string; lastName: string; email?: string; phone?: string; skills?: string[]; notes?: string; status?: Technician['status'] };
+export type ServiceInput = { name: string; description?: string; defaultDurationMinutes?: number; status?: Service['status'] };
 export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; title: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -66,6 +68,10 @@ export const api = {
   createTechnician: (input: TechnicianInput) => apiFetch<Technician>('/technicians', { method: 'POST', ...json(input) }),
   updateTechnician: (id: string, input: Partial<TechnicianInput>) => apiFetch<Technician>(`/technicians/${id}`, { method: 'PATCH', ...json(input) }),
   deleteTechnician: (id: string) => apiFetch<Technician>(`/technicians/${id}`, { method: 'DELETE' }),
+  services: (query = '') => apiFetch<PaginatedResponse<Service>>(`/services${query}`),
+  createService: (input: ServiceInput) => apiFetch<Service>('/services', { method: 'POST', ...json(input) }),
+  updateService: (id: string, input: Partial<ServiceInput>) => apiFetch<Service>(`/services/${id}`, { method: 'PATCH', ...json(input) }),
+  deleteService: (id: string) => apiFetch<Service>(`/services/${id}`, { method: 'DELETE' }),
   workOrders: (query = '') => apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
   createWorkOrder: (input: WorkOrderInput) => apiFetch<WorkOrder>('/work-orders', { method: 'POST', ...json(input) }),
   updateWorkOrder: (id: string, input: Partial<Omit<WorkOrderInput, 'createdById'>>) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'PATCH', ...json(input) }),
