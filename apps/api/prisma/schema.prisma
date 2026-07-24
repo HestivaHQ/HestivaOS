@@ -22,6 +22,11 @@ enum ServiceStatus {
   INACTIVE
 }
 
+enum CleaningJobTemplateStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum WorkOrderStatus {
   NEW
   ASSIGNED
@@ -150,12 +155,28 @@ model Service {
   description              String?
   defaultDurationMinutes   Int?          @map("default_duration_minutes")
   status                   ServiceStatus @default(ACTIVE)
+  jobTemplates             CleaningJobTemplate[]
   createdAt                DateTime      @default(now()) @map("created_at")
   updatedAt                DateTime      @updatedAt @map("updated_at")
 
   @@index([name])
   @@index([status])
   @@map("services")
+}
+
+model CleaningJobTemplate {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  name                     String                    @unique
+  description              String?
+  estimatedDurationMinutes Int?                      @map("estimated_duration_minutes")
+  status                   CleaningJobTemplateStatus @default(ACTIVE)
+  services                 Service[]
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@index([status])
+  @@map("cleaning_job_templates")
 }
 
 model WorkOrder {
