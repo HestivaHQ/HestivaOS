@@ -7,211 +7,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum CustomerStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum TechnicianStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum ServiceStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum CleaningJobTemplateStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum WorkOrderChecklistItemStatus {
-  PENDING
-  COMPLETED
-  NOT_APPLICABLE
-}
-
-enum WorkOrderPhotoCategory {
-  BEFORE
-  AFTER
-}
-
-enum WorkOrderStatus {
-  NEW
-  ASSIGNED
-  ACCEPTED
-  TRAVELLING
-  ON_SITE
-  WAITING_FOR_PARTS
-  COMPLETED
-  CLOSED
-  CANCELLED
-}
-
-enum WorkOrderActivityType {
-  WORK_ORDER_CREATED
-  STATUS_CHANGED
-  TECHNICIAN_ASSIGNED
-  TECHNICIAN_CHANGED
-  TECHNICIAN_REMOVED
-  WORK_ORDER_CLOSED
-  WORK_ORDER_CANCELLED
-}
-
-enum WorkOrderPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum UserRole {
-  ADMIN
-  OPERATIONS_MANAGER
-  DISPATCHER
-  SUPERVISOR
-  TECHNICIAN
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-}
+enum CustomerStatus { ACTIVE INACTIVE }
+enum TechnicianStatus { ACTIVE INACTIVE }
+enum ServiceStatus { ACTIVE INACTIVE }
+enum CleaningJobTemplateStatus { ACTIVE INACTIVE }
+enum WorkOrderChecklistItemStatus { PENDING COMPLETED NOT_APPLICABLE }
+enum WorkOrderPhotoCategory { BEFORE AFTER }
+enum WorkOrderStatus { NEW ASSIGNED ACCEPTED TRAVELLING ON_SITE WAITING_FOR_PARTS COMPLETED CLOSED CANCELLED }
+enum WorkOrderActivityType { WORK_ORDER_CREATED STATUS_CHANGED TECHNICIAN_ASSIGNED TECHNICIAN_CHANGED TECHNICIAN_REMOVED WORK_ORDER_CLOSED WORK_ORDER_CANCELLED }
+enum WorkOrderPriority { LOW NORMAL HIGH URGENT }
+enum UserRole { ADMIN OPERATIONS_MANAGER DISPATCHER SUPERVISOR TECHNICIAN }
+enum UserStatus { ACTIVE INACTIVE }
 
 model User {
-  id          String      @id @default(uuid()) @db.Uuid
-  authUserId  String      @unique @map("auth_user_id") @db.Uuid
-  email       String      @unique
-  firstName   String      @map("first_name")
-  lastName    String      @map("last_name")
-  displayName String?     @map("display_name")
-  phoneNumber String?     @map("phone_number")
-  jobTitle    String?     @map("job_title")
-  department  String?
+  id String @id @default(uuid()) @db.Uuid
+  authUserId String @unique @map("auth_user_id") @db.Uuid
+  email String @unique
+  firstName String @map("first_name")
+  lastName String @map("last_name")
+  displayName String? @map("display_name")
+  phoneNumber String? @map("phone_number")
+  jobTitle String? @map("job_title")
+  department String?
   profilePhotoUrl String? @map("profile_photo_url")
-  role        UserRole   @default(TECHNICIAN)
-  status      UserStatus @default(ACTIVE)
-  customers   Customer[]  @relation("CustomerOwner")
-  workOrders  WorkOrder[] @relation("WorkOrderCreator")
+  role UserRole @default(TECHNICIAN)
+  status UserStatus @default(ACTIVE)
+  customers Customer[] @relation("CustomerOwner")
+  workOrders WorkOrder[] @relation("WorkOrderCreator")
   workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@map("users")
 }
 
 model Customer {
-  id          String         @id @default(uuid()) @db.Uuid
-  ownerId     String         @map("owner_id") @db.Uuid
-  name        String
-  contactName String?        @map("contact_name")
-  email       String?
-  phone       String?
-  notes       String?
-  status      CustomerStatus @default(ACTIVE)
-  owner       User           @relation("CustomerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  properties  Property[]
-  workOrders  WorkOrder[]
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  name String
+  contactName String? @map("contact_name")
+  email String?
+  phone String?
+  notes String?
+  status CustomerStatus @default(ACTIVE)
+  owner User @relation("CustomerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  properties Property[]
+  workOrders WorkOrder[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([ownerId])
   @@index([name])
   @@map("customers")
 }
 
 model Property {
-  id          String      @id @default(uuid()) @db.Uuid
-  customerId  String      @map("customer_id") @db.Uuid
-  name        String
-  addressLine1 String     @map("address_line_1")
-  addressLine2 String?    @map("address_line_2")
-  city         String
-  province     String?
-  postalCode   String?    @map("postal_code")
-  country      String     @default("South Africa")
-  accessNotes  String?    @map("access_notes")
-  customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  workOrders   WorkOrder[]
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-
+  id String @id @default(uuid()) @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+  name String
+  addressLine1 String @map("address_line_1")
+  addressLine2 String? @map("address_line_2")
+  city String
+  province String?
+  postalCode String? @map("postal_code")
+  country String @default("South Africa")
+  accessNotes String? @map("access_notes")
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  workOrders WorkOrder[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
   @@index([city])
   @@map("properties")
 }
 
 model Technician {
-  id         String           @id @default(uuid()) @db.Uuid
-  firstName  String           @map("first_name")
-  lastName   String           @map("last_name")
-  email      String?          @unique
-  phone      String?
-  skills     String[]         @default([])
-  notes      String?
-  status     TechnicianStatus @default(ACTIVE)
+  id String @id @default(uuid()) @db.Uuid
+  firstName String @map("first_name")
+  lastName String @map("last_name")
+  email String? @unique
+  phone String?
+  skills String[] @default([])
+  notes String?
+  status TechnicianStatus @default(ACTIVE)
   workOrders WorkOrder[]
-  createdAt  DateTime         @default(now()) @map("created_at")
-  updatedAt  DateTime         @updatedAt @map("updated_at")
-
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([lastName, firstName])
   @@map("technicians")
 }
 
 model Service {
-  id                       String        @id @default(uuid()) @db.Uuid
-  name                     String        @unique
-  description              String?
-  defaultDurationMinutes   Int?          @map("default_duration_minutes")
-  status                   ServiceStatus @default(ACTIVE)
-  jobTemplates             CleaningJobTemplate[]
-  createdAt                DateTime      @default(now()) @map("created_at")
-  updatedAt                DateTime      @updatedAt @map("updated_at")
-
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  description String?
+  defaultDurationMinutes Int? @map("default_duration_minutes")
+  status ServiceStatus @default(ACTIVE)
+  jobTemplates CleaningJobTemplate[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
   @@index([status])
   @@map("services")
 }
 
 model CleaningJobTemplate {
-  id                       String                    @id @default(uuid()) @db.Uuid
-  name                     String                    @unique
-  description              String?
-  estimatedDurationMinutes Int?                      @map("estimated_duration_minutes")
-  status                   CleaningJobTemplateStatus @default(ACTIVE)
-  services                 Service[]
-  createdAt                DateTime                  @default(now()) @map("created_at")
-  updatedAt                DateTime                  @updatedAt @map("updated_at")
-
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  description String?
+  estimatedDurationMinutes Int? @map("estimated_duration_minutes")
+  status CleaningJobTemplateStatus @default(ACTIVE)
+  services Service[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
   @@index([status])
   @@map("cleaning_job_templates")
 }
 
 model WorkOrder {
-  id           String            @id @default(uuid()) @db.Uuid
-  customerId   String            @map("customer_id") @db.Uuid
-  propertyId   String            @map("property_id") @db.Uuid
-  createdById  String            @map("created_by_id") @db.Uuid
-  technicianId String?           @map("technician_id") @db.Uuid
-  title        String
-  description  String?
-  status       WorkOrderStatus   @default(NEW)
-  priority     WorkOrderPriority @default(NORMAL)
-  scheduledAt  DateTime?         @map("scheduled_at")
-  completedAt  DateTime?         @map("completed_at")
-  customer     Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  property     Property          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
-  createdBy    User              @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  technician   Technician?       @relation(fields: [technicianId], references: [id], onDelete: SetNull)
-  activities   WorkOrderActivity[]
+  id String @id @default(uuid()) @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+  propertyId String @map("property_id") @db.Uuid
+  createdById String @map("created_by_id") @db.Uuid
+  technicianId String? @map("technician_id") @db.Uuid
+  title String
+  description String?
+  status WorkOrderStatus @default(NEW)
+  priority WorkOrderPriority @default(NORMAL)
+  scheduledAt DateTime? @map("scheduled_at")
+  completedAt DateTime? @map("completed_at")
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  activities WorkOrderActivity[]
   checklistItems WorkOrderChecklistItem[]
-  photos       WorkOrderPhoto[]
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt @map("updated_at")
-
+  photos WorkOrderPhoto[]
+  customerSignOff WorkOrderCustomerSignOff?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
   @@index([propertyId])
   @@index([createdById])
@@ -222,45 +155,53 @@ model WorkOrder {
 }
 
 model WorkOrderChecklistItem {
-  id          String                       @id @default(uuid()) @db.Uuid
-  workOrderId String                       @map("work_order_id") @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
   description String
-  status      WorkOrderChecklistItemStatus @default(PENDING)
-  sortOrder   Int                          @default(0) @map("sort_order")
-  workOrder   WorkOrder                    @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  createdAt   DateTime                     @default(now()) @map("created_at")
-  updatedAt   DateTime                     @updatedAt @map("updated_at")
-
+  status WorkOrderChecklistItemStatus @default(PENDING)
+  sortOrder Int @default(0) @map("sort_order")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   @@index([workOrderId, sortOrder])
   @@map("work_order_checklist_items")
 }
 
 model WorkOrderPhoto {
-  id            String                 @id @default(uuid()) @db.Uuid
-  workOrderId   String                 @map("work_order_id") @db.Uuid
-  category      WorkOrderPhotoCategory
-  url           String
-  storagePath   String                 @map("storage_path")
-  uploadedBy    String                 @map("uploaded_by")
-  workOrder     WorkOrder              @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  createdAt     DateTime               @default(now()) @map("created_at")
-
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  category WorkOrderPhotoCategory
+  url String
+  storagePath String @map("storage_path")
+  uploadedBy String @map("uploaded_by")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
   @@index([workOrderId, category, createdAt])
   @@map("work_order_photos")
 }
 
-model WorkOrderActivity {
-  id             String                @id @default(uuid()) @db.Uuid
-  workOrderId    String                @map("work_order_id") @db.Uuid
-  type           WorkOrderActivityType
-  previousStatus WorkOrderStatus?      @map("previous_status")
-  newStatus      WorkOrderStatus?      @map("new_status")
-  note           String?
-  actorId        String?               @map("actor_id") @db.Uuid
-  workOrder      WorkOrder             @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  actor          User?                 @relation("WorkOrderActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
-  createdAt      DateTime              @default(now()) @map("created_at")
+model WorkOrderCustomerSignOff {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @unique @map("work_order_id") @db.Uuid
+  customerName String @map("customer_name")
+  signatureDataUrl String @map("signature_data_url")
+  note String?
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  @@map("work_order_customer_sign_offs")
+}
 
+model WorkOrderActivity {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  type WorkOrderActivityType
+  previousStatus WorkOrderStatus? @map("previous_status")
+  newStatus WorkOrderStatus? @map("new_status")
+  note String?
+  actorId String? @map("actor_id") @db.Uuid
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  actor User? @relation("WorkOrderActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
   @@index([workOrderId])
   @@index([createdAt])
   @@index([workOrderId, createdAt])
