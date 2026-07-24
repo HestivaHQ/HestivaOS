@@ -31,6 +31,7 @@ async function getDashboardData(): Promise<DashboardOverview & { available: bool
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders: [],
       upcomingScheduledWorkOrders: [],
+      overdueWorkOrdersList: [],
       statusBreakdown: EMPTY_STATUS_BREAKDOWN,
       available: false,
     };
@@ -179,12 +180,42 @@ export default async function HomePage() {
         <section className="panel">
           <div className="panelHeader">
             <div>
+              <p className="eyebrow">Overdue work</p>
+              <h3>Work orders requiring immediate attention</h3>
+            </div>
+            <Link href="/work-orders?alert=overdue">View all</Link>
+          </div>
+          {dashboard.overdueWorkOrdersList.length ? (
+            <div className="workList">
+              {dashboard.overdueWorkOrdersList.map((workOrder) => (
+                <Link className="workItem scheduledWorkItem" href={`/work-orders?edit=${workOrder.id}`} key={workOrder.id}>
+                  <div className="scheduledWorkDetails">
+                    <strong>{workOrder.customer.name}</strong>
+                    <p>{workOrder.property.name}</p>
+                    <dl>
+                      <div><dt>Scheduled date</dt><dd><time dateTime={workOrder.scheduledAt ?? undefined}>{formatDate(workOrder.scheduledAt)}</time></dd></div>
+                      <div><dt>Assigned technician</dt><dd>{workOrder.technician ? `${workOrder.technician.firstName} ${workOrder.technician.lastName}` : 'Unassigned'}</dd></div>
+                      <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
+                      <div><dt>Days overdue</dt><dd>{workOrder.daysOverdue}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="workMeta"><span className="statusPill">{readableStatus(workOrder.status)}</span></div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="emptyState"><strong>No overdue work orders.</strong></div>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
               <p className="eyebrow">Today&apos;s schedule</p>
               <h3>Scheduled work orders</h3>
             </div>
             <Link href="/work-orders">View all</Link>
           </div>
-
           {dashboard.todayScheduledWorkOrders.length ? (
             <div className="workList">
               {dashboard.todayScheduledWorkOrders.map((workOrder) => (
@@ -198,28 +229,20 @@ export default async function HomePage() {
                       <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
                     </dl>
                   </div>
-                  <div className="workMeta">
-                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
-                  </div>
+                  <div className="workMeta"><span className="statusPill">{readableStatus(workOrder.status)}</span></div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="emptyState">
-              <strong>No work scheduled for today.</strong>
-            </div>
+            <div className="emptyState"><strong>No work scheduled for today.</strong></div>
           )}
         </section>
 
         <section className="panel">
           <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Upcoming work</p>
-              <h3>Scheduled for the next 7 days</h3>
-            </div>
+            <div><p className="eyebrow">Upcoming work</p><h3>Scheduled for the next 7 days</h3></div>
             <Link href="/work-orders">View all</Link>
           </div>
-
           {dashboard.upcomingScheduledWorkOrders.length ? (
             <div className="workList">
               {dashboard.upcomingScheduledWorkOrders.map((workOrder) => (
@@ -233,92 +256,48 @@ export default async function HomePage() {
                       <div><dt>Priority</dt><dd>{workOrder.priority}</dd></div>
                     </dl>
                   </div>
-                  <div className="workMeta">
-                    <span className="statusPill">{readableStatus(workOrder.status)}</span>
-                  </div>
+                  <div className="workMeta"><span className="statusPill">{readableStatus(workOrder.status)}</span></div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="emptyState">
-              <strong>No work scheduled for the next 7 days.</strong>
-            </div>
+            <div className="emptyState"><strong>No work scheduled for the next 7 days.</strong></div>
           )}
         </section>
 
         <section className="panel">
           <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Recent activity</p>
-              <h3>Latest work-order updates</h3>
-            </div>
+            <div><p className="eyebrow">Recent activity</p><h3>Latest work-order updates</h3></div>
             <Link href="/work-orders">View all</Link>
           </div>
-
           {dashboard.recentWorkOrderActivities.length ? (
             <div className="recentActivityList" role="list">
               {dashboard.recentWorkOrderActivities.map((activity) => (
                 <Link className="recentActivityItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id} role="listitem">
-                  <div className="recentActivityField recentActivityTime">
-                    <span>Time</span>
-                    <time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time>
-                  </div>
-                  <div className="recentActivityField">
-                    <span>User</span>
-                    <strong>{activityUser(activity)}</strong>
-                  </div>
-                  <div className="recentActivityField">
-                    <span>Action</span>
-                    <strong>{activityDescription(activity)}</strong>
-                  </div>
-                  <div className="recentActivityField">
-                    <span>Work order reference</span>
-                    <strong>{activity.workOrder.title}</strong>
-                  </div>
+                  <div className="recentActivityField recentActivityTime"><span>Time</span><time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time></div>
+                  <div className="recentActivityField"><span>User</span><strong>{activityUser(activity)}</strong></div>
+                  <div className="recentActivityField"><span>Action</span><strong>{activityDescription(activity)}</strong></div>
+                  <div className="recentActivityField"><span>Work order reference</span><strong>{activity.workOrder.title}</strong></div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="emptyState">
-              <strong>No recent activity.</strong>
-            </div>
+            <div className="emptyState"><strong>No recent activity.</strong></div>
           )}
         </section>
 
         <section className="panel">
-          <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Quick actions</p>
-              <h3>Manage operations</h3>
-            </div>
-          </div>
+          <div className="panelHeader"><div><p className="eyebrow">Quick actions</p><h3>Manage operations</h3></div></div>
           <nav className="quickActionGrid" aria-label="Dashboard quick actions">
-            <Link className="quickActionCard" href="/work-orders">
-              <QuickActionIcon name="workOrder" />
-              <div><strong>New Work Order</strong><span>Create and assign maintenance work.</span></div>
-            </Link>
-            <Link className="quickActionCard" href="/customers">
-              <QuickActionIcon name="customers" />
-              <div><strong>Customers</strong><span>View and manage customer records.</span></div>
-            </Link>
-            <Link className="quickActionCard" href="/properties">
-              <QuickActionIcon name="properties" />
-              <div><strong>Properties</strong><span>View and manage property details.</span></div>
-            </Link>
-            <Link className="quickActionCard" href="/technicians">
-              <QuickActionIcon name="technicians" />
-              <div><strong>Technicians</strong><span>View and manage technician assignments.</span></div>
-            </Link>
+            <Link className="quickActionCard" href="/work-orders"><QuickActionIcon name="workOrder" /><div><strong>New Work Order</strong><span>Create and assign maintenance work.</span></div></Link>
+            <Link className="quickActionCard" href="/customers"><QuickActionIcon name="customers" /><div><strong>Customers</strong><span>View and manage customer records.</span></div></Link>
+            <Link className="quickActionCard" href="/properties"><QuickActionIcon name="properties" /><div><strong>Properties</strong><span>View and manage property details.</span></div></Link>
+            <Link className="quickActionCard" href="/technicians"><QuickActionIcon name="technicians" /><div><strong>Technicians</strong><span>View and manage technician assignments.</span></div></Link>
           </nav>
         </section>
 
         <section className="panel">
-          <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Statistics</p>
-              <h3>Operational summary</h3>
-            </div>
-          </div>
+          <div className="panelHeader"><div><p className="eyebrow">Statistics</p><h3>Operational summary</h3></div></div>
           <div className="metricGrid statisticsGrid">
             <article className="metricCard"><span>Open work orders</span><strong>{dashboard.statistics.openWorkOrders}</strong></article>
             <article className="metricCard"><span>Completed today</span><strong>{dashboard.statistics.completedToday}</strong></article>
@@ -328,12 +307,7 @@ export default async function HomePage() {
         </section>
 
         <section className="panel">
-          <div className="panelHeader">
-            <div>
-              <p className="eyebrow">Performance metrics</p>
-              <h3>Management overview</h3>
-            </div>
-          </div>
+          <div className="panelHeader"><div><p className="eyebrow">Performance metrics</p><h3>Management overview</h3></div></div>
           <div className="metricGrid performanceMetricsGrid">
             <article className="metricCard"><span>Average completion time</span><strong>{formatDecimal(dashboard.performanceMetrics.averageCompletionTimeDays, ' days')}</strong></article>
             <article className="metricCard"><span>Completed today</span><strong>{dashboard.performanceMetrics.completedToday}</strong></article>
