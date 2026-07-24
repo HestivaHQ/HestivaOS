@@ -163,15 +163,24 @@ export default async function HomePage() {
           </div>
 
           {dashboard.recentWorkOrderActivities.length ? (
-            <div className="workList">
+            <div className="recentActivityList" role="list">
               {dashboard.recentWorkOrderActivities.map((activity) => (
-                <Link className="workItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id}>
-                  <div>
-                    <strong>{activityDescription(activity)}</strong>
-                    <p>{activityUser(activity)} · Work order: {activity.workOrder.title}</p>
-                  </div>
-                  <div className="workMeta">
+                <Link className="recentActivityItem" href={`/work-orders?edit=${activity.workOrder.id}`} key={activity.id} role="listitem">
+                  <div className="recentActivityField recentActivityTime">
+                    <span>Time</span>
                     <time dateTime={activity.createdAt}>{formatDate(activity.createdAt)}</time>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>User</span>
+                    <strong>{activityUser(activity)}</strong>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>Action</span>
+                    <strong>{activityDescription(activity)}</strong>
+                  </div>
+                  <div className="recentActivityField">
+                    <span>Work order reference</span>
+                    <strong>{activity.workOrder.title}</strong>
                   </div>
                 </Link>
               ))}
