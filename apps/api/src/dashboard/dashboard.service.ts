@@ -32,6 +32,8 @@ export class DashboardService {
     todayStart.setUTCHours(0, 0, 0, 0);
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+    const upcomingEnd = new Date(tomorrowStart);
+    upcomingEnd.setUTCDate(upcomingEnd.getUTCDate() + 7);
     const weekStart = new Date(todayStart);
     weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
     const monthStart = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1));
@@ -42,7 +44,7 @@ export class DashboardService {
       _count: { _all: true },
     });
 
-    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses, technicianWorkloadRecords] =
+    const [customers, properties, openWorkOrders, completedWorkOrders, completedToday, overdueWorkOrders, activeTechnicians, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs, completedThisWeek, completedThisMonth, actionableWorkOrders, completedWorkOrderTimings, recentWorkOrderActivities, todayScheduledWorkOrders, groupedStatuses, technicianWorkloadRecords, upcomingScheduledWorkOrders] =
       await this.prisma.$transaction([
         this.prisma.customer.count(),
         this.prisma.property.count(),
@@ -88,6 +90,14 @@ export class DashboardService {
             },
           },
         }),
+        this.prisma.workOrder.findMany({
+          where: {
+            status: { not: WorkOrderStatus.CANCELLED },
+            scheduledAt: { gte: tomorrowStart, lt: upcomingEnd },
+          },
+          orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
+          include: { customer: true, property: true, createdBy: true, technician: true },
+        }),
       ]);
 
     const completedTimingCount = completedWorkOrderTimings.length;
@@ -128,12 +138,7 @@ export class DashboardService {
     }
 
     return {
-      totals: {
-        customers,
-        properties,
-        openWorkOrders,
-        completedWorkOrders,
-      },
+      totals: { customers, properties, openWorkOrders, completedWorkOrders },
       statistics: { openWorkOrders, completedToday, overdueWorkOrders, activeTechnicians },
       alerts: { overdueWorkOrders, awaitingAssignment, waitingForParts, highPriorityJobs, todayUnassignedJobs },
       performanceMetrics: {
@@ -149,6 +154,7 @@ export class DashboardService {
       technicianWorkload,
       recentWorkOrderActivities,
       todayScheduledWorkOrders,
+      upcomingScheduledWorkOrders,
       statusBreakdown,
     };
   }
