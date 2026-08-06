@@ -1,11 +1,15 @@
-# Maintenance Marshall Operating System 
+# Hestiva OS
 
-Stage 1 foundation scaffold.
+Hestiva OS is a web application and API for running property service operations. It
+provides authentication and workflows for customers and properties, work orders,
+the service catalogue, cleaning job templates, crews, technicians, and shift
+planning. The API is deployed on Railway, while the web application is deployed on
+Cloudflare Workers.
 
 ## Prerequisites
 
-- Node.js 22+
-- npm 10+
+- Node.js 24+
+- npm 11+
 - PostgreSQL 16+
 
 ## Start locally
@@ -25,7 +29,7 @@ API health: http://localhost:4000/api/v1/health
 
 Railway deploys the API from the repository root using Nixpacks on Node.js 24. The
 Nixpacks install phase runs `npm ci`, and the configured build command is
-`npm run build --workspace @mm/api`; startup runs `npm run deploy:api`.
+`npm run build --workspace @hestiva/api`; startup runs `npm run deploy:api`.
 That command executes `prisma migrate deploy --schema apps/api/prisma/schema.prisma`
 before starting NestJS, so the API does not start when a migration fails.
 

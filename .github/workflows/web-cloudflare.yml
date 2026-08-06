@@ -37,7 +37,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Validate required secrets
         shell: bash
@@ -55,10 +55,10 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Type-check frontend
-        run: npm run typecheck --workspace @mm/web
+        run: npm run typecheck --workspace @hestiva/web
 
       - name: Build frontend
-        run: npm run build --workspace @mm/web
+        run: npm run build --workspace @hestiva/web
 
       - name: Deploy to Cloudflare Workers
-        run: npm run deploy --workspace @mm/web
+        run: npm run deploy --workspace @hestiva/web

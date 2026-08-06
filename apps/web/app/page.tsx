@@ -98,7 +98,7 @@ export default async function HomePage() {
     <main className="appShell">
       <aside className="sidebar">
         <div>
-          <p className="eyebrow">Maintenance Marshall</p>
+          <p className="eyebrow">Hestiva OS</p>
           <h1 className="brand">Operations</h1>
         </div>
         <nav className="navList" aria-label="Primary navigation">

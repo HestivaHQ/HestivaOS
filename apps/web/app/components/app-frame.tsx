@@ -19,7 +19,7 @@ export function AppFrame({ active, email, user, children }: { active: string; em
   return (
     <main className="appShell">
       <aside className="sidebar">
-        <div><p className="eyebrow">Cleaning Marshall</p><h1 className="brand">Operations</h1></div>
+        <div><p className="eyebrow">Hestiva OS</p><h1 className="brand">Operations</h1></div>
         <nav className="navList" aria-label="Primary navigation">
           {links.map(([href, label]) => <Link key={href} className={`navLink ${active === href ? 'active' : ''}`} href={href}>{label}</Link>)}
         </nav>
