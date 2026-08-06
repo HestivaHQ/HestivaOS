@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { LabourAdjustmentCalculation, LabourAdjustmentKind, WorkerPayType } from '@prisma/client';
+import { SupabaseAuthGuard } from '../users/supabase-auth.guard';
 import { LabourCostingService } from './labour-costing.service';
 
 export type CreateTechnicianRateInput = {
@@ -32,6 +33,7 @@ export type CreateShiftAdjustmentInput = {
 };
 
 @Controller('labour-costing')
+@UseGuards(SupabaseAuthGuard)
 export class LabourCostingController {
   constructor(private readonly labourCosting: LabourCostingService) {}
 
