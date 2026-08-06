@@ -55,14 +55,14 @@ export default function LoginPage() {
   return (
     <main className="shell">
       <section className="card" style={{ maxWidth: 480 }}>
-        <p className="eyebrow">Maintenance Marshall</p>
+        <p className="eyebrow">Hestiva OS</p>
         <h1 style={{ fontSize: 'clamp(32px, 7vw, 44px)' }}>
           {mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
         </h1>
         <p className="summary">
           {mode === 'sign-in'
             ? 'Sign in to manage customers, properties, and work orders.'
-            : 'Create an account to start using Maintenance Marshall.'}
+            : 'Create an account to start using Hestiva OS.'}
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 18, marginTop: 28 }}>
