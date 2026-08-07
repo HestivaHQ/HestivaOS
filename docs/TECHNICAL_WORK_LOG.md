@@ -1,5 +1,10 @@
 # Technical work log
 
+## 2026-08-07 — Railway API startup migration cleanup
+
+- Removed the duplicate `prisma migrate deploy` invocation from the `@hestiva/api` start script. Railway continues to invoke the root `npm run deploy:api` command, which runs `db:migrate:deploy` once before starting the API workspace.
+- Preserved the Railway build command, health check, root deployment entry point, Prisma schema and migrations, environment variable names, and the NestJS `node dist/main.js` process start.
+
 ## 2026-08-07 — Repository documentation policy
 
 - Established the root `AGENTS.md` as the mandatory repository-wide Definition of Done and documentation update matrix for future Codex implementations.
