@@ -77,3 +77,23 @@ API logs are one JSON object per line. Completed-request records contain timesta
 5. If necessary, use Railway to redeploy the last known-good API commit. Database migrations require separate compatibility assessment; never assume an application rollback reverses schema changes.
 
 See the [recovery guide](RECOVERY_GUIDE.md) for symptom-specific procedures and [environment guide](ENVIRONMENT.md) before changing configuration.
+
+## Pull-request verification (non-deploying)
+
+Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml` with Node.js 24. The workflow uses `npm ci` at the repository root, validates the documentation policy against the pull request base and head, scans tracked files for high-confidence secret formats, runs the root typecheck, root build, and root test commands, builds the API and web workspaces independently, and runs `git diff --check`. The repository currently has no lint script, so this workflow does not invent or run a lint configuration.
+
+`npm test` runs the API Jest suite followed by the web workspace's explicit no-tests command. The API suite covers liveness metadata, successful and failed dependency readiness including optional Supabase states, request-ID propagation and generation, response correlation headers, and safe structured request fields. It mocks database and Supabase access and does not call production services. Run the same checks locally from the repository root:
+
+```bash
+npm ci
+npm test
+npm run typecheck
+npm run build
+npm run build --workspace @hestiva/api
+npm run build --workspace @hestiva/web
+npm run secrets:scan
+python3 scripts/validate_documentation.py <base-revision> <head-revision>
+git diff --check <base-revision>...<head-revision>
+```
+
+This GitHub Actions workflow verifies only. It does not deploy or replace either deployment authority: Cloudflare native Git builds remain responsible for the frontend, and Railway remains responsible for the API.

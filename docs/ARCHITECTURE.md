@@ -33,6 +33,7 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
 - **Storage:** Supabase Storage holds profile and work-order assets; configured bucket names identify the relevant buckets.
 - **Source control:** GitHub repository `HestivaHQ/HestivaOS`, default branch `main`, is the authoritative code history and deployment input.
 - **Deployment:** Cloudflare native Git builds are the sole active web deployment authority. Railway automatically deploys only the API. The disabled GitHub Actions web deploy and disabled Railway web auto-deploy are not authorities; the retained Railway web service is rollback-only.
+- **Pull-request verification:** `.github/workflows/pr-quality-gates.yml` verifies pull requests targeting `main` on Node.js 24. It installs the locked root dependency graph, validates documentation, scans tracked files for high-confidence secret formats, type-checks, builds, tests, independently builds both workspaces, and checks patch whitespace. It has read-only repository permission and contains no deployment step or production credentials.
 
 ## Request and data flow
 

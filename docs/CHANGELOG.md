@@ -2,6 +2,17 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-07 — Phase 1 API tests and pull-request quality gates
+
+### Added
+
+- Added deterministic API tests for monitoring endpoints, optional dependency readiness, request correlation, and safe structured request logging.
+- Added a Node.js 24 pull-request verification workflow with locked dependency installation, documentation and secret checks, typecheck, builds, tests, and whitespace validation; it performs no deployment.
+
+### Changed
+
+- Consolidated pull-request documentation validation into the broader quality-gate workflow and established a passing root workspace test baseline.
+
 ## 2026-08-07 — Phase 1 API monitoring and operational hardening
 
 ### Added
