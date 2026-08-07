@@ -2,6 +2,12 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-07 — Railway API startup migration cleanup
+
+### Fixed
+
+- Removed the API workspace's duplicate Prisma migration invocation so Railway's root `deploy:api` path runs deployment migrations exactly once before starting NestJS from `dist/main.js`.
+
 ## 2026-08-07 — Repository documentation policy
 
 ### Added

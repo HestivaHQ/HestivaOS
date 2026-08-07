@@ -37,7 +37,7 @@ Start command: npm run deploy:api
 Health path: /api/v1/health
 ```
 
-The start command deploys Prisma migrations and starts `@hestiva/api`. At present migrations execute twice because both the root deploy script and API start script invoke `prisma migrate deploy`; cleanup is pending.
+The root `deploy:api` command runs `db:migrate:deploy` once and starts `@hestiva/api` only after the migration succeeds. The API workspace `start` script is a pure process start that runs `node dist/main.js`; it does not run migrations itself.
 
 ### Verify and roll back the API
 
