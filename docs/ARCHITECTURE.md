@@ -10,7 +10,8 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
  Next.js web (@hestiva/web), built with OpenNext
        |  API_URL (server) / NEXT_PUBLIC_API_URL (browser)
        v
- Railway: NestJS API (@hestiva/api) ---- health: /api/v1/health
+ Railway: NestJS API (@hestiva/api) ---- liveness: /api/v1/health
+                                      \-- readiness: /api/v1/ready
        |                 |
        | Prisma          | validates Supabase authentication
        v                 v
@@ -26,7 +27,7 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
 ## Components and ownership
 
 - **Frontend:** `@hestiva/web` is Next.js rendered by the Cloudflare Worker `hestivaos` through OpenNext. Cloudflare owns web build execution, edge runtime, static assets, and web observability.
-- **API:** `@hestiva/api` is NestJS on Railway. It exposes versioned HTTP routes and the `/api/v1/health` readiness endpoint. Railway owns API build, process lifecycle, health checks, and API networking.
+- **API:** `@hestiva/api` is NestJS on Railway. It exposes versioned HTTP routes, lightweight liveness at `/api/v1/health`, and dependency readiness at `/api/v1/ready`. Railway owns API build, process lifecycle, health checks, and API networking. API requests and errors produce structured JSON logs correlated by the response's `X-Request-ID` header.
 - **Database:** Supabase PostgreSQL is accessed by the API through Prisma. Prisma migrations run before API process startup.
 - **Authentication:** Supabase Auth issues user credentials; the API validates them with configured Supabase project values. Authentication is not provided by Railway or Cloudflare.
 - **Storage:** Supabase Storage holds profile and work-order assets; configured bucket names identify the relevant buckets.

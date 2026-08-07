@@ -8,7 +8,7 @@ Only currently identified technical follow-up work is listed here.
 - Add automated API tests and establish a passing root `npm test` baseline.
 - Complete dependency vulnerability review and remediate assessed findings.
 - Verify in every control plane that Cloudflare native Git is the only active web deployment controller.
-- Establish production monitoring for Worker errors, API availability/health, and Supabase dependency failures.
+- Establish alert delivery for Worker errors and the now-observable API liveness/readiness and Supabase dependency failures.
 
 ## Near-term
 

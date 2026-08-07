@@ -46,11 +46,30 @@ Compare configured names with the [build inventory](ENVIRONMENT.md#cloudflare-na
 
 Test Railway `/api/v1/health` directly. Compare `API_URL` (server rendering) and `NEXT_PUBLIC_API_URL` (browser calls) with the current Railway endpoint; the existing hostname legitimately contains legacy `mmapi`. Check browser network errors, Worker/Railway logs, TLS, and `CORS_ALLOWED_ORIGINS`. Correct the failing scope and rebuild if a public build-time variable changed.
 
+### API is live but not ready
+
+Request `/api/v1/health` first. If it returns HTTP 200 but `/api/v1/ready` returns HTTP 503, inspect the readiness `checks` values without exposing configuration values:
+
+1. For `database: "unavailable"`, verify Supabase PostgreSQL availability, Railway networking, and the protected `DATABASE_URL`, then retry readiness.
+2. For `supabase: "unavailable"`, verify Supabase Auth availability and that a complete supported URL/key pair is configured in Railway. A partially configured pair is intentionally unready. Never print the key.
+3. `supabase: "not_configured"` means neither supported pair is present and does not fail readiness; compare this state with the intended environment inventory before changing configuration.
+4. Avoid routing dependency-requiring traffic to an instance until readiness returns HTTP 200.
+
+### Trace a failed API request
+
+Capture the `X-Request-ID` response header from the failing client request, or supply a safe identifier using that header when reproducing. Search Railway's JSON logs for the exact request ID. The completion record identifies method, path, response status, and duration; a matching error record identifies endpoint, environment, and stack trace. Do not add authorization headers, request bodies, query strings, tokens, or configuration values to incident records. If an inbound request ID is missing or invalid, the API generates a UUID and returns it in the response.
+
+### API repeatedly fails during startup
+
+Search Railway JSON logs for `startup_failed`. Use its stack trace and environment name to diagnose the failure without copying protected values. A healthy start emits `startup_complete` with version, environment, duration, port, and `status: "started"`; then verify both monitoring endpoints. Absence of the success record indicates startup did not finish.
+
 ## Verification checklist
 
 - [ ] Correct `main` commit is deployed by each active authority.
 - [ ] Supabase database, Auth, and Storage are available.
-- [ ] Railway `/api/v1/health` succeeds and logs show a stable process.
+- [ ] Railway `/api/v1/health` returns HTTP 200 with status, uptime, version, and timestamp.
+- [ ] Railway `/api/v1/ready` returns HTTP 200 with healthy process and dependency checks.
+- [ ] A response `X-Request-ID` matches its structured request log record.
 - [ ] Cloudflare Worker serves a normal page without HTTP 500.
 - [ ] Server-rendered and browser-side API calls succeed.
 - [ ] Login/session refresh succeeds.
