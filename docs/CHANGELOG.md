@@ -2,6 +2,18 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-07 — Phase 1 API monitoring and operational hardening
+
+### Added
+
+- Added lightweight API liveness metadata and dependency-aware readiness endpoints.
+- Added structured JSON request, error, and startup logging with request-ID generation and propagation.
+- Added operational endpoint contracts, correlation workflow, and monitoring troubleshooting guidance.
+
+### Changed
+
+- Changed `/api/v1/health` from a database-dependent response to a lightweight process liveness response while retaining its route and successful HTTP contract for Railway.
+
 ## 2026-08-07 — Railway API startup migration cleanup
 
 ### Fixed

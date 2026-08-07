@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { CleaningJobTemplatesModule } from './cleaning-job-templates/cleaning-job-templates.module';
 import { CrewsModule } from './crews/crews.module';
 import { CustomersModule } from './customers/customers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
+import { RequestLoggingMiddleware } from './monitoring/request-logging.middleware';
 import { PrismaService } from './prisma.service';
 import { PropertiesModule } from './properties/properties.module';
 import { ServicesModule } from './services/services.module';
@@ -20,4 +21,8 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
   controllers: [HealthController],
   providers: [PrismaService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+  }
+}
