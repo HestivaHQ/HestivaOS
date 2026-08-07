@@ -2,6 +2,14 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-07 — Repository documentation policy
+
+### Added
+
+- Made synchronized engineering documentation a repository-wide Definition of Done through root Codex instructions and an explicit update matrix.
+- Added PR validation that fails documented implementation categories with no `docs/` change and gives human-readable remediation guidance.
+- Added ADR-0008 and documented the documentation workflow itself.
+
 ## 2026-08-07 — Hestiva OS migration and recovery
 
 ### Changed

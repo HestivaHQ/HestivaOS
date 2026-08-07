@@ -9,3 +9,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0005: Cloudflare native deployment](ADR-0005-cloudflare-native-deployment.md)
 - [ADR-0006: npm workspaces](ADR-0006-npm-workspaces.md)
 - [ADR-0007: Single deployment authority](ADR-0007-single-deployment-authority.md)
+- [ADR-0008: Repository documentation policy](ADR-0008-repository-documentation-policy.md)

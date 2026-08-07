@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-07 — Repository documentation policy
+
+- Established the root `AGENTS.md` as the mandatory repository-wide Definition of Done and documentation update matrix for future Codex implementations.
+- Added a pull-request consistency workflow and repository-local validator that reports meaningful implementation changes lacking a `docs/` update while excluding Markdown-only, comment-only, and license-only changes.
+- Accepted ADR-0008 and documented the policy, historical preservation rules, PR evidence, and limits of automated enforcement.
+
 This is the durable, detailed record of the Hestiva OS migration and production recovery. The six recovery commit identifiers below are preserved exactly even though they are not present in this checkout's reachable Git object set.
 
 ## Migration and recovery sequence
