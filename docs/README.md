@@ -2,6 +2,12 @@
 
 This directory is the maintained operational and engineering record for Hestiva OS. Update it whenever production topology, deployment ownership, configuration names, recovery procedures, or accepted engineering decisions change. Never place environment-variable values or other secrets here.
 
+## Documentation policy
+
+Documentation is part of the Definition of Done. The repository-wide rules and exact change-to-document matrix are in [`AGENTS.md`](../AGENTS.md); [ADR-0008](decisions/ADR-0008-repository-documentation-policy.md) records the decision. Every implementation must update the verified current-state documents it affects and append the technical work log and changelog. ADRs preserve history and are superseded by later ADRs rather than rewritten.
+
+Pull requests run `.github/workflows/documentation-policy.yml`, which invokes `scripts/validate_documentation.py` against the PR base and head. It rejects meaningful implementation changes when nothing under `docs/` changed and prints relevant document guidance. The check intentionally ignores Markdown-only edits, README formatting, comment-only code edits, and license changes. Passing automation is only a minimum gate: authors must still apply the complete matrix, verify every statement, and confirm no stale documentation remains.
+
 ## Document map
 
 | Document | Class | Purpose |
