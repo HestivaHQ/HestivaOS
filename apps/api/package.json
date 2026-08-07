@@ -8,10 +8,27 @@
   },
   "scripts": {
     "dev": "nest start --watch",
-    "build": "prisma generate && nest build",
+    "build": "nest build",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "jest"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "monitoring/**/*.ts",
+      "health.controller.ts"
+    ],
+    "testEnvironment": "node"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

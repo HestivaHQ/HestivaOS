@@ -29,10 +29,12 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
 - **Frontend:** `@hestiva/web` is Next.js rendered by the Cloudflare Worker `hestivaos` through OpenNext. Cloudflare owns web build execution, edge runtime, static assets, and web observability.
 - **API:** `@hestiva/api` is NestJS on Railway. It exposes versioned HTTP routes, lightweight liveness at `/api/v1/health`, and dependency readiness at `/api/v1/ready`. Railway owns API build, process lifecycle, health checks, and API networking. API requests and errors produce structured JSON logs correlated by the response's `X-Request-ID` header.
 - **Database:** Supabase PostgreSQL is accessed by the API through Prisma. Prisma migrations run before API process startup.
+- **Repository bootstrap:** Root dependency installation runs the root `postinstall` lifecycle, which generates Prisma Client from `apps/api/prisma/schema.prisma` before workspace typecheck, build, or test commands consume `@prisma/client` types. API builds compile the already-generated client rather than generating it again.
 - **Authentication:** Supabase Auth issues user credentials; the API validates them with configured Supabase project values. Authentication is not provided by Railway or Cloudflare.
 - **Storage:** Supabase Storage holds profile and work-order assets; configured bucket names identify the relevant buckets.
 - **Source control:** GitHub repository `HestivaHQ/HestivaOS`, default branch `main`, is the authoritative code history and deployment input.
 - **Deployment:** Cloudflare native Git builds are the sole active web deployment authority. Railway automatically deploys only the API. The disabled GitHub Actions web deploy and disabled Railway web auto-deploy are not authorities; the retained Railway web service is rollback-only.
+- **Pull-request verification:** `.github/workflows/pr-quality-gates.yml` verifies pull requests targeting `main` on Node.js 24. It installs the locked root dependency graph, validates documentation, scans tracked files for high-confidence secret formats, type-checks, builds, tests, independently builds both workspaces, and checks patch whitespace. It has read-only repository permission and contains no deployment step or production credentials.
 
 ## Request and data flow
 

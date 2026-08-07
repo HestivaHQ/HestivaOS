@@ -4,8 +4,6 @@ Only currently identified technical follow-up work is listed here.
 
 ## Urgent
 
-- Remove duplicate Prisma migration execution so API startup has one migration owner.
-- Add automated API tests and establish a passing root `npm test` baseline.
 - Complete dependency vulnerability review and remediate assessed findings.
 - Verify in every control plane that Cloudflare native Git is the only active web deployment controller.
 - Establish alert delivery for Worker errors and the now-observable API liveness/readiness and Supabase dependency failures.
