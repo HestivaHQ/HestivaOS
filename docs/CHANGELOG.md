@@ -2,6 +2,13 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-07 — Clean-install Prisma Client bootstrap
+
+### Fixed
+
+- Made root dependency installation generate Prisma Client before clean-runner typecheck, build, and tests, and removed duplicate generation from the API build command.
+- Clarified the PR quality-gate install step so Prisma bootstrap failures are diagnosed before typecheck.
+
 ## 2026-08-07 — Phase 1 API tests and pull-request quality gates
 
 ### Added

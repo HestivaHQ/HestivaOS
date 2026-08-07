@@ -27,7 +27,7 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install locked dependencies
+      - name: Install locked dependencies and generate Prisma Client
         run: npm ci
 
       - name: Validate documentation policy

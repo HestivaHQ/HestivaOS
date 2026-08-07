@@ -8,6 +8,8 @@ Documentation is part of the Definition of Done. The repository-wide rules and e
 
 Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml`, which includes `scripts/validate_documentation.py` against the PR base and head alongside the repository's other verification gates. The validator rejects meaningful implementation changes when nothing under `docs/` changed and prints relevant document guidance. It intentionally ignores Markdown-only edits, README formatting, comment-only code edits, and license changes. Passing automation is only a minimum gate: authors must still apply the complete matrix, verify every statement, and confirm no stale documentation remains.
 
+Run `npm ci` from the repository root before development or verification commands. The root `postinstall` is the single bootstrap owner for Prisma Client generation, so a successful clean install prepares `@prisma/client` types for API typecheck, build, and tests.
+
 ## Document map
 
 | Document | Class | Purpose |

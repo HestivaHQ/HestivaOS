@@ -39,6 +39,8 @@ Health path: /api/v1/health
 
 The root `deploy:api` command runs `db:migrate:deploy` once and starts `@hestiva/api` only after the migration succeeds. The API workspace `start` script is a pure process start that runs `node dist/main.js`; it does not run migrations itself.
 
+Root `npm install` and `npm ci` run `npm run db:generate` through the root `postinstall` lifecycle. This repository bootstrap generates Prisma Client from the checked-in API schema before any workspace typecheck, build, or test consumes its types. The API workspace build now runs only `nest build`, avoiding a second generation during the same installed dependency lifecycle. A clean Railway or CI install must show successful Prisma Client generation before compilation begins.
+
 ### API monitoring endpoints and logs
 
 Railway's health path remains the lightweight `GET /api/v1/health` liveness check. A successful request returns HTTP 200 with this shape (values are illustrative):
@@ -80,7 +82,7 @@ See the [recovery guide](RECOVERY_GUIDE.md) for symptom-specific procedures and 
 
 ## Pull-request verification (non-deploying)
 
-Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml` with Node.js 24. The workflow uses `npm ci` at the repository root, validates the documentation policy against the pull request base and head, scans tracked files for high-confidence secret formats, runs the root typecheck, root build, and root test commands, builds the API and web workspaces independently, and runs `git diff --check`. The repository currently has no lint script, so this workflow does not invent or run a lint configuration.
+Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml` with Node.js 24. The workflow uses `npm ci` at the repository root; its root `postinstall` generates Prisma Client before later commands. It then validates the documentation policy against the pull request base and head, scans tracked files for high-confidence secret formats, runs the root typecheck, root build, and root test commands, builds the API and web workspaces independently, and runs `git diff --check`. The repository currently has no lint script, so this workflow does not invent or run a lint configuration.
 
 `npm test` runs the API Jest suite followed by the web workspace's explicit no-tests command. The API suite covers liveness metadata, successful and failed dependency readiness including optional Supabase states, request-ID propagation and generation, response correlation headers, and safe structured request fields. It mocks database and Supabase access and does not call production services. Run the same checks locally from the repository root:
 

@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-07 — Clean-install Prisma Client bootstrap
+
+- Moved Prisma Client generation to the root npm `postinstall` lifecycle so both `npm ci` and `npm install` prepare `@prisma/client` types before workspace typecheck, build, or tests run on a clean checkout.
+- Removed generation from the API build command so one dependency bootstrap does not regenerate the same client during root and independent API builds. The API build remains `nest build`; explicit generation remains available as root `npm run db:generate`.
+- Renamed the PR workflow install step to expose its bootstrap responsibility while retaining the Node.js 24, non-deploying verification sequence.
+- Preserved the Prisma schema, migrations, application behavior, authentication, Supabase integration, and deployment topology.
+
 ## 2026-08-07 — Phase 1 API tests and pull-request quality gates
 
 - Added deterministic Jest coverage for API liveness metadata, database and optional Supabase readiness outcomes, request-ID propagation/generation, response correlation, and structured request log fields. Database and Supabase behavior is mocked; the suite does not depend on production services.

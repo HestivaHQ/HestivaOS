@@ -10,6 +10,7 @@
     "npm": ">=11 <12"
   },
   "scripts": {
+    "postinstall": "npm run db:generate",
     "dev": "npm run dev --workspace @hestiva/web & npm run dev --workspace @hestiva/api",
     "build": "npm run build --workspace @hestiva/api && npm run build --workspace @hestiva/web",
     "test": "npm run test --workspace @hestiva/api && npm run test --workspace @hestiva/web",

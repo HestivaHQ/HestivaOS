@@ -14,6 +14,8 @@
 
 Open the failed `PR quality gates / Verify repository` job and start with its earliest failing step. Reproduce that step from the repository root after `npm ci`; do not bypass a genuine type, build, test, documentation, secret-scan, or whitespace failure. Documentation-policy failures identify an implementation change with no synchronized `docs/` change. Secret-scan findings report only file and line locations and must be resolved without printing or committing the suspected value. For a build or test failure, use the independently named workspace build steps and Jest output to locate the affected workspace. Push a corrective commit and let the pull-request workflow rerun. The quality gate never deploys, so deployment rollback or activation of the disabled frontend workflow is not a CI-recovery action.
 
+If typecheck reports missing exports such as `PrismaClient`, inspect the preceding `npm ci` output for the root `postinstall` and successful `prisma generate --schema apps/api/prisma/schema.prisma`. On a clean checkout, rerun `npm ci`; do not work around the bootstrap by adding generation to every consuming command. If generation itself fails, diagnose the install or checked-in schema/tooling error before rerunning typecheck. This procedure does not require a database connection and must not change the schema or migrations.
+
 ### Worker returns HTTP 500
 
 Inspect Cloudflare Worker logs and correlate the request with the deployed commit. Check that `API_URL` exists at runtime and that build-time Supabase variables existed in the deployed build. Test Railway `/api/v1/health`. If the API is healthy, reproduce with a known route and roll back the Worker to a known-good deployment if the current code/config build is faulty.

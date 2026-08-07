@@ -29,6 +29,7 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
 - **Frontend:** `@hestiva/web` is Next.js rendered by the Cloudflare Worker `hestivaos` through OpenNext. Cloudflare owns web build execution, edge runtime, static assets, and web observability.
 - **API:** `@hestiva/api` is NestJS on Railway. It exposes versioned HTTP routes, lightweight liveness at `/api/v1/health`, and dependency readiness at `/api/v1/ready`. Railway owns API build, process lifecycle, health checks, and API networking. API requests and errors produce structured JSON logs correlated by the response's `X-Request-ID` header.
 - **Database:** Supabase PostgreSQL is accessed by the API through Prisma. Prisma migrations run before API process startup.
+- **Repository bootstrap:** Root dependency installation runs the root `postinstall` lifecycle, which generates Prisma Client from `apps/api/prisma/schema.prisma` before workspace typecheck, build, or test commands consume `@prisma/client` types. API builds compile the already-generated client rather than generating it again.
 - **Authentication:** Supabase Auth issues user credentials; the API validates them with configured Supabase project values. Authentication is not provided by Railway or Cloudflare.
 - **Storage:** Supabase Storage holds profile and work-order assets; configured bucket names identify the relevant buckets.
 - **Source control:** GitHub repository `HestivaHQ/HestivaOS`, default branch `main`, is the authoritative code history and deployment input.
