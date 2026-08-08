@@ -4,7 +4,7 @@ Hestiva OS is a web application and API for running property service operations.
 provides authentication and workflows for customers and properties, work orders,
 the service catalogue, cleaning job templates, crews, technicians, and shift
 planning. The API is deployed on Railway, while the web application is deployed on
-Cloudflare Workers. 
+Cloudflare Workers.
 
 ## Prerequisites
 
