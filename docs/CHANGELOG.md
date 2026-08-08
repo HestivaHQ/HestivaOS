@@ -2,6 +2,13 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — OpenNext monorepo validation path
+
+### Fixed
+
+- Corrected both temporary validation paths to invoke OpenNext from the web workspace, where the existing `open-next.config.ts`, Next.js configuration, and Worker build output belong.
+- Preserved the existing OpenNext configuration and all checked-in Wrangler settings; no credential, dependency, application, environment, or deployment change was made.
+
 ## 2026-08-08 — Next.js 16 pull-request validation
 
 ### Changed

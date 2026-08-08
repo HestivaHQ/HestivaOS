@@ -54,6 +54,7 @@ jobs:
 
       - name: Build OpenNext Cloudflare Worker
         run: npx opennextjs-cloudflare build
+        working-directory: apps/web
 
       - name: Validate Wrangler bundle without deploying
         run: >-

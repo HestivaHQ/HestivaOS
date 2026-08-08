@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-08 — OpenNext monorepo validation path
+
+- Investigated the failed PR quality gate and confirmed that `apps/web/open-next.config.ts` already contains the supported OpenNext Cloudflare 1.20.2 minimal configuration, `defineCloudflareConfig()`. The root cause was execution from the repository root: OpenNext discovers its configuration relative to the current project directory, while Hestiva OS keeps the Next.js project, OpenNext config, Wrangler config, and `.open-next` output under `apps/web`.
+- Set only the OpenNext build steps in the PR and manual migration validation workflows to `working-directory: apps/web`. This uses the existing configuration and produces `apps/web/.open-next/worker.js` and assets where the unchanged `apps/web/wrangler.jsonc` expects them. Wrangler remains a root-invoked dry run with the same Worker name, entry, assets binding, compatibility date, `nodejs_compat`, `keep_vars`, `API_URL`, and observability configuration. No credential or deployment was introduced.
+- Locally confirmed that invoking OpenNext from `apps/web` discovers the existing config, recognizes the monorepo and web app directory, and completes an OpenNext bundle with `.open-next/worker.js`. The available install was still Next.js 15.5.21 under Node.js 20.20.2, so GitHub must perform the authoritative Next.js 16 build on Node.js 24. Local `cf-typegen` and Wrangler dry run stopped before execution because Wrangler 4.120.0 requires Node.js 22 or later; no deployment occurred.
+
 ## 2026-08-08 — Next.js 16 pull-request validation
 
 - Temporarily extended `.github/workflows/pr-quality-gates.yml` so the existing pull-request-triggered Node.js 24 job runs Cloudflare type generation, the OpenNext build, and a Wrangler dry run immediately after its independent web build. Normal GitHub Actions fail-fast behavior applies to all three additions.
