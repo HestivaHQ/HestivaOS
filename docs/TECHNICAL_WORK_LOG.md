@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-08 — Next.js 16 security migration
+
+- Audited the frontend against Next.js 16 breaking changes before editing it. The application contains a Supabase authentication `middleware.ts`, awaited `cookies()`, awaited dynamic `[id]` params, a route handler using standard `URL.searchParams`, and client-side `useSearchParams`. It contains no `headers()` or `draftMode()` calls, synchronous request API access, `generateSitemaps`, `next lint`, Next-coupled ESLint configuration, custom webpack configuration or injecting plugin, runtime config, PPR/dynamicIO APIs, Next image component or custom loader, configured rewrites or redirects, or server actions.
+- Pinned Next.js 16.3.0. Its resolved metadata selects PostCSS 8.5.23 and optional Sharp 0.35.3, replacing Next.js 15.5.21, PostCSS 8.4.31, and the Next-owned Sharp 0.34.5 path. Added no direct PostCSS/Sharp dependency, override, canary, or unrelated framework upgrade.
+- Preserved the authentication middleware and its Supabase SSR cookie behavior; no source compatibility edits were required because the relevant async request APIs were already awaited. Recorded migration to the preferred `proxy` convention as separate follow-up.
+- Selected default Turbopack behavior and added no `--webpack` flag. The application has no custom webpack behavior, and the locked OpenNext Cloudflare 1.20.2 peer metadata explicitly includes Next.js 16.3.0; Wrangler remains 4.120.0. Worker name, entry, assets, compatibility date and flag, `keep_vars`, `API_URL`, observability, and native Git authority remain unchanged.
+- Attempted all requested validation without deploying. The environment runs Node.js 20.20.2 rather than the repository-required Node.js 24 and returned HTTP 403 while `npm ci` fetched PostCSS 8.5.23. The incomplete install prevented Prisma bootstrap, typecheck, builds, tests, OpenNext, type generation, Wrangler dry-run, and route regression testing. Both requested audits also returned HTTP 403, so no local vulnerability counts are recorded. GitHub validation and its authoritative security diagnostic remain required; remediation is not declared complete.
+
 ## 2026-08-08 — Dependency Security Remediation PR 2
 
 - Updated the web workspace's existing compatible Wrangler range from `^4.113.0` to `^4.120.0`. Normal npm resolution selected Wrangler 4.120.0, Miniflare 5.20260801.1-alpha, Undici 7.29.0, Miniflare-owned Sharp 0.35.2, and Workerd 1.20260801.1; the Wrangler-owned `@speed-highlight/core` support dependency also moved from 1.2.17 to 1.2.23.

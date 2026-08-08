@@ -2,6 +2,22 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Next.js 16 security migration
+
+### Security
+
+- Migrated the web workspace from Next.js 15.5.21 to stable Next.js 16.3.0. Normal Next.js dependency resolution moved PostCSS 8.4.31 to 8.5.23 and the Next-owned Sharp path from 0.34.5 to 0.35.3 without direct pins, overrides, or unrelated framework upgrades.
+
+### Changed
+
+- Retained the existing Supabase authentication middleware because its cookie handling is compatible, while recording Next.js 16's middleware-to-proxy deprecation as follow-up.
+- Kept Next.js 16's default Turbopack build strategy. No webpack compatibility flag, Worker configuration change, deployment-authority change, or production deployment was introduced.
+
+### Known issues
+
+- This environment returned HTTP 403 for the PostCSS tarball during `npm ci`, both npm advisory requests, and later npx fallback requests. Consequently Prisma generation, compiled validation, OpenNext/Cloudflare validation, and application route regression testing could not run locally and remain required in GitHub on Node.js 24.
+- Dependency remediation is not marked complete. The authoritative GitHub dependency-security diagnostic must confirm the target counts.
+
 ## 2026-08-08 — Dependency Security Remediation PR 2
 
 ### Security
