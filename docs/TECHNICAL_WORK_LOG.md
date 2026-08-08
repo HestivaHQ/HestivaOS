@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-08 — Dependency Security Remediation PR 2
+
+- Updated the web workspace's existing compatible Wrangler range from `^4.113.0` to `^4.120.0`. Normal npm resolution selected Wrangler 4.120.0, Miniflare 5.20260801.1-alpha, Undici 7.29.0, Miniflare-owned Sharp 0.35.2, and Workerd 1.20260801.1; the Wrangler-owned `@speed-highlight/core` support dependency also moved from 1.2.17 to 1.2.23.
+- Confirmed with the installed dependency tree that Sharp 0.35.2 belongs to Miniflare and the remaining Sharp 0.34.5 node belongs only to Next.js 15.5.21. Next.js, PostCSS, OpenNext 1.20.2, Prisma, Supabase packages and configuration, and Railway configuration were not changed. No npm override or direct Miniflare, Undici, Sharp, or Workerd dependency was introduced.
+- Built the OpenNext bundle successfully and confirmed `.open-next/worker.js` was generated. Wrangler 4.120.0 accepted the unchanged `apps/web/wrangler.jsonc` in a dry run, including Worker name `hestivaos`, `.open-next/worker.js`, assets binding and directory, compatibility date and `nodejs_compat` flag, `keep_vars`, repository-owned `API_URL`, and observability. Only the environment's proxy-detection warning was emitted; there was no configuration deprecation or changed-semantics warning.
+- Started the OpenNext/Wrangler local preview successfully. The local Worker returned HTTP 500 for an application request because protected Supabase build variables are deliberately unavailable in this environment; no values or platform variables were changed. No Cloudflare deployment, dashboard mutation, Railway operation, Supabase operation, or production environment change was performed.
+- Both requested registry-backed npm audits returned HTTP 403, so this record makes no claim about verified post-change vulnerability counts. Overall remediation remains incomplete pending the authoritative GitHub Actions audit and separate Next.js, PostCSS, and Next-owned Sharp work.
+
 ## 2026-08-08 — Dependency Security Remediation PR 1
 
 - Applied a normal npm lockfile resolution refresh, constrained to the authorized transitive patches: `brace-expansion` 1.1.16 → 1.1.18, 2.1.2 → 2.1.4, and 5.0.7 → 5.0.9; `fast-uri` 3.1.4 → 3.1.5; `js-yaml` 3.15.0 → 3.15.1 and 4.3.0 → 4.3.1; and `nanoid` 3.3.16 → 3.3.18. The resulting lockfile contains none of the vulnerable starting versions.
