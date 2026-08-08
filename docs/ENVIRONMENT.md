@@ -17,6 +17,8 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 
 - `API_URL`
 
+`apps/web/wrangler.jsonc` owns repository-declared Worker runtime configuration. Its `keep_vars: true` setting permits deliberately platform-managed runtime variables to coexist without being deleted by a later Wrangler deployment. Runtime variables do not alter an already-built browser bundle.
+
 ## Cloudflare native build
 
 - `API_URL`
@@ -28,14 +30,13 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 
 Build variables must be available during the native Git build. `NEXT_PUBLIC_*` changes require a rebuild and redeploy; changing only runtime configuration will not replace values already compiled into browser assets.
 
-## GitHub Actions secrets (disabled deployment path)
+The deployment validator requires the first four names in this list and fails before OpenNext builds when any is absent. It reports names only. The two bucket variables are optional because the current application supplies defaults, but production should set them when different bucket names are intended.
 
-- `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_API_TOKEN`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+`NEXT_PUBLIC_*` values are intentionally browser-visible and must never contain a service-role key or another privileged credential. Platform protection prevents unauthorized configuration changes; it does not make values embedded in browser assets secret.
 
-These names remain documented for the disabled workflow; their presence does not make GitHub Actions a deployment authority.
+## GitHub Actions
+
+GitHub Actions has no frontend deployment workflow and owns no Cloudflare production variables. The pull-request quality gate receives no production credentials and verifies without deploying.
 
 ## Local development
 

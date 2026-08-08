@@ -4,6 +4,10 @@
 
 Cloudflare's native Git integration connected to `HestivaHQ/HestivaOS` is the active and single deployment authority for `@hestiva/web`. A change merged to `main` triggers the configured Cloudflare build, which installs the root workspace dependencies and builds the Next.js application with OpenNext for Worker `hestivaos`.
 
+The Cloudflare production build environment must provide `API_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The workspace deployment command runs `validate:cloudflare-env` before OpenNext starts and fails with missing variable names only. It never prints values. Optional public Storage bucket names are also build-time configuration when production does not use the application defaults.
+
+`apps/web/wrangler.jsonc` owns repository-declared Worker runtime configuration, including `API_URL`. Its `keep_vars: true` policy preserves deliberately platform-managed runtime variables rather than deleting them during deployment. This preservation policy does not turn Worker runtime variables into build variables: all `NEXT_PUBLIC_*` values needed by browser code must still exist in the Cloudflare production build environment before deployment.
+
 For local verification, from the repository root:
 
 ```bash
@@ -18,11 +22,11 @@ The workspace's verified manual OpenNext deployment command is:
 npm run deploy --workspace @hestiva/web
 ```
 
-Use it only for an explicitly authorized recovery; routine releases belong to native Git builds. `.github/workflows/web-cloudflare.yml` is disabled at the GitHub control-plane level and must not be treated as an active deployment path. Railway web automatic deployment is disabled. Its web service is temporarily retained only as a rollback option.
+Use it only for an explicitly authorized recovery; routine releases belong to native Git builds. The former GitHub Actions Cloudflare deployment workflow has been removed, so pull-request automation cannot become a competing frontend deployer. Railway web automatic deployment is disabled. Its web service is temporarily retained only as a rollback option.
 
 ### Verify and roll back the frontend
 
-1. Confirm the native build used the intended `main` commit and completed successfully.
+1. Confirm the native build used the intended `main` commit, passed required-variable validation, and completed successfully.
 2. Open the production web entry point, exercise authentication, and verify a server-rendered and a browser API request.
 3. Check Worker logs for HTTP 500 errors and confirm the API health endpoint separately.
 4. To roll back, redeploy a previously known-good Cloudflare deployment using Cloudflare's deployment controls. Do not reactivate a second controller. Use the Railway web backup only as an explicitly approved last resort, then restore Cloudflare authority.

@@ -5,7 +5,7 @@ Only currently identified technical follow-up work is listed here.
 ## Urgent
 
 - Complete dependency vulnerability review and remediate assessed findings.
-- Verify in every control plane that Cloudflare native Git is the only active web deployment controller.
+- Verify after each controller or account change that Cloudflare native Git remains the only active web deployment controller.
 - Establish alert delivery for Worker errors and the now-observable API liveness/readiness and Supabase dependency failures.
 
 ## Near-term

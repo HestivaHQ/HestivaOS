@@ -2,6 +2,22 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Cloudflare environment ownership hardening
+
+### Added
+
+- Added pre-deployment validation for required Cloudflare production build-variable names and documented build, runtime, and browser configuration ownership.
+- Added ADR-0011 for persistent Cloudflare environment ownership.
+
+### Changed
+
+- Enabled Wrangler preservation of deliberately platform-managed Worker runtime variables while retaining the existing repository-declared API binding.
+- Expanded the frontend environment example with supported public Storage bucket names.
+
+### Removed
+
+- Removed the old deploy-capable GitHub Actions frontend workflow so Cloudflare native Git is the sole automatic frontend deployer.
+
 ## 2026-08-07 — Clean-install Prisma Client bootstrap
 
 ### Fixed
