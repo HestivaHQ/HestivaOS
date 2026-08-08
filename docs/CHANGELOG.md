@@ -2,6 +2,13 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Next.js 16 pull-request validation
+
+### Changed
+
+- Temporarily extended the existing Node.js 24 pull-request quality gate after its independent web build with Cloudflare type generation, an OpenNext Worker build, and a Wrangler bundle dry run.
+- Kept the existing checks unchanged and added no Cloudflare credentials or deployment capability; the Wrangler command requires `--dry-run` and each added validation fails the quality-gate job on failure.
+
 ## 2026-08-08 — Next.js 16 manual validation workflow
 
 ### Added

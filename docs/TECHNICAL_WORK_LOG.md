@@ -1,5 +1,10 @@
 # Technical work log
 
+## 2026-08-08 — Next.js 16 pull-request validation
+
+- Temporarily extended `.github/workflows/pr-quality-gates.yml` so the existing pull-request-triggered Node.js 24 job runs Cloudflare type generation, the OpenNext build, and a Wrangler dry run immediately after its independent web build. Normal GitHub Actions fail-fast behavior applies to all three additions.
+- Preserved every existing quality-gate check and added no dependency, application, configuration, credential, environment, architecture, or deployment change. Wrangler uses the checked-in configuration only with `--dry-run` and writes validation output to `/tmp/hestiva-next16-validation`; no production deployment is possible from the added step.
+
 ## 2026-08-08 — Next.js 16 manual validation workflow
 
 - Added `.github/workflows/nextjs16-migration-validation.yml` as a temporary `workflow_dispatch`-only validation path on Node.js 24. It installs the committed lockfile, verifies root-postinstall Prisma Client generation, and runs the requested root, API, web, OpenNext, Cloudflare type-generation, repository documentation, secret, and whitespace checks in order; every required check uses normal fail-fast behavior.
