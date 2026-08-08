@@ -1,0 +1,78 @@
+name: Dependency security audit diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Collect npm security diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+
+      - name: Verify Prisma Client bootstrap
+        run: node -e "const client = require('@prisma/client'); if (typeof client.PrismaClient !== 'function') process.exit(1)"
+
+      - name: Collect npm audit diagnostics
+        shell: bash
+        run: |
+          set +e
+
+          echo "::group::npm audit"
+          npm audit
+          full_audit_status=$?
+          echo "npm audit exit status: ${full_audit_status}"
+          echo "::endgroup::"
+
+          echo "::group::npm audit --omit=dev"
+          npm audit --omit=dev
+          production_audit_status=$?
+          echo "npm audit --omit=dev exit status: ${production_audit_status}"
+          echo "::endgroup::"
+
+          echo "::group::npm audit --json"
+          npm audit --json | tee npm-audit.json
+          json_audit_status=${PIPESTATUS[0]}
+          echo "npm audit --json exit status: ${json_audit_status}"
+          echo "::endgroup::"
+
+          echo "::group::npm outdated --all"
+          npm outdated --all
+          outdated_status=$?
+          echo "npm outdated --all exit status: ${outdated_status}"
+          echo "::endgroup::"
+
+          {
+            echo "## Dependency security diagnostic exit statuses"
+            echo
+            echo "| Command | Exit status |"
+            echo "| --- | ---: |"
+            echo "| \`npm audit\` | ${full_audit_status} |"
+            echo "| \`npm audit --omit=dev\` | ${production_audit_status} |"
+            echo "| \`npm audit --json\` | ${json_audit_status} |"
+            echo "| \`npm outdated --all\` | ${outdated_status} |"
+            echo
+            echo "Non-zero audit statuses normally indicate findings; review the logs and JSON artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload npm audit JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-json
+          path: npm-audit.json
+          if-no-files-found: warn
+          retention-days: 14
