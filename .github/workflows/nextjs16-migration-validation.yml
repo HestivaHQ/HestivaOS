@@ -1,0 +1,101 @@
+name: Next.js 16 migration validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Next.js 16 migration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+
+      - name: Verify Prisma Client bootstrap
+        run: node -e "const client = require('@prisma/client'); if (typeof client.PrismaClient !== 'function') process.exit(1)"
+
+      - name: Type-check all workspaces
+        run: npm run typecheck
+
+      - name: Build all workspaces
+        run: npm run build
+
+      - name: Run workspace tests
+        run: npm test
+
+      - name: Type-check API workspace independently
+        run: npm run typecheck --workspace @hestiva/api
+
+      - name: Build API workspace independently
+        run: npm run build --workspace @hestiva/api
+
+      - name: Type-check web workspace independently
+        run: npm run typecheck --workspace @hestiva/web
+
+      - name: Build web workspace independently
+        run: npm run build --workspace @hestiva/web
+
+      - name: Generate Cloudflare types
+        run: npm run cf-typegen --workspace @hestiva/web
+
+      - name: Build OpenNext Cloudflare Worker
+        run: npx opennextjs-cloudflare build
+
+      - name: Validate Wrangler bundle without deploying
+        run: >-
+          npx wrangler deploy
+          --dry-run
+          --config apps/web/wrangler.jsonc
+          --outdir /tmp/hestiva-next16-validation
+
+      - name: Scan tracked files for secrets
+        run: npm run secrets:scan
+
+      - name: Validate documentation for this workflow commit
+        run: python3 scripts/validate_documentation.py HEAD^ HEAD
+
+      - name: Check patch whitespace
+        run: git diff --check HEAD^ HEAD
+
+      - name: Record successful validation summary
+        shell: bash
+        run: |
+          {
+            echo "# Next.js 16 migration validation"
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Node version | $(node --version) |"
+            echo "| npm ci | PASS |"
+            echo "| Prisma bootstrap | PASS |"
+            echo "| Root typecheck | PASS |"
+            echo "| Root build | PASS |"
+            echo "| Root tests | PASS |"
+            echo "| API typecheck | PASS |"
+            echo "| API build | PASS |"
+            echo "| Web typecheck | PASS |"
+            echo "| Web build | PASS |"
+            echo "| OpenNext build | PASS |"
+            echo "| cf-typegen | PASS |"
+            echo "| Wrangler dry-run | PASS |"
+            echo "| Secret scan | PASS |"
+            echo "| Documentation validation | PASS |"
+            echo "| git diff --check | PASS |"
+            echo "| Production deployment | NO |"
+            echo
+            echo "Authenticated runtime route testing requires separately managed Supabase configuration and remains a separate post-build smoke test."
+          } >> "$GITHUB_STEP_SUMMARY"

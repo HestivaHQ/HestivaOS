@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-08 — Next.js 16 manual validation workflow
+
+- Added `.github/workflows/nextjs16-migration-validation.yml` as a temporary `workflow_dispatch`-only validation path on Node.js 24. It installs the committed lockfile, verifies root-postinstall Prisma Client generation, and runs the requested root, API, web, OpenNext, Cloudflare type-generation, repository documentation, secret, and whitespace checks in order; every required check uses normal fail-fast behavior.
+- Constrained Cloudflare validation to `npx wrangler deploy --dry-run` with the checked-in Worker configuration and a temporary output directory. The workflow has read-only repository permission, contains no Cloudflare token or account ID, requires no production secret, changes no environment, and performs no deployment.
+- Added a successful-run job summary covering each validation result and production deployment status. Authenticated runtime route testing is explicitly retained as a separate post-build smoke test because this workflow does not receive Supabase credentials. Creating the workflow does not declare the Next.js migration or dependency remediation complete; the separate authoritative dependency-security audit remains required.
+
 ## 2026-08-08 — Next.js 16 security migration
 
 - Audited the frontend against Next.js 16 breaking changes before editing it. The application contains a Supabase authentication `middleware.ts`, awaited `cookies()`, awaited dynamic `[id]` params, a route handler using standard `URL.searchParams`, and client-side `useSearchParams`. It contains no `headers()` or `draftMode()` calls, synchronous request API access, `generateSitemaps`, `next lint`, Next-coupled ESLint configuration, custom webpack configuration or injecting plugin, runtime config, PPR/dynamicIO APIs, Next image component or custom loader, configured rewrites or redirects, or server actions.

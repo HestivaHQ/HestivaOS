@@ -12,6 +12,8 @@ Run `npm ci` from the repository root before development or verification command
 
 The temporary `Dependency security audit diagnostic` workflow is available only through manual `workflow_dispatch`. It installs the committed lockfile on Node.js 24, verifies the existing Prisma Client bootstrap, records full, production-only, and JSON npm audit results plus outdated-package diagnostics, and uploads the JSON report for 14 days. It has read-only repository permission, requires no production credentials, does not change dependencies, and does not deploy. Dependency review and remediation remain outstanding until maintainers assess the collected results.
 
+The temporary `Next.js 16 migration validation` workflow is also manual-only. It uses Node.js 24 and the committed lockfile to run Prisma bootstrap verification, root and independent workspace checks, the OpenNext build, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks. It has read-only repository permission, accepts no production credentials, and cannot deploy because its only Wrangler invocation includes `--dry-run`. Authenticated runtime route testing remains a separate post-build smoke test, and the workflow's existence does not complete either the migration validation or dependency remediation.
+
 ## Document map
 
 | Document | Class | Purpose |

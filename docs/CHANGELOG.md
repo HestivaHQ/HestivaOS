@@ -2,6 +2,17 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Next.js 16 manual validation workflow
+
+### Added
+
+- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap, root and workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
+- Added a successful-run job summary and an explicit reminder that authenticated runtime route testing remains a separate post-build smoke test.
+
+### Security
+
+- Limited the workflow to read-only repository permission, no production credentials, no automatic trigger, and no deployment. Dependency remediation remains pending the separate authoritative security audit.
+
 ## 2026-08-08 — Next.js 16 security migration
 
 ### Security
