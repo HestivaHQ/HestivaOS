@@ -2,6 +2,17 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Dependency security audit diagnostic
+
+### Added
+
+- Added a temporary, manually triggered Node.js 24 diagnostic workflow that records npm audit, production-only audit, JSON audit, and outdated-package results without changing dependencies or deploying.
+- Added a downloadable 14-day JSON audit artifact and explicit command exit-status reporting for vulnerability-bearing audit runs.
+
+### Known issues
+
+- Dependency review and remediation remain outstanding until maintainers run the workflow and assess its registry-backed results.
+
 ## 2026-08-08 — Cloudflare environment ownership hardening
 
 ### Added

@@ -16,6 +16,10 @@ Open the failed `PR quality gates / Verify repository` job and start with its ea
 
 If typecheck reports missing exports such as `PrismaClient`, inspect the preceding `npm ci` output for the root `postinstall` and successful `prisma generate --schema apps/api/prisma/schema.prisma`. On a clean checkout, rerun `npm ci`; do not work around the bootstrap by adding generation to every consuming command. If generation itself fails, diagnose the install or checked-in schema/tooling error before rerunning typecheck. This procedure does not require a database connection and must not change the schema or migrations.
 
+### Dependency security diagnostic is incomplete
+
+Manually rerun the `Dependency security audit diagnostic` workflow and inspect each command's recorded exit status; a non-zero npm audit status normally indicates findings and does not stop later diagnostics. If `npm ci` or Prisma Client verification fails, diagnose the locked install or existing root bootstrap before interpreting audit output. If registry access fails, retain the logs and rerun later rather than changing dependencies without advisory data. Download the `npm-audit-json` artifact when present and assess it without adding fixes, overrides, deployment steps, production credentials, or automatic triggers to this temporary workflow.
+
 ### Worker returns HTTP 500
 
 Inspect Cloudflare Worker logs and correlate the request with the deployed commit. Check that `API_URL` exists at runtime and that build-time Supabase variables existed in the deployed build. Test Railway `/api/v1/health`. If the API is healthy, reproduce with a known route and roll back the Worker to a known-good deployment if the current code/config build is faulty.
