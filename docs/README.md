@@ -10,6 +10,8 @@ Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml`, whi
 
 Run `npm ci` from the repository root before development or verification commands. The root `postinstall` is the single bootstrap owner for Prisma Client generation, so a successful clean install prepares `@prisma/client` types for API typecheck, build, and tests.
 
+The temporary `Dependency security audit diagnostic` workflow is available only through manual `workflow_dispatch`. It installs the committed lockfile on Node.js 24, verifies the existing Prisma Client bootstrap, records full, production-only, and JSON npm audit results plus outdated-package diagnostics, and uploads the JSON report for 14 days. It has read-only repository permission, requires no production credentials, does not change dependencies, and does not deploy. Dependency review and remediation remain outstanding until maintainers assess the collected results.
+
 ## Document map
 
 | Document | Class | Purpose |

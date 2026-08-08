@@ -1,5 +1,18 @@
 # Technical work log
 
+## 2026-08-08 — Dependency remediation PR 1 safe transitive patches
+
+- Refreshed only compatible transitive lockfile resolutions: `brace-expansion` from `1.1.16`, `2.1.2`, and `5.0.7` to `1.1.18`, `2.1.4`, and `5.0.9`; `fast-uri` from `3.1.4` to `3.1.5`; `js-yaml` from `3.15.0` and `4.3.0` to `3.15.1` and `4.3.1`; and `nanoid` from `3.3.16` to the compatible patch `3.3.18`.
+- Reduced the authoritative audit baseline from 10 high-severity package findings to a post-refresh lockfile assessment of 6 high-severity findings, with zero critical, moderate, or low findings. Local npm advisory requests remained blocked by HTTP 403, so the manual Node.js 24 diagnostic must verify the post-change counts in GitHub Actions.
+- Introduced no direct dependency or major-version change and no npm override. Preserved Next.js `15.5.21`, Wrangler `4.113.0`, Miniflare `4.20260721.0`, Sharp `0.34.5`, Undici `7.28.0`, application behavior, Prisma schema and migrations, authentication, Supabase configuration, and deployment configuration.
+- Left the six expected findings for `next`, `postcss`, `sharp`, `wrangler`, `miniflare`, and `undici` for focused follow-up work. Wrangler remediation and the Next.js/OpenNext/Cloudflare compatibility investigation remain pending; overall dependency-security remediation is not complete.
+
+## 2026-08-08 — Dependency security audit diagnostic
+
+- Added a temporary, manually dispatched Node.js 24 workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
+- Made each diagnostic exit status visible in the job log and step summary, and retained the JSON audit output as a 14-day workflow artifact when npm produces it.
+- Limited the workflow to read-only repository access with no secrets, production credentials, dependency mutation, automatic trigger, or deployment capability. Dependency remediation remains outstanding pending review of the diagnostic results.
+
 ## 2026-08-08 — Cloudflare environment ownership hardening
 
 - Enabled Wrangler variable preservation while retaining repository ownership of the `hestivaos` Worker configuration and its existing `API_URL` binding.

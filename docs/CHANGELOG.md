@@ -2,6 +2,28 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Dependency remediation PR 1 safe transitive patches
+
+### Security
+
+- Updated compatible transitive lockfile resolutions for all vulnerable `brace-expansion` branches, `fast-uri`, both vulnerable `js-yaml` branches, and `nanoid` without changing a direct dependency, introducing an override, or performing a major upgrade.
+- Reduced the 10-high authoritative audit baseline to a 6-high post-refresh lockfile assessment; the registry-blocked local environment could not verify the new count, so the manual Node.js 24 GitHub diagnostic remains the authoritative follow-up check.
+
+### Known issues
+
+- Expected findings remain for `next`, `postcss`, `sharp`, `wrangler`, `miniflare`, and `undici`. Wrangler remediation and the Next.js/OpenNext/Cloudflare compatibility investigation remain pending, so dependency-security remediation is not complete.
+
+## 2026-08-08 — Dependency security audit diagnostic
+
+### Added
+
+- Added a temporary, manually triggered Node.js 24 diagnostic workflow that records npm audit, production-only audit, JSON audit, and outdated-package results without changing dependencies or deploying.
+- Added a downloadable 14-day JSON audit artifact and explicit command exit-status reporting for vulnerability-bearing audit runs.
+
+### Known issues
+
+- Dependency review and remediation remain outstanding until maintainers run the workflow and assess its registry-backed results.
+
 ## 2026-08-08 — Cloudflare environment ownership hardening
 
 ### Added

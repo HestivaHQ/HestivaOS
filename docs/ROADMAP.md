@@ -4,7 +4,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Urgent
 
-- Complete dependency vulnerability review and remediate assessed findings.
+- Complete the remaining dependency remediation after the safe transitive patch refresh: validate and update Wrangler in isolation, then investigate Next.js/OpenNext/Cloudflare compatibility before any framework-major decision.
 - Verify after each controller or account change that Cloudflare native Git remains the only active web deployment controller.
 - Establish alert delivery for Worker errors and the now-observable API liveness/readiness and Supabase dependency failures.
 
