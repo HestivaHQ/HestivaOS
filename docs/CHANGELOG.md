@@ -2,6 +2,18 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Dependency Security Remediation PR 1
+
+### Security
+
+- Refreshed only the authorized transitive lockfile resolutions: `brace-expansion` 1.1.16 → 1.1.18, 2.1.2 → 2.1.4, and 5.0.7 → 5.0.9; `fast-uri` 3.1.4 → 3.1.5; `js-yaml` 3.15.0 → 3.15.1 and 4.3.0 → 4.3.1; and `nanoid` 3.3.16 → 3.3.18.
+- Made no direct dependency or major-version upgrade, left `package.json` unchanged, added no npm override, and did not use `npm audit fix`.
+
+### Known issues
+
+- Registry-backed before/after vulnerability counts could not be verified because the npm advisory API returned HTTP 403; the targeted vulnerable lockfile versions are absent after the refresh.
+- Dependency-security remediation is not complete. Wrangler and Cloudflare tooling remediation remains pending, and Next.js, PostCSS, and Sharp compatibility investigation remains pending. The later work also owns the remaining `miniflare` and `undici` dependency families.
+
 ## 2026-08-08 — Dependency security audit diagnostic
 
 ### Added

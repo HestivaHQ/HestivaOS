@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-08 — Dependency Security Remediation PR 1
+
+- Applied a normal npm lockfile resolution refresh, constrained to the authorized transitive patches: `brace-expansion` 1.1.16 → 1.1.18, 2.1.2 → 2.1.4, and 5.0.7 → 5.0.9; `fast-uri` 3.1.4 → 3.1.5; `js-yaml` 3.15.0 → 3.15.1 and 4.3.0 → 4.3.1; and `nanoid` 3.3.16 → 3.3.18. The resulting lockfile contains none of the vulnerable starting versions.
+- Kept `package.json` unchanged, introduced no npm overrides, used neither `npm audit fix` nor `npm audit fix --force`, and made no direct dependency or major-version upgrade. The lockfile diff does not change Next.js, Wrangler, Miniflare, Sharp, Undici, or any unrelated dependency family.
+- Registry-backed before and after vulnerability counts were not verifiable in this environment because the npm advisory API returned HTTP 403. This record therefore identifies the removed target versions without estimating counts or claiming that the overall dependency-security programme is complete.
+- Wrangler and Cloudflare tooling remediation remains pending. Next.js, PostCSS, and Sharp compatibility investigation remains pending; the remaining Miniflare and Undici work also stays outside this PR.
+
 ## 2026-08-08 — Dependency security audit diagnostic
 
 - Added a temporary, manually dispatched Node.js 24 workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
