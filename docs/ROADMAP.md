@@ -4,7 +4,8 @@ Only currently identified technical follow-up work is listed here.
 
 ## Urgent
 
-- Complete dependency vulnerability review and remediate assessed findings.
+- Run the authoritative GitHub dependency-security diagnostic for the Next.js 16 migration; do not close dependency remediation until it verifies the target counts.
+- Migrate the deprecated Next.js `middleware.ts` convention to `proxy` in a separately verified authentication and route-protection change.
 - Verify after each controller or account change that Cloudflare native Git remains the only active web deployment controller.
 - Establish alert delivery for Worker errors and the now-observable API liveness/readiness and Supabase dependency failures.
 

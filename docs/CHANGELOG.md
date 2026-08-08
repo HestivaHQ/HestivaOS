@@ -2,6 +2,47 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — OpenNext monorepo validation path
+
+### Fixed
+
+- Corrected both temporary validation paths to invoke OpenNext from the web workspace, where the existing `open-next.config.ts`, Next.js configuration, and Worker build output belong.
+- Preserved the existing OpenNext configuration and all checked-in Wrangler settings; no credential, dependency, application, environment, or deployment change was made.
+
+## 2026-08-08 — Next.js 16 pull-request validation
+
+### Changed
+
+- Temporarily extended the existing Node.js 24 pull-request quality gate after its independent web build with Cloudflare type generation, an OpenNext Worker build, and a Wrangler bundle dry run.
+- Kept the existing checks unchanged and added no Cloudflare credentials or deployment capability; the Wrangler command requires `--dry-run` and each added validation fails the quality-gate job on failure.
+
+## 2026-08-08 — Next.js 16 manual validation workflow
+
+### Added
+
+- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap, root and workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
+- Added a successful-run job summary and an explicit reminder that authenticated runtime route testing remains a separate post-build smoke test.
+
+### Security
+
+- Limited the workflow to read-only repository permission, no production credentials, no automatic trigger, and no deployment. Dependency remediation remains pending the separate authoritative security audit.
+
+## 2026-08-08 — Next.js 16 security migration
+
+### Security
+
+- Migrated the web workspace from Next.js 15.5.21 to stable Next.js 16.3.0. Normal Next.js dependency resolution moved PostCSS 8.4.31 to 8.5.23 and the Next-owned Sharp path from 0.34.5 to 0.35.3 without direct pins, overrides, or unrelated framework upgrades.
+
+### Changed
+
+- Retained the existing Supabase authentication middleware because its cookie handling is compatible, while recording Next.js 16's middleware-to-proxy deprecation as follow-up.
+- Kept Next.js 16's default Turbopack build strategy. No webpack compatibility flag, Worker configuration change, deployment-authority change, or production deployment was introduced.
+
+### Known issues
+
+- This environment returned HTTP 403 for the PostCSS tarball during `npm ci`, both npm advisory requests, and later npx fallback requests. Consequently Prisma generation, compiled validation, OpenNext/Cloudflare validation, and application route regression testing could not run locally and remain required in GitHub on Node.js 24.
+- Dependency remediation is not marked complete. The authoritative GitHub dependency-security diagnostic must confirm the target counts.
+
 ## 2026-08-08 — Dependency Security Remediation PR 2
 
 ### Security

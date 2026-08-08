@@ -54,5 +54,15 @@ jobs:
       - name: Build web workspace independently
         run: npm run build --workspace @hestiva/web
 
+      - name: Generate Cloudflare types
+        run: npm run cf-typegen --workspace @hestiva/web
+
+      - name: Build OpenNext Cloudflare Worker
+        run: npx opennextjs-cloudflare build
+        working-directory: apps/web
+
+      - name: Validate Wrangler bundle without deploying
+        run: npx wrangler deploy --dry-run --config apps/web/wrangler.jsonc --outdir /tmp/hestiva-next16-validation
+
       - name: Check patch whitespace
         run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"

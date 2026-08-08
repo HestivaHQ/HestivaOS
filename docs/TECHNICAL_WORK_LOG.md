@@ -1,5 +1,30 @@
 # Technical work log
 
+## 2026-08-08 — OpenNext monorepo validation path
+
+- Investigated the failed PR quality gate and confirmed that `apps/web/open-next.config.ts` already contains the supported OpenNext Cloudflare 1.20.2 minimal configuration, `defineCloudflareConfig()`. The root cause was execution from the repository root: OpenNext discovers its configuration relative to the current project directory, while Hestiva OS keeps the Next.js project, OpenNext config, Wrangler config, and `.open-next` output under `apps/web`.
+- Set only the OpenNext build steps in the PR and manual migration validation workflows to `working-directory: apps/web`. This uses the existing configuration and produces `apps/web/.open-next/worker.js` and assets where the unchanged `apps/web/wrangler.jsonc` expects them. Wrangler remains a root-invoked dry run with the same Worker name, entry, assets binding, compatibility date, `nodejs_compat`, `keep_vars`, `API_URL`, and observability configuration. No credential or deployment was introduced.
+- Locally confirmed that invoking OpenNext from `apps/web` discovers the existing config, recognizes the monorepo and web app directory, and completes an OpenNext bundle with `.open-next/worker.js`. The available install was still Next.js 15.5.21 under Node.js 20.20.2, so GitHub must perform the authoritative Next.js 16 build on Node.js 24. Local `cf-typegen` and Wrangler dry run stopped before execution because Wrangler 4.120.0 requires Node.js 22 or later; no deployment occurred.
+
+## 2026-08-08 — Next.js 16 pull-request validation
+
+- Temporarily extended `.github/workflows/pr-quality-gates.yml` so the existing pull-request-triggered Node.js 24 job runs Cloudflare type generation, the OpenNext build, and a Wrangler dry run immediately after its independent web build. Normal GitHub Actions fail-fast behavior applies to all three additions.
+- Preserved every existing quality-gate check and added no dependency, application, configuration, credential, environment, architecture, or deployment change. Wrangler uses the checked-in configuration only with `--dry-run` and writes validation output to `/tmp/hestiva-next16-validation`; no production deployment is possible from the added step.
+
+## 2026-08-08 — Next.js 16 manual validation workflow
+
+- Added `.github/workflows/nextjs16-migration-validation.yml` as a temporary `workflow_dispatch`-only validation path on Node.js 24. It installs the committed lockfile, verifies root-postinstall Prisma Client generation, and runs the requested root, API, web, OpenNext, Cloudflare type-generation, repository documentation, secret, and whitespace checks in order; every required check uses normal fail-fast behavior.
+- Constrained Cloudflare validation to `npx wrangler deploy --dry-run` with the checked-in Worker configuration and a temporary output directory. The workflow has read-only repository permission, contains no Cloudflare token or account ID, requires no production secret, changes no environment, and performs no deployment.
+- Added a successful-run job summary covering each validation result and production deployment status. Authenticated runtime route testing is explicitly retained as a separate post-build smoke test because this workflow does not receive Supabase credentials. Creating the workflow does not declare the Next.js migration or dependency remediation complete; the separate authoritative dependency-security audit remains required.
+
+## 2026-08-08 — Next.js 16 security migration
+
+- Audited the frontend against Next.js 16 breaking changes before editing it. The application contains a Supabase authentication `middleware.ts`, awaited `cookies()`, awaited dynamic `[id]` params, a route handler using standard `URL.searchParams`, and client-side `useSearchParams`. It contains no `headers()` or `draftMode()` calls, synchronous request API access, `generateSitemaps`, `next lint`, Next-coupled ESLint configuration, custom webpack configuration or injecting plugin, runtime config, PPR/dynamicIO APIs, Next image component or custom loader, configured rewrites or redirects, or server actions.
+- Pinned Next.js 16.3.0. Its resolved metadata selects PostCSS 8.5.23 and optional Sharp 0.35.3, replacing Next.js 15.5.21, PostCSS 8.4.31, and the Next-owned Sharp 0.34.5 path. Added no direct PostCSS/Sharp dependency, override, canary, or unrelated framework upgrade.
+- Preserved the authentication middleware and its Supabase SSR cookie behavior; no source compatibility edits were required because the relevant async request APIs were already awaited. Recorded migration to the preferred `proxy` convention as separate follow-up.
+- Selected default Turbopack behavior and added no `--webpack` flag. The application has no custom webpack behavior, and the locked OpenNext Cloudflare 1.20.2 peer metadata explicitly includes Next.js 16.3.0; Wrangler remains 4.120.0. Worker name, entry, assets, compatibility date and flag, `keep_vars`, `API_URL`, observability, and native Git authority remain unchanged.
+- Attempted all requested validation without deploying. The environment runs Node.js 20.20.2 rather than the repository-required Node.js 24 and returned HTTP 403 while `npm ci` fetched PostCSS 8.5.23. The incomplete install prevented Prisma bootstrap, typecheck, builds, tests, OpenNext, type generation, Wrangler dry-run, and route regression testing. Both requested audits also returned HTTP 403, so no local vulnerability counts are recorded. GitHub validation and its authoritative security diagnostic remain required; remediation is not declared complete.
+
 ## 2026-08-08 — Dependency Security Remediation PR 2
 
 - Updated the web workspace's existing compatible Wrangler range from `^4.113.0` to `^4.120.0`. Normal npm resolution selected Wrangler 4.120.0, Miniflare 5.20260801.1-alpha, Undici 7.29.0, Miniflare-owned Sharp 0.35.2, and Workerd 1.20260801.1; the Wrangler-owned `@speed-highlight/core` support dependency also moved from 1.2.17 to 1.2.23.
