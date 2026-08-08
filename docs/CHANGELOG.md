@@ -2,6 +2,22 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-08 — Dependency Security Remediation PR 2
+
+### Security
+
+- Updated the web workspace's Wrangler range from `^4.113.0` to `^4.120.0`, resolving Wrangler 4.120.0 and its supported Cloudflare toolchain: Miniflare 5.20260801.1-alpha, Undici 7.29.0, Miniflare-owned Sharp 0.35.2, and Workerd 1.20260801.1.
+- Left Next.js, PostCSS, OpenNext, and the Next-owned Sharp 0.34.5 path unchanged. Added no npm overrides and no direct Miniflare, Undici, Sharp, or Workerd dependency.
+
+### Changed
+
+- Validated the unchanged Worker configuration and generated OpenNext Worker with Wrangler 4.120.0. The Worker identity, entry point, assets, compatibility settings, `keep_vars`, repository-owned `API_URL`, observability, build-variable validation, and Cloudflare native Git deployment authority remain unchanged; no deployment was performed.
+
+### Known issues
+
+- The npm advisory endpoint returned HTTP 403 for both requested local audits, so no after-remediation vulnerability counts are recorded. The authoritative GitHub Actions audit remains pending.
+- Overall dependency remediation is not complete. Next.js, PostCSS, and the remaining Next-owned Sharp path still require separate remediation.
+
 ## 2026-08-08 — Dependency Security Remediation PR 1
 
 ### Security
