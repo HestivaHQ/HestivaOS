@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-08 — Cloudflare environment ownership hardening
+
+- Enabled Wrangler variable preservation while retaining repository ownership of the `hestivaos` Worker configuration and its existing `API_URL` binding.
+- Added deterministic production deployment validation for the four required Cloudflare build-variable names. Validation runs before OpenNext builds, reports missing names only, and leaves ordinary local build and development commands unchanged.
+- Removed the deploy-capable GitHub Actions frontend workflow so Cloudflare native Git remains the sole automatic frontend deployment authority; the pull-request quality gate remains verification-only.
+- Completed the frontend environment example with optional public Storage bucket names and synchronized architecture, deployment, environment, recovery, planning, and decision records.
+- Preserved Railway and Supabase configuration, application business logic and authentication behavior, Prisma schema, and migrations.
+
 ## 2026-08-07 — Clean-install Prisma Client bootstrap
 
 - Moved Prisma Client generation to the root npm `postinstall` lifecycle so both `npm ci` and `npm install` prepare `@prisma/client` types before workspace typecheck, build, or tests run on a clean checkout.

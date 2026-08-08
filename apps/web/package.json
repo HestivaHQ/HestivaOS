@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "validate:cloudflare-env": "node scripts/validate-cloudflare-build-env.mjs",
+    "deploy": "npm run validate:cloudflare-env && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "typecheck": "tsc --noEmit",
     "test": "echo \"No tests yet\""

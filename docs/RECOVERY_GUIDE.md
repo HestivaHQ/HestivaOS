@@ -22,7 +22,7 @@ Inspect Cloudflare Worker logs and correlate the request with the deployed commi
 
 ### Cloudflare native build fails
 
-Read the earliest build error. Confirm the build checked out the expected `main` commit, installed from the repository root so workspaces resolve, uses the supported Node/npm versions, and has all [Cloudflare build variables](ENVIRONMENT.md#cloudflare-native-build). Reproduce with `npm install`, web typecheck, and web build locally. Fix forward or retry a transient build; do not activate GitHub Actions.
+Read the earliest build error. If `validate:cloudflare-env` reports missing names, configure those names in the Cloudflare **production build environment** without copying values into logs. Confirm the build checked out the expected `main` commit, installed from the repository root so workspaces resolve, uses the supported Node/npm versions, and has all [Cloudflare build variables](ENVIRONMENT.md#cloudflare-native-build). Reproduce with `npm install`, web typecheck, and web build locally. Fix forward or retry a transient build; GitHub Actions has no frontend deployment capability and must not be made a second authority.
 
 ### Wrangler deployment fails
 
@@ -46,7 +46,11 @@ Confirm the production project is paused in Supabase, restore it through Supabas
 
 ### Missing Cloudflare build variables
 
-Compare configured names with the [build inventory](ENVIRONMENT.md#cloudflare-native-build). Recover authoritative Supabase values from the selected Supabase project and API endpoints from the deployed Railway service. Add them to Cloudflare's protected native-build configuration, then rebuild; runtime-only edits do not update `NEXT_PUBLIC_*` browser bundles.
+Compare configured names with the [build inventory](ENVIRONMENT.md#cloudflare-native-build). Recover authoritative Supabase values from the selected Supabase project and API endpoints from the deployed Railway service. Add them to Cloudflare's protected production native-build configuration, then rebuild; runtime-only edits do not update `NEXT_PUBLIC_*` browser bundles. Do not add public build variables to Wrangler merely to bypass build validation.
+
+### Worker runtime variables disappear
+
+Confirm the deployment targeted `hestivaos` and used the intended `apps/web/wrangler.jsonc`. The checked-in `keep_vars: true` policy preserves deliberately dashboard-managed runtime variables while Wrangler continues to own repository-declared bindings such as `API_URL`. Inspect Cloudflare audit and deployment history for another controller or a deployment using stale configuration. Do not repair a missing browser value solely in Worker runtime settings; restore it in the production build environment and rebuild.
 
 ### Frontend cannot reach API
 

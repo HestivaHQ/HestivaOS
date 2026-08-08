@@ -37,7 +37,10 @@ Set these Railway variables: `DATABASE_URL` for the API database. Verify deploym
 `/api/v1/health` and inspect Railway logs for migration or startup errors. Do not use
 `prisma migrate dev`, `prisma db push`, or reset commands in Railway.
 
-The Cloudflare frontend is deployed through the existing GitHub workflow in
-`.github/workflows/web-cloudflare.yml`. Configure its existing `API_URL` (or
-`NEXT_PUBLIC_API_URL`) plus `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` variables. No secrets are stored in this repository.
+Cloudflare native Git builds from `main` are the sole automatic frontend deployment
+authority. Configure the frontend's production build variables in Cloudflare; the
+deployment command validates their names before OpenNext builds and deploys Worker
+`hestivaos`. GitHub pull-request quality gates verify the repository but do not deploy.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and
+[`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) for the authoritative configuration
+scopes and recovery procedure. No production values or secrets are stored here.

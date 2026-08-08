@@ -12,3 +12,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0008: Repository documentation policy](ADR-0008-repository-documentation-policy.md)
 - [ADR-0009: Pull-request quality gates](ADR-0009-pull-request-quality-gates.md)
 - [ADR-0010: Prisma Client generation during repository bootstrap](ADR-0010-prisma-client-bootstrap.md)
+- [ADR-0011: Cloudflare environment ownership and build validation](ADR-0011-cloudflare-environment-ownership.md)

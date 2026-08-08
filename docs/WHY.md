@@ -24,4 +24,4 @@ The `hestiva-os` root coordinates `@hestiva/api` and `@hestiva/web`, provides on
 
 ## One deployment authority
 
-Only one controller should automatically deploy a given service. Multiple controllers can race, deploy different environment scopes, obscure provenance, and make rollback unsafe. Cloudflare native Git is therefore the sole active web authority; GitHub Actions web deployment and Railway web auto-deployment are disabled. **Temporary:** the Railway web service itself remains only as a rollback fallback and is planned for removal.
+Only one controller should automatically deploy a given service. Multiple controllers can race, deploy different environment scopes, obscure provenance, and make rollback unsafe. Cloudflare native Git is therefore the sole active web authority; the GitHub Actions web deployment path has been removed and Railway web auto-deployment is disabled. **Temporary:** the Railway web service itself remains only as a rollback fallback and is planned for removal.

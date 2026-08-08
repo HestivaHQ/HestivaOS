@@ -4,6 +4,7 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-22",
   "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "vars": {
     "API_URL": "https://mmapi-production-b622.up.railway.app"
   },
