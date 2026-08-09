@@ -274,3 +274,25 @@ h1, h2, h3, p { margin-top: 0; }
   .actionList > a, .upcomingDays > div { flex-direction: column; gap: 5px; }
   .workloadGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Business Profile */
+.completeness { display: grid; flex: 0 0 auto; min-width: 92px; padding: 12px 16px; border: 1px solid #cfe0e6; border-radius: 12px; background: #f2f8fa; text-align: center; }
+.completeness strong { color: #176b87; font-size: 24px; }
+.completeness span { color: #61727d; font-size: 12px; font-weight: 700; }
+.businessProfileForm { display: grid; gap: 20px; }
+.businessProfileSection { display: grid; gap: 20px; }
+.sectionHeading h3, .shareActions h3 { margin: 0 0 5px; }
+.sectionHeading p, .shareActions p, .saveProfileBar p { margin: 0; color: #61727d; line-height: 1.5; }
+.businessFieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.businessField { display: grid; min-width: 0; gap: 7px; }
+.businessField > label:first-child { color: #42545e; font-size: 13px; font-weight: 800; }
+.businessField input:not([type="checkbox"]), .businessField textarea { width: 100%; min-width: 0; border: 1px solid #cbd7dc; border-radius: 10px; padding: 11px 12px; background: white; color: #17202a; }
+.businessField textarea { resize: vertical; }
+.shareToggle { display: flex; align-items: center; gap: 8px; width: fit-content; color: #52656f; font-size: 12px; font-weight: 700; cursor: pointer; }
+.shareToggle input { width: 18px; height: 18px; accent-color: #176b87; }
+.saveProfileBar, .shareActions { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.saveProfileBar { position: sticky; z-index: 5; bottom: 12px; padding: 16px 18px; border: 1px solid #cfe0e6; border-radius: 12px; background: rgba(255,255,255,.97); box-shadow: 0 5px 20px rgba(16,35,45,.1); }
+.saveProfileBar button, .shareButtonGrid button { min-height: 46px; border: 1px solid #176b87; border-radius: 9px; padding: 10px 15px; background: white; color: #176b87; font-weight: 800; }
+.shareActions { margin-top: 20px; }
+.shareButtonGrid { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+@media (max-width: 700px) { .businessFieldGrid { grid-template-columns: 1fr; } .saveProfileBar, .shareActions { align-items: stretch; flex-direction: column; } .saveProfileBar button, .shareButtonGrid, .shareButtonGrid button { width: 100%; } }

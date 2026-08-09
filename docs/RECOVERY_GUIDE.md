@@ -6,6 +6,10 @@ An `INACTIVE` application `User` is denied by the API even if Supabase still hol
 
 The API prevents demotion or disablement of the last active ADMIN inside the serialized database mutation. It also rejects self-demotion and self-disable. If application data was changed outside this authoritative path and no active ADMIN remains, use the controlled database recovery procedure with authorized platform operators, restore exactly one intended application User to role `ADMIN` and status `ACTIVE`, record the incident, then verify `/users/sync` and the User Access route. Preserve verified-email stale-identity reconciliation and never resolve access incidents by deleting operational history.
 
+## Business Profile recovery
+
+The canonical row is `business_profiles.id = 'hestiva'`. If the page is unexpectedly blank, first verify an active ADMIN session and API connectivity; a valid empty profile is represented by nullable fields and is created safely on first ADMIN read. Restore accidental data loss from an authorized database backup rather than inventing company details. Verify restored share booleans carefully—especially banking and compliance selections—before sharing. Do not place credentials or secrets in any field. Application logs can identify the actor and field names involved but intentionally cannot reconstruct sensitive old/new values; persistent profile audit history is deferred.
+
 ## Recovery order
 
 1. Stop overlapping deployment actions and identify the failing commit/deployment.

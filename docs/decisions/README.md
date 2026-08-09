@@ -16,3 +16,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0012: Next.js 16 frontend security migration](ADR-0012-nextjs-16-security-migration.md)
 - [ADR-0013: Reconcile replaced Supabase identities by verified email](ADR-0013-verified-auth-identity-reconciliation.md)
 - [ADR-0014: Enforce application access at the API boundary](ADR-0014-application-access-enforcement.md)
+
+- [ADR-0015: Use one typed canonical Business Profile](ADR-0015-canonical-business-profile.md)

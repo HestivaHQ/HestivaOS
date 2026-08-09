@@ -1,5 +1,20 @@
 # Changelog
 
+
+## 2026-08-09 — Product Implementation Slice 4 — Business Profile
+
+### Added
+
+- Added the ADMIN-only `/admin/settings/business-profile` page, three information groups, persisted per-field share selections, five-field completeness indicator, and native WhatsApp, email, and clipboard sharing.
+- Added the singleton `BusinessProfile` Prisma model, focused migration, narrow ADMIN read/update API, validated allowlisted input, and formatter, completeness, persistence, authorization-metadata, validation, and safe-logging tests.
+
+### Security
+
+- Banking and compliance sharing defaults off. API responses omit database identifiers/timestamps, mutation logs contain actor and changed field names only, and no credential or secret fields exist.
+
+### Known issues
+
+- Persistent product audit history and future management view/share permission groups are deferred. Quotations, invoices, email sending, and generated-document integrations are not part of this slice.
 ## 2026-08-09 — Product Implementation Slice 3 — User Access Management
 
 ### Added
