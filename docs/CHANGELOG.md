@@ -2,6 +2,13 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
+
+### Fixed
+
+- Replaced the permanently expanded narrow-screen AppFrame navigation block with a compact mobile header and an accessible, initially closed drawer sourced from the existing navigation links.
+- Preserved the approved desktop sidebar and dashboard layout, account identity and role presentation, profile access, sign out, routes, and information architecture.
+
 ## 2026-08-09 — Product Implementation Slice 1 — Admin Dashboard Foundation
 
 ### Added

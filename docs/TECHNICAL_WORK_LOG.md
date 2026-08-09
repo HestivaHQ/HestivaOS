@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
+
+- Corrected the responsive presentation of the shared `AppFrame` without changing its approved desktop sidebar or dashboard content. At widths up to 900px, a compact Hestiva OS header now exposes the existing navigation-link source through an initially closed drawer, so page content begins immediately below the header.
+- Preserved all nine navigation destinations, active-state styling, existing AppUser photo/initials identity, job-title-or-role display, `/profile` access, and sign out. The real menu button exposes `aria-expanded`, `aria-controls`, and an adaptive label; menu links, its close control, Escape, and the backdrop close the drawer using native React and CSS only.
+- Changed no dashboard API or calculations, route, role, permission, authentication behavior, Prisma artifact, dependency, Supabase integration, deployment configuration, or desktop dashboard design.
+
 ## 2026-08-09 — Product Implementation Slice 1 — Admin Dashboard Foundation
 
 - Replaced the analytics-heavy Admin home page with a responsive daily command centre ordered as header, four shortcuts, today's schedule, actionable alerts, today-only Current Workload, and Upcoming Work. The dashboard now uses the shared `AppFrame`, keeps its page server-rendered, and limits client state to an accessible reusable collapsible section control.
