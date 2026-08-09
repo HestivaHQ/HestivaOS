@@ -76,6 +76,10 @@ Use `GET /api/v1/ready` when an operational check must include dependencies. It 
 
 API logs are one JSON object per line. Completed-request records contain timestamp, request ID, HTTP method, path without its query string, response status, and duration in milliseconds. The API accepts a syntactically safe `X-Request-ID` or generates a UUID, echoes it in the response header, and uses it in request and error records. Error records also contain endpoint, stack trace, HTTP status, and environment. Startup success records contain application version, environment, startup duration, listening port, and confirmation status. These records intentionally omit request headers, request/response bodies, query strings, credentials, and environment-variable values.
 
+### Business Profile migration
+
+Migration `20260809120000_add_business_profile` creates one additive `business_profiles` table with nullable information fields, persisted share defaults, and a singleton-key check. It seeds no company information and changes no existing table. The normal Railway `db:migrate:deploy` step applies it before API startup. Application rollback does not remove the table; preserve the row and deploy a compatible application or perform a separately reviewed database rollback.
+
 ### Verify and roll back the API
 
 1. Confirm Railway resolved the root `package.json` and installed workspaces.

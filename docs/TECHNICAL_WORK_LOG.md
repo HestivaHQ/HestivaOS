@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-09 — Product Implementation Slice 4 — Business Profile
+
+- Converted the Admin Settings signpost into the canonical `/admin/settings/business-profile` route. The page retains `AppFrame`, verifies exact ADMIN access during server rendering, presents General Business Information, Banking & Payment Information, and Compliance & Official Information, and provides explicit save progress, duplicate-submit prevention, success, and useful error states.
+- Added one database-enforced singleton `BusinessProfile` row with typed nullable fields and typed per-field share booleans. General customer-facing fields default on; all banking and compliance fields default off. No production business values are seeded, and no secret/credential fields exist.
+- Added `GET` and `PATCH /api/v1/admin/business-profile`, both protected by ADMIN role metadata and the global authentication/access guard. The patch service rejects unknown keys, validates optional email and HTTP(S) website values, trims boundary whitespace, returns no ID/timestamps, and logs only actor ID plus changed field names—not banking, tax, or other field values.
+- Sharing is local-only: recipient-less `wa.me` opens WhatsApp with encoded text, `mailto:` opens the configured mail client, and copy uses Clipboard API with a legacy browser fallback. The pure formatter emits only selected non-empty approved fields and no model metadata. Completeness is the filled count across registered name, registration number, contact number, business email, and business address, divided by five and rounded to a percentage.
+- Persistent audit storage is deferred because no suitable general audit model exists; application logs retain only mutation actor and field names. Future management view/share groups and reuse by quotations, invoices, emails, and generated documents remain deferred. Employee Records, dashboard, User Access, auth reconciliation, role enum, infrastructure, storage, and dependencies were not changed.
+
 ## 2026-08-09 — Product Implementation Slice 3 — User Access Management
 
 - Converted the Admin Settings User Access signpost into `/admin/settings/user-access`, an ADMIN-only server-rendered entry with a responsive client manager. It lists application-user name, email, role, explicit OS access, and an honest unavailable activity value; it supports local name/email search and simple role/access filters. Role demotion and access disablement require confirmation, destructive controls are separated, and no HR or Employee Records fields are shown.

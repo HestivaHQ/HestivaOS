@@ -29,3 +29,8 @@ Only one controller should automatically deploy a given service. Multiple contro
 ## Daily-command-centre dashboard
 
 The launch Admin dashboard prioritizes today's operating decisions rather than historical analytics: schedule, actionable exceptions, current workflow state, and the next seven calendar days. This keeps the first product slice focused and makes unresolved conditions disappear when their underlying work orders change. Existing broader API fields are retained for compatibility instead of coupling presentation simplification to repository-wide backend deletion. Africa/Johannesburg calendar boundaries represent the business day consistently regardless of server location.
+
+
+## Why the Business Profile is canonical and conservative
+
+Company information needs one reusable source so future quotations, invoices, emails, and generated documents do not drift. A database-enforced singleton with typed core fields is sufficient for the current one-company product and avoids premature multi-tenancy. Typed share booleans make every outgoing choice reviewable and evolvable without treating sharing as authorization. Public general details default on for useful first-run behavior, while banking and compliance details default off to avoid surprise disclosure. Exact ADMIN-only read and edit access is the current verified requirement; management view/share groups remain a future decision rather than speculative permissions.

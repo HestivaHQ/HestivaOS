@@ -117,6 +117,46 @@ model User {
   @@map("users")
 }
 
+model BusinessProfile {
+  id                       String   @id @default("hestiva")
+  registeredName           String?  @map("registered_name")
+  tradingName              String?  @map("trading_name")
+  registrationNumber       String?  @map("registration_number")
+  contactNumber            String?  @map("contact_number")
+  businessEmail            String?  @map("business_email")
+  website                  String?
+  businessAddress          String?  @map("business_address")
+  bankName                 String?  @map("bank_name")
+  accountHolder            String?  @map("account_holder")
+  accountNumber            String?  @map("account_number")
+  accountType              String?  @map("account_type")
+  branchCode               String?  @map("branch_code")
+  paymentInstructions      String?  @map("payment_instructions")
+  taxNumber                String?  @map("tax_number")
+  vatNumber                String?  @map("vat_number")
+  officialIdentifiers      String?  @map("official_identifiers")
+  shareRegisteredName      Boolean  @default(true) @map("share_registered_name")
+  shareTradingName         Boolean  @default(true) @map("share_trading_name")
+  shareRegistrationNumber  Boolean  @default(true) @map("share_registration_number")
+  shareContactNumber       Boolean  @default(true) @map("share_contact_number")
+  shareBusinessEmail       Boolean  @default(true) @map("share_business_email")
+  shareWebsite             Boolean  @default(true) @map("share_website")
+  shareBusinessAddress     Boolean  @default(true) @map("share_business_address")
+  shareBankName            Boolean  @default(false) @map("share_bank_name")
+  shareAccountHolder       Boolean  @default(false) @map("share_account_holder")
+  shareAccountNumber       Boolean  @default(false) @map("share_account_number")
+  shareAccountType         Boolean  @default(false) @map("share_account_type")
+  shareBranchCode          Boolean  @default(false) @map("share_branch_code")
+  sharePaymentInstructions Boolean  @default(false) @map("share_payment_instructions")
+  shareTaxNumber           Boolean  @default(false) @map("share_tax_number")
+  shareVatNumber           Boolean  @default(false) @map("share_vat_number")
+  shareOfficialIdentifiers Boolean  @default(false) @map("share_official_identifiers")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("business_profiles")
+}
+
 model Customer {
   id String @id @default(uuid()) @db.Uuid
   ownerId String @map("owner_id") @db.Uuid
