@@ -90,3 +90,7 @@ Search Railway JSON logs for `startup_failed`. Use its stack trace and environme
 - [ ] A representative Storage read succeeds.
 - [ ] Cloudflare native Git remains the only active web controller.
 - [ ] No values or credentials were copied into Git or incident records.
+
+### Profile or Admin Settings authorization is incorrect
+
+Confirm Supabase Auth returns the expected authenticated identity, then inspect the matching application User record by `authUserId` without exposing credentials. `/admin/settings` intentionally requires the exact `ADMIN` application role; `OPERATIONS_MANAGER`, `DISPATCHER`, `SUPERVISOR`, and `TECHNICIAN` must be redirected to the dashboard. If profile password changes fail, inspect the Supabase Auth response and session validity; do not add a database password field or route password values through the Hestiva API. Email is intentionally read-only until a verified email-change flow is delivered. Profile photo recovery continues to use `NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET`, falling back to `profile-images`.

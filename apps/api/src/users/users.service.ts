@@ -3,7 +3,7 @@ import { UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 type AuthenticatedUser = { id: string; email?: string; user_metadata?: Record<string, unknown> };
-export type UpdateProfileInput = { firstName?: string; lastName?: string; displayName?: string; phoneNumber?: string; jobTitle?: string; department?: string; profilePhotoUrl?: string | null };
+export type UpdateProfileInput = { firstName?: string; lastName?: string; displayName?: string; phoneNumber?: string; profilePhotoUrl?: string | null };
 
 @Injectable()
 export class UsersService {
@@ -37,8 +37,6 @@ export class UsersService {
         ...(input.lastName !== undefined ? { lastName: input.lastName.trim() } : {}),
         ...(input.displayName !== undefined ? { displayName: input.displayName.trim() || null } : {}),
         ...(input.phoneNumber !== undefined ? { phoneNumber: input.phoneNumber.trim() || null } : {}),
-        ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle.trim() || null } : {}),
-        ...(input.department !== undefined ? { department: input.department.trim() || null } : {}),
         ...(input.profilePhotoUrl !== undefined ? { profilePhotoUrl: input.profilePhotoUrl?.trim() || null } : {}),
       },
     });

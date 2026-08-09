@@ -11,7 +11,8 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Deliver focused follow-up product slices for Admin Settings and user access, Business Profile, Employee Records, and the Supervisor experience without treating Slice 1 as completion of those systems.
+- Deliver User Access Management (Slice 3), Business Profile (Slice 4), Employee Records (Slice 5), and the Supervisor experience as focused follow-ups; the Admin Settings gateway does not complete those modules.
+- Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
 - Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.
 - Design the `WorkOrder` to `Service` relationship; until then the dashboard accurately uses `WorkOrder.title` as its job label.
 - Create the Management navigation gateway and direct-create Work Orders route state, then connect the currently non-destructive Management shortcut and `/work-orders` creation shortcut without brittle query parameters.
