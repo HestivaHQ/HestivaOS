@@ -31,6 +31,15 @@ export type DashboardOverview = {
   upcomingScheduledWorkOrders: WorkOrder[];
   overdueWorkOrdersList: Array<WorkOrder & { daysOverdue: number }>;
   statusBreakdown: Record<WorkOrderStatus, number>;
+  operationalDashboard: {
+    operationalDate: string;
+    todayStatusBreakdown: Partial<Record<WorkOrderStatus, number>>;
+    todayUnassignedJobs: number;
+    actionableOverdueWorkOrders: Array<WorkOrder & { daysOverdue: number }>;
+    upcomingWorkSummary: Array<{ date: string; jobCount: number; unassignedCount: number }>;
+    upcomingJobCount: number;
+    upcomingUnassignedCount: number;
+  };
 };
 
 export type CustomerInput = { ownerId: string; name: string; contactName?: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };

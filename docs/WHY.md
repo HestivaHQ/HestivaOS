@@ -25,3 +25,7 @@ The `hestiva-os` root coordinates `@hestiva/api` and `@hestiva/web`, provides on
 ## One deployment authority
 
 Only one controller should automatically deploy a given service. Multiple controllers can race, deploy different environment scopes, obscure provenance, and make rollback unsafe. Cloudflare native Git is therefore the sole active web authority; the GitHub Actions web deployment path has been removed and Railway web auto-deployment is disabled. **Temporary:** the Railway web service itself remains only as a rollback fallback and is planned for removal.
+
+## Daily-command-centre dashboard
+
+The launch Admin dashboard prioritizes today's operating decisions rather than historical analytics: schedule, actionable exceptions, current workflow state, and the next seven calendar days. This keeps the first product slice focused and makes unresolved conditions disappear when their underlying work orders change. Existing broader API fields are retained for compatibility instead of coupling presentation simplification to repository-wide backend deletion. Africa/Johannesburg calendar boundaries represent the business day consistently regardless of server location.

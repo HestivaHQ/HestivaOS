@@ -11,6 +11,12 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
+- Deliver focused follow-up product slices for Admin Settings and user access, Business Profile, Employee Records, and the Supervisor experience without treating Slice 1 as completion of those systems.
+- Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.
+- Design the `WorkOrder` to `Service` relationship; until then the dashboard accurately uses `WorkOrder.title` as its job label.
+- Create the Management navigation gateway and direct-create Work Orders route state, then connect the currently non-destructive Management shortcut and `/work-orders` creation shortcut without brittle query parameters.
+- Perform a separately scoped repository-wide Maintenance Marshall legacy cleanup while retaining required historical compatibility.
+- Plan broader navigation and scheduling redesigns as separate product slices.
 - Migrate the Railway API away from the legacy `mmapi` hostname, coordinating API variables, CORS, rebuilds, and verification.
 - Automate and regularly test database and critical Storage backup/restore procedures.
 - Remove the rollback-only Railway web service after Cloudflare rollback procedures are proven.
