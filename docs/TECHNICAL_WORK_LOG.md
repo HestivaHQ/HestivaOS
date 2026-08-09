@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-09 — Auth identity reconciliation and login resilience
+
+- Traced the authenticated home bootstrap from Supabase `getUser()` through the server API session and `POST /users/sync`. The prior `upsert` keyed only by `auth_user_id` entered its create branch for a replacement Auth UUID; the surviving normalized email then violated the unique `users.email` constraint, and the uncaught Prisma error propagated through the server-rendered home route as HTTP 500.
+- Replaced that upsert with a serializable synchronization transaction. Existing UUID matches keep their application identity and accept a non-conflicting authoritative email change; one stale email match is rebound only with Supabase `email_confirmed_at`; absent matches retain default TECHNICIAN creation. Ambiguous, unverified, UUID/email-conflicting, and concurrent unique-constraint states fail closed with controlled errors and identifier-only logs.
+- Preserved the existing application user primary key during reconciliation, so User-owned customers, work orders, and activity references remain attached. The separate `technicians` model has no User foreign key in the current schema and is neither modified nor deleted; its workforce, shift, crew, and work-order relationships remain untouched.
+- Hardened login submission with an immediate in-flight ref guard in addition to the disabled button, mode-specific progress copy, non-sensitive errors, and `finally` restoration. The existing signup callback remains derived from `window.location.origin`; repository search found no active Maintenance Marshall authentication redirect.
+- Added focused API unit coverage for UUID matches, verified stale-identity recovery with ID/relationship continuity, unverified denial, ambiguous matches, new-user bootstrap, and conflicting legitimate email changes. No schema, migration, dependency, dashboard, work-order, scheduling, customer, business-profile, employee-record, permission, Railway, or Cloudflare change was made. Product Slice 3 access-management functions remain deferred.
+
 ## 2026-08-09 — Product Implementation Slice 2 — Profile & Admin Settings Foundation
 
 - Separated personal account management from administration. My Profile now edits only profile photo, first name, last name, optional display name, and optional phone number; the Supabase-authenticated email is read-only. Removed role, job title, and department from both the UI and self-profile API input while preserving their existing User columns and values. No Prisma schema or migration changed.

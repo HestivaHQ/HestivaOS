@@ -2,7 +2,7 @@ import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/comm
 import { UpdateProfileInput, UsersService } from './users.service';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
 
-type AuthenticatedRequest = { supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> } };
+type AuthenticatedRequest = { supabaseUser: { id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> } };
 
 @Controller('users')
 @UseGuards(SupabaseAuthGuard)

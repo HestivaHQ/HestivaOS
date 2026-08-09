@@ -1,5 +1,9 @@
 # Environment configuration
 
+## Supabase authentication URLs
+
+The Supabase Dashboard **Site URL** must be the canonical Hestiva OS production origin, and its redirect allow-list must permit that origin's `/auth/confirm` callback. These are deployment-owned settings, not repository secrets. Signup constructs `emailRedirectTo` from the active browser `window.location.origin`, so preview and production origins must be explicitly trusted in Supabase as appropriate. No Maintenance Marshall authentication URL is present in the active repository configuration; do not restore one. After changing Dashboard URL settings, verify a confirmation email lands on the intended Hestiva OS origin.
+
 This inventory documents names only. Values must never be committed. A `NEXT_PUBLIC_` variable is embedded into browser output at **build time** and is not secret. Server/runtime variables are read by the Worker or API process at **runtime**, although a build may also require them for prerendering.
 
 ## Railway API runtime
