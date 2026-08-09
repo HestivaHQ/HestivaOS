@@ -1,5 +1,11 @@
 # Recovery guide
 
+## User access incident recovery
+
+An `INACTIVE` application `User` is denied by the API even if Supabase still holds a valid provider session. Confirm access state through Admin Settings → User Access with a different active ADMIN. Re-enable OS access there; do not edit Supabase claims, recreate an Auth identity, or change `auth_user_id` manually. The provider session is not globally revoked by this implementation, but it cannot pass the Hestiva API access check.
+
+The API prevents demotion or disablement of the last active ADMIN inside the serialized database mutation. It also rejects self-demotion and self-disable. If application data was changed outside this authoritative path and no active ADMIN remains, use the controlled database recovery procedure with authorized platform operators, restore exactly one intended application User to role `ADMIN` and status `ACTIVE`, record the incident, then verify `/users/sync` and the User Access route. Preserve verified-email stale-identity reconciliation and never resolve access incidents by deleting operational history.
+
 ## Recovery order
 
 1. Stop overlapping deployment actions and identify the failing commit/deployment.

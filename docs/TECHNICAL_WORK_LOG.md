@@ -1,5 +1,14 @@
 # Technical work log
 
+## 2026-08-09 — Product Implementation Slice 3 — User Access Management
+
+- Converted the Admin Settings User Access signpost into `/admin/settings/user-access`, an ADMIN-only server-rendered entry with a responsive client manager. It lists application-user name, email, role, explicit OS access, and an honest unavailable activity value; it supports local name/email search and simple role/access filters. Role demotion and access disablement require confirmation, destructive controls are separated, and no HR or Employee Records fields are shown.
+- Added `GET /users/admin`, `PATCH /users/:id/role`, and `PATCH /users/:id/access`. Both route metadata and the server-rendered page enforce exact ADMIN access. Inputs are checked against existing Prisma enums, profile editing remains unable to change roles, and Supabase Auth roles/UUIDs are not mutated.
+- Reused `User.status` after repository inspection found no employment use; it now explicitly means OS access. `Technician.status` remains the separate workforce concept. Added a global API guard for every route except health/readiness: it validates Supabase, requires an active application User, and fails closed before controllers. The sync exception preserves new-user bootstrap and verified-email stale-UUID reconciliation. Disabled users are blocked at the next application request and web bootstrap signs them out.
+- Did not add Supabase Admin/service-role handling. Provider sessions are not globally revoked and may remain valid at Supabase, but cannot authorize the Hestiva API. Account creation is deferred to a focused secure invitation design.
+- Put active-ADMIN removal behind a serializable transaction and transaction-scoped PostgreSQL advisory lock, with the count and update in the same boundary. The service prevents the last active ADMIN from demotion/disablement, rejects self-demotion/self-disable, and maps serialization conflicts to controlled responses.
+- Deferred permanent deletion because `User` has restricted operational customer, work-order, and activity relationships; no business history is cascade-deleted. Changes emit identifier-only application logs, while persistent admin audit history is deferred because no suitable general audit model exists. Business Profile remains Slice 4 and Employee Records remains Slice 5. No Prisma schema, migration, dependency, dashboard, scheduling, deployment, photo/storage, or auth-reconciliation implementation changed.
+
 ## 2026-08-09 — Auth identity reconciliation and login resilience
 
 - Traced the authenticated home bootstrap from Supabase `getUser()` through the server API session and `POST /users/sync`. The prior `upsert` keyed only by `auth_user_id` entered its create branch for a replacement Auth UUID; the surviving normalized email then violated the unique `users.email` constraint, and the uncaught Prisma error propagated through the server-rendered home route as HTTP 500.

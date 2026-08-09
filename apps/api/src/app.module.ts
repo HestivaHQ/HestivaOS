@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { CleaningJobTemplatesModule } from './cleaning-job-templates/cleaning-job-templates.module';
 import { CrewsModule } from './crews/crews.module';
 import { CustomersModule } from './customers/customers.module';
@@ -15,11 +16,12 @@ import { WorkOrderChecklistsModule } from './work-order-checklists/work-order-ch
 import { WorkOrderCustomerSignOffsModule } from './work-order-customer-sign-offs/work-order-customer-sign-offs.module';
 import { WorkOrderPhotosModule } from './work-order-photos/work-order-photos.module';
 import { WorkOrdersModule } from './work-orders/work-orders.module';
+import { SupabaseAuthGuard } from './users/supabase-auth.guard';
 
 @Module({
   imports: [UsersModule, CustomersModule, PropertiesModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule, ShiftsModule],
   controllers: [HealthController],
-  providers: [PrismaService],
+  providers: [PrismaService, { provide: APP_GUARD, useClass: SupabaseAuthGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

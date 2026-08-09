@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-09 — Product Implementation Slice 3 — User Access Management
+
+### Added
+
+- Added the ADMIN-only `/admin/settings/user-access` experience with a responsive user list, name/email search, role and OS-access filters, confirmed role changes, and confirmed access disablement.
+- Added narrow ADMIN list, role, and access endpoints plus focused authorization, role, access, self-safety, last-admin, serialization-boundary, disabled-session, and auth-reconciliation coverage.
+
+### Changed
+
+- Defined existing `User.status` as Hestiva OS access while retaining separate `Technician.status` workforce semantics. All non-health API routes now authenticate and fail closed for missing or disabled application users.
+- Serialized ADMIN-removing changes with a PostgreSQL transaction advisory lock and serializable transaction; self-demotion/self-disable are also prohibited.
+
+### Security
+
+- Disabled users are rejected on their next Hestiva API request and signed out during web bootstrap. Provider-wide Supabase session revocation is not implemented; no service-role credential is present or exposed. Verified-email stale-identity reconciliation remains unchanged.
+
+### Known issues
+
+- Last authenticated activity is unavailable. Permanent deletion, account creation/invitations, provider session revocation, and persistent administration audit history are deferred. Business Profile remains Slice 4 and Employee Records remains Slice 5.
+
 ## 2026-08-09 — Auth identity recovery and login resilience
 
 ### Fixed
