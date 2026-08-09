@@ -43,3 +43,11 @@ Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`
 The browser requests the Cloudflare Worker. Server-rendered web code uses `API_URL`; browser code uses the build-time `NEXT_PUBLIC_API_URL` to call the Railway API. The API applies application rules, validates Supabase identities, and reads or writes Supabase PostgreSQL through Prisma. Web features use Supabase authentication and Storage with public client configuration embedded during the frontend build. `NEXT_PUBLIC_*` values are intentionally browser-visible and require a rebuild when changed. Railway owns API runtime configuration. Secret values remain in each platform's protected settings, never Git.
 
 The current Railway API hostname contains the legacy `mmapi` name. It is an endpoint compatibility detail, not the product or service identity, and is scheduled for migration.
+
+## Admin dashboard product slice
+
+The authenticated Admin dashboard is a daily command centre rendered as a Next.js Server Component inside the shared `AppFrame`; only the reusable disclosure control is a Client Component. Its fixed hierarchy is header, four shortcuts, today's schedule, actionable alerts, today's current workload, and seven-day upcoming work. Analytics, technician workload, recent activity, and a separate overdue section remain available in backend compatibility fields but are not dashboard presentations.
+
+`GET /api/v1/dashboard` retains its existing response and adds `operationalDashboard`. The additive field supplies an Africa/Johannesburg operational date, a today-only status breakdown, real unassigned and overdue conditions, and date-grouped totals for the next seven calendar days excluding today. Dashboard date boundaries are calculated independently of the API host timezone. Current Workload excludes `CLOSED`, `CANCELLED`, and the legacy `WAITING_FOR_PARTS` presentation. Upcoming Work treats every calendar day equally.
+
+Dashboard schedule rows use `WorkOrder.title` as the current job label because `WorkOrder` has no direct `Service` relation. Property address fields provide the compact location, and assignment prefers a crew, then a technician, then a prominent unassigned state. Worker Issue and Job Exception alerts are not emitted because corresponding functional models do not yet exist.

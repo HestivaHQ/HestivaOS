@@ -23,17 +23,58 @@ const TECHNICIAN_WORKLOAD_STATUSES: WorkOrderStatus[] = [
 
 const OVERDUE_WORK_ORDER_STATUSES = ACTIVE_WORK_ORDER_STATUSES.filter((status) => status !== WorkOrderStatus.COMPLETED);
 
+export const DASHBOARD_WORKLOAD_STATUSES: WorkOrderStatus[] = [
+  WorkOrderStatus.NEW,
+  WorkOrderStatus.ASSIGNED,
+  WorkOrderStatus.ACCEPTED,
+  WorkOrderStatus.TRAVELLING,
+  WorkOrderStatus.ON_SITE,
+  WorkOrderStatus.COMPLETED,
+];
+
+const DASHBOARD_OVERDUE_STATUSES = DASHBOARD_WORKLOAD_STATUSES.filter((status) => status !== WorkOrderStatus.COMPLETED);
+const JOHANNESBURG_OFFSET_MS = 2 * 60 * 60 * 1000;
+
+export function getJohannesburgDayBoundaries(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Johannesburg',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value);
+  const todayStart = new Date(Date.UTC(value('year'), value('month') - 1, value('day')) - JOHANNESBURG_OFFSET_MS);
+  const tomorrowStart = new Date(todayStart.getTime() + 86_400_000);
+  const upcomingEnd = new Date(tomorrowStart.getTime() + 7 * 86_400_000);
+  return { todayStart, tomorrowStart, upcomingEnd };
+}
+
+export function buildTodayStatusBreakdown(workOrders: Array<{ status: WorkOrderStatus }>) {
+  return DASHBOARD_WORKLOAD_STATUSES.reduce<Partial<Record<WorkOrderStatus, number>>>((result, status) => {
+    result[status] = workOrders.filter((workOrder) => workOrder.status === status).length;
+    return result;
+  }, {});
+}
+
+export function buildUpcomingWorkSummary(workOrders: Array<{ scheduledAt: Date | null; technicianId: string | null; crewId: string | null }>) {
+  const dates = new Map<string, { date: string; jobCount: number; unassignedCount: number }>();
+  for (const workOrder of workOrders) {
+    if (!workOrder.scheduledAt) continue;
+    const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(workOrder.scheduledAt);
+    const item = dates.get(date) ?? { date, jobCount: 0, unassignedCount: 0 };
+    item.jobCount += 1;
+    if (!workOrder.technicianId && !workOrder.crewId) item.unassignedCount += 1;
+    dates.set(date, item);
+  }
+  return [...dates.values()].sort((left, right) => left.date.localeCompare(right.date));
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOverview() {
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
-    const upcomingEnd = new Date(tomorrowStart);
-    upcomingEnd.setUTCDate(upcomingEnd.getUTCDate() + 7);
+    const { todayStart, tomorrowStart, upcomingEnd } = getJohannesburgDayBoundaries();
     const weekStart = new Date(todayStart);
     weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
     const monthStart = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), 1));
@@ -56,7 +97,7 @@ export class DashboardService {
         this.prisma.workOrder.count({ where: { status: WorkOrderStatus.NEW, technicianId: null } }),
         this.prisma.workOrder.count({ where: { status: WorkOrderStatus.WAITING_FOR_PARTS } }),
         this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES }, priority: { in: ['HIGH', 'URGENT'] } } }),
-        this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES }, technicianId: null, scheduledAt: { gte: todayStart, lt: tomorrowStart } } }),
+        this.prisma.workOrder.count({ where: { status: { in: DASHBOARD_OVERDUE_STATUSES }, technicianId: null, crewId: null, scheduledAt: { gte: todayStart, lt: tomorrowStart } } }),
         this.prisma.workOrderActivity.count({ where: { type: WorkOrderActivityType.STATUS_CHANGED, newStatus: WorkOrderStatus.COMPLETED, createdAt: { gte: weekStart, lt: tomorrowStart } } }),
         this.prisma.workOrderActivity.count({ where: { type: WorkOrderActivityType.STATUS_CHANGED, newStatus: WorkOrderStatus.COMPLETED, createdAt: { gte: monthStart, lt: tomorrowStart } } }),
         this.prisma.workOrder.count({ where: { status: { in: OVERDUE_WORK_ORDER_STATUSES } } }),
@@ -67,9 +108,9 @@ export class DashboardService {
           include: { actor: true, workOrder: { select: { id: true, title: true } } },
         }),
         this.prisma.workOrder.findMany({
-          where: { scheduledAt: { gte: todayStart, lt: tomorrowStart } },
+          where: { status: { not: WorkOrderStatus.CANCELLED }, scheduledAt: { gte: todayStart, lt: tomorrowStart } },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
-          include: { customer: true, property: true, createdBy: true, technician: true },
+          include: { customer: true, property: true, createdBy: true, technician: true, crew: true },
         }),
         groupedStatusesQuery,
         this.prisma.technician.findMany({
@@ -96,7 +137,7 @@ export class DashboardService {
             scheduledAt: { gte: tomorrowStart, lt: upcomingEnd },
           },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
-          include: { customer: true, property: true, createdBy: true, technician: true },
+          include: { customer: true, property: true, createdBy: true, technician: true, crew: true },
         }),
         this.prisma.workOrder.findMany({
           where: {
@@ -150,6 +191,11 @@ export class DashboardService {
       statusBreakdown[status] = item._count._all;
     }
 
+    const todayStatusBreakdown = buildTodayStatusBreakdown(todayScheduledWorkOrders);
+    const upcomingWorkSummary = buildUpcomingWorkSummary(upcomingScheduledWorkOrders);
+    const upcomingUnassignedCount = upcomingWorkSummary.reduce((total, day) => total + day.unassignedCount, 0);
+    const actionableOverdueWorkOrders = overdueWorkOrdersList.filter((workOrder) => DASHBOARD_OVERDUE_STATUSES.some((status) => status === workOrder.status));
+
     return {
       totals: { customers, properties, openWorkOrders, completedWorkOrders },
       statistics: { openWorkOrders, completedToday, overdueWorkOrders, activeTechnicians },
@@ -170,6 +216,15 @@ export class DashboardService {
       upcomingScheduledWorkOrders,
       overdueWorkOrdersList,
       statusBreakdown,
+      operationalDashboard: {
+        operationalDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(todayStart),
+        todayStatusBreakdown,
+        todayUnassignedJobs,
+        actionableOverdueWorkOrders,
+        upcomingWorkSummary,
+        upcomingJobCount: upcomingScheduledWorkOrders.length,
+        upcomingUnassignedCount,
+      },
     };
   }
 }
