@@ -25,6 +25,7 @@ h1, h2, h3, p { margin-top: 0; }
 .navLink:hover, .navLink.active { color: white; background: rgba(255,255,255,.1); }
 .accountBlock { margin-top: auto; display: grid; gap: 12px; color: #c9d7de; font-size: 13px; overflow-wrap: anywhere; }
 .accountBlock button { width: 100%; border: 1px solid rgba(255,255,255,.25); border-radius: 10px; padding: 10px 12px; background: transparent; color: white; }
+.mobileAppHeader, .mobileNavDrawer, .mobileNavBackdrop { display: none; }
 
 .content { min-width: 0; padding: 42px; }
 .pageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
@@ -102,6 +103,55 @@ h1, h2, h3, p { margin-top: 0; }
 .alertSeverity.high { background: #fff0d9; color: #8a5100; }
 .alertSeverity.warning { background: #fff8d8; color: #796000; }
 
+.dashboard { display: grid; gap: 20px; max-width: 1240px; margin: 0 auto; }
+.dashboardHeader { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 4px 0 10px; }
+.dashboardHeader h2 { margin-bottom: 7px; font-size: clamp(28px, 4vw, 40px); }
+.dashboardHeader p:not(.eyebrow) { margin-bottom: 9px; color: #61727d; }
+.dashboardHeader > div > strong { font-size: 14px; }
+.dashboardHeader > div > strong span { margin: 0 5px; color: #9aabb3; }
+.dashboardUnavailable { display: block; margin-top: 8px; color: #8b2921; }
+.dashboardProfile { flex: 0 0 auto; display: grid; place-items: center; width: 52px; height: 52px; overflow: hidden; border: 3px solid white; border-radius: 50%; background: #176b87; box-shadow: 0 3px 14px rgba(16,35,45,.18); color: white; font-weight: 800; text-decoration: none; }
+.dashboardProfile img { width: 100%; height: 100%; object-fit: cover; }
+.shortcuts { padding: 22px; border: 1px solid #dbe3e7; border-radius: 16px; background: white; box-shadow: 0 8px 28px rgba(16,35,45,.05); }
+.shortcuts h3 { margin-bottom: 16px; font-size: 19px; }
+.shortcutGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.shortcutCard { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px; border: 1px solid #dbe3e7; border-radius: 12px; background: #f8fbfc; text-decoration: none; }
+.shortcutCard.primary { border-color: #176b87; background: #176b87; color: white; }
+.shortcutCard.disabled { color: #667780; cursor: not-allowed; }
+.shortcutCard > span:last-child { display: grid; gap: 3px; min-width: 0; }
+.shortcutCard small { color: #61727d; line-height: 1.3; }
+.shortcutCard.primary small { color: #d9eef5; }
+.shortcutIcon { display: grid; flex: 0 0 auto; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: #e7f1f5; color: #176b87; font-size: 22px; font-weight: 800; }
+.shortcutCard.primary .shortcutIcon { background: rgba(255,255,255,.16); color: white; }
+.dashboardSection { overflow: hidden; border: 1px solid #dbe3e7; border-radius: 16px; background: white; box-shadow: 0 8px 28px rgba(16,35,45,.05); }
+.dashboardSectionToggle { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; min-height: 82px; padding: 18px 22px; border: 0; background: white; color: #17202a; text-align: left; }
+.dashboardSectionToggle:hover, .dashboardSectionToggle:focus-visible { background: #f8fbfc; }
+.dashboardSectionToggle > span:first-child { display: grid; gap: 5px; }
+.dashboardSectionToggle strong { font-size: 20px; }
+.dashboardSectionToggle small { color: #61727d; font-size: 14px; }
+.dashboardChevron { font-size: 25px; transition: transform .2s ease; }
+.dashboardSection.expanded .dashboardChevron { transform: rotate(180deg); }
+.dashboardSectionContent { border-top: 1px solid #e5ebee; padding: 0 22px 18px; }
+.todayJobList { display: grid; }
+.todayJob { display: grid; grid-template-columns: 74px minmax(140px, 1fr) minmax(180px, 1.4fr) minmax(120px, .8fr) auto; gap: 18px; align-items: center; padding: 18px 0; border-bottom: 1px solid #edf1f3; text-decoration: none; }
+.todayJob:last-child { border-bottom: 0; }
+.todayJob:hover, .todayJob:focus-visible { background: #f8fbfc; }
+.todayJob time { font-weight: 800; }
+.jobIdentity { display: grid; gap: 4px; }
+.jobIdentity small, .jobAddress { color: #61727d; }
+.jobAddress { overflow-wrap: anywhere; font-size: 14px; }
+.jobAssignment { font-size: 14px; font-weight: 700; }
+.jobAssignment.unassigned { color: #a23b2e; }
+.dashboardEmpty { padding: 28px 4px 10px; color: #61727d; text-align: center; }
+.actionList, .upcomingDays { display: grid; }
+.actionList > a, .upcomingDays > div { display: flex; justify-content: space-between; gap: 20px; padding: 17px 0; border-bottom: 1px solid #edf1f3; text-decoration: none; }
+.actionList > a:last-child, .upcomingDays > div:last-child { border-bottom: 0; }
+.actionList span, .upcomingDays span { color: #61727d; }
+.workloadGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 18px; }
+.workloadGrid article { display: grid; gap: 5px; padding: 16px; border-radius: 12px; background: #f4f8fa; }
+.workloadGrid strong { font-size: 27px; }
+.workloadGrid span { color: #61727d; font-size: 13px; font-weight: 700; }
+
 .resourceGrid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .resourceForm { display: grid; gap: 16px; }
 .resourceForm label { display: grid; gap: 7px; color: #42545e; font-size: 13px; font-weight: 800; }
@@ -124,15 +174,34 @@ h1, h2, h3, p { margin-top: 0; }
 }
 @media (max-width: 900px) {
   .appShell { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; gap: 20px; }
-  .navList { grid-template-columns: repeat(4, 1fr); }
-  .navLink { text-align: center; }
-  .accountBlock { margin-top: 0; grid-template-columns: 1fr auto; align-items: center; }
+  .desktopSidebar { display: none; }
+  .mobileAppHeader { position: sticky; z-index: 30; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 68px; padding: 10px 20px; background: #10232d; color: white; box-shadow: 0 2px 12px rgba(16,35,45,.16); }
+  .mobileBrand { display: grid; gap: 2px; }
+  .mobileBrand span { color: #9eb5c0; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .mobileBrand strong { font-size: 18px; }
+  .mobileHeaderActions { display: flex; align-items: center; gap: 10px; }
+  .mobileProfileLink { display: block; border-radius: 50%; }
+  .mobileProfileLink .headerAvatar { width: 38px; height: 38px; border: 2px solid rgba(255,255,255,.35); }
+  .mobileProfileLink img.headerAvatar { object-fit: cover; }
+  .mobileMenuButton { display: grid; place-content: center; gap: 4px; width: 42px; height: 42px; padding: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 10px; background: transparent; }
+  .mobileMenuButton span { display: block; width: 20px; height: 2px; border-radius: 2px; background: white; }
+  .mobileNavBackdrop { position: fixed; z-index: 39; inset: 0; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: rgba(7,20,27,.52); }
+  .mobileNavDrawer { position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; display: flex; visibility: hidden; flex-direction: column; gap: 22px; width: min(340px, 88vw); padding: 22px; overflow-y: auto; transform: translateX(100%); background: #10232d; color: white; transition: transform .2s ease, visibility .2s; }
+  .mobileNavDrawer.open { visibility: visible; transform: translateX(0); }
+  .mobileNavHeading { display: flex; align-items: center; justify-content: space-between; }
+  .mobileNavHeading > button { width: 38px; height: 38px; border: 0; border-radius: 9px; background: rgba(255,255,255,.1); color: white; font-size: 28px; line-height: 1; }
+  .mobileNavDrawer .navList { grid-template-columns: 1fr; }
+  .mobileNavDrawer .navLink { text-align: left; }
+  .mobileNavDrawer .accountBlock { margin-top: auto; grid-template-columns: 1fr; align-items: stretch; }
   .content { padding: 28px 20px; }
   .metricGrid { grid-template-columns: repeat(2, 1fr); }
+  .shortcutGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .todayJob { grid-template-columns: 65px minmax(140px, 1fr) minmax(160px, 1fr); }
+  .todayJob .jobAssignment, .todayJob .statusPill { justify-self: start; }
 }
 @media (max-width: 600px) {
-  .navList { grid-template-columns: repeat(2, 1fr); }
+  .mobileAppHeader { min-height: 62px; padding: 8px 14px; }
+  .mobileNavDrawer .navList { grid-template-columns: 1fr; }
   .pageHeader, .workItem, .dataRow { align-items: stretch; flex-direction: column; }
   .metricGrid { grid-template-columns: 1fr; }
   .workMeta { justify-items: start; }
@@ -144,4 +213,17 @@ h1, h2, h3, p { margin-top: 0; }
   .technicianWorkloadItem { grid-template-columns: 1fr; }
   .technicianWorkloadItem dl { grid-template-columns: 1fr; }
   .searchInput { max-width: none; }
+  .dashboardHeader { align-items: flex-start; }
+  .dashboardProfile { width: 44px; height: 44px; }
+  .shortcuts { padding: 16px; }
+  .shortcutCard { min-height: 92px; padding: 12px; }
+  .shortcutCard small { font-size: 12px; }
+  .dashboardSectionToggle { min-height: 78px; padding: 16px; }
+  .dashboardSectionContent { padding: 0 16px 14px; }
+  .todayJob { grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; }
+  .todayJob .jobAddress { grid-column: 2 / -1; }
+  .todayJob .jobAssignment { grid-column: 2; }
+  .todayJob .statusPill { grid-column: 3; }
+  .actionList > a, .upcomingDays > div { flex-direction: column; gap: 5px; }
+  .workloadGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

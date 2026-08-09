@@ -1,5 +1,19 @@
 # Technical work log
 
+## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
+
+- Corrected the responsive presentation of the shared `AppFrame` without changing its approved desktop sidebar or dashboard content. At widths up to 900px, a compact Hestiva OS header now exposes the existing navigation-link source through an initially closed drawer, so page content begins immediately below the header.
+- Preserved all nine navigation destinations, active-state styling, existing AppUser photo/initials identity, job-title-or-role display, `/profile` access, and sign out. The real menu button exposes `aria-expanded`, `aria-controls`, and an adaptive label; menu links, its close control, Escape, and the backdrop close the drawer using native React and CSS only.
+- Changed no dashboard API or calculations, route, role, permission, authentication behavior, Prisma artifact, dependency, Supabase integration, deployment configuration, or desktop dashboard design.
+
+## 2026-08-09 — Product Implementation Slice 1 — Admin Dashboard Foundation
+
+- Replaced the analytics-heavy Admin home page with a responsive daily command centre ordered as header, four shortcuts, today's schedule, actionable alerts, today-only Current Workload, and Upcoming Work. The dashboard now uses the shared `AppFrame`, keeps its page server-rendered, and limits client state to an accessible reusable collapsible section control.
+- Added an additive `operationalDashboard` API contract. Africa/Johannesburg day boundaries now govern dashboard today, tomorrow, seven-day, and overdue calculations without depending on server timezone. Today's scheduled query excludes cancelled work; assignment treats a job as unassigned only when both crew and technician are absent; the workload omits `CLOSED`, `CANCELLED`, and `WAITING_FOR_PARTS`; upcoming summaries group tomorrow through seven calendar days later and count unassigned work.
+- Restricted dashboard alerts to real, self-resolving today's-unassigned and reliable late/overdue conditions. Worker Issue and Job Exception remain approved future categories because no functional models exist. Maintenance waiting-for-parts and high-priority informational alerts are no longer presented.
+- Used existing `WorkOrder.title` as the job label because there is no direct Service relation, existing Property fields for address, crew-first assignment, and the canonical `/work-orders/[id]` detail route. The four shortcut targets are `/customers`, `/work-orders`, `/shifts`, and a non-destructive pending Management gateway; no unsupported query state was invented.
+- Preserved the Prisma schema, migrations, dependencies, authentication, deployment configuration, legacy API compatibility fields, future roles, and existing shared navigation. Full Admin Settings, Business Profile, Employee Records, Supervisor UI, Management gateway, scheduling/navigation redesigns, alert models, Service modelling, and repository-wide legacy cleanup remain deferred.
+
 ## 2026-08-08 — OpenNext monorepo validation path
 
 - Investigated the failed PR quality gate and confirmed that `apps/web/open-next.config.ts` already contains the supported OpenNext Cloudflare 1.20.2 minimal configuration, `defineCloudflareConfig()`. The root cause was execution from the repository root: OpenNext discovers its configuration relative to the current project directory, while Hestiva OS keeps the Next.js project, OpenNext config, Wrangler config, and `.open-next` output under `apps/web`.

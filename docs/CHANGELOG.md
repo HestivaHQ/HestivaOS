@@ -2,6 +2,33 @@
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
+## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
+
+### Fixed
+
+- Replaced the permanently expanded narrow-screen AppFrame navigation block with a compact mobile header and an accessible, initially closed drawer sourced from the existing navigation links.
+- Preserved the approved desktop sidebar and dashboard layout, account identity and role presentation, profile access, sign out, routes, and information architecture.
+
+## 2026-08-09 — Product Implementation Slice 1 — Admin Dashboard Foundation
+
+### Added
+
+- Added accessible collapsible operational sections, a personalized Johannesburg-time header with profile avatar fallback, an explicit today-only workload contract, actionable alert details, and grouped next-seven-calendar-day summaries.
+- Added focused tests for South African day boundaries, workload status exclusions, and upcoming assignment/date grouping.
+
+### Changed
+
+- Consolidated the Admin dashboard onto the shared `AppFrame` and focused its presentation on daily operations: exactly four shortcuts, today's chronological schedule, actionable alerts, current workload, and compact upcoming work.
+- Changed dashboard date calculations from UTC calendar boundaries to Africa/Johannesburg business-day boundaries while retaining the broader legacy response fields for compatibility.
+
+### Removed
+
+- Removed visible dashboard presentations for technician workload, a dedicated overdue section, recent activity, statistics, performance metrics, waiting-for-parts, high-priority informational alerts, and maintenance-specific copy. No underlying enum, schema, migration, or business data was removed.
+
+### Known issues
+
+- Worker Issue, Job Exception, a direct WorkOrder-to-Service relationship, direct-create routing, the Management landing page, complete Admin Settings, Business Profile, Employee Records, Supervisor experiences, and repository-wide legacy cleanup remain future focused work.
+
 ## 2026-08-08 — OpenNext monorepo validation path
 
 ### Fixed
