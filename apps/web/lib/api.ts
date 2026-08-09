@@ -73,7 +73,7 @@ const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 
 export const api = {
   syncUser: (accessToken: string) => apiFetch<AppUser>('/users/sync', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }),
-  updateProfile: (accessToken: string, input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'displayName' | 'phoneNumber' | 'jobTitle' | 'department' | 'profilePhotoUrl'>>) => apiFetch<AppUser>('/users/me/profile', { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json(input) }),
+  updateProfile: (accessToken: string, input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'displayName' | 'phoneNumber' | 'profilePhotoUrl'>>) => apiFetch<AppUser>('/users/me/profile', { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json(input) }),
   dashboard: () => apiFetch<DashboardOverview>('/dashboard'),
   customers: (query = '') => apiFetch<PaginatedResponse<Customer>>(`/customers${query}`),
   createCustomer: (input: CustomerInput) => apiFetch<Customer>('/customers', { method: 'POST', ...json(input) }),

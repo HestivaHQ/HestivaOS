@@ -3,23 +3,15 @@
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import type { AppUser } from '../../lib/api';
-import { SignOutButton } from './sign-out-button';
+import { accountInitials } from '../../lib/account-policy';
+import { AccountMenu } from './account-menu';
 
 type NavigationLink = readonly [href: string, label: string];
-
-function initials(user: AppUser | undefined, email: string) {
-  return (user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email)
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 function Avatar({ user, email }: { user?: AppUser; email: string }) {
   return user?.profilePhotoUrl
     ? <img className="headerAvatar" src={user.profilePhotoUrl} alt="" />
-    : <span className="headerAvatar">{initials(user, email)}</span>;
+    : <span className="headerAvatar">{accountInitials(user, email)}</span>;
 }
 
 export function MobileAppNavigation({ active, email, user, links }: {
@@ -44,7 +36,7 @@ export function MobileAppNavigation({ active, email, user, links }: {
     <header className="mobileAppHeader">
       <div className="mobileBrand"><span>Hestiva OS</span><strong>Operations</strong></div>
       <div className="mobileHeaderActions">
-        <Link className="mobileProfileLink" href="/profile" aria-label="Open My Profile"><Avatar user={user} email={email} /></Link>
+        <AccountMenu user={user} email={email} compact />
         <button
           className="mobileMenuButton"
           type="button"
@@ -68,7 +60,7 @@ export function MobileAppNavigation({ active, email, user, links }: {
       </nav>
       <div className="accountBlock">
         <div className="headerProfile"><Avatar user={user} email={email} /><span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.jobTitle || user?.role?.replaceAll('_', ' ') || 'Technician'}</small></span></div>
-        <SignOutButton />
+        <AccountMenu user={user} email={email} />
       </div>
     </aside>
   </>;

@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-09 — Product Implementation Slice 2 — Profile & Admin Settings Foundation
+
+- Separated personal account management from administration. My Profile now edits only profile photo, first name, last name, optional display name, and optional phone number; the Supabase-authenticated email is read-only. Removed role, job title, and department from both the UI and self-profile API input while preserving their existing User columns and values. No Prisma schema or migration changed.
+- Added a Security section using the installed Supabase client's `auth.updateUser({ password })` flow with confirmation, minimum-length validation, loading/disabled state, duplicate-submit prevention, and success/error feedback. Password values are neither sent to the Hestiva API nor logged or stored in its database.
+- Replaced direct avatar/profile and standalone sign-out interactions in the shared desktop and mobile frame with one compact account menu using the existing AppUser identity. The native button exposes expanded/control state; navigation, Escape, and outside click close it. Only ADMIN sees Admin Settings.
+- Added `/admin/settings` as a server-rendered ADMIN-only gateway. Its role check uses the synchronized authenticated User record and redirects every other current or future role to the dashboard. User Access and Business Profile are informational future-module cards only; their implementation remains Slice 3 and Slice 4, while Employee Records remains Slice 5. The existing role architecture is retained.
+
 ## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
 
 - Corrected the responsive presentation of the shared `AppFrame` without changing its approved desktop sidebar or dashboard content. At widths up to 900px, a compact Hestiva OS header now exposes the existing navigation-link source through an initially closed drawer, so page content begins immediately below the header.

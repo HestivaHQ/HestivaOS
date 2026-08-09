@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-09 — Product Implementation Slice 2 — Profile & Admin Settings Foundation
+
+### Added
+
+- Added a compact accessible account menu for desktop and mobile with My Profile, ADMIN-only Admin Settings, and sign out actions.
+- Added an ADMIN-protected `/admin/settings` gateway representing the deferred User Access (Slice 3) and Business Profile (Slice 4) modules without implementing their controls or data.
+- Added a My Profile Security section that changes passwords through Supabase Auth; authenticated email is displayed read-only.
+
+### Changed
+
+- Restricted personal-profile editing and `PATCH /users/me/profile` to first name, last name, display name, phone number, and profile photo URL. Role, job title, and department remain stored for future access and Employee Records work but are no longer self-editable.
+
+### Security
+
+- Enforced Admin Settings authorization from the server-rendered route against the synchronized application User role; only `ADMIN` is accepted. Supabase Auth remains credential authority and no password is stored in the application database.
+
+### Known issues
+
+- Verified email-change UX, User Access Management, Business Profile, and Employee Records remain deferred to Slices 3, 4, and 5 as applicable.
+
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
 ## 2026-08-09 — Slice 1A mobile AppFrame navigation correction
