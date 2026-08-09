@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 
@@ -15,41 +15,37 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const submissionInFlight = useRef(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInFlight.current) return;
+    submissionInFlight.current = true;
     setLoading(true);
     setMessage(null);
-
-    const supabase = createClient();
-    const params = new URLSearchParams(window.location.search);
-    const nextPath = getSafeNextPath(params.get('next'));
-
-    const result =
-      mode === 'sign-in'
+    try {
+      const supabase = createClient();
+      const params = new URLSearchParams(window.location.search);
+      const nextPath = getSafeNextPath(params.get('next'));
+      const result = mode === 'sign-in'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(nextPath)}`,
-            },
-          });
-
-    setLoading(false);
-
-    if (result.error) {
-      setMessage(result.error.message);
-      return;
+        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(nextPath)}` } });
+      if (result.error) {
+        setMessage(mode === 'sign-in' ? 'Unable to sign in. Check your email and password, then try again.' : 'Unable to create the account. Check your details and try again.');
+        return;
+      }
+      if (mode === 'sign-up' && !result.data.session) {
+        setMessage('Account created. Check your email to confirm your address.');
+        return;
+      }
+      router.replace(nextPath);
+      router.refresh();
+    } catch {
+      setMessage('Authentication is temporarily unavailable. Please try again.');
+    } finally {
+      submissionInFlight.current = false;
+      setLoading(false);
     }
-
-    if (mode === 'sign-up' && !result.data.session) {
-      setMessage('Account created. Check your email to confirm your address.');
-      return;
-    }
-
-    router.replace(nextPath);
-    router.refresh();
   }
 
   return (
@@ -112,7 +108,7 @@ export default function LoginPage() {
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? 'Please wait…' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
+            {loading ? (mode === 'sign-in' ? 'Signing in…' : 'Creating account…') : mode === 'sign-in' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 

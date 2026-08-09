@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-09 — Auth identity recovery and login resilience
+
+### Fixed
+
+- Replaced UUID-only application-user bootstrap with verified-email reconciliation for a single stale Supabase Auth association, preserving the existing application user ID, role, profile, and operational references.
+- Converted unverified, ambiguous, conflicting, and concurrent uniqueness states into controlled fail-closed responses with safe identifier-only diagnostics instead of an unexplained database-backed HTTP 500.
+- Added an immediate `Signing in…` state, synchronous duplicate-submit guard, disabled submit control, safe authentication failure messages, and reliable loading-state restoration to login.
+
+### Security
+
+- Required Supabase `email_confirmed_at` before a new Auth UUID can claim an existing application user by normalized email. Signup confirmation continues to use the active Hestiva OS origin; Supabase Dashboard Site URL and redirect allow-list remain deployment configuration.
+
+### Known issues
+
+- Administrative account recovery, access management, role assignment, revocation, and the broader employee/account lifecycle remain deferred to Product Slice 3.
+
 ## 2026-08-09 — Product Implementation Slice 2 — Profile & Admin Settings Foundation
 
 ### Added

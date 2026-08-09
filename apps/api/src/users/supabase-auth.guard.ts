@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 
-type SupabaseUser = { id: string; email?: string; user_metadata?: Record<string, unknown> };
+type SupabaseUser = { id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> };
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
