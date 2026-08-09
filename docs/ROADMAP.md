@@ -11,7 +11,8 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Deliver User Access Management (Slice 3), Business Profile (Slice 4), Employee Records (Slice 5), and the Supervisor experience as focused follow-ups; the Admin Settings gateway does not complete those modules.
+- Deliver Business Profile (Slice 4), Employee Records (Slice 5), and the Supervisor experience as focused follow-ups; User Access Management (Slice 3) is complete.
+- Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.
 - Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
 - Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.
 - Design the `WorkOrder` to `Service` relationship; until then the dashboard accurately uses `WorkOrder.title` as its job label.

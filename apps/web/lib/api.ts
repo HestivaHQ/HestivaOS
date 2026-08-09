@@ -4,6 +4,7 @@ const API_URL = rawApiUrl.trim().replace(/\/+$/, '').replace(/\/api\/v1$/, '');
 export type PaginatedResponse<T> = { items: T[]; total: number; page: number; pageSize: number };
 export type UserRole = 'ADMIN' | 'OPERATIONS_MANAGER' | 'DISPATCHER' | 'SUPERVISOR' | 'TECHNICIAN';
 export type AppUser = { id: string; authUserId: string; email: string; firstName: string; lastName: string; displayName: string | null; phoneNumber: string | null; jobTitle: string | null; department: string | null; profilePhotoUrl: string | null; role: UserRole; status: 'ACTIVE' | 'INACTIVE' };
+export type AdminUser = Pick<AppUser, 'id' | 'email' | 'firstName' | 'lastName' | 'displayName' | 'role' | 'status'> & { createdAt: string; updatedAt: string };
 export type Customer = { id: string; ownerId: string; name: string; contactName: string | null; email: string | null; phone: string | null; notes?: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; customerId: string; customer?: Customer };
 export type Technician = { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; skills: string[]; notes: string | null; status: 'ACTIVE' | 'INACTIVE' };
@@ -61,6 +62,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}/api/v1${path}`, { cache: 'no-store', ...init, headers: { 'Content-Type': 'application/json', ...Object.fromEntries(headers.entries()) } });
   if (!response.ok) {
     const result = await response.json().catch(() => null) as { message?: string } | null;
+    if (response.status === 403 && result?.message === 'Hestiva OS access is disabled.' && typeof window !== 'undefined') {
+      const { createClient } = await import('./supabase/client');
+      await createClient().auth.signOut();
+      window.location.assign('/login?reason=access-disabled');
+    }
     throw new Error(result?.message ?? `API request failed with status ${response.status}`);
   }
   if (response.status === 204) return undefined as T;
@@ -74,7 +80,10 @@ const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 export const api = {
   syncUser: (accessToken: string) => apiFetch<AppUser>('/users/sync', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } }),
   updateProfile: (accessToken: string, input: Partial<Pick<AppUser, 'firstName' | 'lastName' | 'displayName' | 'phoneNumber' | 'profilePhotoUrl'>>) => apiFetch<AppUser>('/users/me/profile', { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json(input) }),
-  dashboard: () => apiFetch<DashboardOverview>('/dashboard'),
+  adminUsers: (accessToken: string, search = '') => apiFetch<AdminUser[]>(`/users/admin${search ? `?search=${encodeURIComponent(search)}` : ''}`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+  updateUserRole: (accessToken: string, id: string, role: UserRole) => apiFetch<AdminUser>(`/users/${id}/role`, { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json({ role }) }),
+  updateUserAccess: (accessToken: string, id: string, status: AppUser['status']) => apiFetch<AdminUser>(`/users/${id}/access`, { method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}` }, ...json({ status }) }),
+  dashboard: (accessToken?: string) => apiFetch<DashboardOverview>('/dashboard', accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   customers: (query = '') => apiFetch<PaginatedResponse<Customer>>(`/customers${query}`),
   createCustomer: (input: CustomerInput) => apiFetch<Customer>('/customers', { method: 'POST', ...json(input) }),
   updateCustomer: (id: string, input: Partial<Omit<CustomerInput, 'ownerId'>>) => apiFetch<Customer>(`/customers/${id}`, { method: 'PATCH', ...json(input) }),

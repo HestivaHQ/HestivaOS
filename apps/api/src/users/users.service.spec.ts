@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, jest } from '@jest/globals';
 import { UsersService } from './users.service';
 
@@ -20,7 +20,7 @@ function createHarness(authMatch: unknown, emailMatches: unknown[] = []) {
 
 describe('UsersService auth identity synchronization', () => {
   it('returns the existing user when the Auth UUID and normalized email match', async () => {
-    const existing = { id: 'user-1', authUserId: 'auth-1', email: 'person@example.com', role: 'ADMIN' };
+    const existing = { id: 'user-1', authUserId: 'auth-1', email: 'person@example.com', role: 'ADMIN', status: 'ACTIVE' };
     const { service, transaction } = createHarness(existing, [existing]);
     await expect(service.sync({ id: 'auth-1', email: ' Person@Example.com ' })).resolves.toEqual(existing);
     expect(transaction.user.update).not.toHaveBeenCalled();
@@ -28,7 +28,7 @@ describe('UsersService auth identity synchronization', () => {
   });
 
   it('reconciles a verified matching email while preserving the application user identity and relationships', async () => {
-    const existing = { id: 'user-1', authUserId: 'stale-auth', email: 'person@example.com', role: 'ADMIN', customers: [{ id: 'customer-1' }] };
+    const existing = { id: 'user-1', authUserId: 'stale-auth', email: 'person@example.com', role: 'ADMIN', status: 'ACTIVE', customers: [{ id: 'customer-1' }] };
     const { service, transaction } = createHarness(null, [existing]);
     const result = await service.sync({ id: 'new-auth', email: ' PERSON@example.com ', email_confirmed_at: '2026-08-09T00:00:00Z' });
     expect(result).toMatchObject({ id: 'user-1', authUserId: 'new-auth', role: 'ADMIN', customers: [{ id: 'customer-1' }] });
@@ -66,6 +66,66 @@ describe('UsersService auth identity synchronization', () => {
     const { service, transaction } = createHarness(authMatch, [{ id: 'user-2', authUserId: 'auth-2', email: 'new@example.com' }]);
     await expect(service.sync({ id: 'auth-1', email: 'new@example.com' })).rejects.toBeInstanceOf(ConflictException);
     expect(transaction.user.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks an inactive application user during login synchronization', async () => {
+    const inactive = { id: 'user-1', authUserId: 'auth-1', email: 'person@example.com', status: 'INACTIVE' };
+    const { service } = createHarness(inactive, [inactive]);
+    await expect(service.sync({ id: 'auth-1', email: 'person@example.com' })).rejects.toThrow('Hestiva OS access is disabled.');
+  });
+});
+
+describe('UsersService administrator access management', () => {
+  const admin = { id: 'admin-1', role: 'ADMIN', status: 'ACTIVE' };
+  function adminHarness(target: any, activeAdmins = 1) {
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(0 as never),
+      user: {
+        findUnique: jest.fn().mockResolvedValue(target as never),
+        count: jest.fn().mockResolvedValue(activeAdmins as never),
+        update: jest.fn().mockImplementation(async ({ data }: any) => ({ ...target, ...data })),
+        findMany: jest.fn().mockResolvedValue([] as never),
+      },
+    };
+    const prisma = { user: transaction.user, $transaction: jest.fn().mockImplementation(async (callback: any) => callback(transaction)) };
+    return { service: new UsersService(prisma as never), transaction };
+  }
+
+  it('changes another user role using the serialized mutation boundary', async () => {
+    const { service, transaction } = adminHarness({ id: 'user-2', role: 'TECHNICIAN', status: 'ACTIVE' });
+    await expect(service.updateRole(admin, 'user-2', { role: 'SUPERVISOR' as any })).resolves.toMatchObject({ role: 'SUPERVISOR' });
+    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects invalid role input', async () => {
+    const { service } = adminHarness(null);
+    await expect(service.updateRole(admin, 'user-2', { role: 'OWNER' as any })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('protects the last active administrator from demotion and disablement', async () => {
+    const target = { id: 'admin-2', role: 'ADMIN', status: 'ACTIVE' };
+    const { service } = adminHarness(target, 1);
+    await expect(service.updateRole(admin, target.id, { role: 'DISPATCHER' as any })).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.updateAccess(admin, target.id, { status: 'INACTIVE' as any })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('allows another administrator to be demoted when an active administrator remains', async () => {
+    const target = { id: 'admin-2', role: 'ADMIN', status: 'ACTIVE' };
+    const { service } = adminHarness(target, 2);
+    await expect(service.updateRole(admin, target.id, { role: 'OPERATIONS_MANAGER' as any })).resolves.toMatchObject({ role: 'OPERATIONS_MANAGER' });
+  });
+
+  it('disables and re-enables another user', async () => {
+    const target = { id: 'user-2', role: 'TECHNICIAN', status: 'ACTIVE' };
+    const { service } = adminHarness(target);
+    await expect(service.updateAccess(admin, target.id, { status: 'INACTIVE' as any })).resolves.toMatchObject({ status: 'INACTIVE' });
+    await expect(service.updateAccess(admin, target.id, { status: 'ACTIVE' as any })).resolves.toMatchObject({ status: 'ACTIVE' });
+  });
+
+  it('prevents self-demotion and self-disablement', async () => {
+    const { service } = adminHarness(admin, 2);
+    await expect(service.updateRole(admin, admin.id, { role: 'TECHNICIAN' as any })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.updateAccess(admin, admin.id, { status: 'INACTIVE' as any })).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
 

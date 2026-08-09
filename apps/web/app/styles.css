@@ -167,6 +167,29 @@ h1, h2, h3, p { margin-top: 0; }
 .profileSection h3, .adminSettingsGrid h3 { margin: 0 0 6px; }
 .profileSection p, .adminSettingsGrid p { color: #61727d; }
 .adminSettingsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.adminModuleLink { display: block; text-decoration: none; }
+.adminModuleLink:hover, .adminModuleLink:focus-visible { border-color: #176b87; }
+.userAccessPanel { padding: 0; overflow: hidden; }
+.userAccessFilters { display: grid; grid-template-columns: minmax(220px, 1fr) 220px 180px; gap: 14px; padding: 20px 24px; border-bottom: 1px solid #e5ebee; }
+.userAccessFilters label, .manageUserPanel label { display: grid; gap: 7px; color: #42545e; font-size: 13px; font-weight: 800; }
+.userAccessFilters select, .manageUserPanel select { width: 100%; border: 1px solid #cbd7dc; border-radius: 10px; padding: 10px 12px; background: white; }
+.userAccessFilters .searchInput { max-width: none; }
+.userAccessList { display: grid; }
+.userAccessCard { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(330px, 1.8fr) auto; gap: 20px; align-items: center; padding: 22px 24px; border-bottom: 1px solid #edf1f3; }
+.userAccessCard:last-child { border-bottom: 0; }
+.userIdentity { display: grid; gap: 5px; min-width: 0; }
+.userIdentity a { color: #176b87; overflow-wrap: anywhere; font-size: 14px; }
+.userAccessCard dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.userAccessCard dt { color: #61727d; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.userAccessCard dd { margin: 5px 0 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 700; }
+.accessBadge { display: inline-flex; padding: 5px 8px; border-radius: 999px; }
+.accessBadge.active { color: #17613d; background: #dff5e9; }
+.accessBadge.inactive { color: #8b2921; background: #fde7e4; }
+.manageButton { min-height: 42px; border: 1px solid #176b87; border-radius: 9px; padding: 8px 14px; background: white; color: #176b87; font-weight: 800; }
+.manageUserPanel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(260px, 1.2fr); gap: 18px; align-items: end; border-top: 1px solid #e5ebee; padding-top: 20px; }
+.accessAction { border-left: 1px solid #e5ebee; padding-left: 20px; }
+.accessAction p { margin: 5px 0 10px; color: #61727d; font-size: 13px; }
+.accessAction button { min-height: 42px; border: 1px solid #cbd7dc; border-radius: 9px; padding: 8px 12px; background: white; font-weight: 800; }
 .resourceForm label { display: grid; gap: 7px; color: #42545e; font-size: 13px; font-weight: 800; }
 .resourceForm input, .resourceForm select, .resourceForm textarea, .searchInput { width: 100%; border: 1px solid #cbd7dc; border-radius: 10px; padding: 10px 12px; background: white; color: #17202a; }
 .resourceForm textarea { resize: vertical; }
@@ -180,6 +203,8 @@ h1, h2, h3, p { margin-top: 0; }
 
 @media (max-width: 1000px) {
   .resourceGrid { grid-template-columns: 1fr; }
+  .userAccessCard { grid-template-columns: 1fr auto; }
+  .userAccessCard dl { grid-column: 1 / -1; }
 }
 @media (min-width: 680px) {
   .quickActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -224,6 +249,12 @@ h1, h2, h3, p { margin-top: 0; }
   .rowActions { justify-content: flex-start; }
   .panelHeader { align-items: stretch; flex-direction: column; }
   .adminSettingsGrid { grid-template-columns: 1fr; }
+  .userAccessFilters, .userAccessCard, .manageUserPanel { grid-template-columns: 1fr; }
+  .userAccessCard { gap: 16px; padding: 20px; }
+  .userAccessCard dl { grid-column: auto; grid-template-columns: 1fr; gap: 12px; }
+  .manageButton { width: 100%; }
+  .manageUserPanel { grid-column: auto; }
+  .accessAction { border-top: 1px solid #e5ebee; border-left: 0; padding-top: 18px; padding-left: 0; }
   .recentActivityItem { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .recentActivityTime { grid-column: 1 / -1; }
   .technicianWorkloadItem { grid-template-columns: 1fr; }

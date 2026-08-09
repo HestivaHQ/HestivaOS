@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { api, type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
+import { type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
 import { createAuthenticatedApi } from '../lib/api-server';
 import { createClient } from '../lib/supabase/server';
 import { AppFrame } from './components/app-frame';
@@ -50,10 +50,11 @@ export default async function HomePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) throw new Error('Authenticated user is required.');
+  const authenticatedApi = await createAuthenticatedApi();
+  const appUser = await authenticatedApi.syncUser();
   let dashboard = EMPTY_DASHBOARD;
   let available = false;
-  try { dashboard = await api.dashboard(); available = true; } catch { /* render a safe empty operational state */ }
-  const appUser = await (await createAuthenticatedApi()).syncUser();
+  try { dashboard = await authenticatedApi.dashboard(); available = true; } catch { /* render a safe empty operational state */ }
   const operational = dashboard.operationalDashboard;
   const todayCount = dashboard.todayScheduledWorkOrders.length;
   const alertCount = operational.todayUnassignedJobs + operational.actionableOverdueWorkOrders.length;

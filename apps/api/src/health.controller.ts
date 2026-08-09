@@ -1,11 +1,13 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { APPLICATION_VERSION } from './monitoring/application-version';
 import { PrismaService } from './prisma.service';
+import { Public } from './users/public.decorator';
 
 type DependencyStatus = 'connected' | 'not_configured' | 'unavailable';
 type StatusResponse = { status(code: number): void };
 
 @Controller()
+@Public()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
