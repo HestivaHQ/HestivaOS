@@ -29,3 +29,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0021: Generate daily Work Order references and relate canonical Services](ADR-0021-work-order-reference-and-service.md)
 - [ADR-0022: Separate accepted-quote data by operational ownership](ADR-0022-accepted-quote-work-order-ownership.md)
 - [ADR-0023: Make Property the live operational home profile](ADR-0023-property-operational-profile.md)
+- [ADR-0024: Allow one Service capability in both booking contexts](ADR-0024-dual-context-service-availability.md)

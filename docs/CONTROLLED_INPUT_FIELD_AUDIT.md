@@ -78,3 +78,13 @@ Implemented on Property: Bedrooms (`STUDIO`, `ONE`, `TWO`, `THREE`, `FOUR`, `FIV
 The persistent profile also implements nullable estate/complex, gate/security access, pets, and camera indicators plus concise access, parking, pet, off-limits, fragile-care, product-restriction, and operational allergy notes. Approximate floor size is deferred because this repository contains no verified approved size-range vocabulary. Outdoor-area status is deferred because the verified records do not establish it as a persistent fact distinct from the Balcony Sweeping add-on. Controlled entry/key arrangement and occupant-presence defaults are deferred for lack of approved persistent vocabulary; general access notes remain canonical.
 
 Visit condition, primary Service, Add-ons, frequency snapshot, schedule, assignment, and job instructions remain Work Order-specific. Service-scope reconciliation remains Slice 5K; ongoing agreement logic remains Slice 5L; accepted-quote transport and snapshot semantics remain Slice 5M.
+
+## Slice 5K addendum — Service booking availability
+
+| Module | Field | Control | Backend ownership | Decision |
+| --- | --- | --- | --- | --- |
+| Admin Services | Availability | `PRIMARY` / `ADD_ON` / `BOTH` select | `Service.type` | ADMIN controls where one canonical capability is selectable; normalized duplicate protection remains. |
+| Work Orders | Primary Service | canonical-ID select | `WorkOrder.serviceId` | Active `PRIMARY` and `BOTH` capabilities only. |
+| Work Orders | Add-ons | existing checkbox grid | `WorkOrderAddOn` | Active `ADD_ON` and `BOTH` capabilities only; no UI redesign or quantity fabrication. |
+
+The current website supplies no Service Scope field, so no scope control or free-text scope exists. Unresolved website inputs remain fail-closed as documented in `QUOTE_TO_OS_VALUE_MAPPING.md`.

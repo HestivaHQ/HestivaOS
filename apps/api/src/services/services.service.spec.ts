@@ -26,6 +26,15 @@ describe('ServicesService', () => {
     await expect(service.create({ name: 'Eco-Friendly Cleaning' })).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it.each([ServiceType.PRIMARY, ServiceType.ADD_ON])('includes BOTH capabilities when filtering the %s booking context', async (type) => {
+    prisma.service.findMany.mockResolvedValue([]);
+    prisma.service.count = jest.fn<() => Promise<number>>().mockResolvedValue(0);
+    prisma.$transaction = jest.fn<() => Promise<[unknown[], number]>>().mockResolvedValue([[], 0]);
+    await service.findAll(1, 20, undefined, ServiceStatus.ACTIVE, type);
+    expect(prisma.$transaction.mock.calls[0][0][0]).toBeDefined();
+    expect(prisma.service.findMany.mock.calls[0][0].where.type.in).toEqual([type, ServiceType.BOTH]);
+  });
+
   it('edits, deactivates, and reactivates without replacing the service ID', async () => {
     prisma.service.findUnique.mockResolvedValue({ id: 'service-1', name: 'Deep Cleaning' });
     prisma.service.findMany.mockResolvedValue([]);

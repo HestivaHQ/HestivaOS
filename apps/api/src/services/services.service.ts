@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ServiceStatus, ServiceType } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { canonicalServiceName } from './quote-value-reconciliation';
 
 export type CreateServiceInput = {
   name: string;
@@ -45,7 +46,7 @@ export class ServicesService {
     const term = search?.trim();
     const where: Prisma.ServiceWhereInput = {
       status,
-      type,
+      ...(type ? { type: { in: [type, ServiceType.BOTH] } } : {}),
       ...(term ? { OR: [{ name: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }] } : {}),
     };
     const [items, total] = await this.prisma.$transaction([
@@ -83,8 +84,7 @@ export class ServicesService {
   }
 
   private normalizeName(name: string) {
-    const normalized = name.trim().toLocaleLowerCase('en-AU');
-    return normalized === 'eco-friendly cleaning' ? 'eco-conscious cleaning' : normalized;
+    return canonicalServiceName(name);
   }
 
   private validateEnums(input: UpdateServiceInput) {

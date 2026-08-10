@@ -41,8 +41,8 @@ test('schema keeps nullable historical fields and an explicit add-on join', () =
 });
 
 test('server validates primary type, add-on type and status, duplicates, and controlled enums', () => {
-  assert.match(api, /service\.type !== ServiceType\.PRIMARY/);
-  assert.match(api, /service\.type !== ServiceType\.ADD_ON/);
+  assert.match(api, /service\.type !== ServiceType\.PRIMARY && service\.type !== ServiceType\.BOTH/);
+  assert.match(api, /service\.type !== ServiceType\.ADD_ON && service\.type !== ServiceType\.BOTH/);
   assert.match(api, /Only active add-ons can be newly assigned/);
   assert.match(api, /Duplicate add-on service IDs are not allowed/);
   assert.match(api, /Object\.values\(WorkOrderFrequency\)/);

@@ -74,7 +74,7 @@ export class WorkOrdersService {
     if (!property) throw new NotFoundException('Property not found.');
     if (!user) throw new NotFoundException('Creating user not found.');
     if (!service) throw new NotFoundException('Service not found.');
-    if (service.type !== ServiceType.PRIMARY) throw new BadRequestException('Primary service must be a canonical PRIMARY service.');
+    if (service.type !== ServiceType.PRIMARY && service.type !== ServiceType.BOTH) throw new BadRequestException('Primary service must be selectable as a primary service.');
     if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active primary service for a new work order.');
     await this.validateAddOns(input.addOnIds ?? []);
     if (property.customerId !== input.customerId) throw new BadRequestException('Property does not belong to the selected customer.');
@@ -211,7 +211,7 @@ export class WorkOrdersService {
     if (input.serviceId && input.serviceId !== existing.serviceId) {
       const service = await this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { status: true, type: true } });
       if (!service) throw new NotFoundException('Service not found.');
-      if (service.type !== ServiceType.PRIMARY) throw new BadRequestException('Primary service must be a canonical PRIMARY service.');
+      if (service.type !== ServiceType.PRIMARY && service.type !== ServiceType.BOTH) throw new BadRequestException('Primary service must be selectable as a primary service.');
       if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active primary service.');
     }
 
@@ -277,7 +277,7 @@ export class WorkOrdersService {
     if (!ids.length) return;
     const services = await this.prisma.service.findMany({ where: { id: { in: ids } }, select: { id: true, type: true, status: true } });
     if (services.length !== ids.length) throw new NotFoundException('One or more add-on services were not found.');
-    if (services.some((service) => service.type !== ServiceType.ADD_ON)) throw new BadRequestException('Add-ons must be canonical ADD_ON services.');
+    if (services.some((service) => service.type !== ServiceType.ADD_ON && service.type !== ServiceType.BOTH)) throw new BadRequestException('Add-ons must be selectable as add-ons.');
     if (services.some((service) => service.status !== ServiceStatus.ACTIVE)) throw new BadRequestException('Only active add-ons can be newly assigned.');
   }
 

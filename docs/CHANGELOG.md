@@ -387,3 +387,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Restructured Property create/edit into progressive Identity, Address, Home Profile, Access & Logistics, and Household & Care sections while retaining dormant Province compatibility and the managed Property Type relationship.
 - Updated office Work Order Property summaries and Technician job views to read actionable current Property data without copying it onto Work Order; added an identifying-only Property selector privacy boundary.
 - Deferred floor size, outdoor status, entry arrangement, and presence defaults pending verified vocabularies/ownership, and preserved Slices 5K–5O.
+
+## 2026-08-10 — Slice 5K current website reconciliation revision
+
+- Reconciled against the current `src/routes/quote.tsx` vocabulary and removed the undeployed Service Scope schema, migration bootstrap, APIs, UI, tests, and ADR that had relied on stale website options.
+- Added `BOTH` Service availability so Interior Window Cleaning and Laundry Folding remain one canonical capability selectable as primary or add-on, without duplicate Services.
+- Added the current, distinct Ironing, Bed Making, Linen Change, Garage Sweeping, Extra Bathroom Cleaning, and Pet-Hair Treatment add-ons through fixed-ID conflict-safe bootstrap logic.
+- Corrected current frequency and add-on aliases, kept Extra refrigerator quantity semantics unresolved, and documented current Property vocabulary and a focused pre-5M Property alignment follow-up.
