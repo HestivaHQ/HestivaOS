@@ -36,6 +36,11 @@ export class CustomersController {
     return this.customers.findAll(page, pageSize, search, status);
   }
 
+  @Get('selector-options')
+  selectorOptions(@Query('search') search?: string) {
+    return this.customers.selectorOptions(search);
+  }
+
   @Get(':id')
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.customers.findOne(id);

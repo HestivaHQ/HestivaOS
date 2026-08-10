@@ -104,6 +104,7 @@ enum EmployeeStatus {
 enum BusinessListType {
   JOB_TITLE
   DEPARTMENT
+  PROPERTY_TYPE
 }
 
 model User {
@@ -198,11 +199,14 @@ model Property {
   postalCode String? @map("postal_code")
   country String @default("South Africa")
   accessNotes String? @map("access_notes")
+  propertyTypeOptionId String? @map("property_type_option_id") @db.Uuid
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  propertyTypeOption BusinessListOption? @relation("PropertyType", fields: [propertyTypeOptionId], references: [id], onDelete: Restrict)
   workOrders WorkOrder[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
+  @@index([propertyTypeOptionId])
   @@index([city])
   @@map("properties")
 }
@@ -272,6 +276,7 @@ model BusinessListOption {
   sortOrder           Int              @default(0) @map("sort_order")
   employeeJobTitles   EmployeeRecord[] @relation("EmployeeJobTitle")
   employeeDepartments EmployeeRecord[] @relation("EmployeeDepartment")
+  properties          Property[]       @relation("PropertyType")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
 

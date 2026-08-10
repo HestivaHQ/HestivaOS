@@ -123,3 +123,7 @@ Slice 5 adds the additive `20260810120000_add_employee_records` migration. The n
 ## Slice 5B controlled-list migration
 
 Deploy migration `20260810160000_add_controlled_business_lists` before serving the Slice 5B API. It additively creates the typed business-list table and nullable Employee foreign keys; it does not seed, rewrite, or remove existing Employee job-title or department text. Run the normal Prisma deploy and post-deploy Employee/Business Lists smoke checks. Roll back application code before database objects if necessary; retaining the additive table and nullable columns is safe for the prior application.
+
+## Slice 5C property-type migration
+
+Deploy `20260810190000_add_property_type_controlled_input` through the normal Prisma deployment before the Slice 5C API. It additively extends the existing enum, adds a nullable Property lookup column, index, and restricted foreign key, and performs no seed, backfill, update, or delete. Verify active Property Types can be assigned, wrong/inactive option types are rejected, and existing Properties remain readable.

@@ -29,6 +29,12 @@ describe("BusinessListsService", () => {
       businessListOption.findMany.mock.calls[0][0].where,
     ).not.toHaveProperty("isActive");
   });
+  it("supports property types without regressing existing list types", async () => {
+    businessListOption.findMany.mockResolvedValue([]);
+    await service.list("PROPERTY_TYPE");
+    expect(businessListOption.findMany.mock.calls[0][0].where).toEqual({ type: BusinessListType.PROPERTY_TYPE, isActive: true });
+    expect(Object.values(BusinessListType)).toEqual(expect.arrayContaining([BusinessListType.JOB_TITLE, BusinessListType.DEPARTMENT]));
+  });
   it("creates a normalized option", async () => {
     businessListOption.create.mockResolvedValue({ id: "one" });
     await service.create({

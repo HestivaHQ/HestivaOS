@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-10 — Product Slice 5C — Customer and Property controlled inputs
+
+### Added
+
+- Extended the existing managed Business Lists architecture with unseeded Property Types and an additive nullable Property relationship.
+- Added lean searchable Customer selector labels and focused Customer, Property, Business Lists, authorization, compatibility, and validation coverage.
+
+### Changed
+
+- Property creation and editing now use validated canonical Customer IDs and active typed Property Type options. Existing inactive assignments remain readable; unique customer, address, access, and notes values remain free text.
+
+### Preserved
+
+- No Customer or Property records, addresses, ownership links, or historical strings are rewritten or deleted by the migration.
 
 ## 2026-08-10 — Product Slice 5B Phase 1 — Controlled field inputs
 

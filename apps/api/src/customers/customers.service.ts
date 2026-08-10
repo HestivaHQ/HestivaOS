@@ -22,6 +22,7 @@ export class CustomersService {
     if (!input.ownerId || !input.name?.trim()) {
       throw new BadRequestException('ownerId and name are required.');
     }
+    this.validateStatus(input.status);
 
     return this.prisma.customer.create({
       data: {
@@ -37,6 +38,7 @@ export class CustomersService {
   }
 
   async findAll(page = 1, pageSize = 20, search?: string, status?: CustomerStatus) {
+    this.validateStatus(status);
     const safePage = Math.max(1, page);
     const safePageSize = Math.min(100, Math.max(1, pageSize));
     const where: Prisma.CustomerWhereInput = {
@@ -78,6 +80,7 @@ export class CustomersService {
 
   async update(id: string, input: UpdateCustomerInput) {
     await this.findOne(id);
+    this.validateStatus(input.status);
 
     return this.prisma.customer.update({
       where: { id },
@@ -90,6 +93,25 @@ export class CustomersService {
         ...(input.status !== undefined ? { status: input.status } : {}),
       },
     });
+  }
+
+  selectorOptions(search?: string) {
+    const term = search?.trim();
+    return this.prisma.customer.findMany({
+      where: term ? { OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { contactName: { contains: term, mode: 'insensitive' } },
+      ] } : undefined,
+      select: { id: true, name: true, contactName: true },
+      orderBy: { name: 'asc' },
+      take: 100,
+    });
+  }
+
+  private validateStatus(status?: CustomerStatus) {
+    if (status !== undefined && !Object.values(CustomerStatus).includes(status)) {
+      throw new BadRequestException('A valid customer status is required.');
+    }
   }
 
   async remove(id: string) {
