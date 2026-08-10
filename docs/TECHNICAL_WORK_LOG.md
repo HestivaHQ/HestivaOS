@@ -211,3 +211,12 @@ Audited the Customer create request, API return, client success handler, Propert
 Removed the duplicate Name input, made Contact name required, and kept the non-null historical `Customer.name` field without a schema change or backfill. The API mirrors Contact name into `name` on new records and explicit Contact name edits. A shared display helper prefers Contact name, falls back to legacy Name, and finally uses a safe generic label. Customer search retains both fields and includes existing email/phone discovery.
 
 Replaced top-level workforce links with a shared Team disclosure containing Technicians, Crews, and Shift Planning. The native button exposes `aria-expanded`, opens for active child routes, and is reused in the mobile drawer, whose link callback closes the drawer. Employee Records is now an Admin Settings card and remains on its existing server-authorized route; Services remains an Admin Settings module. No protected authentication, CORS, catalogue, Prisma, role, deployment, or business-rule area changed.
+
+## 2026-08-10 — Slice 5G website Property Types and ADMIN customer cleanup
+
+- Verified the requested Property Type authority as `HestivaHQ/hestiva/src/routes/quote.tsx` and encoded only Apartment, Townhouse, House, Duplex, and Other in an idempotent, non-destructive migration.
+- Inspected the Prisma ownership graph. Implemented ADMIN-only impact/deletion routes for Customer → Property/WorkOrder → Activity, ChecklistItem, Photo metadata, and CustomerSignOff. Work-order Shift links are detached; shared User, Service, Employee, Technician, Crew, BusinessListOption, BusinessProfile, Auth, and unrelated records are preserved.
+- Kept normal Customer deletion unchanged. The dedicated deletion rechecks Customer/name/counts and executes explicit ordered operations in one transaction, returns real counts, and emits identifier/count-only logs.
+- Added `/admin/settings/business-lists` and `/admin/settings/customer-data-cleanup`, corrected the Property empty-list link, and added responsive impact/confirmation presentation.
+- Confirmed the repository has photo metadata CRUD but no safe Storage cleanup service. Database photo metadata is deleted; Supabase objects are not; the response reports orphan risk.
+- Recorded the website Bedroom values Studio, 1, 2, 3, 4, and 5+ as future alignment only.

@@ -132,3 +132,9 @@ For Slice 5B, restore `business_list_options` together with `employee_records` s
 ## Property Type recovery
 
 Restore `business_list_options` and `properties` consistently so optional Property Type IDs retain their labels. Do not delete inactive referenced options or infer classifications from names and addresses. The nullable Slice 5C column is backward-compatible with the prior application; roll back application code first and leave the additive schema in place while investigating.
+
+## Recovering from ADMIN Customer Data Cleanup
+
+Customer Data Cleanup is intentionally irreversible and exists for test/admin scenario reset. Before using `/admin/settings/customer-data-cleanup`, verify the selected Contact name and authoritative impact counts. The exact Contact name must be typed and the API independently requires exact ADMIN authorization and confirmation. The transaction either deletes the complete owned database tree or rolls back; normal Customer deletion remains the appropriate protected workflow outside explicit cleanup.
+
+A successful cleanup cannot be restored by the application. Restore from an approved database backup only under the existing Supabase recovery process, assessing the blast radius before recovery. The cleanup preserves shared Shift rows but detaches their deleted Work Order link. It deletes WorkOrderPhoto metadata without deleting Supabase Storage objects because no safe object-deletion service exists; use existing Storage administration procedures to review reported possible orphans by retained operational records and backups, never by guessing paths or bulk-deleting a bucket. Server logs expose actor User ID, Customer ID, counts, and timestamp only.

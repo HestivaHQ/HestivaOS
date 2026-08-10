@@ -24,3 +24,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0018: Make Hestiva OS the canonical operational service catalogue](ADR-0018-canonical-service-catalogue.md)
 
 - [ADR-0019: Contact-first Customers and Team navigation](ADR-0019-contact-first-customers-and-team-navigation.md)
+
+- [ADR-0020: Isolate destructive Customer-tree cleanup behind exact ADMIN authorization](ADR-0020-admin-customer-tree-cleanup.md)

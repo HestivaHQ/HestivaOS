@@ -352,3 +352,12 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ### Preserved
 
 - Preserved historical Customer names and relationships, Employee Records authorization, the canonical Service catalogue, authentication, CORS, Prisma schema, deployment configuration, and Property-to-Work-Order continuation.
+
+## 2026-08-10 — Product Slice 5G — Website Property Types and customer data cleanup
+
+- Added a production-safe, idempotent migration for the website-approved Property Types Apartment, Townhouse, House, Duplex, and Other. Case/whitespace equivalents, inactive approved values, custom values, historical relationships, and null assignments are preserved; “Not classified” is not seeded.
+- Moved canonical Business Lists management to `/admin/settings/business-lists` and corrected the Property form and Admin Settings links so they no longer route through Employee Records.
+- Added exact-ADMIN impact and destructive cleanup endpoints plus a two-step Admin Settings Data Management UI requiring the authoritative Customer Contact name.
+- Cleanup explicitly removes the Customer-owned Work Order child rows, Work Orders, Properties, and Customer inside one Prisma transaction while preserving and detaching shared Shifts and preserving all other shared records.
+- Documented that photo metadata is deleted but Supabase Storage objects are not, so possible orphaned objects are reported rather than hidden.
+- Added focused migration, API transaction/confirmation/count, authorization, route, warning, and normal-deletion regression coverage. Website Bedrooms (Studio, 1, 2, 3, 4, 5+) remain deferred.

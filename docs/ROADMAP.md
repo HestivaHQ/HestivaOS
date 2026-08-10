@@ -38,3 +38,8 @@ Only currently identified technical follow-up work is listed here.
 - Expand automated coverage to integration, authentication, storage, migration, and deployment smoke tests.
 - Mature monitoring with actionable alert thresholds and incident runbook links.
 - Periodically test backup recovery and audit deployment-controller ownership.
+
+## Deferred website controlled-input alignment
+
+- Evaluate website Bedroom choices Studio, 1, 2, 3, 4, and 5+ as a future controlled-input alignment candidate. Slice 5G does not implement a Bedroom field or expand into the quote form.
+- Design safe Supabase Storage object cleanup for deleted Work Order photo metadata only if an approved server-side storage boundary and orphan-reconciliation procedure are introduced.

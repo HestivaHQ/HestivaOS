@@ -129,3 +129,7 @@ Deploy migration `20260810160000_add_controlled_business_lists` before serving t
 ## Slice 5C property-type migration
 
 Deploy `20260810190000_add_property_type_controlled_input` through the normal Prisma deployment before the Slice 5C API. It additively extends the existing enum, adds a nullable Property lookup column, index, and restricted foreign key, and performs no seed, backfill, update, or delete. Verify active Property Types can be assigned, wrong/inactive option types are rejected, and existing Properties remain readable.
+
+### Website Property Type bootstrap
+
+Migration `20260810230000_bootstrap_website_property_types` runs through the existing Railway `db:migrate:deploy` boundary. It inserts only missing case/whitespace-normalized approved `PROPERTY_TYPE` options: Apartment, Townhouse, House, Duplex, and Other. Existing custom and inactive records and Property relationships are preserved. An inactive approved label produces a migration notice and is not reactivated. Verify migration output, then confirm active options through the authenticated Business Lists API and Property form; never manually delete historical options or seed “Not classified”.
