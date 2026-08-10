@@ -22,6 +22,7 @@ The temporary `Next.js 16 migration validation` workflow is also manual-only. It
 | [Deployment](DEPLOYMENT.md) | Operational | Current Cloudflare and Railway release procedures. |
 | [Environment](ENVIRONMENT.md) | Operational | Variable names, scopes, and safe recovery. |
 | [Recovery guide](RECOVERY_GUIDE.md) | Operational | Ordered incident diagnosis and recovery. |
+| [API connectivity audit](API_CONNECTIVITY_AUDIT.md) | Diagnostic | Verified browser/server request inventory, CORS boundary, and runtime checks. |
 | [Technical work log](TECHNICAL_WORK_LOG.md) | Historical | Detailed migration and recovery record. |
 | [Roadmap](ROADMAP.md) | Planning | Identified technical follow-up work only. |
 | [Changelog](CHANGELOG.md) | Historical | Manually maintained, dated engineering changes. |
