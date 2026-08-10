@@ -46,6 +46,8 @@ Only currently identified technical follow-up work is listed here.
 
 ## Accepted-quote follow-ups after Slice 5I
 
+- **Slice 5N — Work Order Technician/Crew assignment:** support one or many Technicians per Work Order and optional existing Crew selection; allow Crew selection to prepopulate Technicians followed by job-specific adjustments; permit one-Technician jobs without a permanent Crew; and count supervisors/drivers as job Technicians only when they perform the job. The canonical worker term remains Technician.
+
 - **Slice 5J — Property quote-data gaps:** design canonical Property ownership for bedrooms, bathrooms, living areas, storeys, approximate size, outdoor area, estate/complex status, parking, gate/security and key handover, presence, pets, cameras, off-limits areas, fragile items, product restrictions, and allergies. Slice 5I does not duplicate these on Work Order.
 - **Slice 5K — Service scope and add-on reconciliation:** reconcile website terms including Linen Change, Bed Making, Garage Sweep, Extra Bathroom, Extra Refrigerator, pet-hair treatment, eco-friendly products, and post-renovation dust removal against the canonical OS catalogue. Also resolve service scopes such as Whole Home/Selected Rooms and Single/Multiple Bathrooms without a duplicate job-type model.
 - **Slice 5L — Recurring agreement architecture:** own recurring agreement identity, recurrence rules, next service date, agreement status, individual Work Order generation, pause/resume/cancel behavior, exception dates, and approved long-term crew/service preferences.

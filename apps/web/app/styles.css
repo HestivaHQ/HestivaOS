@@ -167,6 +167,20 @@ h1, h2, h3, p { margin-top: 0; }
 
 .resourceGrid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .resourceForm { display: grid; gap: 16px; }
+.addOnSection { min-width: 0; margin: 0; border: 0; padding: 0; }
+.addOnSection legend { margin: 0 0 7px; padding: 0; color: #17202a; font-size: 15px; font-weight: 800; }
+.addOnSection > .helpText { margin: 0 0 12px; }
+.addOnGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.resourceForm .addOnOption { display: flex; min-width: 0; min-height: 46px; align-items: center; gap: 10px; border: 1px solid #d8e2e6; border-radius: 10px; padding: 10px 12px; background: #fff; color: #33464f; cursor: pointer; font-size: 14px; font-weight: 700; transition: border-color 120ms ease, background-color 120ms ease; }
+.resourceForm .addOnOption input { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; accent-color: #176b5b; }
+.addOnOption span { min-width: 0; overflow-wrap: anywhere; }
+.addOnOption small { display: block; margin-top: 2px; color: #697c84; font-size: 12px; font-weight: 600; }
+.resourceForm .addOnOptionSelected { border-color: #70a89e; background: #edf7f4; }
+.resourceForm .addOnOptionInactive { border-style: dashed; background: #f7f8f8; }
+.resourceForm .addOnOption:focus-within { outline: 3px solid rgba(23, 107, 91, .24); outline-offset: 2px; }
+.addOnEmptyState { margin: 0; color: #687a82; font-size: 14px; }
+@media (hover: hover) { .resourceForm .addOnOption:hover { border-color: #8ba9a3; background: #f4faf8; } }
+@media (max-width: 679px) { .addOnGrid { grid-template-columns: minmax(0, 1fr); } }
 .profileSection + .profileSection { margin-top: 20px; }
 .profileSection h3, .adminSettingsGrid h3 { margin: 0 0 6px; }
 .profileSection p, .adminSettingsGrid p { color: #61727d; }
