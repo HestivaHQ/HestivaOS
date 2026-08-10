@@ -1,7 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import { canonicalServiceName, frequencyMappings, legacyFrequencyAliases, serviceAliases } from './quote-value-reconciliation';
 
-const migrationSql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260810233000_service_availability_and_addon_reconciliation/migration.sql'), 'utf8');
+const enumMigrationSql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260810233000_service_availability_and_addon_reconciliation/migration.sql'), 'utf8');
+const dataMigrationSql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260810233100_service_availability_and_addon_data/migration.sql'), 'utf8');
+const migrationSql = `${enumMigrationSql}\n${dataMigrationSql}`;
 const mappingDoc = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../../../docs/QUOTE_TO_OS_VALUE_MAPPING.md'), 'utf8');
 
 describe('current quote value reconciliation', () => {
@@ -37,6 +39,12 @@ describe('current quote value reconciliation', () => {
     expect(migrationSql).toContain("WHERE \"normalized_name\" IN ('interior window cleaning', 'laundry folding')");
     expect(migrationSql).not.toMatch(/INSERT[\s\S]*'Interior Window Cleaning'|INSERT[\s\S]*'Laundry Folding'/);
     expect(migrationSql).toContain('ON CONFLICT DO NOTHING');
+  });
+
+  it('commits ServiceType.BOTH before any migration uses it', () => {
+    expect(enumMigrationSql).toContain("ALTER TYPE \"ServiceType\" ADD VALUE IF NOT EXISTS 'BOTH'");
+    expect(enumMigrationSql).not.toContain("'BOTH'::\"ServiceType\"");
+    expect(dataMigrationSql).toContain("'BOTH'::\"ServiceType\"");
   });
 
   it.each(['Inside oven', 'Inside fridge', 'Inside cupboards', 'Interior windows', 'Laundry folding', 'Ironing', 'Bed making', 'Linen change', 'Balcony or patio', 'Garage sweep', 'Extra bathroom', 'Extra refrigerator', 'Pet-hair treatment', 'Eco-friendly products', 'Post-renovation dust removal'])('documents current add-on %s', (value) => {

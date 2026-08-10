@@ -401,3 +401,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added exact current bedroom/storey outcomes and backend Property-Type combination validation.
 - Preserved the deployed estate boolean and ambiguous `THREE_PLUS` without fabricated backfill.
 - Updated Property editing and live Work Order Property summaries while keeping selector payloads lean.
+
+## 2026-08-10 — PR #69 and PR #70 production migration recovery
+
+- Split Slice 5K so `ServiceType.BOTH` commits in the already-seen migration name before a consecutive migration uses it for catalogue reconciliation, correcting PostgreSQL 55P04 / Prisma P3018.
+- Recorded that the unresolved failed PR #69 row causes Prisma P3009 and blocks PR #70; preserved the independently additive, earlier-ordered Property vocabulary migration unchanged.
+- Added clean and staged PostgreSQL migration replay to pull-request checks, plus an operator-gated, read-only-first recovery procedure. No product behavior, Work Order data, environment configuration, or Cloudflare deployment changed.
