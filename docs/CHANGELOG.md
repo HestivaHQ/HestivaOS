@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-10 — Business Profile button labels
+
+### Fixed
+
+- Restored readable white labels on the filled Business Profile Save and Copy selected details buttons without changing their actions or the adjacent sharing controls.
 
 ## 2026-08-09 — Product Implementation Slice 4 — Business Profile
 
