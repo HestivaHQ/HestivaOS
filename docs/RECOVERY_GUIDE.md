@@ -2,7 +2,9 @@
 
 ## 2026-08-10 PR #69 / PR #70 migration recovery
 
-PR #69 failed at `20260810233000_service_availability_and_addon_reconciliation` with Prisma P3018/PostgreSQL 55P04 because one migration batch both added and used `ServiceType.BOTH`. PostgreSQL does not permit use of a newly added enum value until the transaction that adds it commits. Prisma subsequently reports P3009 and blocks later migrations, including PR #70's independently additive `20260810180000_property_quote_vocabulary` migration. Its earlier timestamp means a clean database applies 5J-A before 5K; its SQL has no dependency on 5K and does not use values newly added to existing enums.
+PR #69 failed at `20260810233000_service_availability_and_addon_reconciliation` with Prisma P3018/PostgreSQL 55P04 because one migration batch both added and used `ServiceType.BOTH`. PostgreSQL does not permit use of a newly added enum value until the transaction that adds it commits. Prisma subsequently reports P3009 and blocks later migrations.
+
+PR #71's first clean PostgreSQL replay then proved that PR #70 also had an independent migration-history defect: `20260810180000_property_quote_vocabulary` sorts before `20260812120000_property_operational_profile`, although the latter was the migration that originally created `BedroomCount`, `StoreyCount`, and their Property columns. Existing environments where the profile migration had already run concealed the gap; an empty database reached 5J-A first and failed with PostgreSQL 42704/Prisma P3018. The repaired 5J-A migration creates the two expanded enums when absent or only appends compatibility values when they already exist. The later profile migration conditionally creates all four base profile enums and adds its nullable columns only when absent. No values are backfilled or rewritten.
 
 The failed SQL batch is expected to have rolled back as one PostgreSQL transaction, but production is not reachable from repository validation. An authorized operator must first run these read-only queries; do not infer production state from the repository:
 
@@ -22,7 +24,7 @@ ORDER BY normalized_name, id;
 
 SELECT column_name, udt_name, is_nullable FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'properties'
-  AND column_name IN ('floor_size', 'outdoor_area', 'estate_classification', 'unit_floor')
+  AND column_name IN ('bedrooms', 'bathrooms', 'living_areas', 'storeys', 'floor_size', 'outdoor_area', 'estate_classification', 'unit_floor')
 ORDER BY column_name;
 ```
 
@@ -32,7 +34,7 @@ After deploying the repaired migration files but before restarting the API, the 
 2. If every intended effect is present, stop and obtain a reviewed incident-specific plan before considering `--applied`; this guide deliberately does not advise marking an unverified migration applied.
 3. If state is mixed, stop. Preserve the database and migration history and obtain a reviewed reconciliation plan; do not reset, drop schemas, delete history, or guess.
 4. For the verified rolled-back case, manually run `DATABASE_URL="$PRODUCTION_DATABASE_URL" npm run db:migrate:deploy`. This reapplies the same migration name as enum-addition-only, commits it, then runs the new data migration and all later pending migrations.
-5. Rerun all four read-only queries. Require `BOTH`, exactly the two intended dual-context rows, all six canonical IDs/names, all four nullable Property columns, and finished migration rows with no unresolved failure. Then restart/redeploy the Railway API and verify `/api/v1/health`, `/api/v1/ready`, and a harmless authenticated catalogue/Property read.
+5. Rerun all four read-only queries. Require `BOTH`, exactly the two intended dual-context rows, all six canonical IDs/names, all eight profile/vocabulary Property columns, and finished migration rows with no unresolved failure. Then restart/redeploy the Railway API and verify `/api/v1/health`, `/api/v1/ready`, and a harmless authenticated catalogue/Property read.
 
 Do not run `prisma migrate reset`, modify `_prisma_migrations` directly, or mutate production during verification. Cloudflare has no migration or configuration change in this recovery.
 

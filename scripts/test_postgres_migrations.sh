@@ -32,7 +32,9 @@ fi
 
 DATABASE_URL="$database_url" npx prisma migrate deploy --schema "$schema"
 
-psql "$database_url" -v ON_ERROR_STOP=1 <<'SQL'
+expected_migrations="$(find "$root/apps/api/prisma/migrations" -mindepth 1 -maxdepth 1 -type d -name '20*' | wc -l)"
+psql "$database_url" -v ON_ERROR_STOP=1 -v expected_migrations="$expected_migrations" <<'SQL'
+SELECT set_config('hestiva.expected_migrations', :'expected_migrations', false);
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -47,9 +49,20 @@ BEGIN
     '5d000001-0000-4000-8000-000000000023', '5d000001-0000-4000-8000-000000000024'
   )) <> 6 THEN RAISE EXCEPTION 'canonical add-ons are missing'; END IF;
   IF (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'properties'
-      AND column_name IN ('floor_size', 'outdoor_area', 'estate_classification', 'unit_floor')) <> 4
-  THEN RAISE EXCEPTION 'property quote columns are missing'; END IF;
+      AND column_name IN ('bedrooms', 'bathrooms', 'living_areas', 'storeys', 'floor_size', 'outdoor_area', 'estate_classification', 'unit_floor')) <> 8
+  THEN RAISE EXCEPTION 'property vocabulary columns are missing'; END IF;
+  IF (SELECT count(*) FROM pg_type WHERE typname IN (
+      'BedroomCount', 'BathroomCount', 'LivingAreaCount', 'StoreyCount',
+      'FloorSize', 'OutdoorArea', 'EstateClassification', 'UnitFloor'
+  )) <> 8 THEN RAISE EXCEPTION 'property vocabulary types are missing'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'BedroomCount' AND e.enumlabel = 'OTHER')
+  THEN RAISE EXCEPTION 'BedroomCount.OTHER is missing'; END IF;
+  IF (SELECT count(*) FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'StoreyCount' AND e.enumlabel IN ('THREE', 'FOUR_PLUS', 'UNKNOWN')) <> 3
+  THEN RAISE EXCEPTION 'StoreyCount compatibility values are missing'; END IF;
   IF EXISTS (SELECT 1 FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL)
   THEN RAISE EXCEPTION 'unresolved migration found'; END IF;
+  IF (SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL) <> current_setting('hestiva.expected_migrations')::integer
+  THEN RAISE EXCEPTION 'not every migration finished'; END IF;
 END $$;
 SQL

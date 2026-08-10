@@ -153,3 +153,5 @@ Migration `20260810233000_service_availability_and_addon_reconciliation` now onl
 ## 2026-08-10 Property vocabulary migration
 
 Apply `20260810180000_property_quote_vocabulary` before deploying this release, then run `npm run db:generate`. The migration is additive: it adds four nullable columns and enum values and deliberately retains `is_estate_or_complex` and `THREE_PLUS`. It performs no data backfill; legacy `true` classifications and `THREE_PLUS` storeys require later manual enrichment when authoritative facts are available.
+
+The timestamp places this migration before `20260812120000_property_operational_profile`, which originally introduced the base bedroom/storey types and columns. Both historical files contain deterministic existence checks so clean lexical replay and an existing database where the profile migration already ran converge without rewriting values. Pull-request PostgreSQL replay must pass both clean and staged modes before deployment.
