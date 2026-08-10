@@ -50,3 +50,7 @@ Hestiva's present workflow treats a Customer as the person represented by Contac
 ## Automatic Work Order identity
 
 A Work Order reference identifies a job without embedding changing business meaning or personal data. Service, Customer, and Property remain canonical relationships used to derive the useful label; an Africa/Johannesburg daily database counter makes the human-readable reference authoritative under concurrent server creation. Legacy title fallback preserves history without inventing past sequence order.
+
+## Accepted-quote ownership boundary
+
+Accepted quote data is split by its natural lifetime so operators do not re-enter canonical information and a visit does not become a duplicate customer/property store. Customer owns identity/contact, Property owns persistent home/access context, and Work Order owns the selected primary service, visit add-ons, quoted frequency snapshot, current home condition, timing, and visit instructions. A future recurring agreement will own recurrence because a long-lived agreement and an individual operational visit have different lifecycles. This keeps Slice 5I ready for a later quote handoff without prematurely coupling the OS to the website or building a recurrence engine.

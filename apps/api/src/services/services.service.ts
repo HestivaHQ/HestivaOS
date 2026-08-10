@@ -37,12 +37,15 @@ export class ServicesService {
     });
   }
 
-  async findAll(page = 1, pageSize = 20, search?: string, status?: ServiceStatus) {
+  async findAll(page = 1, pageSize = 20, search?: string, status?: ServiceStatus, type?: ServiceType) {
+    if (status !== undefined && !Object.values(ServiceStatus).includes(status)) throw new BadRequestException('A valid service status is required.');
+    if (type !== undefined && !Object.values(ServiceType).includes(type)) throw new BadRequestException('A valid service type is required.');
     const safePage = Math.max(1, page);
     const safePageSize = Math.min(100, Math.max(1, pageSize));
     const term = search?.trim();
     const where: Prisma.ServiceWhereInput = {
       status,
+      type,
       ...(term ? { OR: [{ name: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }] } : {}),
     };
     const [items, total] = await this.prisma.$transaction([

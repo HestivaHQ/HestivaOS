@@ -19,7 +19,7 @@ test('cleanup destructive disabled label uses an opaque readable treatment', () 
 });
 
 test('new work orders use controlled service and no manual title field', () => {
-  assert.match(manager, /<label>Service<select required/);
+  assert.match(manager, /<label>Primary Service<select required/);
   assert.doesNotMatch(manager, /<label>Title<input/);
   assert.match(manager, /Automatically generated when the job is created/);
 });

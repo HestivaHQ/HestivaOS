@@ -142,3 +142,7 @@ A successful cleanup cannot be restored by the application. Restore from an appr
 ## Work Order reference recovery
 
 Restore `work_orders`, `services`, and `work_order_daily_counters` from the same consistent backup. Do not reseed a counter downward, fabricate references for nullable historical rows, or derive sequence from row counts. After migration deployment, verify reference uniqueness, the current Africa/Johannesburg counter, legacy-title fallback, and canonical Service links. If a daily sequence reaches 9999, creation intentionally fails; investigate volume rather than resetting or reusing references.
+
+## Accepted-quote Work Order recovery
+
+Restore `work_orders`, `work_order_add_ons`, and `services` from one consistent backup. Preserve nullable frequency/home-condition values and do not infer `ONE_TIME` or any condition for historical jobs. Never delete a canonical Service while removing an add-on relationship. After recovery, verify primary and add-on type boundaries, inactive historical relationship readability, custom-note validation, and the unchanged Johannesburg Work Order reference counter. Property details and access notes remain Property-owned and must be restored with Properties rather than reconstructed on Work Orders.
