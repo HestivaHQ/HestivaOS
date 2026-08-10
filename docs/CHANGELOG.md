@@ -265,3 +265,15 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - API startup executes Prisma migrations twice.
 - Root tests fail because the API currently has no tests.
 - Dependency review remains outstanding.
+
+## 2026-08-10 — Product Implementation Slice 5: Employee Records
+
+### Added
+
+- Added an ADMIN-only `/employees` experience with lean sectioned create/edit records, name/phone/email search, employment-status filtering, linked crew context, and read-only OS access summaries.
+- Added narrow ADMIN-only Employee Records list, detail, create, and update API contracts with strict field, email, status, and date validation and privacy-limited list projections.
+- Added the additive canonical `EmployeeRecord` model, independent employment status, optional unique User and Technician links, focused migration, tests, and ADR-0016.
+
+### Preserved
+
+- Preserved all existing Users, Technicians, crews, shifts, work assignments, roles, and access statuses without inferred backfill or destructive deletion. Payroll, leave, performance management, document storage, advanced HR functionality, and expanded management permissions remain outside this slice.
