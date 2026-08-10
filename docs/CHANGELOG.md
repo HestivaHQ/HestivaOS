@@ -1,5 +1,21 @@
 # Changelog
 
+
+## 2026-08-10 — Product Slice 5B Phase 1 — Controlled field inputs
+
+### Added
+
+- Audited 109 editable fields across all current form modules and adopted the eight-class controlled-input standard.
+- Added ADMIN-managed Job Title and Department business lists with active/inactive lifecycle, canonical Employee foreign keys, and backend validation.
+
+### Changed
+
+- Employee job title and department now select active managed options. Existing string values remain readable and are never automatically normalized; personal fields remain free text.
+
+### Deferred
+
+- Customer/Property, Work Order/Scheduling, and remaining evidence-backed improvements are separate phases.
+
 ## 2026-08-10 — Employee Records CORS preflight correction
 
 ### Fixed

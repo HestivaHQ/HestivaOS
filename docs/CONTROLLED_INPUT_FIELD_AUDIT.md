@@ -1,0 +1,52 @@
+# Controlled input field audit
+
+Verified 2026-08-10 against the editable React forms and Prisma/API contracts on this branch. This is the pre-implementation Slice 5B field matrix and records Phase 1 scope. Repeated fields with the same component, storage, classification, control, and rationale are grouped but were counted individually. Totals: **109 editable fields**: 52 free text, 11 fixed enum, 2 managed lookup, 13 relationship, 20 boolean, 7 date/date-time, and 4 numeric/currency. Four additional derived relationship summaries were reviewed as read-only.
+
+| Module | Page/component | Field name(s) | Current control | Data type / backend model | Classification | Recommended control | Change | Rationale |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Authentication | `/login` | Email; password | email/password | Supabase Auth strings | FREE TEXT (2) | Validated native inputs | No | Credentials are unique; Auth architecture is protected. |
+| My Profile | `profile-manager` | First name; last name; display name; phone; profile photo; new/confirmed password | text/tel/file/password | `User` / Supabase Auth | FREE TEXT (7) | Existing native inputs | No | Personal and credential values are unique. |
+| My Profile | `profile-manager` | Email | read-only email | verified Auth identity | READ-ONLY | Existing read-only control | No | Email changes require a separate verified flow. |
+| User Access | `user-access-manager` | Search | search | query only | FREE TEXT (1) | Search input | No | Search is not persisted classification data. |
+| User Access | `user-access-manager` | Role; role filter | selects | `UserRole` | FIXED ENUM (2) | Existing selects | No | Prisma enum is canonical. |
+| User Access | `user-access-manager` | OS access; status filter | action/select | `UserStatus` | FIXED ENUM / BOOLEAN (2) | Existing confirmed action/select | No | Existing access semantics are preserved. |
+| Business Profile | `business-profile-manager` | Registered/trading name, registration/contact/email/website/address, bank/account details, branch/payment instructions, tax/VAT/other identifiers | text/email/url/textarea | `BusinessProfile` strings | FREE TEXT (16) | Existing native inputs | No | Values are business-specific. Account type remains text pending evidence for an approved list. |
+| Business Profile | `business-profile-manager` | Include-when-sharing for each detail | checkbox | 16 `share*` booleans | BOOLEAN (16) | Existing checkboxes | No | Correct semantic boolean control. |
+| Employees | `employees-manager` | Reference, names, phones, email, address, emergency name/relationship, notes | text/tel/email/textarea | `EmployeeRecord` strings | FREE TEXT (11) | Existing native inputs | No | Unique record values; emergency relationship stays free text because a managed list adds unjustified scope. |
+| Employees | `employees-manager` | Employment status | select | `EmployeeStatus` | FIXED ENUM (1) | Existing enum select | No | API validates the Prisma enum. |
+| Employees | `employees-manager` | Job title; department | text before Phase 1 | legacy strings plus `BusinessListOption` IDs | MANAGED LOOKUP (2) | Active-option selects | **Yes—done** | Reusable business classifications must be ADMIN-managed. |
+| Employees | `employees-manager` | Start date; end date | date | `EmployeeRecord` date | DATE (2) | Existing date inputs | No | API validates dates and ordering. |
+| Employees | employee detail | User; technician; crew | read-only summary | canonical relations | READ-ONLY (3) | Existing summary/management links | No | Assignment ownership remains in existing modules. |
+| Customers | `customers-manager` | Name, contact name, email, phone, notes, search | text/email/textarea/search | `Customer` strings/query | FREE TEXT (6) | Existing native inputs | No | Unique customer data. |
+| Customers | `customers-manager` | Status | select | `CustomerStatus` | FIXED ENUM (1) | Existing enum select | No | Already controlled. |
+| Properties | `properties-manager` | Customer | select | `Property.customerId` | RELATIONSHIP (1) | Existing canonical-ID select; searchable later | No | Stores the relationship ID. |
+| Properties | `properties-manager` | Name, address lines, city, province, postal code, access notes | text/textarea | `Property` strings | FREE TEXT (7) | Existing inputs | No | Unique location data; property type is not currently modeled. |
+| Services | `services-manager` | Name; description | text/textarea | `Service` strings | FREE TEXT (2) | Existing inputs | No | Service itself is the canonical entity. |
+| Services | `services-manager` | Duration | number | `Service.defaultDurationMinutes` | NUMERIC (1) | Existing number input | No | Correct numeric control. |
+| Services | `services-manager` | Status | select | `ServiceStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
+| Cleaning templates | `cleaning-job-templates-manager` | Name; description | text/textarea | template strings | FREE TEXT (2) | Existing inputs | No | Unique template content. |
+| Cleaning templates | `cleaning-job-templates-manager` | Duration | number | minutes integer | NUMERIC (1) | Existing number input | No | Correct numeric control. |
+| Cleaning templates | `cleaning-job-templates-manager` | Status | select | enum | FIXED ENUM (1) | Existing select | No | Already controlled. |
+| Cleaning templates | `cleaning-job-templates-manager` | Services | checkbox list | service IDs | RELATIONSHIP (1) | Existing labelled checkboxes | No | Canonical services are selected. |
+| Technicians | `technicians-manager` | Names, email, phone, skills, notes, search | text/email/textarea/search | `Technician` strings/array | FREE TEXT (7) | Existing inputs; skills follow-up | No | Personal fields stay free; skills need evidence before classification redesign. |
+| Technicians | `technicians-manager` | Status | select | `TechnicianStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
+| Crews | `crews-manager` | Name; description; search | text/textarea/search | `Crew` strings/query | FREE TEXT (3) | Existing inputs | No | Unique crew data. |
+| Crews | `crews-manager` | Status | select | `CrewStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
+| Crews | `crews-manager` | Leader; members | select/checkboxes | technician IDs | RELATIONSHIP (2) | Existing labelled canonical-ID controls | No | Stores technician IDs. |
+| Shifts | `shifts-manager` | Title; location; notes | text/textarea | `Shift` strings | FREE TEXT (3) | Existing inputs | No | Unique shift context. |
+| Shifts | `shifts-manager` | Start; end; date filters | datetime-local/date | `Shift` timestamps/query | DATE (4) | Existing date/time inputs | No | Existing scheduling semantics retained. |
+| Shifts | `shifts-manager` | Break minutes | number | integer | NUMERIC (1) | Existing number input | No | Correct numeric control. |
+| Shifts | `shifts-manager` | Crew; work order | select | canonical IDs | RELATIONSHIP (2) | Existing selectors; searchable later | No | Stores IDs. |
+| Shifts | `shifts-manager` | Status | select | `ShiftStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
+| Work Orders | manager/detail | Customer; property; crew; technician assignment | select/actions | canonical IDs | RELATIONSHIP (4) | Existing selectors, customer-filtered property | No | Existing records are referenced by ID. |
+| Work Orders | manager/detail | Title; description; checklist description; status note | text/textarea | work-order strings | FREE TEXT (4) | Existing inputs | No | Unique operational content. |
+| Work Orders | manager/detail | Status; priority; checklist status | selects/actions | Prisma enums | FIXED ENUM (3) | Existing enum controls | No | Already controlled and API-validated. |
+| Work Orders | manager | Scheduled at | datetime-local | timestamp | DATE (1) | Existing date-time control | No | Existing timezone behavior retained. |
+| Work Orders | checklist | Sort order | implicit/number | integer | NUMERIC (1) | Existing ordering control | No | Numeric ordering. |
+| Work Orders | photos | Photo/category | file/fixed action | URL and `WorkOrderPhotoCategory` | RELATIONSHIP / FIXED ENUM (2) | Existing file/category flow | No | Photo belongs to canonical work order. |
+| Sign-off | `customer-sign-off` | Customer name; note; signature | text/textarea/signature | sign-off strings/data | FREE TEXT (3) | Existing inputs | No | Record-specific evidence. |
+| Sign-off | `customer-sign-off` | Acceptance | checkbox | confirmation boolean | BOOLEAN (1) | Existing checkbox | No | Explicit boolean consent. |
+
+## Phasing conclusion
+
+The audit found that migrating every remaining candidate would combine unrelated domain decisions. Phase 1 therefore establishes the standard and converts Employee job title and department only. Customer/property extensions are Phase 2; Work Order/scheduling searchability is Phase 3; technician skills and any remaining evidence-backed classifications are Phase 4. Existing fixed enums, relationships, booleans, dates, and deliberately free-text fields remain unchanged.

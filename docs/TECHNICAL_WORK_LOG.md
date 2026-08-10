@@ -1,5 +1,11 @@
 # Technical work log
 
+
+## 2026-08-10 — Slice 5B controlled inputs Phase 1
+
+- Completed and recorded the system-wide form audit before implementation. The audit found broad existing use of enums, IDs, booleans, and native dates, and bounded implementation to Employee job-title/department managed lists.
+- Added the additive Prisma migration, ADMIN-only business-list API and management controls, active typed-option validation, Employee controlled selects, legacy-label compatibility, focused tests, ADR-0017, and operational documentation. No seed categories or destructive normalization were introduced.
+
 ## 2026-08-10 — Employee Records CORS preflight correction
 
 - Traced Employee Records browser calls through the shared web `apiFetch` helper to the Railway API. List, create, and update retain bearer authorization; JSON requests retain `Content-Type`; fetch retains its default CORS mode and credential behavior. The Employee Records client is therefore not using a divergent request implementation.
