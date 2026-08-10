@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-10 — Employee Records CORS preflight correction
+
+- Traced Employee Records browser calls through the shared web `apiFetch` helper to the Railway API. List, create, and update retain bearer authorization; JSON requests retain `Content-Type`; fetch retains its default CORS mode and credential behavior. The Employee Records client is therefore not using a divergent request implementation.
+- Corrected the API allowlist parser, which previously split `CORS_ALLOWED_ORIGINS` without removing separator whitespace or URL trailing slashes. Because browser `Origin` values contain neither surrounding whitespace nor a trailing slash, such a configured entry could yield a 204 OPTIONS response without a matching `Access-Control-Allow-Origin`; the browser then withheld the actual request.
+- Kept explicit origins and credential support, and made the existing GET/HEAD/PUT/PATCH/POST/DELETE methods plus the actually required `Authorization` and `Content-Type` headers explicit. Added focused API and web policy tests. No route, authorization rule, data model, Prisma artifact, dependency, Cloudflare architecture, Railway architecture, or platform setting changed.
+
 ## 2026-08-10 — Business Profile primary button label correction
 
 - Corrected the Business Profile-specific CSS cascade so its filled primary Save and Copy controls retain white label text instead of inheriting the teal text intended for adjacent outlined controls.

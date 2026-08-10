@@ -35,6 +35,8 @@ Use it only for an explicitly authorized recovery; routine releases belong to na
 
 ## API: Railway
 
+The Railway `CORS_ALLOWED_ORIGINS` value is a comma-separated allowlist of approved frontend origins. Entries may contain separator whitespace or a trailing slash because API startup normalizes both; responses still match only an approved origin and retain credentialed-request support. After changing the value, restart the API and verify an authenticated OPTIONS request is followed by its GET/POST/PATCH request.
+
 The Railway API service uses the repository root as **Root Directory**. Its checked-in configuration is:
 
 ```text

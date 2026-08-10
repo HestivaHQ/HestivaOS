@@ -42,7 +42,7 @@ Supabase Auth identities and application `User` records have distinct lifecycles
 
 ## Request and data flow
 
-The browser requests the Cloudflare Worker. Server-rendered web code uses `API_URL`; browser code uses the build-time `NEXT_PUBLIC_API_URL` to call the Railway API. The API applies application rules, validates Supabase identities, and reads or writes Supabase PostgreSQL through Prisma. Web features use Supabase authentication and Storage with public client configuration embedded during the frontend build. `NEXT_PUBLIC_*` values are intentionally browser-visible and require a rebuild when changed. Railway owns API runtime configuration. Secret values remain in each platform's protected settings, never Git.
+The browser requests the Cloudflare Worker. Server-rendered web code uses `API_URL`; browser code uses the build-time `NEXT_PUBLIC_API_URL` to call the Railway API. The API applies application rules, validates Supabase identities, and reads or writes Supabase PostgreSQL through Prisma. Web features use Supabase authentication and Storage with public client configuration embedded during the frontend build. `NEXT_PUBLIC_*` values are intentionally browser-visible and require a rebuild when changed. Railway owns API runtime configuration. Cross-origin browser access uses a credential-capable, explicit `CORS_ALLOWED_ORIGINS` allowlist; API startup normalizes whitespace and trailing slashes and advertises the application methods plus authenticated JSON headers without allowing arbitrary origins. Secret values remain in each platform's protected settings, never Git.
 
 The current Railway API hostname contains the legacy `mmapi` name. It is an endpoint compatibility detail, not the product or service identity, and is scheduled for migration.
 

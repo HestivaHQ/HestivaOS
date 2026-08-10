@@ -68,7 +68,7 @@ Confirm the deployment targeted `hestivaos` and used the intended `apps/web/wran
 
 ### Frontend cannot reach API
 
-Test Railway `/api/v1/health` directly. Compare `API_URL` (server rendering) and `NEXT_PUBLIC_API_URL` (browser calls) with the current Railway endpoint; the existing hostname legitimately contains legacy `mmapi`. Check browser network errors, Worker/Railway logs, TLS, and `CORS_ALLOWED_ORIGINS`. Correct the failing scope and rebuild if a public build-time variable changed.
+For a browser request that stops after OPTIONS, inspect the response for the exact frontend `Access-Control-Allow-Origin`, allowed method, and `Authorization`/`Content-Type` headers. Confirm Railway's comma-separated `CORS_ALLOWED_ORIGINS` contains the approved Cloudflare origin; startup normalizes separator whitespace and trailing slashes but does not permit arbitrary origins. Then test Railway `/api/v1/health` directly. Compare `API_URL` (server rendering) and `NEXT_PUBLIC_API_URL` (browser calls) with the current Railway endpoint; the existing hostname legitimately contains legacy `mmapi`. Check browser network errors, Worker/Railway logs, TLS, and `CORS_ALLOWED_ORIGINS`. Correct the failing scope and rebuild if a public build-time variable changed.
 
 ### API is live but not ready
 

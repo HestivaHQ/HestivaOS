@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { APPLICATION_VERSION } from './monitoring/application-version';
 import { StructuredExceptionFilter } from './monitoring/http-exception.filter';
 import { JsonLogger } from './monitoring/json-logger';
+import { createCorsOptions } from './cors';
 
 async function bootstrap(): Promise<void> {
   const startedAt = process.hrtime.bigint();
@@ -10,10 +11,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger });
   app.useGlobalFilters(new StructuredExceptionFilter(app.get(HttpAdapterHost)));
   app.setGlobalPrefix('api/v1');
-  app.enableCors({
-    origin: process.env.CORS_ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:3000'],
-    credentials: true,
-  });
+  app.enableCors(createCorsOptions());
   const port = Number(process.env.PORT ?? 4000);
   await app.listen(port);
   const startupDurationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
