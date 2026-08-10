@@ -101,6 +101,11 @@ enum EmployeeStatus {
   INACTIVE
 }
 
+enum BusinessListType {
+  JOB_TITLE
+  DEPARTMENT
+}
+
 model User {
   id String @id @default(uuid()) @db.Uuid
   authUserId String @unique @map("auth_user_id") @db.Uuid
@@ -237,6 +242,8 @@ model EmployeeRecord {
   status                EmployeeStatus @default(ACTIVE)
   jobTitle              String?        @map("job_title")
   department            String?
+  jobTitleOptionId      String?        @map("job_title_option_id") @db.Uuid
+  departmentOptionId    String?        @map("department_option_id") @db.Uuid
   startDate             DateTime?      @map("start_date") @db.Date
   endDate               DateTime?      @map("end_date") @db.Date
   internalNotes         String?        @map("internal_notes")
@@ -244,12 +251,33 @@ model EmployeeRecord {
   technicianId          String?        @unique @map("technician_id") @db.Uuid
   user                  User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   technician            Technician?    @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  jobTitleOption        BusinessListOption? @relation("EmployeeJobTitle", fields: [jobTitleOptionId], references: [id], onDelete: Restrict)
+  departmentOption      BusinessListOption? @relation("EmployeeDepartment", fields: [departmentOptionId], references: [id], onDelete: Restrict)
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@index([lastName, firstName])
   @@index([status])
+  @@index([jobTitleOptionId])
+  @@index([departmentOptionId])
   @@map("employee_records")
+}
+
+model BusinessListOption {
+  id                  String           @id @default(uuid()) @db.Uuid
+  type                BusinessListType
+  label               String
+  normalizedLabel     String           @map("normalized_label")
+  isActive            Boolean          @default(true) @map("is_active")
+  sortOrder           Int              @default(0) @map("sort_order")
+  employeeJobTitles   EmployeeRecord[] @relation("EmployeeJobTitle")
+  employeeDepartments EmployeeRecord[] @relation("EmployeeDepartment")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  @@unique([type, normalizedLabel])
+  @@index([type, isActive, sortOrder])
+  @@map("business_list_options")
 }
 
 model Crew {

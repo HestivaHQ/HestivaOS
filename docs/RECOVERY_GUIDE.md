@@ -112,3 +112,7 @@ For confirmation-link recovery, verify the Supabase Dashboard Site URL is the ca
 ## Employee Records migration recovery
 
 Before deploying Slice 5, retain the normal verified database backup. If application rollout fails after the additive migration, roll back the application first; the unused table is backward-compatible with the prior release. Do not drop `employee_records` while investigating and never delete or recreate User or Technician rows. If a database rollback is explicitly authorized and all Employee Records data has been exported or confirmed disposable, remove the two foreign keys, table, then `EmployeeStatus` enum; record the operation and redeploy the prior application. Incorrect User/Technician links should be set to null and reconciled from authoritative records rather than guessed. Inactive employees must be retained instead of deleted.
+
+## Controlled business-list recovery
+
+For Slice 5B, restore `business_list_options` together with `employee_records` so lookup IDs and readable labels remain consistent. Do not delete inactive referenced options or mass-map legacy `job_title`/`department` strings. After restore, verify active options appear for new Employee selection, inactive options remain available to ADMIN management and existing linked records, and legacy unlinked strings remain unchanged.

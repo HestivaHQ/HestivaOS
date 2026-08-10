@@ -19,3 +19,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 
 - [ADR-0015: Use one typed canonical Business Profile](ADR-0015-canonical-business-profile.md)
 - [ADR-0016: Use a canonical Employee Record with optional User and Technician links](ADR-0016-canonical-employee-record.md)
+
+- [ADR-0017: Use controlled inputs for reusable business values](ADR-0017-controlled-business-inputs.md)
