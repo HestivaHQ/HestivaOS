@@ -38,6 +38,7 @@ enum ServiceStatus {
 enum ServiceType {
   PRIMARY
   ADD_ON
+  BOTH
 }
 
 enum CleaningJobTemplateStatus {

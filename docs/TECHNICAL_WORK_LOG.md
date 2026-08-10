@@ -245,3 +245,11 @@ This cosmetic correction changed no Work Order business/data behavior, API, Pris
 - Added server-side enum/boolean validation, optional-note normalization, unsupported-field rejection, full-detail support, and an explicit identifying-only selector. Existing Property authorization, managed Property Type behavior, and dormant Province compatibility are unchanged.
 - Grouped the responsive form into five progressive sections. Work Order surfaces read live Property information; Technician output is limited to actionable access and care facts. No Work Order profile columns, snapshots, recurrence, quote integration, catalogue changes, or assignment redesign were added.
 - Repository evidence confirms Bedrooms and Property Types, but no approved floor-size, persistent outdoor, or entry-method vocabulary. Those controls and variable presence remain deferred rather than fabricated.
+
+## 2026-08-10 — Slice 5K revised to current website vocabulary
+
+- Re-audited the supplied authoritative `HestivaHQ/hestiva` `src/routes/quote.tsx` vocabulary. It contains no service-specific scopes, so removed all undeployed `ServiceScopeOption` implementation and historical claims rather than retaining unsupported schema.
+- Found two real dual-context capabilities: Interior Window Cleaning and Laundry Folding. Extended `ServiceType` with `BOTH`, updated selector queries and Work Order validation, and migrated the existing stable records rather than creating duplicate Services.
+- Reworked the undeployed 5K migration in place. It preserves all existing IDs and Work Orders, changes only the availability of the two matching canonical capabilities, and inserts six evidence-backed add-ons conflict-safely. Custom and inactive Services remain untouched.
+- Extra refrigerator is deliberately not aliased to Inside Fridge Cleaning because it carries additional-unit semantics. Balcony or patio, Eco-friendly products, Post-renovation dust removal, and Extra refrigerator remain fail-closed pending product/commercial decisions.
+- Updated the mapping reference with all 15 current add-ons, five current frequencies, current quote steps/required fields, and newly verified Property vocabularies. Property implementation and quote handoff remain outside 5K.

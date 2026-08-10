@@ -41,7 +41,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Deferred website controlled-input alignment
 
-- Evaluate website Bedroom choices Studio, 1, 2, 3, 4, and 5+ as a future controlled-input alignment candidate. Slice 5G does not implement a Bedroom field or expand into the quote form.
+- Reconcile the current website Property vocabulary gaps recorded in `QUOTE_TO_OS_VALUE_MAPPING.md`; bedrooms are implemented by Slice 5J, while unsupported `Other` and the website constraint boundary remain follow-up work.
 - Design safe Supabase Storage object cleanup for deleted Work Order photo metadata only if an approved server-side storage boundary and orphan-reconciliation procedure are introduced.
 
 ## Accepted-quote follow-ups after Slice 5I
@@ -49,6 +49,7 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5N — Work Order Technician/Crew assignment:** support one or many Technicians per Work Order and optional existing Crew selection; allow Crew selection to prepopulate Technicians followed by job-specific adjustments; permit one-Technician jobs without a permanent Crew; and count supervisors/drivers as job Technicians only when they perform the job. The canonical worker term remains Technician.
 
 - **Slice 5J — Property operational profile (completed 2026-08-10):** Property now owns nullable controlled bedrooms, bathrooms, living areas, and storeys plus lean persistent logistics/household/care fields. Floor size, outdoor status, entry method, and presence defaults remain deferred pending approved vocabulary and ownership evidence.
-- **Slice 5K — Service scope and add-on reconciliation:** reconcile website terms including Linen Change, Bed Making, Garage Sweep, Extra Bathroom, Extra Refrigerator, pet-hair treatment, eco-friendly products, and post-renovation dust removal against the canonical OS catalogue. Also resolve service scopes such as Whole Home/Selected Rooms and Single/Multiple Bathrooms without a duplicate job-type model.
+- **Slice 5K — Current website service/add-on reconciliation (completed 2026-08-10):** reconciled current quote vocabulary, introduced dual-context Service availability, added six evidence-backed capabilities, removed stale undeployed scope architecture, and documented fail-closed ambiguities.
+- **Slice 5J follow-up — Current Property quote vocabulary alignment:** before 5M, reconcile the now-verified Floor Size, Outdoor, estate classification, bedroom `Other`, Storeys, and apartment/townhouse unit-floor vocabularies without changing them in 5K.
 - **Slice 5L — Recurring agreement architecture:** own recurring agreement identity, recurrence rules, next service date, agreement status, individual Work Order generation, pause/resume/cancel behavior, exception dates, and approved long-term crew/service preferences.
-- **Slice 5M — Quote handoff:** implement the website-to-OS acceptance boundary only after receiving Customer, Property, catalogue/scope, and recurring models are ready. Slice 5I adds no webhook or automatic record creation.
+- **Slice 5M — Quote handoff:** implement the website-to-OS acceptance boundary only after receiving Customer, Property, catalogue availability, and recurring models are ready. Slice 5I adds no webhook or automatic record creation.

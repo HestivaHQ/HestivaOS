@@ -145,3 +145,7 @@ Deploy additive migration `20260811150000_accepted_quote_work_order_structure` b
 ## Slice 5J Property operational profile migration
 
 Deploy additive migration `20260812120000_property_operational_profile` before the updated API. It creates four controlled count enums and nullable Property columns for the operational profile. It performs no backfill: null means unknown for historical records, and Province is retained. After deployment, validate Prisma, create an unprofiled Property, create/update a profiled Property with each controlled count, and confirm the Work Order response reads the current related Property. Roll back application code first if needed; retaining nullable columns avoids information loss.
+
+## Slice 5K service availability rollout
+
+Deploy migration `20260810233000_service_availability_and_addon_reconciliation` through the existing Railway `db:migrate:deploy` sequence. It adds `ServiceType.BOTH`, updates the existing Interior Window Cleaning and Laundry Folding records by normalized name, and inserts six fixed add-on records using `ON CONFLICT DO NOTHING`; it creates no scope structures and writes no Work Order rows. After deployment, regenerate Prisma Client and verify both dual-context capabilities in primary and add-on selectors plus ADMIN availability management.

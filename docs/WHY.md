@@ -58,3 +58,7 @@ Accepted quote data is split by its natural lifetime so operators do not re-ente
 ## Persistent Property operational ownership
 
 Repeatedly collecting stable home and household facts per visit creates conflicting copies and burdens operators. Property therefore owns the reusable operational profile, while Work Order retains only visit-specific operational facts and exceptions. Nullable additive fields preserve honest “unknown” state for existing homes. Lean relationship selectors deliberately omit household notes; an assigned Technician can still read actionable live context through the authorized Work Order view. This decision avoids premature recurrence, quote-handoff, scope, and snapshot models.
+
+## Why one Service can be available in both booking contexts
+
+The current website presents Interior Window Cleaning and Laundry Folding as both a primary selection and an add-on. Hestiva OS therefore marks one canonical capability `BOTH` rather than creating name-suffixed duplicates with diverging IDs. This preserves the distinction between the sold capability and its booking context while retaining existing Work Order primary and add-on relationships. No Service Scope model is justified because the current authoritative quote flow exposes no scope choices.

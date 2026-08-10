@@ -30,3 +30,5 @@ The temporary `Next.js 16 migration validation` workflow is also manual-only. It
 | [Decision records](decisions/README.md) | Architectural/historical | Index of accepted ADRs and their review triggers. |
 
 Operational documents should match production. ADRs preserve why a choice was made even after it is superseded. The roadmap is not a product commitment; it is a prioritized technical queue. The work log and changelog should not be rewritten to hide past incidents or migrations.
+
+- `QUOTE_TO_OS_VALUE_MAPPING.md` — authoritative current website vocabulary reconciliation and fail-closed input for future quote handoff.
