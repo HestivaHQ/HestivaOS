@@ -53,3 +53,8 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5J follow-up — Current Property quote vocabulary alignment:** before 5M, reconcile the now-verified Floor Size, Outdoor, estate classification, bedroom `Other`, Storeys, and apartment/townhouse unit-floor vocabularies without changing them in 5K.
 - **Slice 5L — Recurring agreement architecture:** own recurring agreement identity, recurrence rules, next service date, agreement status, individual Work Order generation, pause/resume/cancel behavior, exception dates, and approved long-term crew/service preferences.
 - **Slice 5M — Quote handoff:** implement the website-to-OS acceptance boundary only after receiving Customer, Property, catalogue availability, and recurring models are ready. Slice 5I adds no webhook or automatic record creation.
+
+## 2026-08-10 status update
+
+- Completed Slice 5J-A: current website Property quote vocabulary now has controlled OS destinations, type-aware unit-floor/Studio validation, additive legacy compatibility, and live Work Order summaries.
+- Slice 5M remains planned and unimplemented. Property vocabulary has no destination blocker; handoff orchestration and the four unresolved Slice 5K commercial decisions remain outside this slice.

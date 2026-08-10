@@ -253,3 +253,7 @@ This cosmetic correction changed no Work Order business/data behavior, API, Pris
 - Reworked the undeployed 5K migration in place. It preserves all existing IDs and Work Orders, changes only the availability of the two matching canonical capabilities, and inserts six evidence-backed add-ons conflict-safely. Custom and inactive Services remain untouched.
 - Extra refrigerator is deliberately not aliased to Inside Fridge Cleaning because it carries additional-unit semantics. Balcony or patio, Eco-friendly products, Post-renovation dust removal, and Extra refrigerator remain fail-closed pending product/commercial decisions.
 - Updated the mapping reference with all 15 current add-ons, five current frequencies, current quote steps/required fields, and newly verified Property vocabularies. Property implementation and quote handoff remain outside 5K.
+
+## 2026-08-10 — Slice 5J-A Property quote vocabulary alignment
+
+Implemented the controlled values verified from `HestivaHQ/hestiva/src/routes/quote.tsx` and the revised quote mapping. Added an additive Prisma migration, type-aware API validation, conditional Property selectors, compatibility rendering, focused service tests, and live Work Order summary fields. Bathroom storage already represents every current website outcome; the website's dynamic bedroom-to-bathroom narrowing was not copied because it is quote UX rather than an operational data validity rule. No quote handoff, recurring agreement, assignment, or catalogue behavior was introduced.

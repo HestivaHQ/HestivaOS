@@ -88,3 +88,14 @@ Visit condition, primary Service, Add-ons, frequency snapshot, schedule, assignm
 | Work Orders | Add-ons | existing checkbox grid | `WorkOrderAddOn` | Active `ADD_ON` and `BOTH` capabilities only; no UI redesign or quantity fabrication. |
 
 The current website supplies no Service Scope field, so no scope control or free-text scope exists. Unresolved website inputs remain fail-closed as documented in `QUOTE_TO_OS_VALUE_MAPPING.md`.
+
+## 2026-08-10 — Property quote vocabulary
+
+| Field | Control | Conditional rule | Compatibility |
+| --- | --- | --- | --- |
+| `Property.floorSize` | `FloorSize` enum | Nullable | No backfill |
+| `Property.outdoorArea` | `OutdoorArea` enum | Nullable; distinct from chargeable outdoor cleaning | No backfill |
+| `Property.estateClassification` | `EstateClassification` enum | Nullable | Legacy boolean retained; true is unresolved |
+| `Property.unitFloor` | `UnitFloor` enum | Apartment/Townhouse subsets only | Cleared when type changes to an inapplicable type |
+| `Property.bedrooms` | `BedroomCount` enum | Studio is Apartment-only; Other is controlled | Existing values preserved |
+| `Property.storeys` | `StoreyCount` enum | New writes use ONE/TWO/THREE/FOUR_PLUS/UNKNOWN | THREE_PLUS remains readable legacy state |

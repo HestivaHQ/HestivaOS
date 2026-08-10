@@ -154,3 +154,7 @@ If Property create/update fails after Slice 5J, confirm migration `2026081212000
 ## Service availability and reconciled add-on recovery
 
 Restore `services`, `work_orders`, and `work_order_add_ons` from one consistent backup. Migration `20260810233000_service_availability_and_addon_reconciliation` adds the `BOTH` enum value, updates only the two named canonical capability records, and inserts fixed approved add-ons without changing Work Order rows. If rollout fails, roll back application code first; do not duplicate a `BOTH` capability into separate primary/add-on records or infer unresolved website values. After recovery, verify Interior Window Cleaning and Laundry Folding appear in both active selectors, primary/add-on validation remains enforced, inactive historical selections remain readable, and Work Order references are unchanged.
+
+## Property vocabulary compatibility (2026-08-10)
+
+After restore, verify the four nullable Property columns and their PostgreSQL enum types exist. Never infer Estate, Complex, or Gated community from a legacy `is_estate_or_complex = true`, and never convert `THREE_PLUS` to `THREE` or `FOUR_PLUS` without authoritative correction. A rollback must preserve the legacy columns/states and should not drop newly recorded enum data.

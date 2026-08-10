@@ -394,3 +394,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added `BOTH` Service availability so Interior Window Cleaning and Laundry Folding remain one canonical capability selectable as primary or add-on, without duplicate Services.
 - Added the current, distinct Ironing, Bed Making, Linen Change, Garage Sweeping, Extra Bathroom Cleaning, and Pet-Hair Treatment add-ons through fixed-ID conflict-safe bootstrap logic.
 - Corrected current frequency and add-on aliases, kept Extra refrigerator quantity semantics unresolved, and documented current Property vocabulary and a focused pre-5M Property alignment follow-up.
+
+## 2026-08-10 — Slice 5J-A Property quote vocabulary alignment
+
+- Added nullable controlled Property floor-size, outdoor-area, estate-classification, and unit-floor fields.
+- Added exact current bedroom/storey outcomes and backend Property-Type combination validation.
+- Preserved the deployed estate boolean and ambiguous `THREE_PLUS` without fabricated backfill.
+- Updated Property editing and live Work Order Property summaries while keeping selector payloads lean.

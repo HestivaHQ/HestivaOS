@@ -141,3 +141,7 @@ Property is the canonical live source for persistent home facts, access/logistic
 Work Order continues to own the primary Service, Add-ons, frequency snapshot, visit condition, job-specific instructions, schedule, and assignment. Its office summary and Technician job view read the current related Property profile; no profile columns or historical snapshot are copied onto Work Order. A visit-specific exception belongs in Work Order instructions. Recurring-agreement rules remain future work.
 
 Full Property and authorized Work Order responses can carry operational details. The generic `GET /properties/selector-options` contract explicitly selects only ID, customer ID, name, first address line, and city, excluding access, cameras, pets, allergies, and care notes. Existing authorization is unchanged. Technician presentation is limited to actionable access, parking, pet, off-limits, fragile-care, and product/allergy restriction information.
+
+## Property quote vocabulary alignment (2026-08-10)
+
+The authorized full Property resource stores nullable `floorSize`, `outdoorArea`, `estateClassification`, and unified `unitFloor` enums. `unitFloor` is validated against the managed Property Type label: Apartment and Townhouse have distinct allowed subsets; other types clear the value on type change. `STUDIO` is Apartment-only. The legacy `isEstateOrComplex` boolean and `THREE_PLUS` storey remain readable compatibility states and are not used for new exact selections. Generic Property selectors remain identity-only; Work Orders read the live full Property profile.
