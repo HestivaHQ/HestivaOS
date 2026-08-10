@@ -222,6 +222,20 @@ model Property {
   postalCode String? @map("postal_code")
   country String @default("South Africa")
   accessNotes String? @map("access_notes")
+  bedrooms BedroomCount?
+  bathrooms BathroomCount?
+  livingAreas LivingAreaCount? @map("living_areas")
+  storeys StoreyCount?
+  isEstateOrComplex Boolean? @map("is_estate_or_complex")
+  requiresGateSecurityAccess Boolean? @map("requires_gate_security_access")
+  parkingNotes String? @map("parking_notes")
+  hasPets Boolean? @map("has_pets")
+  petNotes String? @map("pet_notes")
+  hasCameras Boolean? @map("has_cameras")
+  offLimitsNotes String? @map("off_limits_notes")
+  fragileItemNotes String? @map("fragile_item_notes")
+  productRestrictionNotes String? @map("product_restriction_notes")
+  allergyNotes String? @map("allergy_notes")
   propertyTypeOptionId String? @map("property_type_option_id") @db.Uuid
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   propertyTypeOption BusinessListOption? @relation("PropertyType", fields: [propertyTypeOptionId], references: [id], onDelete: Restrict)
@@ -232,6 +246,36 @@ model Property {
   @@index([propertyTypeOptionId])
   @@index([city])
   @@map("properties")
+}
+
+enum BedroomCount {
+  STUDIO
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE_PLUS
+}
+
+enum BathroomCount {
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE_PLUS
+}
+
+enum LivingAreaCount {
+  ONE
+  TWO
+  THREE
+  FOUR_PLUS
+}
+
+enum StoreyCount {
+  ONE
+  TWO
+  THREE_PLUS
 }
 
 model Technician {

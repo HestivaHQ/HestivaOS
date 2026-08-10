@@ -15,7 +15,11 @@ export type CustomerSelectorOption = { id: string; name: string; contactName: st
 export type Customer = { id: string; ownerId: string; name: string; contactName: string | null; email: string | null; phone: string | null; notes?: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type CustomerCleanupImpact = { customerName: string; customer: number; properties: number; workOrders: number; activities: number; checklistItems: number; photos: number; signOffs: number; shiftsToDetach: number };
 export type CustomerCleanupResult = { customerDeleted: number; propertiesDeleted: number; workOrdersDeleted: number; activitiesDeleted: number; checklistItemsDeleted: number; photosDeleted: number; signOffsDeleted: number; shiftsDetached: number; storageObjectsDeleted: boolean; possibleOrphanedStorage: boolean };
-export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; propertyTypeOptionId: string | null; propertyTypeOption?: BusinessListOption | null; customerId: string; customer?: Customer };
+export type BedroomCount = 'STUDIO' | 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS';
+export type BathroomCount = 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS';
+export type LivingAreaCount = 'ONE' | 'TWO' | 'THREE' | 'FOUR_PLUS';
+export type StoreyCount = 'ONE' | 'TWO' | 'THREE_PLUS';
+export type Property = { id: string; name: string; addressLine1: string; addressLine2?: string | null; city: string; province?: string | null; postalCode?: string | null; country: string; accessNotes?: string | null; propertyTypeOptionId: string | null; propertyTypeOption?: BusinessListOption | null; customerId: string; customer?: Customer; bedrooms?: BedroomCount | null; bathrooms?: BathroomCount | null; livingAreas?: LivingAreaCount | null; storeys?: StoreyCount | null; isEstateOrComplex?: boolean | null; requiresGateSecurityAccess?: boolean | null; parkingNotes?: string | null; hasPets?: boolean | null; petNotes?: string | null; hasCameras?: boolean | null; offLimitsNotes?: string | null; fragileItemNotes?: string | null; productRestrictionNotes?: string | null; allergyNotes?: string | null };
 export type Technician = { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; skills: string[]; notes: string | null; status: 'ACTIVE' | 'INACTIVE' };
 export type CrewMember = { crewId: string; technicianId: string; technician: Technician; createdAt: string };
 export type Crew = { id: string; name: string; description: string | null; leaderId: string | null; status: 'ACTIVE' | 'INACTIVE'; leader: Technician | null; members: CrewMember[]; _count?: { workOrders: number }; createdAt: string; updatedAt: string };
@@ -55,7 +59,7 @@ export type DashboardOverview = {
 };
 
 export type CustomerInput = { ownerId: string; name?: string; contactName: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };
-export type PropertyInput = { customerId: string; name: string; addressLine1: string; addressLine2?: string; city: string; province?: string; postalCode?: string; country?: string; accessNotes?: string; propertyTypeOptionId?: string | null };
+export type PropertyInput = Omit<Property, 'id' | 'customer' | 'propertyTypeOption'>;
 export type TechnicianInput = { firstName: string; lastName: string; email?: string; phone?: string; skills?: string[]; notes?: string; status?: Technician['status'] };
 export type CrewInput = { name: string; description?: string; leaderId?: string | null; memberIds?: string[]; status?: Crew['status'] };
 export type ShiftInput = { title: string; startAt: string; endAt: string; unpaidBreakMinutes?: number; crewId?: string | null; technicianId?: string | null; workOrderId?: string | null; location?: string; notes?: string; status?: ShiftStatus };
@@ -117,6 +121,7 @@ export const api = {
   customerCleanupImpact: (id: string) => apiFetch<CustomerCleanupImpact>(`/admin/customer-cleanup/${id}/impact`),
   customerCleanup: (id: string, confirmationName: string) => apiFetch<CustomerCleanupResult>(`/admin/customer-cleanup/${id}`, { method: 'DELETE', ...json({ confirmationName }) }),
   properties: (query = '') => apiFetch<PaginatedResponse<Property>>(`/properties${query}`),
+  propertySelectorOptions: (customerId?: string) => apiFetch<Array<Pick<Property, 'id' | 'customerId' | 'name' | 'addressLine1' | 'city'>>>(`/properties/selector-options${customerId ? `?customerId=${encodeURIComponent(customerId)}` : ''}`),
   createProperty: (input: PropertyInput) => apiFetch<Property>('/properties', { method: 'POST', ...json(input) }),
   updateProperty: (id: string, input: Partial<PropertyInput>) => apiFetch<Property>(`/properties/${id}`, { method: 'PATCH', ...json(input) }),
   deleteProperty: (id: string) => apiFetch<Property>(`/properties/${id}`, { method: 'DELETE' }),

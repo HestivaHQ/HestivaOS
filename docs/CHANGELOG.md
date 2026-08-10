@@ -380,3 +380,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added backend validation for service type/status, duplicate add-ons, frequency/custom-note behavior, and home-condition values while preserving nullable and inactive historical relationships.
 - Reorganized Work Order creation into job, Property snapshot, visit instructions, and assignment concepts; retained Customer/Property continuation, automatic immutable reference generation, structured labels, and existing operational assignment/scheduling fields.
 - Deferred persistent Property quote fields to Slice 5J, catalogue/scope reconciliation to 5K, recurring agreements to 5L, and website handoff to 5M.
+
+## 2026-08-10 — Product Slice 5J — Property operational profile
+
+- Added nullable, controlled bedrooms, bathrooms, living-area, and storey facts plus lean persistent access, logistics, pet, camera, off-limits, fragile-care, product-restriction, and operational allergy fields to Property without backfilling historical data.
+- Restructured Property create/edit into progressive Identity, Address, Home Profile, Access & Logistics, and Household & Care sections while retaining dormant Province compatibility and the managed Property Type relationship.
+- Updated office Work Order Property summaries and Technician job views to read actionable current Property data without copying it onto Work Order; added an identifying-only Property selector privacy boundary.
+- Deferred floor size, outdoor status, entry arrangement, and presence defaults pending verified vocabularies/ownership, and preserved Slices 5K–5O.

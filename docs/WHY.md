@@ -54,3 +54,7 @@ A Work Order reference identifies a job without embedding changing business mean
 ## Accepted-quote ownership boundary
 
 Accepted quote data is split by its natural lifetime so operators do not re-enter canonical information and a visit does not become a duplicate customer/property store. Customer owns identity/contact, Property owns persistent home/access context, and Work Order owns the selected primary service, visit add-ons, quoted frequency snapshot, current home condition, timing, and visit instructions. A future recurring agreement will own recurrence because a long-lived agreement and an individual operational visit have different lifecycles. This keeps Slice 5I ready for a later quote handoff without prematurely coupling the OS to the website or building a recurrence engine.
+
+## Persistent Property operational ownership
+
+Repeatedly collecting stable home and household facts per visit creates conflicting copies and burdens operators. Property therefore owns the reusable operational profile, while Work Order retains only visit-specific operational facts and exceptions. Nullable additive fields preserve honest “unknown” state for existing homes. Lean relationship selectors deliberately omit household notes; an assigned Technician can still read actionable live context through the authorized Work Order view. This decision avoids premature recurrence, quote-handoff, scope, and snapshot models.

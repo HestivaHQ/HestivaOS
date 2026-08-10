@@ -141,3 +141,7 @@ Apply additive migration `20260811010000_add_work_order_references` before the u
 ## Slice 5I accepted-quote Work Order migration
 
 Deploy additive migration `20260811150000_accepted_quote_work_order_structure` before the updated API. It adds nullable frequency, custom-frequency-note, and home-condition columns plus the `work_order_add_ons` relationship table. It does not backfill historical rows or rename/remove `service_id`. After deployment, verify an authorized create with one active PRIMARY, zero and multiple active ADD_ON Services, each controlled frequency/condition, and then confirm existing inactive/null service relationships remain readable. Roll back application code before considering database rollback; retain the additive columns/table while investigating to avoid discarding accepted-quote relationships.
+
+## Slice 5J Property operational profile migration
+
+Deploy additive migration `20260812120000_property_operational_profile` before the updated API. It creates four controlled count enums and nullable Property columns for the operational profile. It performs no backfill: null means unknown for historical records, and Province is retained. After deployment, validate Prisma, create an unprofiled Property, create/update a profiled Property with each controlled count, and confirm the Work Order response reads the current related Property. Roll back application code first if needed; retaining nullable columns avoids information loss.

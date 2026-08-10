@@ -350,3 +350,10 @@ h1, h2, h3, p { margin-top: 0; }
 /* Cleanup confirmation keeps the destructive action visibly disabled without obscuring its label. */
 .cleanupDeleteButton:disabled { background: #e7c6c3; color: #641d18; border: 1px solid #b77b76; opacity: 1; cursor: not-allowed; }
 .confirmationMismatch { border-left: 4px solid #b42318; padding: 8px 10px; background: #fff2f0; color: #641d18; font-weight: 700; }
+.propertyGrid { grid-template-columns: minmax(320px, 560px) minmax(0, 1fr); }
+.propertyFormSection { display: grid; gap: 14px; min-width: 0; margin: 0; border: 1px solid #e1e8eb; border-radius: 12px; padding: 16px; }
+.propertyFormSection legend, .propertyFormSection summary { color: #244e60; font-size: 16px; font-weight: 800; }
+.propertyFormSection summary { cursor: pointer; }
+.propertyFormSection[open] summary { margin-bottom: 14px; }
+.propertyFieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 700px) { .propertyFieldGrid { grid-template-columns: 1fr; } .propertyFormSection { padding: 14px; } }

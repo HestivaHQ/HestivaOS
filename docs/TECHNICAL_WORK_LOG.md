@@ -238,3 +238,10 @@ The web form loads independently filtered active PRIMARY and ADD_ON catalogues, 
 Replaced the browser-default add-on fieldset presentation with a responsive, single-column/mobile and two-column/wide selector whose native checkbox labels provide full-row activation, visible checked and focus states, and a restrained hover treatment. Updated the supporting copy and empty state, and retained readable, removable inactive historical selections. Focused web coverage verifies the accessible associations, catalogue rendering, multi-selection state update, historical and empty states, user-facing copy, and unchanged active `ADD_ON` filtering.
 
 This cosmetic correction changed no Work Order business/data behavior, API, Prisma model, catalogue, scheduling, or assignment implementation. The Technician/Crew redesign remains deferred to Slice 5N.
+
+## 2026-08-10 — Slice 5J Property operational profile
+
+- Audited the Property schema, API, form, Work Order summary, Technician job view, and verified quote-alignment records. Added four Prisma enums and nullable additive Property columns through migration `20260812120000_property_operational_profile`; no historical values are inferred.
+- Added server-side enum/boolean validation, optional-note normalization, unsupported-field rejection, full-detail support, and an explicit identifying-only selector. Existing Property authorization, managed Property Type behavior, and dormant Province compatibility are unchanged.
+- Grouped the responsive form into five progressive sections. Work Order surfaces read live Property information; Technician output is limited to actionable access and care facts. No Work Order profile columns, snapshots, recurrence, quote integration, catalogue changes, or assignment redesign were added.
+- Repository evidence confirms Bedrooms and Property Types, but no approved floor-size, persistent outdoor, or entry-method vocabulary. Those controls and variable presence remain deferred rather than fabricated.
