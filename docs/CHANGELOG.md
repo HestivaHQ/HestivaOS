@@ -361,3 +361,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Cleanup explicitly removes the Customer-owned Work Order child rows, Work Orders, Properties, and Customer inside one Prisma transaction while preserving and detaching shared Shifts and preserving all other shared records.
 - Documented that photo metadata is deleted but Supabase Storage objects are not, so possible orphaned objects are reported rather than hidden.
 - Added focused migration, API transaction/confirmation/count, authorization, route, warning, and normal-deletion regression coverage. Website Bedrooms (Studio, 1, 2, 3, 4, 5+) remain deferred.
+
+## 2026-08-10 — Product Slice 5H — Cleanup confirmation and Work Order references
+
+- Preserved case-sensitive exact Customer cleanup confirmation while adding explicit mismatch feedback and a readable, narrowly scoped disabled destructive action; deletion semantics are unchanged.
+- Added server-generated immutable `WO-YYYYMMDD-####` references using Africa/Johannesburg creation-day semantics, an atomic database daily counter, serializable creation transaction, overflow protection, and database uniqueness.
+- Removed manual Title entry from normal Work Order creation, added the canonical active Service relationship, structured Service/Customer/Property labels, reference search, and historical nullable-reference/Service plus legacy-title compatibility.

@@ -24,12 +24,12 @@ export type Shift = { id: string; title: string; startAt: string; endAt: string;
 export type Service = { id: string; name: string; description: string | null; defaultDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; type: 'PRIMARY' | 'ADD_ON'; createdAt: string; updatedAt: string };
 export type CleaningJobTemplate = { id: string; name: string; description: string | null; estimatedDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; services: Service[]; createdAt: string; updatedAt: string };
 export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | 'ON_SITE' | 'WAITING_FOR_PARTS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
-export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; crewId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null; crew: Crew | null };
+export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; crewId: string | null; serviceId: string | null; reference: string | null; title: string; service: Service | null; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null; crew: Crew | null };
 export type WorkOrderChecklistItem = { id: string; workOrderId: string; description: string; status: 'PENDING' | 'COMPLETED' | 'NOT_APPLICABLE'; sortOrder: number; createdAt: string; updatedAt: string };
 export type WorkOrderPhoto = { id: string; workOrderId: string; category: 'BEFORE' | 'AFTER'; url: string; storagePath: string; uploadedBy: string; createdAt: string };
 export type WorkOrderCustomerSignOff = { id: string; workOrderId: string; customerName: string; signatureDataUrl: string; note: string | null; acceptedAt: string };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'CREW_ASSIGNED' | 'CREW_CHANGED' | 'CREW_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
-export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'title'> };
+export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'reference' | 'title'> };
 export type DashboardOverview = {
   totals: { customers: number; properties: number; openWorkOrders: number; completedWorkOrders: number };
   statistics: { openWorkOrders: number; completedToday: number; overdueWorkOrders: number; activeTechnicians: number };
@@ -59,7 +59,7 @@ export type CrewInput = { name: string; description?: string; leaderId?: string 
 export type ShiftInput = { title: string; startAt: string; endAt: string; unpaidBreakMinutes?: number; crewId?: string | null; technicianId?: string | null; workOrderId?: string | null; location?: string; notes?: string; status?: ShiftStatus };
 export type ServiceInput = { name: string; description?: string; defaultDurationMinutes?: number; status?: Service['status']; type?: Service['type'] };
 export type CleaningJobTemplateInput = { name: string; description?: string; estimatedDurationMinutes?: number; status?: CleaningJobTemplate['status']; serviceIds?: string[] };
-export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; crewId?: string | null; title: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
+export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; crewId?: string | null; serviceId: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) { super(message); this.name = 'ApiError'; }

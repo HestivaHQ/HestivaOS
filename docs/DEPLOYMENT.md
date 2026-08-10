@@ -133,3 +133,7 @@ Deploy `20260810190000_add_property_type_controlled_input` through the normal Pr
 ### Website Property Type bootstrap
 
 Migration `20260810230000_bootstrap_website_property_types` runs through the existing Railway `db:migrate:deploy` boundary. It inserts only missing case/whitespace-normalized approved `PROPERTY_TYPE` options: Apartment, Townhouse, House, Duplex, and Other. Existing custom and inactive records and Property relationships are preserved. An inactive approved label produces a migration notice and is not reactivated. Verify migration output, then confirm active options through the authenticated Business Lists API and Property form; never manually delete historical options or seed “Not classified”.
+
+## Slice 5H Work Order reference migration
+
+Apply additive migration `20260811010000_add_work_order_references` before the updated API. It adds nullable `reference` and `service_id`, database uniqueness and relationship indexes, and the daily counter table; it neither backfills nor removes historical titles. After deployment, create two authorized Work Orders with an active Service and verify distinct same-day references, reference search, legacy-row readability, and inactive-Service rejection.

@@ -333,3 +333,6 @@ h1, h2, h3, p { margin-top: 0; }
 .employeeCard > div:last-child { display: grid; justify-items: end; gap: 9px; }
 @media (max-width: 1050px) { .employeeLayout { grid-template-columns: 1fr; } .employeeList { grid-row: 1; } }
 @media (max-width: 600px) { .employeeFields, .employeeFilters { grid-template-columns: 1fr; } .wideField { grid-column: auto; } .employeeCard { align-items: stretch; flex-direction: column; } .employeeCard > div:last-child { grid-template-columns: 1fr 1fr; align-items: center; justify-items: start; } .employeeCard button { min-height: 44px; width: 100%; } }
+/* Cleanup confirmation keeps the destructive action visibly disabled without obscuring its label. */
+.cleanupDeleteButton:disabled { background: #e7c6c3; color: #641d18; border: 1px solid #b77b76; opacity: 1; cursor: not-allowed; }
+.confirmationMismatch { border-left: 4px solid #b42318; padding: 8px 10px; background: #fff2f0; color: #641d18; font-weight: 700; }
