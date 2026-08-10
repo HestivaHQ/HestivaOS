@@ -1,12 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import type { AppUser } from '../../lib/api';
 import { accountInitials } from '../../lib/account-policy';
 import { AccountMenu } from './account-menu';
-
-type NavigationLink = readonly [href: string, label: string];
+import { AppNavigation, type NavigationItem } from './app-navigation';
 
 function Avatar({ user, email }: { user?: AppUser; email: string }) {
   return user?.profilePhotoUrl
@@ -14,11 +12,11 @@ function Avatar({ user, email }: { user?: AppUser; email: string }) {
     : <span className="headerAvatar">{accountInitials(user, email)}</span>;
 }
 
-export function MobileAppNavigation({ active, email, user, links }: {
+export function MobileAppNavigation({ active, email, user, items }: {
   active: string;
   email: string;
   user?: AppUser;
-  links: readonly NavigationLink[];
+  items: readonly NavigationItem[];
 }) {
   const [open, setOpen] = useState(false);
   const menuId = useId();
@@ -55,9 +53,7 @@ export function MobileAppNavigation({ active, email, user, links }: {
     {open ? <button className="mobileNavBackdrop" type="button" aria-label="Close navigation menu" onClick={() => setOpen(false)} /> : null}
     <aside id={menuId} className={`mobileNavDrawer ${open ? 'open' : ''}`} aria-hidden={!open}>
       <div className="mobileNavHeading"><strong>Navigation</strong><button type="button" aria-label="Close navigation menu" onClick={() => setOpen(false)}>×</button></div>
-      <nav className="navList" aria-label="Primary navigation">
-        {links.map(([href, label]) => <Link key={href} className={`navLink ${active === href ? 'active' : ''}`} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
-      </nav>
+      <AppNavigation active={active} items={items} onNavigate={() => setOpen(false)} />
       <div className="accountBlock">
         <div className="headerProfile"><Avatar user={user} email={email} /><span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.role?.replaceAll('_', ' ') || 'Role unavailable'}</small></span></div>
         <AccountMenu user={user} email={email} />

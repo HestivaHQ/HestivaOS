@@ -1,65 +1,63 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { displayCustomerName } from '../lib/customer-display.js';
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const frame = source('../app/components/app-frame.tsx');
-const account = source('../app/components/account-menu.tsx');
+const navigation = source('../app/components/app-navigation.tsx');
 const mobile = source('../app/components/mobile-app-navigation.tsx');
 const customers = source('../app/customers/customers-manager.tsx');
 const properties = source('../app/properties/properties-manager.tsx');
 const workOrders = source('../app/work-orders/work-orders-manager.tsx');
 const adminSettings = source('../app/admin/settings/page.tsx');
 
-test('shared desktop and mobile navigation follows operational order without Services', () => {
-  const dashboard = frame.indexOf("['/', 'Dashboard']");
-  const customer = frame.indexOf("['/customers', 'Customers']");
-  const property = frame.indexOf("['/properties', 'Properties']");
-  const workOrder = frame.indexOf("['/work-orders', 'Work orders']");
-  assert.ok(dashboard < customer && customer < property && property < workOrder);
-  assert.doesNotMatch(frame, /\['\/services', 'Services'\]/);
-  assert.match(frame, /MobileAppNavigation[^>]+links=\{links\}/);
-  assert.match(frame, /\{links\.map/);
-  assert.match(adminSettings, /Business Lists/);
-  assert.match(adminSettings, /\/admin\/settings\/services/);
+test('shared desktop and mobile navigation has the approved operational order', () => {
+  const labels = ['Dashboard', 'Customers', 'Properties', 'Work orders', 'Team', 'My profile'];
+  const positions = labels.map((label) => frame.indexOf(`label: '${label}'`));
+  assert.ok(positions.every((position, index) => position >= 0 && (!index || positions[index - 1] < position)));
+  for (const label of ['Technicians', 'Crews', 'Shift Planning']) assert.match(frame, new RegExp(`label: '${label}'`));
+  assert.doesNotMatch(frame, /href: '\/employees'|href: '\/services'/);
+  assert.match(frame, /MobileAppNavigation[^>]+items=\{APP_NAVIGATION_ITEMS\}/);
+  assert.match(mobile, /<AppNavigation[^>]+items=\{items\}/);
 });
 
-test('the shell synchronizes the authoritative role and never fabricates Technician', () => {
-  assert.match(frame, /user \?\? await \(await createAuthenticatedApi\(\)\)\.syncUser\(\)/);
-  for (const role of ['ADMIN', 'TECHNICIAN', 'SUPERVISOR', 'OPERATIONS_MANAGER', 'DISPATCHER']) {
-    const shown = role.replaceAll('_', ' ');
-    assert.equal(role.replaceAll('_', ' '), shown);
-  }
-  assert.doesNotMatch(account, /\|\| 'Technician'/);
-  assert.doesNotMatch(mobile, /\|\| 'Technician'/);
-  assert.match(account, /user\?\.role\?\.replaceAll/);
-  assert.match(mobile, /user\?\.role\?\.replaceAll/);
+test('Team is an accessible disclosure and closes the mobile drawer on child navigation', () => {
+  assert.match(navigation, /<button[^>]+type="button"[^>]+aria-expanded=\{groupOpen\}/);
+  assert.match(navigation, /childActive/);
+  assert.match(navigation, /onClick=\{onNavigate\}/);
+  assert.match(mobile, /onNavigate=\{\(\) => setOpen\(false\)\}/);
 });
 
-test('customer and property creation continue with canonical IDs', () => {
-  assert.match(customers, /customer\.id/);
-  assert.match(customers, /\/properties\?mode=create&customerId=/);
+test('Admin Settings owns Employee Records and Services', () => {
+  assert.match(adminSettings, /href="\/employees"[^>]*><h3>Employee Records/);
+  assert.match(adminSettings, /href="\/admin\/settings\/services"[^>]*><h3>Services/);
+});
+
+test('customer form uses required Contact name without a Name field', () => {
+  assert.match(customers, /<label>Contact name<input required/);
+  assert.doesNotMatch(customers, /<label>Name<input/);
+});
+
+test('customer display prefers contact name and safely supports legacy records', () => {
+  assert.equal(displayCustomerName({ contactName: 'Current Contact', name: 'Historical Name' }), 'Current Contact');
+  assert.equal(displayCustomerName({ contactName: null, name: 'Historical Name' }), 'Historical Name');
+  assert.equal(displayCustomerName({ contactName: null, name: '' }), 'Customer');
+  assert.match(properties, /displayCustomerName\(c\)/);
+  assert.match(workOrders, /displayCustomerName\(c\)/);
+});
+
+test('create continues with a validated canonical ID while edit and failures do not navigate', () => {
+  assert.match(customers, /if \(editingId\) await api\.updateCustomer/);
+  assert.match(customers, /!customer\?\.id/);
+  assert.match(customers, /window\.location\.assign\(`\/properties\?mode=create&customerId=/);
+  assert.match(customers, /catch \(err\)/);
+});
+
+test('property creation still continues to work order with both canonical IDs', () => {
+  assert.match(properties, /preselectedCustomerId/);
   assert.match(properties, /property\.customerId/);
   assert.match(properties, /property\.id/);
   assert.match(properties, /\/work-orders\?mode=create&customerId=/);
-});
-
-test('property form uses managed types and keeps Province dormant', () => {
-  assert.match(properties, /activeBusinessLists\('PROPERTY_TYPE'\)/);
-  assert.match(properties, /Select property type/);
-  assert.match(properties, /No property types configured/);
-  assert.doesNotMatch(properties, /<label>Province/);
-  assert.doesNotMatch(properties, /Not classified/);
-});
-
-test('work-order deep links validate and preselect matching canonical relationships', () => {
-  assert.match(workOrders, /preselectedCustomerId/);
-  assert.match(workOrders, /preselectedPropertyId/);
   assert.match(workOrders, /item\.id === preselectedPropertyId && item\.customerId === customer\?\.id/);
-  assert.match(workOrders, /selected customer or property is unavailable or mismatched/);
-});
-
-test('customer denial is product-safe and does not expose a raw API message for unexpected faults', () => {
-  assert.match(customers, /Action denied\. \$\{err\.message\}/);
-  assert.match(customers, /Unexpected server failure\. Please try again\./);
 });

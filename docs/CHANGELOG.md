@@ -340,3 +340,15 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ### Preserved
 
 - Preserved all existing Users, Technicians, crews, shifts, work assignments, roles, and access statuses without inferred backfill or destructive deletion. Payroll, leave, performance management, document storage, advanced HR functionality, and expanded management permissions remain outside this slice.
+
+## 2026-08-10 — Slice 5F customer continuation and Team navigation
+
+### Changed
+
+- Made Contact name the required human-facing Customer field, retained `Customer.name` as legacy compatibility data, and derived it for new and explicitly edited records.
+- Changed successful new-Customer continuation to a validated document navigation into Property creation; edits and failed/invalid create responses do not start that flow.
+- Consolidated Technicians, Crews, and Shift Planning beneath an accessible Team disclosure shared by desktop and mobile navigation; moved Employee Records ownership to Admin Settings while retaining Services there.
+
+### Preserved
+
+- Preserved historical Customer names and relationships, Employee Records authorization, the canonical Service catalogue, authentication, CORS, Prisma schema, deployment configuration, and Property-to-Work-Order continuation.

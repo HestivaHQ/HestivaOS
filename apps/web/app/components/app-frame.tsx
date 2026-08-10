@@ -1,33 +1,31 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { AppUser } from '../../lib/api';
 import { MobileAppNavigation } from './mobile-app-navigation';
 import { AccountMenu } from './account-menu';
 import { createAuthenticatedApi } from '../../lib/api-server';
+import { AppNavigation, type NavigationItem } from './app-navigation';
 
-const APP_NAVIGATION_LINKS = [
-  ['/', 'Dashboard'],
-  ['/customers', 'Customers'],
-  ['/properties', 'Properties'],
-  ['/work-orders', 'Work orders'],
-  ['/technicians', 'Technicians'],
-  ['/employees', 'Employee Records'],
-  ['/crews', 'Crews'],
-  ['/shifts', 'Shift planning'],
-  ['/profile', 'My profile'],
-] as const;
+export const APP_NAVIGATION_ITEMS = [
+  { href: '/', label: 'Dashboard' },
+  { href: '/customers', label: 'Customers' },
+  { href: '/properties', label: 'Properties' },
+  { href: '/work-orders', label: 'Work orders' },
+  { label: 'Team', children: [
+    { href: '/technicians', label: 'Technicians' },
+    { href: '/crews', label: 'Crews' },
+    { href: '/shifts', label: 'Shift Planning' },
+  ] },
+  { href: '/profile', label: 'My profile' },
+] as const satisfies readonly NavigationItem[];
 
 export async function AppFrame({ active, email, user, children }: { active: string; email: string; user?: AppUser; children: ReactNode }) {
   const authoritativeUser = user ?? await (await createAuthenticatedApi()).syncUser();
-  const links = APP_NAVIGATION_LINKS.filter(([href]) => href !== '/employees' || authoritativeUser.role === 'ADMIN');
   return (
     <main className="appShell">
-      <MobileAppNavigation active={active} email={email} user={authoritativeUser} links={links} />
+      <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={APP_NAVIGATION_ITEMS} />
       <aside className="sidebar desktopSidebar">
         <div><p className="eyebrow">Hestiva OS</p><h1 className="brand">Operations</h1></div>
-        <nav className="navList" aria-label="Primary navigation">
-          {links.map(([href, label]) => <Link key={href} className={`navLink ${active === href ? 'active' : ''}`} href={href}>{label}</Link>)}
-        </nav>
+        <AppNavigation active={active} items={APP_NAVIGATION_ITEMS} />
         <div className="accountBlock"><AccountMenu user={authoritativeUser} email={email} /></div>
       </aside>
       <section className="content">{children}</section>
