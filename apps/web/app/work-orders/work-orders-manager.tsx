@@ -27,6 +27,9 @@ function activityDescription(activity: WorkOrderActivity) {
 
 export function WorkOrdersManager({ createdById }: { createdById: string }) {
   const searchParams = useSearchParams();
+  const createMode = searchParams.get('mode') === 'create';
+  const preselectedCustomerId = createMode ? searchParams.get('customerId') : null;
+  const preselectedPropertyId = createMode ? searchParams.get('propertyId') : null;
   const editId = searchParams.get('edit');
   const alert = searchParams.get('alert');
   const [items, setItems] = useState<WorkOrder[]>([]);
@@ -58,12 +61,14 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
       setProperties(propertyData.items);
       setTechnicians(technicianData.items);
       setCrews(crewData.items);
-      setForm((current) => current.customerId || !customerData.items[0] ? current : { ...current, customerId: customerData.items[0].id, propertyId: propertyData.items.find((p) => p.customerId === customerData.items[0].id)?.id ?? '' });
-      setError('');
+      const customer = preselectedCustomerId ? customerData.items.find((item) => item.id === preselectedCustomerId) : customerData.items[0];
+      const property = preselectedPropertyId ? propertyData.items.find((item) => item.id === preselectedPropertyId && item.customerId === customer?.id) : propertyData.items.find((item) => item.customerId === customer?.id);
+      setForm((current) => current.customerId || !customer ? current : { ...current, customerId: customer.id, propertyId: property?.id ?? '' });
+      setError((preselectedCustomerId && !customer) || (preselectedPropertyId && !property) ? 'Validation failed. The selected customer or property is unavailable or mismatched.' : '');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
   }
 
-  useEffect(() => { void load(); }, [alert]);
+  useEffect(() => { void load(); }, [alert, preselectedCustomerId, preselectedPropertyId]);
   useEffect(() => {
     const workOrder = items.find((item) => item.id === editId);
     if (workOrder && editingId !== workOrder.id) edit(workOrder);

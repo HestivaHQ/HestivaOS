@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-10 — Product Slice 5E — Operational flow and role synchronization
+
+- Converted Customer relationship-protection failures into controlled HTTP 409 conflicts before deletion. Customers without Properties or Work Orders remain deletable; linked Properties and Work Order history are preserved without cascade deletion or raw Prisma errors.
+- Added safe frontend denial wording and separated expected denial/validation from generic unexpected-failure presentation.
+- Made the shared shell synchronize an authoritative application User whenever the route has not already supplied one. Desktop and mobile account UI now consume the same User role and no longer default an unresolved identity to Technician.
+- Continued successful Customer creation into Property creation and successful Property creation into Work Order creation using validated canonical Customer and Property IDs.
+- Changed the Property Type null prompt from “Not classified” to a neutral selection state, retained active `PROPERTY_TYPE` Business Lists as the assignment authority and inactive historical readability, and added an empty-catalogue configuration signpost.
+- Made Province dormant in ordinary Property create/edit UI without changing the Prisma/API field or overwriting stored values.
+- Reordered shared navigation to Dashboard, Customers, Properties, Work orders, then workforce destinations; removed Services from primary navigation while preserving `/services`, Service APIs, operational lookup, and Admin Settings → Services.
+
 ## 2026-08-10 — Product Slice 5D — Canonical service catalogue
 
 ### Added

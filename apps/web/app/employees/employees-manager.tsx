@@ -209,7 +209,7 @@ export function EmployeesManager() {
       ) : null}
       <div className="employeeLayout">
         <form className="employeeForm" onSubmit={save}>
-          <section className="panel employeeSection">
+          <section className="panel employeeSection" id="business-lists">
             <h3>Identity</h3>
             <div className="employeeFields">
               {input("employeeReference", "Employee reference")}

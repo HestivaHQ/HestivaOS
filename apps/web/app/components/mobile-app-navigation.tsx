@@ -59,7 +59,7 @@ export function MobileAppNavigation({ active, email, user, links }: {
         {links.map(([href, label]) => <Link key={href} className={`navLink ${active === href ? 'active' : ''}`} href={href} onClick={() => setOpen(false)}>{label}</Link>)}
       </nav>
       <div className="accountBlock">
-        <div className="headerProfile"><Avatar user={user} email={email} /><span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.jobTitle || user?.role?.replaceAll('_', ' ') || 'Technician'}</small></span></div>
+        <div className="headerProfile"><Avatar user={user} email={email} /><span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.role?.replaceAll('_', ' ') || 'Role unavailable'}</small></span></div>
         <AccountMenu user={user} email={email} />
       </div>
     </aside>

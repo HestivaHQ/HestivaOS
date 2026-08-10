@@ -1,12 +1,14 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { api, Customer } from '../../lib/api';
+import { useRouter } from 'next/navigation';
+import { api, ApiError, Customer } from '../../lib/api';
 
 type CustomerForm = { name: string; contactName: string; email: string; phone: string; notes: string; status: Customer['status'] };
 const emptyForm: CustomerForm = { name: '', contactName: '', email: '', phone: '', notes: '', status: 'ACTIVE' };
 
 export function CustomersManager({ ownerId }: { ownerId: string }) {
+  const router = useRouter();
   const [items, setItems] = useState<Customer[]>([]);
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -28,7 +30,11 @@ export function CustomersManager({ ownerId }: { ownerId: string }) {
     event.preventDefault(); setBusy(true);
     try {
       if (editingId) await api.updateCustomer(editingId, form);
-      else await api.createCustomer({ ownerId, ...form });
+      else {
+        const customer = await api.createCustomer({ ownerId, ...form });
+        router.push(`/properties?mode=create&customerId=${encodeURIComponent(customer.id)}`);
+        return;
+      }
       setForm(emptyForm); setEditingId(null); await load();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save customer.'); }
     finally { setBusy(false); }
@@ -40,9 +46,14 @@ export function CustomersManager({ ownerId }: { ownerId: string }) {
   }
 
   async function remove(id: string) {
-    if (!window.confirm('Delete this customer and its properties?')) return;
+    if (!window.confirm('Permanently delete this customer? Linked operational records will prevent deletion.')) return;
     try { await api.deleteCustomer(id); await load(); }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete customer.'); }
+    catch (err) {
+      if (err instanceof ApiError && (err.status === 403 || err.status === 409)) setError(`Action denied. ${err.message}`);
+      else if (err instanceof ApiError && err.status === 400) setError(`Validation failed. ${err.message}`);
+      else if (err instanceof ApiError) setError('Unexpected server failure. Please try again.');
+      else setError('Network failure. Check your connection and try again.');
+    }
   }
 
   return <>

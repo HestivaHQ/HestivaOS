@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CustomerStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
@@ -115,7 +115,17 @@ export class CustomersService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+      select: { id: true, _count: { select: { properties: true, workOrders: true } } },
+    });
+    if (!customer) throw new NotFoundException('Customer not found.');
+    if (customer._count.workOrders > 0) {
+      throw new ConflictException('This customer has operational history and cannot be permanently deleted.');
+    }
+    if (customer._count.properties > 0) {
+      throw new ConflictException('This customer has linked properties and cannot be deleted.');
+    }
     return this.prisma.customer.delete({ where: { id } });
   }
 }

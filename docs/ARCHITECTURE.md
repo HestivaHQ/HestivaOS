@@ -1,5 +1,17 @@
 # Production architecture
 
+## Operational continuation, identity presentation, and controlled deletion
+
+The shared authenticated `AppFrame` resolves `POST /users/sync` when its caller has not already supplied an application User. Desktop and mobile account presentations then receive that same authoritative `AppUser` and display its application role; neither presentation invents a Technician role while identity is unresolved. Supabase Auth remains the authentication identity authority and the application `User` remains the role and OS-access authority.
+
+The primary navigation follows Dashboard → Customers → Properties → Work orders before workforce destinations. Both responsive presentations use the same link source. Service catalogue management remains at Admin Settings → Services, so `/services` remains an authenticated read-only route and its APIs remain available but it is not promoted in primary operational navigation.
+
+Successful Customer creation continues to `/properties?mode=create&customerId=…`, and successful Property creation continues to `/work-orders?mode=create&customerId=…&propertyId=…`. The IDs are canonical persisted relationship IDs. Each receiving form verifies the requested record exists in its loaded authorized catalogue; Work Order preselection additionally verifies that the Property belongs to the Customer. Missing, unknown, or mismatched deep-link values produce a validation message and do not create a record. Work Order Service selection remains unchanged and controlled by the canonical active Service catalogue.
+
+Customer deletion is permanent only for a Customer with no Properties and no Work Orders. The service checks both relationships before invoking Prisma deletion: operational history or linked Properties return a controlled HTTP 409 response, preserving all related records and preventing the schema's Property cascade from being used as a product workflow. Unexpected faults retain normal server-error handling. This is the current narrow application of the product rule that expected domain rejection is not an internal server error.
+
+Property Type remains the optional `PROPERTY_TYPE` Business List relationship. New assignment offers active options only; an empty catalogue displays an unassigned prompt rather than a fabricated “Not classified” taxonomy, while an inactive existing assignment remains readable during editing. Province remains a nullable database/API compatibility field and existing values remain readable wherever Property addresses are rendered, but ordinary Property create/edit forms omit it and do not overwrite stored Province values.
+
 ## Canonical service catalogue
 
 Hestiva OS owns the operational service catalogue. `Service` has a minimal `PRIMARY`/`ADD_ON` classification, an active/inactive lifecycle, and a nullable unique normalized key used for safe case/whitespace comparison. Existing IDs and Cleaning Job Template relationships are preserved. Authenticated operational users may read the catalogue; only ADMIN may create, edit, deactivate, or reactivate records at `/admin/settings/services`. `/services` is an active, read-only operational catalogue. New template assignments reject inactive Services while existing templates continue to include and display inactive historical relationships.
