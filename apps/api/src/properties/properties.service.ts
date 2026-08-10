@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BusinessListType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 export type CreatePropertyInput = {
@@ -12,9 +12,10 @@ export type CreatePropertyInput = {
   postalCode?: string;
   country?: string;
   accessNotes?: string;
+  propertyTypeOptionId?: string | null;
 };
 
-export type UpdatePropertyInput = Partial<Omit<CreatePropertyInput, 'customerId'>>;
+export type UpdatePropertyInput = Partial<CreatePropertyInput>;
 
 @Injectable()
 export class PropertiesService {
@@ -27,6 +28,7 @@ export class PropertiesService {
 
     const customer = await this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { id: true } });
     if (!customer) throw new NotFoundException('Customer not found.');
+    await this.validatePropertyType(input.propertyTypeOptionId);
 
     return this.prisma.property.create({
       data: {
@@ -39,8 +41,9 @@ export class PropertiesService {
         postalCode: input.postalCode?.trim() || null,
         country: input.country?.trim() || undefined,
         accessNotes: input.accessNotes?.trim() || null,
+        propertyTypeOptionId: input.propertyTypeOptionId || null,
       },
-      include: { customer: true, _count: { select: { workOrders: true } } },
+      include: { customer: true, propertyTypeOption: true, _count: { select: { workOrders: true } } },
     });
   }
 
@@ -63,7 +66,7 @@ export class PropertiesService {
         orderBy: { createdAt: 'desc' },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
-        include: { customer: true, _count: { select: { workOrders: true } } },
+        include: { customer: true, propertyTypeOption: true, _count: { select: { workOrders: true } } },
       }),
       this.prisma.property.count({ where }),
     ]);
@@ -74,17 +77,25 @@ export class PropertiesService {
   async findOne(id: string) {
     const property = await this.prisma.property.findUnique({
       where: { id },
-      include: { customer: true, workOrders: { orderBy: { createdAt: 'desc' } } },
+      include: { customer: true, propertyTypeOption: true, workOrders: { orderBy: { createdAt: 'desc' } } },
     });
     if (!property) throw new NotFoundException('Property not found.');
     return property;
   }
 
   async update(id: string, input: UpdatePropertyInput) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
+    if (input.customerId !== undefined) {
+      const customer = await this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { id: true } });
+      if (!customer) throw new NotFoundException('Customer not found.');
+    }
+    if (input.propertyTypeOptionId !== undefined && input.propertyTypeOptionId !== existing.propertyTypeOptionId) {
+      await this.validatePropertyType(input.propertyTypeOptionId);
+    }
     return this.prisma.property.update({
       where: { id },
       data: {
+        ...(input.customerId !== undefined ? { customerId: input.customerId } : {}),
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.addressLine1 !== undefined ? { addressLine1: input.addressLine1.trim() } : {}),
         ...(input.addressLine2 !== undefined ? { addressLine2: input.addressLine2.trim() || null } : {}),
@@ -93,9 +104,18 @@ export class PropertiesService {
         ...(input.postalCode !== undefined ? { postalCode: input.postalCode.trim() || null } : {}),
         ...(input.country !== undefined ? { country: input.country.trim() } : {}),
         ...(input.accessNotes !== undefined ? { accessNotes: input.accessNotes.trim() || null } : {}),
+        ...(input.propertyTypeOptionId !== undefined ? { propertyTypeOptionId: input.propertyTypeOptionId || null } : {}),
       },
-      include: { customer: true, _count: { select: { workOrders: true } } },
+      include: { customer: true, propertyTypeOption: true, _count: { select: { workOrders: true } } },
     });
+  }
+
+  private async validatePropertyType(id?: string | null) {
+    if (!id) return;
+    const option = await this.prisma.businessListOption.findUnique({ where: { id }, select: { type: true, isActive: true } });
+    if (!option) throw new NotFoundException('Property type not found.');
+    if (option.type !== BusinessListType.PROPERTY_TYPE) throw new BadRequestException('The selected option is not a property type.');
+    if (!option.isActive) throw new BadRequestException('The selected property type is inactive.');
   }
 
   async remove(id: string) {

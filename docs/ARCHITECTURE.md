@@ -91,4 +91,9 @@ The model has nullable unique one-to-one links to `User` and `Technician`. The U
 
 Editable fields follow the classification and verified module matrix in [`CONTROLLED_INPUT_FIELD_AUDIT.md`](CONTROLLED_INPUT_FIELD_AUDIT.md): unique record values remain free text, lifecycle values use Prisma-backed fixed enums, entity references store canonical IDs, booleans and dates use native semantic controls, and reusable configurable classifications use managed business lists.
 
-Phase 1 implements `BusinessListOption` for `JOB_TITLE` and `DEPARTMENT`. ADMIN-only `/api/v1/admin/business-lists` endpoints list, create, rename, deactivate, and reactivate options; there is deliberately no delete endpoint. Employee records retain legacy `job_title` and `department` labels and add nullable typed foreign keys. An active, correctly typed option is required for a new controlled assignment, while inactive or legacy labels remain readable. No options are seeded.
+Phase 1 implements `BusinessListOption` for `JOB_TITLE` and `DEPARTMENT`; Phase 2 extends it with unseeded `PROPERTY_TYPE` options and a nullable Property relationship. Authenticated consumers list active options through `/api/v1/admin/business-lists`; ADMIN-only mutations create, rename, deactivate, and reactivate options; there is deliberately no delete endpoint. Employee records retain legacy `job_title` and `department` labels and add nullable typed foreign keys. An active, correctly typed option is required for a new controlled assignment, while inactive or legacy labels remain readable. No options are seeded.
+
+
+### Customer and Property controlled inputs
+
+Customer status is the existing fixed Prisma enum and is validated at the API boundary; customer-specific strings remain free text. Properties retain their canonical required Customer relation. A lean Customer selector response exposes only ID, customer name, and contact name. Property Type uses the shared managed-list model through a nullable foreign key: active correctly typed options may be assigned, inactive assigned options remain included for reading, and no seed or historical-data rewrite occurs.

@@ -11,7 +11,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Controlled-input Slice 5B Phase 1 is complete. Deliver Phase 2 Customer/Property classifications, Phase 3 Work Order/Scheduling selector searchability, and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
+- Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
 
 - Employee Records (Slice 5), User Access Management (Slice 3), and Business Profile (Slice 4) are complete. Deliver the Supervisor experience and broader Employee Record management permissions as focused follow-ups; Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
 - Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.

@@ -104,6 +104,12 @@ export function EmployeesManager() {
       );
     }
   }
+  async function renameOption(option: BusinessListOption) {
+    const label = window.prompt("Rename business list option", option.label)?.trim();
+    if (!label || label === option.label) return;
+    try { await api.updateBusinessListOption(await token(), option.id, { label }); await load(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to rename business list option."); }
+  }
   async function toggleOption(option: BusinessListOption) {
     try {
       await api.updateBusinessListOption(await token(), option.id, {
@@ -356,7 +362,7 @@ export function EmployeesManager() {
           <section className="panel employeeSection">
             <h3>Business Lists</h3>
             <p>
-              Admins control the job titles and departments available for new
+              Admins control the job titles, departments, and property types available for new
               assignments. Deactivated values remain visible on existing
               records.
             </p>
@@ -374,6 +380,7 @@ export function EmployeesManager() {
                 >
                   <option value="JOB_TITLE">Job Titles</option>
                   <option value="DEPARTMENT">Departments</option>
+                  <option value="PROPERTY_TYPE">Property Types</option>
                 </select>
               </label>
               <label>
@@ -399,9 +406,10 @@ export function EmployeesManager() {
             {options.map((option) => (
               <div className="lookupOption" key={option.id}>
                 <span>
-                  {option.type === "JOB_TITLE" ? "Job Title" : "Department"} ·{" "}
+                  {option.type === "JOB_TITLE" ? "Job Title" : option.type === "DEPARTMENT" ? "Department" : "Property Type"} ·{" "}
                   {option.label}
                 </span>
+                <button type="button" onClick={() => void renameOption(option)}>Rename</button>
                 <button type="button" onClick={() => void toggleOption(option)}>
                   {option.isActive ? "Deactivate" : "Reactivate"}
                 </button>

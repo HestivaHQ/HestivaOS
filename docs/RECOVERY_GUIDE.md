@@ -116,3 +116,7 @@ Before deploying Slice 5, retain the normal verified database backup. If applica
 ## Controlled business-list recovery
 
 For Slice 5B, restore `business_list_options` together with `employee_records` so lookup IDs and readable labels remain consistent. Do not delete inactive referenced options or mass-map legacy `job_title`/`department` strings. After restore, verify active options appear for new Employee selection, inactive options remain available to ADMIN management and existing linked records, and legacy unlinked strings remain unchanged.
+
+## Property Type recovery
+
+Restore `business_list_options` and `properties` consistently so optional Property Type IDs retain their labels. Do not delete inactive referenced options or infer classifications from names and addresses. The nullable Slice 5C column is backward-compatible with the prior application; roll back application code first and leave the additive schema in place while investigating.

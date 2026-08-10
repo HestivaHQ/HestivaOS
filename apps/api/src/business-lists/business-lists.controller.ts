@@ -16,7 +16,6 @@ import {
   BusinessListsService,
 } from "./business-lists.service";
 @Controller("admin/business-lists")
-@Roles(UserRole.ADMIN)
 export class BusinessListsController {
   constructor(private readonly lists: BusinessListsService) {}
   @Get() list(
@@ -26,9 +25,12 @@ export class BusinessListsController {
   ) {
     return this.lists.list(type, includeInactive);
   }
-  @Post() create(@Body() input: BusinessListInput) {
+  @Post()
+  @Roles(UserRole.ADMIN)
+  create(@Body() input: BusinessListInput) {
     return this.lists.create(input);
   }
+  @Roles(UserRole.ADMIN)
   @Patch(":id") update(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() input: BusinessListInput,

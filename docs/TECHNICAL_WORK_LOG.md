@@ -1,6 +1,10 @@
 # Technical work log
 
+## 2026-08-10 — Slice 5C Customer and Property controlled inputs
 
+- Audited the existing Customer and Property models, APIs, forms, validation, relationships, and ADR-0017 architecture. Customer status remains a fixed enum with new runtime validation; personal and record-specific strings remain free text. No unsupported Customer Type or contact-method field was invented.
+- Added `PROPERTY_TYPE` to the existing Business Lists architecture without seed data, a nullable Property foreign key, active/type validation, inactive-assignment read compatibility, and ADMIN create/rename/deactivate/reactivate controls. The existing GET list is available to authenticated form consumers while mutations remain ADMIN-only.
+- Replaced Property selector data loading with a lean searchable Customer label contract containing only ID, name, and contact name. Property updates now validate changes to the canonical Customer relationship. The migration performs no backfill, destructive normalization, or modification of historical records.
 ## 2026-08-10 — Slice 5B controlled inputs Phase 1
 
 - Completed and recorded the system-wide form audit before implementation. The audit found broad existing use of enums, IDs, booleans, and native dates, and bounded implementation to Employee job-title/department managed lists.

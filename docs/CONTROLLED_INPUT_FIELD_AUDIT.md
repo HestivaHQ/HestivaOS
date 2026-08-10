@@ -1,6 +1,6 @@
 # Controlled input field audit
 
-Verified 2026-08-10 against the editable React forms and Prisma/API contracts on this branch. This is the pre-implementation Slice 5B field matrix and records Phase 1 scope. Repeated fields with the same component, storage, classification, control, and rationale are grouped but were counted individually. Totals: **109 editable fields**: 52 free text, 11 fixed enum, 2 managed lookup, 13 relationship, 20 boolean, 7 date/date-time, and 4 numeric/currency. Four additional derived relationship summaries were reviewed as read-only.
+Verified 2026-08-10 against the editable React forms and Prisma/API contracts on this branch. This matrix records Slice 5B Phase 1 and the implemented Slice 5C Customer/Property decisions. Repeated fields with the same component, storage, classification, control, and rationale are grouped but were counted individually. Totals: **109 editable fields**: 52 free text, 11 fixed enum, 2 managed lookup, 13 relationship, 20 boolean, 7 date/date-time, and 4 numeric/currency. Four additional derived relationship summaries were reviewed as read-only.
 
 | Module | Page/component | Field name(s) | Current control | Data type / backend model | Classification | Recommended control | Change | Rationale |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -18,9 +18,10 @@ Verified 2026-08-10 against the editable React forms and Prisma/API contracts on
 | Employees | `employees-manager` | Start date; end date | date | `EmployeeRecord` date | DATE (2) | Existing date inputs | No | API validates dates and ordering. |
 | Employees | employee detail | User; technician; crew | read-only summary | canonical relations | READ-ONLY (3) | Existing summary/management links | No | Assignment ownership remains in existing modules. |
 | Customers | `customers-manager` | Name, contact name, email, phone, notes, search | text/email/textarea/search | `Customer` strings/query | FREE TEXT (6) | Existing native inputs | No | Unique customer data. |
-| Customers | `customers-manager` | Status | select | `CustomerStatus` | FIXED ENUM (1) | Existing enum select | No | Already controlled. |
-| Properties | `properties-manager` | Customer | select | `Property.customerId` | RELATIONSHIP (1) | Existing canonical-ID select; searchable later | No | Stores the relationship ID. |
-| Properties | `properties-manager` | Name, address lines, city, province, postal code, access notes | text/textarea | `Property` strings | FREE TEXT (7) | Existing inputs | No | Unique location data; property type is not currently modeled. |
+| Customers | `customers-manager` | Status | select | `CustomerStatus` | FIXED ENUM (1) | Native enum select plus API enum validation | **Yes—backend validation added in Phase 2** | The Prisma enum is canonical; invalid runtime payloads are rejected. |
+| Properties | `properties-manager` | Customer | canonical-ID select populated from the full Customer response | `Property.customerId` | RELATIONSHIP (1) | Search input plus native canonical-ID select using a lean label endpoint | **Yes—done in Phase 2** | Stores and validates the Customer ID, displays name/contact name rather than UUID, and does not retrieve notes or contact details. |
+| Properties | `properties-manager` | Property type | not modeled | nullable `Property.propertyTypeOptionId` plus `BusinessListOption(PROPERTY_TYPE)` | MANAGED LOOKUP (1) | Active-option select | **Yes—done in Phase 2** | Reusable operational classification is ADMIN-managed; no values are seeded, and inactive assigned values remain readable. |
+| Properties | `properties-manager` | Name, address lines, city, province, postal code, access notes | text/textarea | `Property` strings | FREE TEXT (7) | Existing inputs | No | Unique location data remains free text; Property Type is modeled separately as the managed lookup above. |
 | Services | `services-manager` | Name; description | text/textarea | `Service` strings | FREE TEXT (2) | Existing inputs | No | Service itself is the canonical entity. |
 | Services | `services-manager` | Duration | number | `Service.defaultDurationMinutes` | NUMERIC (1) | Existing number input | No | Correct numeric control. |
 | Services | `services-manager` | Status | select | `ServiceStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
@@ -49,4 +50,4 @@ Verified 2026-08-10 against the editable React forms and Prisma/API contracts on
 
 ## Phasing conclusion
 
-The audit found that migrating every remaining candidate would combine unrelated domain decisions. Phase 1 therefore establishes the standard and converts Employee job title and department only. Customer/property extensions are Phase 2; Work Order/scheduling searchability is Phase 3; technician skills and any remaining evidence-backed classifications are Phase 4. Existing fixed enums, relationships, booleans, dates, and deliberately free-text fields remain unchanged.
+The audit found that migrating every remaining candidate would combine unrelated domain decisions. Phase 1 therefore establishes the standard and converts Employee job title and department only. Customer/property Phase 2 is complete with the decisions above; Work Order/scheduling searchability is Phase 3; technician skills and any remaining evidence-backed classifications are Phase 4. Existing fixed enums, relationships, booleans, dates, and deliberately free-text fields remain unchanged.
