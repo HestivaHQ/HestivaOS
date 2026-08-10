@@ -17,17 +17,29 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 schema="$root/apps/api/prisma/schema.prisma"
 
 if [[ "$mode" == "staged" ]]; then
+  boundary="20260810233000_service_availability_and_addon_reconciliation"
   temporary="$(mktemp -d)"
   trap 'rm -rf "$temporary"' EXIT
   cp "$schema" "$temporary/schema.prisma"
   mkdir "$temporary/migrations"
-  cp "$root/apps/api/prisma/migrations/migration_lock.toml" "$temporary/migrations/"
   while IFS= read -r migration; do
-    cp -R "$migration" "$temporary/migrations/"
-  done < <(find "$root/apps/api/prisma/migrations" -mindepth 1 -maxdepth 1 -type d \
-    -name '20*' ! -name '20260810233000*' ! -name '20260810233100*' | sort | \
-    awk '$0 !~ /20260811010000|20260811150000|20260812120000/')
+    migration_name="$(basename "$migration")"
+    if [[ "$migration_name" < "$boundary" ]]; then
+      cp -R "$migration" "$temporary/migrations/"
+    fi
+  done < <(find "$root/apps/api/prisma/migrations" -mindepth 1 -maxdepth 1 -type d -name '20*' | sort)
   DATABASE_URL="$database_url" npx prisma migrate deploy --schema "$temporary/schema.prisma"
+
+  expected_pre_5k="$(find "$temporary/migrations" -mindepth 1 -maxdepth 1 -type d -name '20*' | wc -l)"
+  actual_pre_5k="$(psql "$database_url" -v ON_ERROR_STOP=1 -Atc 'SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL')"
+  if [[ "$actual_pre_5k" -ne "$expected_pre_5k" ]]; then
+    echo "pre-5K replay finished $actual_pre_5k migrations; expected $expected_pre_5k" >&2
+    exit 1
+  fi
+  if psql "$database_url" -v ON_ERROR_STOP=1 -Atc "SELECT migration_name FROM _prisma_migrations WHERE migration_name >= '$boundary' LIMIT 1" | grep -q .; then
+    echo "staged replay unexpectedly applied a migration at or after $boundary" >&2
+    exit 1
+  fi
 fi
 
 DATABASE_URL="$database_url" npx prisma migrate deploy --schema "$schema"

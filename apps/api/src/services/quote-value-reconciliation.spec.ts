@@ -5,6 +5,7 @@ const enumMigrationSql = require('node:fs').readFileSync(require('node:path').re
 const dataMigrationSql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260810233100_service_availability_and_addon_data/migration.sql'), 'utf8');
 const propertyVocabularySql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260810180000_property_quote_vocabulary/migration.sql'), 'utf8');
 const propertyProfileSql = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../prisma/migrations/20260812120000_property_operational_profile/migration.sql'), 'utf8');
+const migrationReplayScript = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../../../scripts/test_postgres_migrations.sh'), 'utf8');
 const migrationSql = `${enumMigrationSql}\n${dataMigrationSql}`;
 const mappingDoc = require('node:fs').readFileSync(require('node:path').resolve(__dirname, '../../../../docs/QUOTE_TO_OS_VALUE_MAPPING.md'), 'utf8');
 
@@ -55,6 +56,13 @@ describe('current quote value reconciliation', () => {
     expect(propertyProfileSql).toContain(`to_regtype('"BedroomCount"') IS NULL`);
     expect(propertyProfileSql).toContain(`to_regtype('"StoreyCount"') IS NULL`);
     expect(propertyProfileSql).toContain('ADD COLUMN IF NOT EXISTS "bedrooms"');
+  });
+
+  it('constructs staged replay from real directories before the 5K boundary', () => {
+    expect(migrationReplayScript).not.toContain('migration_lock.toml');
+    expect(migrationReplayScript).toContain('boundary="20260810233000_service_availability_and_addon_reconciliation"');
+    expect(migrationReplayScript).toContain('if [[ "$migration_name" < "$boundary" ]]');
+    expect(migrationReplayScript).toContain('actual_pre_5k');
   });
 
   it.each(['Inside oven', 'Inside fridge', 'Inside cupboards', 'Interior windows', 'Laundry folding', 'Ironing', 'Bed making', 'Linen change', 'Balcony or patio', 'Garage sweep', 'Extra bathroom', 'Extra refrigerator', 'Pet-hair treatment', 'Eco-friendly products', 'Post-renovation dust removal'])('documents current add-on %s', (value) => {

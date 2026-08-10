@@ -413,3 +413,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Corrected the earlier assessment of PR #70 after PostgreSQL 17 clean replay proved an independent history defect: 5J-A referenced `BedroomCount` and `StoreyCount` before their lexically later origin migration.
 - Made the two affected historical migrations converge safely whether the base profile types already exist or a clean replay reaches 5J-A first. The repair is additive and performs no Property backfill or value rewrite.
 - Expanded executable replay assertions to cover all eight Property vocabulary types/columns, compatibility enum values, and a finished row for every migration while preserving the PR #69 enum commit boundary.
+
+## 2026-08-10 — PR #71 staged-replay harness correction
+
+- Removed the staged replay harness's invalid dependency on an untracked, nonexistent `migration_lock.toml`; the successful clean PostgreSQL replay was unchanged.
+- Reconstructed pre-5K state directly from checked-in migration directories ordered before the exact 5K boundary, and added assertions that the staged phase finished exactly that set before the full chain runs.
+- Preserved both PostgreSQL 17 replay gates and all Property and Service reconciliation assertions.

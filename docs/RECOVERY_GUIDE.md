@@ -6,6 +6,8 @@ PR #69 failed at `20260810233000_service_availability_and_addon_reconciliation` 
 
 PR #71's first clean PostgreSQL replay then proved that PR #70 also had an independent migration-history defect: `20260810180000_property_quote_vocabulary` sorts before `20260812120000_property_operational_profile`, although the latter was the migration that originally created `BedroomCount`, `StoreyCount`, and their Property columns. Existing environments where the profile migration had already run concealed the gap; an empty database reached 5J-A first and failed with PostgreSQL 42704/Prisma P3018. The repaired 5J-A migration creates the two expanded enums when absent or only appends compatibility values when they already exist. The later profile migration conditionally creates all four base profile enums and adds its nullable columns only when absent. No values are backfilled or rewritten.
 
+The subsequent clean replay passed. The first staged replay failed before contacting PostgreSQL because the test harness tried to copy `apps/api/prisma/migrations/migration_lock.toml`, but no such file exists anywhere in the repository. Staged mode now copies only `schema.prisma` plus actual migration directories that sort before the 5K boundary, verifies the expected number and names finished, and then deploys and verifies the complete real chain. This was a CI workspace-construction defect, not another database migration failure.
+
 The failed SQL batch is expected to have rolled back as one PostgreSQL transaction, but production is not reachable from repository validation. An authorized operator must first run these read-only queries; do not infer production state from the repository:
 
 ```sql
