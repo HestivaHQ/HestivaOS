@@ -96,7 +96,7 @@ See the [recovery guide](RECOVERY_GUIDE.md) for symptom-specific procedures and 
 
 ## Pull-request verification (non-deploying)
 
-Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml` with Node.js 24. The workflow uses `npm ci` at the repository root; its root `postinstall` generates Prisma Client before later commands. It then validates the documentation policy against the pull request base and head, scans tracked files for high-confidence secret formats, runs the root typecheck, root build, and root test commands, builds the API and web workspaces independently, and runs `git diff --check`. The repository currently has no lint script, so this workflow does not invent or run a lint configuration.
+Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml` with Node.js 24. An isolated PostgreSQL 17 service replays all migrations from zero and from the pre-5K state before asserting enum, catalogue, Property-column, and migration-history outcomes. The workflow uses `npm ci` at the repository root; its root `postinstall` generates Prisma Client before later commands. It then validates the documentation policy against the pull request base and head, scans tracked files for high-confidence secret formats, runs the root typecheck, root build, and root test commands, builds the API and web workspaces independently, and runs `git diff --check`. The repository currently has no lint script, so this workflow does not invent or run a lint configuration.
 
 `npm test` runs the API Jest suite followed by the web workspace's explicit no-tests command. The API suite covers liveness metadata, successful and failed dependency readiness including optional Supabase states, request-ID propagation and generation, response correlation headers, and safe structured request fields. It mocks database and Supabase access and does not call production services. Run the same checks locally from the repository root:
 
@@ -148,8 +148,10 @@ Deploy additive migration `20260812120000_property_operational_profile` before t
 
 ## Slice 5K service availability rollout
 
-Deploy migration `20260810233000_service_availability_and_addon_reconciliation` through the existing Railway `db:migrate:deploy` sequence. It adds `ServiceType.BOTH`, updates the existing Interior Window Cleaning and Laundry Folding records by normalized name, and inserts six fixed add-on records using `ON CONFLICT DO NOTHING`; it creates no scope structures and writes no Work Order rows. After deployment, regenerate Prisma Client and verify both dual-context capabilities in primary and add-on selectors plus ADMIN availability management.
+Migration `20260810233000_service_availability_and_addon_reconciliation` now only adds `ServiceType.BOTH`; consecutive migration `20260810233100_service_availability_and_addon_data` uses the committed value, updates Interior Window Cleaning and Laundry Folding by normalized name, and inserts six fixed add-on records with `ON CONFLICT DO NOTHING`. It creates no scope structures or Work Order rows. Production has a failed record for the first name from PR #69, so do not run a routine Railway redeploy until the read-only checks and controlled `migrate resolve` procedure in the recovery guide are complete.
 
 ## 2026-08-10 Property vocabulary migration
 
 Apply `20260810180000_property_quote_vocabulary` before deploying this release, then run `npm run db:generate`. The migration is additive: it adds four nullable columns and enum values and deliberately retains `is_estate_or_complex` and `THREE_PLUS`. It performs no data backfill; legacy `true` classifications and `THREE_PLUS` storeys require later manual enrichment when authoritative facts are available.
+
+The timestamp places this migration before `20260812120000_property_operational_profile`, which originally introduced the base bedroom/storey types and columns. Both historical files contain deterministic existence checks so clean lexical replay and an existing database where the profile migration already ran converge without rewriting values. Pull-request PostgreSQL replay must pass both clean and staged modes before deployment.

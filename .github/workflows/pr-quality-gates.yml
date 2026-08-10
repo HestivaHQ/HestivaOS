@@ -12,6 +12,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  postgres-migrations:
+    name: Replay PostgreSQL migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Create isolated replay databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres hestiva_migration_clean
+          createdb -h localhost -U postgres hestiva_migration_staged
+      - name: Replay every migration from zero
+        run: scripts/test_postgres_migrations.sh clean postgresql://postgres:postgres@localhost:5432/hestiva_migration_clean
+      - name: Replay from the migration immediately before Slice 5K
+        run: scripts/test_postgres_migrations.sh staged postgresql://postgres:postgres@localhost:5432/hestiva_migration_staged
+
   verify:
     name: Verify repository
     runs-on: ubuntu-latest

@@ -401,3 +401,21 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added exact current bedroom/storey outcomes and backend Property-Type combination validation.
 - Preserved the deployed estate boolean and ambiguous `THREE_PLUS` without fabricated backfill.
 - Updated Property editing and live Work Order Property summaries while keeping selector payloads lean.
+
+## 2026-08-10 — PR #69 and PR #70 production migration recovery
+
+- Split Slice 5K so `ServiceType.BOTH` commits in the already-seen migration name before a consecutive migration uses it for catalogue reconciliation, correcting PostgreSQL 55P04 / Prisma P3018.
+- Recorded that the unresolved failed PR #69 row causes Prisma P3009 and blocks PR #70; preserved the independently additive, earlier-ordered Property vocabulary migration unchanged.
+- Added clean and staged PostgreSQL migration replay to pull-request checks, plus an operator-gated, read-only-first recovery procedure. No product behavior, Work Order data, environment configuration, or Cloudflare deployment changed.
+
+## 2026-08-10 — PR #71 clean-replay follow-up
+
+- Corrected the earlier assessment of PR #70 after PostgreSQL 17 clean replay proved an independent history defect: 5J-A referenced `BedroomCount` and `StoreyCount` before their lexically later origin migration.
+- Made the two affected historical migrations converge safely whether the base profile types already exist or a clean replay reaches 5J-A first. The repair is additive and performs no Property backfill or value rewrite.
+- Expanded executable replay assertions to cover all eight Property vocabulary types/columns, compatibility enum values, and a finished row for every migration while preserving the PR #69 enum commit boundary.
+
+## 2026-08-10 — PR #71 staged-replay harness correction
+
+- Removed the staged replay harness's invalid dependency on an untracked, nonexistent `migration_lock.toml`; the successful clean PostgreSQL replay was unchanged.
+- Reconstructed pre-5K state directly from checked-in migration directories ordered before the exact 5K boundary, and added assertions that the staged phase finished exactly that set before the full chain runs.
+- Preserved both PostgreSQL 17 replay gates and all Property and Service reconciliation assertions.

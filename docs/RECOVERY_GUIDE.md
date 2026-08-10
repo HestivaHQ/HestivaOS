@@ -1,5 +1,45 @@
 # Recovery guide
 
+## 2026-08-10 PR #69 / PR #70 migration recovery
+
+PR #69 failed at `20260810233000_service_availability_and_addon_reconciliation` with Prisma P3018/PostgreSQL 55P04 because one migration batch both added and used `ServiceType.BOTH`. PostgreSQL does not permit use of a newly added enum value until the transaction that adds it commits. Prisma subsequently reports P3009 and blocks later migrations.
+
+PR #71's first clean PostgreSQL replay then proved that PR #70 also had an independent migration-history defect: `20260810180000_property_quote_vocabulary` sorts before `20260812120000_property_operational_profile`, although the latter was the migration that originally created `BedroomCount`, `StoreyCount`, and their Property columns. Existing environments where the profile migration had already run concealed the gap; an empty database reached 5J-A first and failed with PostgreSQL 42704/Prisma P3018. The repaired 5J-A migration creates the two expanded enums when absent or only appends compatibility values when they already exist. The later profile migration conditionally creates all four base profile enums and adds its nullable columns only when absent. No values are backfilled or rewritten.
+
+The subsequent clean replay passed. The first staged replay failed before contacting PostgreSQL because the test harness tried to copy `apps/api/prisma/migrations/migration_lock.toml`, but no such file exists anywhere in the repository. Staged mode now copies only `schema.prisma` plus actual migration directories that sort before the 5K boundary, verifies the expected number and names finished, and then deploys and verifies the complete real chain. This was a CI workspace-construction defect, not another database migration failure.
+
+The failed SQL batch is expected to have rolled back as one PostgreSQL transaction, but production is not reachable from repository validation. An authorized operator must first run these read-only queries; do not infer production state from the repository:
+
+```sql
+SELECT migration_name, started_at, finished_at, rolled_back_at, applied_steps_count, logs
+FROM "_prisma_migrations"
+WHERE migration_name IN ('20260810180000_property_quote_vocabulary', '20260810233000_service_availability_and_addon_reconciliation', '20260810233100_service_availability_and_addon_data')
+ORDER BY started_at;
+
+SELECT e.enumsortorder, e.enumlabel
+FROM pg_type t JOIN pg_enum e ON e.enumtypid = t.oid
+WHERE t.typname = 'ServiceType' ORDER BY e.enumsortorder;
+
+SELECT id, name, normalized_name, type, status FROM services
+WHERE normalized_name IN ('interior window cleaning', 'laundry folding', 'ironing', 'bed making', 'linen change', 'garage sweeping', 'extra bathroom cleaning', 'pet-hair treatment')
+ORDER BY normalized_name, id;
+
+SELECT column_name, udt_name, is_nullable FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'properties'
+  AND column_name IN ('bedrooms', 'bathrooms', 'living_areas', 'storeys', 'floor_size', 'outdoor_area', 'estate_classification', 'unit_floor')
+ORDER BY column_name;
+```
+
+After deploying the repaired migration files but before restarting the API, the authorized operator must follow this decision:
+
+1. If the failed row is unresolved and any intended 5K effect is absent (the expected transaction-rollback state), manually run `DATABASE_URL="$PRODUCTION_DATABASE_URL" npx prisma migrate resolve --rolled-back 20260810233000_service_availability_and_addon_reconciliation --schema apps/api/prisma/schema.prisma`.
+2. If every intended effect is present, stop and obtain a reviewed incident-specific plan before considering `--applied`; this guide deliberately does not advise marking an unverified migration applied.
+3. If state is mixed, stop. Preserve the database and migration history and obtain a reviewed reconciliation plan; do not reset, drop schemas, delete history, or guess.
+4. For the verified rolled-back case, manually run `DATABASE_URL="$PRODUCTION_DATABASE_URL" npm run db:migrate:deploy`. This reapplies the same migration name as enum-addition-only, commits it, then runs the new data migration and all later pending migrations.
+5. Rerun all four read-only queries. Require `BOTH`, exactly the two intended dual-context rows, all six canonical IDs/names, all eight profile/vocabulary Property columns, and finished migration rows with no unresolved failure. Then restart/redeploy the Railway API and verify `/api/v1/health`, `/api/v1/ready`, and a harmless authenticated catalogue/Property read.
+
+Do not run `prisma migrate reset`, modify `_prisma_migrations` directly, or mutate production during verification. Cloudflare has no migration or configuration change in this recovery.
+
 ## Slice 5E operational-flow recovery
 
 If Customer deletion is unexpectedly refused, inspect its Property and Work Order counts through authorized application/database tooling. HTTP 409 with a safe linked-record reason is expected and must not be bypassed with direct SQL, cascade deletion, or removal of history. Only a Customer with neither relationship is permanently deletable. Restore an accidentally deleted Customer or linked records together from an authorized consistent backup.
