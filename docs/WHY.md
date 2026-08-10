@@ -46,3 +46,7 @@ Hestiva needs workforce details for people who may not use Hestiva OS and may no
 ## 2026-08-10 — Contact-first customers and grouped workforce navigation
 
 Hestiva's present workflow treats a Customer as the person represented by Contact name, so a second required Name input creates duplicate work without adding operational meaning. The retained database Name remains a compatibility field and legacy fallback rather than being destructively removed. The operational sidebar follows Customer → Property → Work Order creation, while Technicians, Crews, and Shift Planning express one Team concern. Employee Records and Services remain administrative ownership areas rather than daily operational destinations.
+
+## Automatic Work Order identity
+
+A Work Order reference identifies a job without embedding changing business meaning or personal data. Service, Customer, and Property remain canonical relationships used to derive the useful label; an Africa/Johannesburg daily database counter makes the human-readable reference authoritative under concurrent server creation. Legacy title fallback preserves history without inventing past sequence order.

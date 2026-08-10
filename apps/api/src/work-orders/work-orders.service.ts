@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CrewStatus, Prisma, WorkOrderActivityType, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
+import { CrewStatus, Prisma, ServiceStatus, WorkOrderActivityType, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 export type CreateWorkOrderInput = {
@@ -8,7 +8,7 @@ export type CreateWorkOrderInput = {
   createdById: string;
   technicianId?: string | null;
   crewId?: string | null;
-  title: string;
+  serviceId: string;
   description?: string;
   status?: WorkOrderStatus;
   priority?: WorkOrderPriority;
@@ -16,7 +16,7 @@ export type CreateWorkOrderInput = {
   completedAt?: string;
 };
 
-export type UpdateWorkOrderInput = Partial<Omit<CreateWorkOrderInput, 'createdById'>>;
+export type UpdateWorkOrderInput = Partial<Omit<CreateWorkOrderInput, 'createdById' | 'serviceId'>> & { serviceId?: string };
 export type ChangeWorkOrderStatusInput = { status: WorkOrderStatus; note?: string; actorId?: string };
 export type WorkOrderAlert = 'overdue' | 'awaiting-assignment' | 'waiting-for-parts' | 'high-priority' | 'today-unassigned';
 
@@ -26,7 +26,12 @@ const workOrderInclude = {
   createdBy: true,
   technician: true,
   crew: { include: { leader: true, members: { include: { technician: true } } } },
+  service: true,
 } as const;
+
+export function johannesburgBusinessDate(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replaceAll('-', '');
+}
 const validTransitions: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   NEW: [WorkOrderStatus.ASSIGNED, WorkOrderStatus.CANCELLED],
   ASSIGNED: [WorkOrderStatus.ACCEPTED, WorkOrderStatus.NEW, WorkOrderStatus.CANCELLED],
@@ -46,14 +51,15 @@ export class WorkOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(input: CreateWorkOrderInput) {
-    if (!input.customerId || !input.propertyId || !input.createdById || !input.title?.trim()) {
-      throw new BadRequestException('customerId, propertyId, createdById and title are required.');
+    if (!input.customerId || !input.propertyId || !input.createdById || !input.serviceId) {
+      throw new BadRequestException('customerId, propertyId, serviceId and createdById are required.');
     }
 
-    const [customer, property, user, technician, crew] = await Promise.all([
+    const [customer, property, user, service, technician, crew] = await Promise.all([
       this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { id: true } }),
       this.prisma.property.findUnique({ where: { id: input.propertyId }, select: { id: true, customerId: true } }),
       this.prisma.user.findUnique({ where: { id: input.createdById }, select: { id: true } }),
+      this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { id: true, status: true } }),
       input.technicianId ? this.prisma.technician.findUnique({ where: { id: input.technicianId }, select: { id: true, status: true, firstName: true, lastName: true } }) : Promise.resolve(null),
       input.crewId ? this.prisma.crew.findUnique({ where: { id: input.crewId }, select: { id: true, name: true, status: true, members: { select: { technicianId: true } } } }) : Promise.resolve(null),
     ]);
@@ -61,6 +67,8 @@ export class WorkOrdersService {
     if (!customer) throw new NotFoundException('Customer not found.');
     if (!property) throw new NotFoundException('Property not found.');
     if (!user) throw new NotFoundException('Creating user not found.');
+    if (!service) throw new NotFoundException('Service not found.');
+    if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active service for a new work order.');
     if (property.customerId !== input.customerId) throw new BadRequestException('Property does not belong to the selected customer.');
     if (input.technicianId && !technician) throw new NotFoundException('Technician not found.');
     if (technician?.status === 'INACTIVE') throw new BadRequestException('Inactive technicians cannot be assigned to new work orders.');
@@ -77,6 +85,12 @@ export class WorkOrdersService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const businessDate = johannesburgBusinessDate();
+      const counter = await tx.workOrderDailyCounter.upsert({
+        where: { businessDate }, create: { businessDate, sequence: 1 }, update: { sequence: { increment: 1 } },
+      });
+      if (counter.sequence > 9999) throw new BadRequestException('The daily work order reference limit has been reached.');
+      const reference = `WO-${businessDate}-${String(counter.sequence).padStart(4, '0')}`;
       const workOrder = await tx.workOrder.create({
         data: {
           customerId: input.customerId,
@@ -84,7 +98,9 @@ export class WorkOrdersService {
           createdById: input.createdById,
           technicianId: input.technicianId || null,
           crewId: input.crewId || null,
-          title: input.title.trim(),
+          serviceId: input.serviceId,
+          reference,
+          title: reference,
           description: input.description?.trim() || null,
           status: initialStatus,
           priority: input.priority,
@@ -101,7 +117,7 @@ export class WorkOrdersService {
       if (assigned) activities.push({ workOrderId: workOrder.id, type: WorkOrderActivityType.STATUS_CHANGED, previousStatus: WorkOrderStatus.NEW, newStatus: WorkOrderStatus.ASSIGNED, actorId: input.createdById });
       await tx.workOrderActivity.createMany({ data: activities });
       return workOrder;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async findAll(page = 1, pageSize = 20, search?: string, status?: WorkOrderStatus, priority?: WorkOrderPriority, customerId?: string, propertyId?: string, technicianId?: string, crewId?: string, alert?: WorkOrderAlert) {
@@ -119,7 +135,7 @@ export class WorkOrdersService {
       'high-priority': { status: { in: actionableStatuses }, priority: { in: [WorkOrderPriority.HIGH, WorkOrderPriority.URGENT] } },
       'today-unassigned': { status: { in: actionableStatuses }, technicianId: null, crewId: null, scheduledAt: { gte: todayStart, lt: tomorrowStart } },
     };
-    const where: Prisma.WorkOrderWhereInput = { status, priority, customerId, propertyId, technicianId, crewId, ...(alert ? alertWhere[alert] : {}), ...(term ? { OR: [{ title: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }, { crew: { name: { contains: term, mode: 'insensitive' } } }] } : {}) };
+    const where: Prisma.WorkOrderWhereInput = { status, priority, customerId, propertyId, technicianId, crewId, ...(alert ? alertWhere[alert] : {}), ...(term ? { OR: [{ reference: { contains: term, mode: 'insensitive' } }, { title: { contains: term, mode: 'insensitive' } }, { description: { contains: term, mode: 'insensitive' } }, { customer: { OR: [{ name: { contains: term, mode: 'insensitive' } }, { contactName: { contains: term, mode: 'insensitive' } }] } }, { property: { OR: [{ name: { contains: term, mode: 'insensitive' } }, { addressLine1: { contains: term, mode: 'insensitive' } }] } }, { service: { name: { contains: term, mode: 'insensitive' } } }, { crew: { name: { contains: term, mode: 'insensitive' } } }] } : {}) };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.workOrder.findMany({ where, orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }], skip: (safePage - 1) * safePageSize, take: safePageSize, include: workOrderInclude }),
       this.prisma.workOrder.count({ where }),
@@ -179,6 +195,12 @@ export class WorkOrdersService {
     const nextStatus = assignmentAdded && existing.status === WorkOrderStatus.NEW ? WorkOrderStatus.ASSIGNED : input.status ?? existing.status;
     this.assertTransition(existing.status, nextStatus);
 
+    if (input.serviceId && input.serviceId !== existing.serviceId) {
+      const service = await this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { status: true } });
+      if (!service) throw new NotFoundException('Service not found.');
+      if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active service.');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const workOrder = await tx.workOrder.update({
         where: { id },
@@ -187,7 +209,7 @@ export class WorkOrdersService {
           ...(input.propertyId !== undefined ? { propertyId: input.propertyId } : {}),
           ...(input.technicianId !== undefined ? { technicianId: input.technicianId || null } : {}),
           ...(input.crewId !== undefined ? { crewId: input.crewId || null } : {}),
-          ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+          ...(input.serviceId !== undefined ? { serviceId: input.serviceId } : {}),
           ...(input.description !== undefined ? { description: input.description.trim() || null } : {}),
           ...(nextStatus !== existing.status ? { status: nextStatus } : {}),
           ...(input.priority !== undefined ? { priority: input.priority } : {}),

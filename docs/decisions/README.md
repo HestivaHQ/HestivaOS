@@ -26,3 +26,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0019: Contact-first Customers and Team navigation](ADR-0019-contact-first-customers-and-team-navigation.md)
 
 - [ADR-0020: Isolate destructive Customer-tree cleanup behind exact ADMIN authorization](ADR-0020-admin-customer-tree-cleanup.md)
+- [ADR-0021: Generate daily Work Order references and relate canonical Services](ADR-0021-work-order-reference-and-service.md)

@@ -351,6 +351,7 @@ model Service {
   status ServiceStatus @default(ACTIVE)
   type ServiceType @default(PRIMARY)
   jobTemplates CleaningJobTemplate[]
+  workOrders WorkOrder[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
@@ -380,6 +381,8 @@ model WorkOrder {
   createdById String @map("created_by_id") @db.Uuid
   technicianId String? @map("technician_id") @db.Uuid
   crewId String? @map("crew_id") @db.Uuid
+  serviceId String? @map("service_id") @db.Uuid
+  reference String? @unique
   title String
   description String?
   status WorkOrderStatus @default(NEW)
@@ -391,6 +394,7 @@ model WorkOrder {
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   shifts Shift[]
   activities WorkOrderActivity[]
   checklistItems WorkOrderChecklistItem[]
@@ -403,9 +407,17 @@ model WorkOrder {
   @@index([createdById])
   @@index([technicianId])
   @@index([crewId])
+  @@index([serviceId])
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderDailyCounter {
+  businessDate String @id @map("business_date")
+  sequence Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@map("work_order_daily_counters")
 }
 
 model WorkOrderChecklistItem {

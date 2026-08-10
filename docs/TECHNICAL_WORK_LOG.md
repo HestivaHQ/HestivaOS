@@ -220,3 +220,9 @@ Replaced top-level workforce links with a shared Team disclosure containing Tech
 - Added `/admin/settings/business-lists` and `/admin/settings/customer-data-cleanup`, corrected the Property empty-list link, and added responsive impact/confirmation presentation.
 - Confirmed the repository has photo metadata CRUD but no safe Storage cleanup service. Database photo metadata is deleted; Supabase objects are not; the response reports orphan risk.
 - Recorded the website Bedroom values Studio, 1, 2, 3, 4, and 5+ as future alignment only.
+
+## 2026-08-10 — Slice 5H cleanup UX and automatic Work Order references
+
+- Kept cleanup confirmation as an exact case-sensitive comparison and all existing ADMIN preview/atomic deletion behavior. Non-empty mismatches now identify the required display name in an accessible inline alert; cleanup-only disabled styling uses an opaque muted destructive treatment with readable text.
+- Added nullable `WorkOrder.reference` and `serviceId` for history, a unique reference index, restrictive canonical Service relation, and `WorkOrderDailyCounter`. New creation validates an active Service and atomically upserts the Johannesburg `YYYYMMDD` counter in the same serializable transaction as Work Order/activity creation. Sequence 10000 raises a controlled error and rolls back. New non-null legacy titles receive the reference; historical rows are not backfilled.
+- Removed create/edit title mutation, exposed the reference read-only, and centralized display fallback: reference falls back to legacy title, while the human label prefers canonical Service, Customer display name, and Property. Work Order queries include Service and reference search while retaining title, Customer, Property, description, and crew search. Customer → Property → Work Order preselection remains intact.

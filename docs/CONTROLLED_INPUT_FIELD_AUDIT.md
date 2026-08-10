@@ -42,8 +42,8 @@ The supplied website `JOB_TYPES` were reviewed but not imported. They mix cadenc
 | Shifts | `shifts-manager` | Break minutes | number | integer | NUMERIC (1) | Existing number input | No | Correct numeric control. |
 | Shifts | `shifts-manager` | Crew; work order | select | canonical IDs | RELATIONSHIP (2) | Existing selectors; searchable later | No | Stores IDs. |
 | Shifts | `shifts-manager` | Status | select | `ShiftStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
-| Work Orders | manager/detail | Customer; property; crew; technician assignment | select/actions | canonical IDs | RELATIONSHIP (4) | Existing selectors, customer-filtered property | No | Existing records are referenced by ID. |
-| Work Orders | manager/detail | Title; description; checklist description; status note | text/textarea | work-order strings | FREE TEXT (4) | Existing inputs | No | Unique operational content. |
+| Work Orders | manager/detail | Customer; property; Service; crew; technician assignment | select/actions | canonical IDs | RELATIONSHIP (5) | Existing selectors, customer-filtered property, active Service for new work | No | Historical Service is nullable/readable; new records store the canonical Service ID. |
+| Work Orders | manager/detail | Description; checklist description; status note | text/textarea | work-order strings | FREE TEXT (3) | Existing inputs | No | Manual Work Order Title is removed; legacy title remains a read fallback and new rows populate it automatically with the server reference. |
 | Work Orders | manager/detail | Status; priority; checklist status | selects/actions | Prisma enums | FIXED ENUM (3) | Existing enum controls | No | Already controlled and API-validated. |
 | Work Orders | manager | Scheduled at | datetime-local | timestamp | DATE (1) | Existing date-time control | No | Existing timezone behavior retained. |
 | Work Orders | checklist | Sort order | implicit/number | integer | NUMERIC (1) | Existing ordering control | No | Numeric ordering. |

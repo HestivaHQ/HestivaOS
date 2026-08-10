@@ -105,12 +105,12 @@ export class DashboardService {
         this.prisma.workOrderActivity.findMany({
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: { actor: true, workOrder: { select: { id: true, title: true } } },
+          include: { actor: true, workOrder: { select: { id: true, reference: true, title: true } } },
         }),
         this.prisma.workOrder.findMany({
           where: { status: { not: WorkOrderStatus.CANCELLED }, scheduledAt: { gte: todayStart, lt: tomorrowStart } },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
-          include: { customer: true, property: true, createdBy: true, technician: true, crew: true },
+          include: { customer: true, property: true, service: true, createdBy: true, technician: true, crew: true },
         }),
         groupedStatusesQuery,
         this.prisma.technician.findMany({
@@ -137,7 +137,7 @@ export class DashboardService {
             scheduledAt: { gte: tomorrowStart, lt: upcomingEnd },
           },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
-          include: { customer: true, property: true, createdBy: true, technician: true, crew: true },
+          include: { customer: true, property: true, service: true, createdBy: true, technician: true, crew: true },
         }),
         this.prisma.workOrder.findMany({
           where: {
