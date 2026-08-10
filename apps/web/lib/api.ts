@@ -59,6 +59,10 @@ export type ServiceInput = { name: string; description?: string; defaultDuration
 export type CleaningJobTemplateInput = { name: string; description?: string; estimatedDurationMinutes?: number; status?: CleaningJobTemplate['status']; serviceIds?: string[] };
 export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; crewId?: string | null; title: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) { super(message); this.name = 'ApiError'; }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (typeof window !== 'undefined' && !headers.has('Authorization')) {
@@ -74,7 +78,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       await createClient().auth.signOut();
       window.location.assign('/login?reason=access-disabled');
     }
-    throw new Error(result?.message ?? `API request failed with status ${response.status}`);
+    throw new ApiError(result?.message ?? `API request failed with status ${response.status}`, response.status);
   }
   if (response.status === 204) return undefined as T;
   const body = await response.text();

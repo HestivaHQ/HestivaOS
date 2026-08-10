@@ -1,5 +1,14 @@
 # Technical work log
 
+## 2026-08-10 — Slice 5E operational flow, controlled deletion, and role synchronization
+
+- Traced Customer deletion through Prisma: `Property.customer` is configured with `onDelete: Cascade`, while `WorkOrder.customer` and `WorkOrder.property` restrict deletion. The prior direct `customer.delete` could therefore destroy linked Properties when no Work Order existed or surface a relational Prisma fault as HTTP 500 when history existed. Added an explicit relationship-count guard returning HTTP 409 for Work Order history first and linked Properties second; no schema, cascade, or data migration changed.
+- Added frontend `ApiError` status retention and Customer denial presentation. Known 403/409 results show “Action denied” plus the API's safe domain reason; validation is distinct, and unexpected faults do not expose raw response/database text.
+- Traced the incorrect shell role to routes that rendered `AppFrame` without `user`, combined with account components' literal `Technician` fallback. The Profile route happened to pass its synchronized User, which made visiting Profile appear to repair the shell. `AppFrame` now synchronizes independently when necessary, passes one authoritative AppUser to desktop/mobile views, and neutralizes the fallback. Existing roles, permissions, reconciliation, and Supabase ownership are unchanged.
+- Added create-mode query continuation using returned persisted IDs: Customer → Property and Property → Work Order. Property and Work Order forms validate preselected IDs against loaded canonical records, and Work Order preselection enforces the Customer/Property relationship. Services remain user-controlled.
+- Removed Province controls and Province form payloads while retaining the schema/API compatibility field and existing display behavior. Updated optional Property Type UX to active Business List options, a neutral null state, inactive historical readability, and an ADMIN configuration path when empty.
+- Reordered the single shared navigation source and removed its Services entry; the route, API, catalogue, and Admin Settings → Services page remain intact. Added focused API and source-contract web coverage for deletion protection, authoritative roles, navigation ownership, deep links, Property Types, Province dormancy, and safe denial messages.
+
 ## 2026-08-10 — Slice 5D canonical service catalogue
 
 - Audited `Service`, migrations, APIs, `/services`, Cleaning Job Templates, Work Orders, and authorization. Before this slice Service already had description, optional duration, and status, and related only to Cleaning Job Templates; Work Orders still have no Service foreign key. Repository records cannot prove production row contents, so the migration performs data-aware reconciliation rather than claiming particular pre-existing rows.

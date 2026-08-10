@@ -21,7 +21,7 @@ export function AccountMenu({ user, email, compact = false }: { user?: AppUser; 
   return <div className={`accountMenu ${compact ? 'compact' : ''}`} ref={container}>
     <button className="accountMenuTrigger" type="button" aria-expanded={open} aria-controls={menuId} aria-label="Open account menu" onClick={() => setOpen((value) => !value)}>
       {user?.profilePhotoUrl ? <img className="headerAvatar" src={user.profilePhotoUrl} alt="" /> : <span className="headerAvatar">{accountInitials(user, email)}</span>}
-      {!compact ? <span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.jobTitle || user?.role?.replaceAll('_', ' ') || 'Technician'}</small></span> : null}
+      {!compact ? <span><strong>{user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || email}</strong><small>{user?.role?.replaceAll('_', ' ') || 'Role unavailable'}</small></span> : null}
     </button>
     {open ? <div className="accountMenuPopover" id={menuId} role="menu">
       <Link href="/profile" role="menuitem" onClick={() => setOpen(false)}>My Profile</Link>

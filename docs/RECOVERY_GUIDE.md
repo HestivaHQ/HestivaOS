@@ -1,5 +1,13 @@
 # Recovery guide
 
+## Slice 5E operational-flow recovery
+
+If Customer deletion is unexpectedly refused, inspect its Property and Work Order counts through authorized application/database tooling. HTTP 409 with a safe linked-record reason is expected and must not be bypassed with direct SQL, cascade deletion, or removal of history. Only a Customer with neither relationship is permanently deletable. Restore an accidentally deleted Customer or linked records together from an authorized consistent backup.
+
+If the shell displays the wrong role, verify the Supabase identity, then the application User resolved by `/users/sync`; do not repair presentation through Supabase metadata, Technician records, email-based role inference, or a Profile visit. The shared shell and both responsive account views must receive the same authoritative application User. Existing verified-email reconciliation and disabled-access behavior remain the approved recovery path.
+
+For a broken continuation URL, remove invalid query parameters and select existing records in the form. Never create against an unknown Customer or mismatched Property. Property Type options recover with the existing Business List procedure below. Province is intentionally absent from ordinary forms: recover or inspect an existing value through authorized data/API processes without adding fabricated defaults or dropping the retained column.
+
 ## Service catalogue recovery
 
 Restore the database and migration history together. Reapply migrations through `npm run db:migrate:deploy`; the canonical catalogue migration must not be replaced by a destructive seed. After recovery, verify existing Service IDs and Cleaning Job Template join rows, confirm missing canonical entries were created once, confirm ambiguous/legacy rows were preserved, and confirm inactive Services remain visible on historical templates but unavailable for new selection. Resolve any ambiguous case/whitespace duplicates manually with operational owners before assigning a normalized key.
