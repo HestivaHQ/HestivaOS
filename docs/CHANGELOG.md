@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-10 — Slice 5I-A Work Order add-on UI polish
+
+- Restyled Work Order add-ons as cohesive, full-row native checkbox choices in a responsive one- or two-column layout, with visible selected, focus, hover, and inactive-historical states.
+- Replaced implementation-oriented supporting copy and the empty-catalogue wording with natural user-facing messages while preserving active `ADD_ON` filtering and existing selection submission.
+- Changed no Work Order business/data behavior, API, Prisma model, service catalogue, scheduling, or Technician/Crew assignment behavior. The assignment redesign remains deferred to Slice 5N.
+
 ## 2026-08-10 — Product Slice 5E — Operational flow and role synchronization
 
 - Converted Customer relationship-protection failures into controlled HTTP 409 conflicts before deletion. Customers without Properties or Work Orders remain deletable; linked Properties and Work Order history are preserved without cascade deletion or raw Prisma errors.

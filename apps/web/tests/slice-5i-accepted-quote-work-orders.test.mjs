@@ -9,10 +9,22 @@ const schema = readFileSync(new URL('../../api/prisma/schema.prisma', import.met
 
 test('primary and add-on services have separate canonical controls and filtered queries', () => {
   assert.match(manager, /Primary Service<select required/);
-  assert.match(manager, /<fieldset><legend>Add-ons<\/legend>/);
+  assert.match(manager, /<fieldset className="addOnSection"><legend>Add-ons<\/legend>/);
   assert.match(manager, /status=ACTIVE&type=PRIMARY/);
   assert.match(manager, /status=ACTIVE&type=ADD_ON/);
   assert.doesNotMatch(manager, /<label>Title<input/);
+});
+
+test('add-on selector presents accessible responsive choices without changing selection state', () => {
+  assert.match(manager, /Select any optional services for this job\./);
+  assert.doesNotMatch(manager, /Choose zero or more active add-on services\./);
+  assert.match(manager, /selectableAddOns\.map/);
+  assert.match(manager, /htmlFor=\{inputId\}/);
+  assert.match(manager, /id=\{inputId\} type="checkbox"/);
+  assert.match(manager, /event\.target\.checked \? \[\.\.\.form\.addOnIds, service\.id\] : form\.addOnIds\.filter/);
+  assert.match(manager, /service\.status === 'INACTIVE' \? <small>Inactive · historical selection<\/small>/);
+  assert.match(manager, /No add-ons are currently available\./);
+  assert.match(manager, /status=ACTIVE&type=ADD_ON/);
 });
 
 test('accepted quote fields use controlled human labels', () => {
