@@ -11,7 +11,7 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 - `DATABASE_URL`
 - `PORT`
 - `NODE_ENV`
-- `CORS_ALLOWED_ORIGINS`
+- `CORS_ALLOWED_ORIGINS` — comma-separated exact browser origins; surrounding whitespace and trailing slashes are normalized, while arbitrary origins remain blocked
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL` (supported API fallback)

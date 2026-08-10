@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-10 — Employee Records CORS preflight correction
+
+### Fixed
+
+- Normalized whitespace and trailing slashes in the existing explicit `CORS_ALLOWED_ORIGINS` allowlist so the browser's exact Cloudflare `Origin` can receive an allow-origin response. The API now explicitly advertises its existing HTTP methods and the `Authorization` and `Content-Type` request headers used by authenticated JSON requests; credentials and origin restrictions remain enabled.
+- Added focused API policy coverage for Employee Records GET/POST/PATCH preflights, required headers, normalized approved origins, and rejection of arbitrary origins, plus web coverage confirming Employee Records continues through the shared bearer-token API helper.
+
 ## 2026-08-10 — Business Profile button labels
 
 ### Fixed
