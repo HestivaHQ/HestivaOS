@@ -20,6 +20,11 @@ export class PropertiesController {
     return this.properties.findAll(page, pageSize, search, customerId);
   }
 
+  @Get('selector-options')
+  selectorOptions(@Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string) {
+    return this.properties.selectorOptions(customerId);
+  }
+
   @Get(':id')
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.properties.findOne(id);

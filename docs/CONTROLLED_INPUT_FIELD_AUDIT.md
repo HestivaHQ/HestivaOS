@@ -70,3 +70,11 @@ The same website source defines Bedroom values Studio, 1, 2, 3, 4, and 5+. They 
 | Work Orders | create/edit/list/detail | Frequency | fixed select | nullable `WorkOrderFrequency` | FIXED ENUM | Null history displays as not recorded; custom description is accepted only for CUSTOM. |
 | Work Orders | create/edit/list/detail | Home Condition | fixed select | nullable `HomeCondition` | FIXED ENUM | Null history remains readable without inferred condition. |
 | Work Orders | create/edit | Property snapshot/access | read-only summary | canonical Property fields | RELATIONSHIP DISPLAY | No property/home values are copied into Work Order. |
+
+## Slice 5J Property operational controls (verified 2026-08-10)
+
+Implemented on Property: Bedrooms (`STUDIO`, `ONE`, `TWO`, `THREE`, `FOUR`, `FIVE_PLUS`), Bathrooms (`ONE` through `FOUR`, `FIVE_PLUS`), Living Areas (`ONE`, `TWO`, `THREE`, `FOUR_PLUS`), and Storeys (`ONE`, `TWO`, `THREE_PLUS`). The API validates every controlled value; blank selections persist as null. Existing managed `PROPERTY_TYPE` remains the sole type architecture and Province remains dormant.
+
+The persistent profile also implements nullable estate/complex, gate/security access, pets, and camera indicators plus concise access, parking, pet, off-limits, fragile-care, product-restriction, and operational allergy notes. Approximate floor size is deferred because this repository contains no verified approved size-range vocabulary. Outdoor-area status is deferred because the verified records do not establish it as a persistent fact distinct from the Balcony Sweeping add-on. Controlled entry/key arrangement and occupant-presence defaults are deferred for lack of approved persistent vocabulary; general access notes remain canonical.
+
+Visit condition, primary Service, Add-ons, frequency snapshot, schedule, assignment, and job instructions remain Work Order-specific. Service-scope reconciliation remains Slice 5K; ongoing agreement logic remains Slice 5L; accepted-quote transport and snapshot semantics remain Slice 5M.

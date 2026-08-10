@@ -146,3 +146,7 @@ Restore `work_orders`, `services`, and `work_order_daily_counters` from the same
 ## Accepted-quote Work Order recovery
 
 Restore `work_orders`, `work_order_add_ons`, and `services` from one consistent backup. Preserve nullable frequency/home-condition values and do not infer `ONE_TIME` or any condition for historical jobs. Never delete a canonical Service while removing an add-on relationship. After recovery, verify primary and add-on type boundaries, inactive historical relationship readability, custom-note validation, and the unchanged Johannesburg Work Order reference counter. Property details and access notes remain Property-owned and must be restored with Properties rather than reconstructed on Work Orders.
+
+## Property operational profile recovery
+
+If Property create/update fails after Slice 5J, confirm migration `20260812120000_property_operational_profile` is applied and regenerate Prisma Client. Compare submitted controlled values with the schema enums; do not replace rejected values with fabricated defaults. Verify historical rows remain readable with null profile columns and that Province values remain unchanged. For an unexpected disclosure, use `GET /properties/selector-options` and confirm its response contains only identifying fields; operational notes are expected only in authorized full Property and Work Order responses. Work Orders read live Property data, so correct the Property record or place a one-visit exception in existing Work Order instructions rather than copying persistent notes.

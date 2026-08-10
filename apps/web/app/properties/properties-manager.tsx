@@ -3,87 +3,33 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { api, BusinessListOption, CustomerSelectorOption, Property } from '../../lib/api';
+import { api, BusinessListOption, CustomerSelectorOption, Property, PropertyInput } from '../../lib/api';
 import { displayCustomerName } from '../../lib/customer-display';
 
-const emptyForm = { customerId: '', propertyTypeOptionId: '', name: '', addressLine1: '', addressLine2: '', city: '', postalCode: '', country: 'South Africa', accessNotes: '' };
+type Form = Omit<PropertyInput, 'isEstateOrComplex' | 'requiresGateSecurityAccess' | 'hasPets' | 'hasCameras'> & { isEstateOrComplex: string; requiresGateSecurityAccess: string; hasPets: string; hasCameras: string };
+const emptyForm: Form = { customerId: '', propertyTypeOptionId: '', name: '', addressLine1: '', addressLine2: '', city: '', postalCode: '', country: 'South Africa', accessNotes: '', bedrooms: null, bathrooms: null, livingAreas: null, storeys: null, isEstateOrComplex: '', requiresGateSecurityAccess: '', parkingNotes: '', hasPets: '', petNotes: '', hasCameras: '', offLimitsNotes: '', fragileItemNotes: '', productRestrictionNotes: '', allergyNotes: '' };
+const counts = [{ value: 'ONE', label: '1' }, { value: 'TWO', label: '2' }, { value: 'THREE', label: '3' }, { value: 'FOUR', label: '4' }, { value: 'FIVE_PLUS', label: '5+' }];
+const booleanValue = (value: string) => value === '' ? null : value === 'true';
+const booleanFormValue = (value?: boolean | null) => value == null ? '' : String(value);
 
 export function PropertiesManager() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter(), searchParams = useSearchParams();
   const preselectedCustomerId = searchParams.get('mode') === 'create' ? searchParams.get('customerId') : null;
-  const [items, setItems] = useState<Property[]>([]);
-  const [customers, setCustomers] = useState<CustomerSelectorOption[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<BusinessListOption[]>([]);
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
-
-  async function load() {
-    try {
-      const [propertyData, customerData, typeData] = await Promise.all([api.properties('?page=1&pageSize=100'), api.customerSelectorOptions(customerSearch), api.activeBusinessLists('PROPERTY_TYPE')]);
-      setItems(propertyData.items);
-      setCustomers(customerData);
-      setPropertyTypes(typeData);
-      const validPreselection = preselectedCustomerId && customerData.some((customer) => customer.id === preselectedCustomerId);
-      setForm((current) => current.customerId ? current : { ...current, customerId: validPreselection ? preselectedCustomerId : (preselectedCustomerId ? '' : (customerData[0]?.id ?? '')) });
-      setError(preselectedCustomerId && !validPreselection ? 'Validation failed. The selected customer is unavailable.' : '');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load properties.'); }
-  }
-
+  const [items, setItems] = useState<Property[]>([]), [customers, setCustomers] = useState<CustomerSelectorOption[]>([]), [propertyTypes, setPropertyTypes] = useState<BusinessListOption[]>([]);
+  const [customerSearch, setCustomerSearch] = useState(''), [form, setForm] = useState<Form>(emptyForm), [editingId, setEditingId] = useState<string | null>(null), [error, setError] = useState('');
+  async function load() { try { const [propertyData, customerData, typeData] = await Promise.all([api.properties('?page=1&pageSize=100'), api.customerSelectorOptions(customerSearch), api.activeBusinessLists('PROPERTY_TYPE')]); setItems(propertyData.items); setCustomers(customerData); setPropertyTypes(typeData); const valid = preselectedCustomerId && customerData.some((c) => c.id === preselectedCustomerId); setForm((current) => current.customerId ? current : { ...current, customerId: valid ? preselectedCustomerId : (preselectedCustomerId ? '' : (customerData[0]?.id ?? '')) }); setError(preselectedCustomerId && !valid ? 'Validation failed. The selected customer is unavailable.' : ''); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load properties.'); } }
   useEffect(() => { const timeout = setTimeout(() => void load(), 200); return () => clearTimeout(timeout); }, [customerSearch, preselectedCustomerId]);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    try {
-      if (editingId) await api.updateProperty(editingId, form);
-      else {
-        const property = await api.createProperty(form);
-        router.push(`/work-orders?mode=create&customerId=${encodeURIComponent(property.customerId)}&propertyId=${encodeURIComponent(property.id)}`);
-        return;
-      }
-      setEditingId(null);
-      setForm({ ...emptyForm, customerId: customers[0]?.id ?? '' });
-      await load();
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save property.'); }
-  }
-
-  function edit(property: Property) {
-    setEditingId(property.id);
-    setForm({
-      customerId: property.customerId, propertyTypeOptionId: property.propertyTypeOptionId ?? '', name: property.name, addressLine1: property.addressLine1,
-      addressLine2: property.addressLine2 ?? '', city: property.city,
-      postalCode: property.postalCode ?? '', country: property.country, accessNotes: property.accessNotes ?? '',
-    });
-  }
-
-  async function remove(id: string) {
-    if (!window.confirm('Delete this property?')) return;
-    try { await api.deleteProperty(id); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete property.'); }
-  }
-
-  return <>
-    <header className="pageHeader"><div><p className="eyebrow">Locations</p><h2>Properties</h2><p>Manage customer sites, addresses, and access information.</p></div></header>
-    {error ? <p className="errorBanner">{error}</p> : null}
-    <div className="resourceGrid">
-      <form className="panel resourceForm" onSubmit={submit}>
-        <div className="panelHeader"><h3>{editingId ? 'Edit property' : 'New property'}</h3></div>
-        <label>Find customer<input type="search" placeholder="Search by customer or contact name" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} /></label>
-        <label>Customer<select required aria-describedby="customer-help" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })}><option value="">Select a customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{displayCustomerName(c)}</option>)}</select><small id="customer-help">Select the canonical customer record.</small></label>
-        <label>Property type<select aria-describedby="property-type-help" value={form.propertyTypeOptionId} onChange={(e) => setForm({ ...form, propertyTypeOptionId: e.target.value })}><option value="">Select property type</option>{propertyTypes.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}{editingId && form.propertyTypeOptionId && !propertyTypes.some((option) => option.id === form.propertyTypeOptionId) ? <option value={form.propertyTypeOptionId}>{items.find((item) => item.id === editingId)?.propertyTypeOption?.label ?? 'Inactive property type'} (inactive)</option> : null}</select><small id="property-type-help">{propertyTypes.length ? 'Choose an active Property Type from Business Lists.' : <>No property types configured. <Link href="/admin/settings/business-lists">Configure Business Lists</Link>.</>}</small></label>
-        <label>Property name<input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-        <label>Address<input required value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></label>
-        <label>Address line 2<input value={form.addressLine2} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></label>
-        <label>City<input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
-        <label>Postal code<input value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} /></label>
-        <label>Access notes<textarea rows={3} value={form.accessNotes} onChange={(e) => setForm({ ...form, accessNotes: e.target.value })} /></label>
-        <div className="formActions"><button className="primaryButton">Save property</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm({ ...emptyForm, customerId: customers[0]?.id ?? '' }); }}>Cancel</button> : null}</div>
-      </form>
-      <section className="panel"><div className="panelHeader"><h3>Property list</h3></div><div className="dataList">
-        {items.map((property) => <article className="dataRow" key={property.id}><div><strong>{property.name}</strong>{property.propertyTypeOption ? <span className="statusPill">{property.propertyTypeOption.label}</span> : null}<p>{property.customer ? displayCustomerName(property.customer) : 'Customer'} · {property.addressLine1}, {property.city}</p></div><div className="rowActions"><button onClick={() => edit(property)}>Edit</button><button className="dangerButton" onClick={() => void remove(property.id)}>Delete</button></div></article>)}
-        {!items.length ? <div className="emptyState"><strong>No properties found</strong><p>Add a customer first, then create a property.</p></div> : null}
-      </div></section>
-    </div>
-  </>;
+  async function submit(event: FormEvent) { event.preventDefault(); try { const input = { ...form, isEstateOrComplex: booleanValue(form.isEstateOrComplex), requiresGateSecurityAccess: booleanValue(form.requiresGateSecurityAccess), hasPets: booleanValue(form.hasPets), hasCameras: booleanValue(form.hasCameras) } as PropertyInput; if (editingId) await api.updateProperty(editingId, input); else { const property = await api.createProperty(input); router.push(`/work-orders?mode=create&customerId=${encodeURIComponent(property.customerId)}&propertyId=${encodeURIComponent(property.id)}`); return; } setEditingId(null); setForm({ ...emptyForm, customerId: customers[0]?.id ?? '' }); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save property.'); } }
+  function edit(p: Property) { setEditingId(p.id); setForm({ customerId: p.customerId, propertyTypeOptionId: p.propertyTypeOptionId ?? '', name: p.name, addressLine1: p.addressLine1, addressLine2: p.addressLine2 ?? '', city: p.city, postalCode: p.postalCode ?? '', country: p.country, accessNotes: p.accessNotes ?? '', bedrooms: p.bedrooms ?? null, bathrooms: p.bathrooms ?? null, livingAreas: p.livingAreas ?? null, storeys: p.storeys ?? null, isEstateOrComplex: booleanFormValue(p.isEstateOrComplex), requiresGateSecurityAccess: booleanFormValue(p.requiresGateSecurityAccess), parkingNotes: p.parkingNotes ?? '', hasPets: booleanFormValue(p.hasPets), petNotes: p.petNotes ?? '', hasCameras: booleanFormValue(p.hasCameras), offLimitsNotes: p.offLimitsNotes ?? '', fragileItemNotes: p.fragileItemNotes ?? '', productRestrictionNotes: p.productRestrictionNotes ?? '', allergyNotes: p.allergyNotes ?? '' }); }
+  async function remove(id: string) { if (!window.confirm('Delete this property?')) return; try { await api.deleteProperty(id); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete property.'); } }
+  const boolSelect = (field: 'isEstateOrComplex' | 'requiresGateSecurityAccess' | 'hasPets' | 'hasCameras', label: string) => <label>{label}<select value={form[field]} onChange={(e) => setForm({ ...form, [field]: e.target.value })}><option value="">Not recorded</option><option value="true">Yes</option><option value="false">No</option></select></label>;
+  const enumSelect = (field: 'bedrooms' | 'bathrooms' | 'livingAreas' | 'storeys', label: string, options: { value: string; label: string }[]) => <label>{label}<select value={form[field] ?? ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })}><option value="">Not recorded</option>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
+  return <><header className="pageHeader"><div><p className="eyebrow">Locations</p><h2>Properties</h2><p>Manage each home’s reusable operational profile.</p></div></header>{error ? <p className="errorBanner">{error}</p> : null}<div className="resourceGrid propertyGrid"><form className="panel resourceForm propertyForm" onSubmit={submit}><div className="panelHeader"><h3>{editingId ? 'Edit property' : 'New property'}</h3></div>
+    <fieldset className="propertyFormSection"><legend>1. Identity</legend><label>Find customer<input type="search" placeholder="Search by customer or contact name" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} /></label><label>Customer<select required value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })}><option value="">Select a customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{displayCustomerName(c)}</option>)}</select></label><label>Property name<input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label><label>Property type<select value={form.propertyTypeOptionId ?? ''} onChange={(e) => setForm({ ...form, propertyTypeOptionId: e.target.value })}><option value="">Select property type</option>{propertyTypes.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}{editingId && form.propertyTypeOptionId && !propertyTypes.some((o) => o.id === form.propertyTypeOptionId) ? <option value={form.propertyTypeOptionId}>{items.find((i) => i.id === editingId)?.propertyTypeOption?.label ?? 'Inactive property type'} (inactive)</option> : null}</select><small>{propertyTypes.length ? 'Choose an active Property Type from Business Lists.' : <>No property types configured. <Link href="/admin/settings/business-lists">Configure Business Lists</Link>.</>}</small></label></fieldset>
+    <fieldset className="propertyFormSection"><legend>2. Address</legend><label>Address<input required value={form.addressLine1} onChange={(e) => setForm({ ...form, addressLine1: e.target.value })} /></label><label>Address line 2<input value={form.addressLine2 ?? ''} onChange={(e) => setForm({ ...form, addressLine2: e.target.value })} /></label><div className="propertyFieldGrid"><label>City<input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label><label>Postal code<input value={form.postalCode ?? ''} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} /></label></div><label>Country<input value={form.country ?? ''} onChange={(e) => setForm({ ...form, country: e.target.value })} /></label></fieldset>
+    <details className="propertyFormSection" open><summary>3. Home profile</summary><div className="propertyFieldGrid">{enumSelect('bedrooms', 'Bedrooms', [{ value: 'STUDIO', label: 'Studio' }, ...counts])}{enumSelect('bathrooms', 'Bathrooms', counts)}{enumSelect('livingAreas', 'Living areas', counts.slice(0, 3).concat({ value: 'FOUR_PLUS', label: '4+' }))}{enumSelect('storeys', 'Storeys', counts.slice(0, 2).concat({ value: 'THREE_PLUS', label: '3+' }))}</div></details>
+    <details className="propertyFormSection"><summary>4. Access & logistics</summary><div className="propertyFieldGrid">{boolSelect('isEstateOrComplex', 'Estate or complex')}{boolSelect('requiresGateSecurityAccess', 'Gate/security access required')}</div><label>Access notes<textarea rows={3} value={form.accessNotes ?? ''} onChange={(e) => setForm({ ...form, accessNotes: e.target.value })} /></label><label>Parking notes<textarea rows={2} value={form.parkingNotes ?? ''} onChange={(e) => setForm({ ...form, parkingNotes: e.target.value })} /></label></details>
+    <details className="propertyFormSection"><summary>5. Household & care</summary><div className="propertyFieldGrid">{boolSelect('hasPets', 'Pets')}{boolSelect('hasCameras', 'Security cameras')}</div><label>Pet notes<textarea rows={2} value={form.petNotes ?? ''} onChange={(e) => setForm({ ...form, petNotes: e.target.value })} /></label><label>Off-limits areas<textarea rows={2} value={form.offLimitsNotes ?? ''} onChange={(e) => setForm({ ...form, offLimitsNotes: e.target.value })} /></label><label>Fragile / special-care notes<textarea rows={2} value={form.fragileItemNotes ?? ''} onChange={(e) => setForm({ ...form, fragileItemNotes: e.target.value })} /></label><label>Product restrictions<textarea rows={2} value={form.productRestrictionNotes ?? ''} onChange={(e) => setForm({ ...form, productRestrictionNotes: e.target.value })} /></label><label>Operational allergy notes<textarea rows={2} value={form.allergyNotes ?? ''} onChange={(e) => setForm({ ...form, allergyNotes: e.target.value })} /><small>Record only restrictions technicians need to work safely; do not record diagnoses.</small></label></details>
+    <div className="formActions"><button className="primaryButton">Save property</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm({ ...emptyForm, customerId: customers[0]?.id ?? '' }); }}>Cancel</button> : null}</div></form>
+    <section className="panel"><div className="panelHeader"><h3>Property list</h3></div><div className="dataList">{items.map((p) => <article className="dataRow" key={p.id}><div><strong>{p.name}</strong>{p.propertyTypeOption ? <span className="statusPill">{p.propertyTypeOption.label}</span> : null}<p>{p.customer ? displayCustomerName(p.customer) : 'Customer'} · {p.addressLine1}, {p.city}</p></div><div className="rowActions"><button onClick={() => edit(p)}>Edit</button><button className="dangerButton" onClick={() => void remove(p.id)}>Delete</button></div></article>)}{!items.length ? <div className="emptyState"><strong>No properties found</strong><p>Add a customer first, then create a property.</p></div> : null}</div></section></div></>;
 }
