@@ -1,5 +1,9 @@
 # Why the production system is structured this way
 
+## Canonical operational services
+
+The authenticated OS, rather than public marketing presentation, is the durable owner of operational service identity. A single classified Service record prevents primary services and add-ons from being confused, preserves historical relationships through deactivation, and keeps ordinary workflows on controlled selections. The public website remains a presentation and quote-flow consumer; future synchronization must reconcile to OS identity instead of creating live coupling or parallel catalogue ownership.
+
 These explanations summarize current accepted decisions; the ADRs are authoritative records.
 
 ## Cloudflare for frontend hosting

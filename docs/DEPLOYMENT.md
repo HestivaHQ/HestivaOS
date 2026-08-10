@@ -1,5 +1,7 @@
 # Deployment
 
+The `20260810220000_canonical_service_catalogue` migration is additive and data-aware. It preserves existing Service IDs and relationships, classifies unambiguous catalogue matches, reconciles the approved Eco alias only when safe, creates missing approved records, and leaves ambiguous or OS-only rows intact. Apply it through the existing `npm run db:migrate:deploy` release path; do not manually delete or reseed production Services.
+
 ## Frontend: Cloudflare native Git builds
 
 Cloudflare's native Git integration connected to `HestivaHQ/HestivaOS` is the active and single deployment authority for `@hestiva/web`. A change merged to `main` triggers the configured Cloudflare build, which installs the root workspace dependencies and builds the Next.js application with OpenNext for Worker `hestivaos`.

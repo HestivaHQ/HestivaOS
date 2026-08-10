@@ -199,12 +199,18 @@ h1, h2, h3, p { margin-top: 0; }
 .dangerButton { color: #9c2e27; }
 .priorityText { color: #61727d; font-size: 12px; font-weight: 800; }
 .searchInput { max-width: 240px; }
+.serviceCatalogueHeader label { display: grid; gap: 5px; color: #42545e; font-size: 12px; font-weight: 800; }
 .errorBanner { margin-bottom: 20px; border: 1px solid #f0b8b3; border-radius: 10px; padding: 12px 14px; background: #fdebea; color: #8b2921; }
 
 @media (max-width: 1000px) {
   .resourceGrid { grid-template-columns: 1fr; }
   .userAccessCard { grid-template-columns: 1fr auto; }
   .userAccessCard dl { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .serviceCatalogueHeader, .dataRow { align-items: stretch; flex-direction: column; }
+  .serviceCatalogueHeader .searchInput { max-width: none; }
+  .rowActions button { min-height: 44px; }
 }
 @media (min-width: 680px) {
   .quickActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

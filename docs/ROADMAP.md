@@ -11,13 +11,16 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
+- Reconcile the public `HestivaHQ/hestiva` quote form to the OS-owned `Eco-Conscious Cleaning` wording and design one-way website catalogue synchronization without exposing the authenticated management API.
+- Map approved website subordinate job-type choices to the existing Cleaning Job Template architecture (or explicitly record why a choice is quote-flow-only) before importing controlled options.
+
 - Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
 
 - Employee Records (Slice 5), User Access Management (Slice 3), and Business Profile (Slice 4) are complete. Deliver the Supervisor experience and broader Employee Record management permissions as focused follow-ups; Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
 - Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.
 - Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
 - Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.
-- Design the `WorkOrder` to `Service` relationship; until then the dashboard accurately uses `WorkOrder.title` as its job label.
+- Design the `WorkOrder` to canonical `Service` relationship; until then the dashboard accurately uses `WorkOrder.title` as its job label.
 - Create the Management navigation gateway and direct-create Work Orders route state, then connect the currently non-destructive Management shortcut and `/work-orders` creation shortcut without brittle query parameters.
 - Perform a separately scoped repository-wide Maintenance Marshall legacy cleanup while retaining required historical compatibility.
 - Plan broader navigation and scheduling redesigns as separate product slices.

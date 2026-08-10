@@ -1,5 +1,9 @@
 # Recovery guide
 
+## Service catalogue recovery
+
+Restore the database and migration history together. Reapply migrations through `npm run db:migrate:deploy`; the canonical catalogue migration must not be replaced by a destructive seed. After recovery, verify existing Service IDs and Cleaning Job Template join rows, confirm missing canonical entries were created once, confirm ambiguous/legacy rows were preserved, and confirm inactive Services remain visible on historical templates but unavailable for new selection. Resolve any ambiguous case/whitespace duplicates manually with operational owners before assigning a normalized key.
+
 ## User access incident recovery
 
 An `INACTIVE` application `User` is denied by the API even if Supabase still holds a valid provider session. Confirm access state through Admin Settings → User Access with a different active ADMIN. Re-enable OS access there; do not edit Supabase claims, recreate an Auth identity, or change `auth_user_id` manually. The provider session is not globally revoked by this implementation, but it cannot pass the Hestiva API access check.

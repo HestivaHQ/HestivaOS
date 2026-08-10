@@ -1,5 +1,14 @@
 # Technical work log
 
+## 2026-08-10 — Slice 5D canonical service catalogue
+
+- Audited `Service`, migrations, APIs, `/services`, Cleaning Job Templates, Work Orders, and authorization. Before this slice Service already had description, optional duration, and status, and related only to Cleaning Job Templates; Work Orders still have no Service foreign key. Repository records cannot prove production row contents, so the migration performs data-aware reconciliation rather than claiming particular pre-existing rows.
+- Used the supplied verified website repository `HestivaHQ/hestiva`, specifically `src/content/services.ts` and `src/lib/quote-options.ts`. Reconciliation safely compares trimmed case-insensitive names and the single approved `Eco-Friendly Cleaning` alias. Unambiguous matches keep IDs; missing approved entries receive stable IDs; legacy OS-only and ambiguous rows remain untouched. Re-running deployment migrations cannot recreate entries.
+- Established 11 `PRIMARY` entries. Classified the single Laundry Folding page record as `ADD_ON`, consistent with its supplied optional-service description, and added the six explicit visual add-ons: Inside Fridge Cleaning, Inside Oven Cleaning, Interior Cupboard Cleaning, Extra Laundry Folding, Balcony Sweeping, and Additional Room Cleaning. No fake durations, pricing, staffing, SEO content, images, or arbitrary marketing bullets were added.
+- Excluded `Multiple Services Required`, `Other (Please Describe)`, and the `Cleaning Add-On Services` grouping page. Recorded `Eco-Conscious Cleaning` as canonical and the quote-form wording as an alias without a duplicate. Website synchronization is deferred.
+- Restricted POST/PATCH catalogue management to ADMIN and removed permanent deletion from the contract and UI. Operational reads remain authenticated. Admin Settings now owns searchable create/edit/deactivate/reactivate controls; `/services` lists active records. Template assignment continues to reject inactive records while existing inactive relationships remain included and readable.
+- Did not import website `JOB_TYPES`. Cleaning Job Templates already model reusable operational templates related to Services, but the supplied options include cadence, property scope, and free-form flow choices; mapping them automatically would be unsafe. A controlled mapping is deferred.
+
 ## 2026-08-10 — Slice 5C Customer and Property controlled inputs
 
 - Audited the existing Customer and Property models, APIs, forms, validation, relationships, and ADR-0017 architecture. Customer status remains a fixed enum with new runtime validation; personal and record-specific strings remain free text. No unsupported Customer Type or contact-method field was invented.

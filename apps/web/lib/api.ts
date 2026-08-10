@@ -19,7 +19,7 @@ export type CrewMember = { crewId: string; technicianId: string; technician: Tec
 export type Crew = { id: string; name: string; description: string | null; leaderId: string | null; status: 'ACTIVE' | 'INACTIVE'; leader: Technician | null; members: CrewMember[]; _count?: { workOrders: number }; createdAt: string; updatedAt: string };
 export type ShiftStatus = 'DRAFT' | 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 export type Shift = { id: string; title: string; startAt: string; endAt: string; unpaidBreakMinutes: number; grossMinutes: number; plannedMinutes: number; plannedHours: number; crewId: string | null; technicianId: string | null; workOrderId: string | null; location: string | null; notes: string | null; status: ShiftStatus; crew: Crew | null; technician: Technician | null; workOrder: (WorkOrder & { customer: Customer; property: Property }) | null; createdAt: string; updatedAt: string };
-export type Service = { id: string; name: string; description: string | null; defaultDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string; updatedAt: string };
+export type Service = { id: string; name: string; description: string | null; defaultDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; type: 'PRIMARY' | 'ADD_ON'; createdAt: string; updatedAt: string };
 export type CleaningJobTemplate = { id: string; name: string; description: string | null; estimatedDurationMinutes: number | null; status: 'ACTIVE' | 'INACTIVE'; services: Service[]; createdAt: string; updatedAt: string };
 export type WorkOrderStatus = 'NEW' | 'ASSIGNED' | 'ACCEPTED' | 'TRAVELLING' | 'ON_SITE' | 'WAITING_FOR_PARTS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
 export type WorkOrder = { id: string; customerId: string; propertyId: string; createdById: string; technicianId: string | null; crewId: string | null; title: string; description?: string | null; status: WorkOrderStatus; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'; scheduledAt: string | null; completedAt?: string | null; createdAt: string; customer: Customer; property: Property; technician: Technician | null; crew: Crew | null };
@@ -55,7 +55,7 @@ export type PropertyInput = { customerId: string; name: string; addressLine1: st
 export type TechnicianInput = { firstName: string; lastName: string; email?: string; phone?: string; skills?: string[]; notes?: string; status?: Technician['status'] };
 export type CrewInput = { name: string; description?: string; leaderId?: string | null; memberIds?: string[]; status?: Crew['status'] };
 export type ShiftInput = { title: string; startAt: string; endAt: string; unpaidBreakMinutes?: number; crewId?: string | null; technicianId?: string | null; workOrderId?: string | null; location?: string; notes?: string; status?: ShiftStatus };
-export type ServiceInput = { name: string; description?: string; defaultDurationMinutes?: number; status?: Service['status'] };
+export type ServiceInput = { name: string; description?: string; defaultDurationMinutes?: number; status?: Service['status']; type?: Service['type'] };
 export type CleaningJobTemplateInput = { name: string; description?: string; estimatedDurationMinutes?: number; status?: CleaningJobTemplate['status']; serviceIds?: string[] };
 export type WorkOrderInput = { customerId: string; propertyId: string; createdById: string; technicianId?: string | null; crewId?: string | null; title: string; description?: string; status?: WorkOrder['status']; priority?: WorkOrder['priority']; scheduledAt?: string; completedAt?: string };
 
@@ -128,7 +128,6 @@ export const api = {
   services: (query = '') => apiFetch<PaginatedResponse<Service>>(`/services${query}`),
   createService: (input: ServiceInput) => apiFetch<Service>('/services', { method: 'POST', ...json(input) }),
   updateService: (id: string, input: Partial<ServiceInput>) => apiFetch<Service>(`/services/${id}`, { method: 'PATCH', ...json(input) }),
-  deleteService: (id: string) => apiFetch<Service>(`/services/${id}`, { method: 'DELETE' }),
   cleaningJobTemplates: (query = '') => apiFetch<PaginatedResponse<CleaningJobTemplate>>(`/cleaning-job-templates${query}`),
   createCleaningJobTemplate: (input: CleaningJobTemplateInput) => apiFetch<CleaningJobTemplate>('/cleaning-job-templates', { method: 'POST', ...json(input) }),
   updateCleaningJobTemplate: (id: string, input: Partial<CleaningJobTemplateInput>) => apiFetch<CleaningJobTemplate>(`/cleaning-job-templates/${id}`, { method: 'PATCH', ...json(input) }),

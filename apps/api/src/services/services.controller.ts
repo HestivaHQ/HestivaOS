@@ -1,12 +1,14 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ServiceStatus } from '@prisma/client';
+import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { ServiceStatus, UserRole } from '@prisma/client';
 import { CreateServiceInput, ServicesService, UpdateServiceInput } from './services.service';
+import { Roles } from '../users/roles.decorator';
 
 @Controller('services')
 export class ServicesController {
   constructor(private readonly services: ServicesService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   create(@Body() input: CreateServiceInput) {
     return this.services.create(input);
   }
@@ -27,12 +29,9 @@ export class ServicesController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateServiceInput) {
     return this.services.update(id, input);
   }
 
-  @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.services.remove(id);
-  }
 }

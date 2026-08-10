@@ -1,5 +1,11 @@
 # Production architecture
 
+## Canonical service catalogue
+
+Hestiva OS owns the operational service catalogue. `Service` has a minimal `PRIMARY`/`ADD_ON` classification, an active/inactive lifecycle, and a nullable unique normalized key used for safe case/whitespace comparison. Existing IDs and Cleaning Job Template relationships are preserved. Authenticated operational users may read the catalogue; only ADMIN may create, edit, deactivate, or reactivate records at `/admin/settings/services`. `/services` is an active, read-only operational catalogue. New template assignments reject inactive Services while existing templates continue to include and display inactive historical relationships.
+
+The initial catalogue was reconciled from the supplied, verified `HestivaHQ/hestiva` sources `src/content/services.ts` and `src/lib/quote-options.ts`. The public-page name `Eco-Conscious Cleaning` is canonical and `Eco-Friendly Cleaning` is its recognized quote-form alias. The migration does not create `Multiple Services Required`, `Other (Please Describe)`, or the `Cleaning Add-On Services` landing/grouping page. Website synchronization is not live-coupled. Website subordinate `JOB_TYPES` were not imported; Cleaning Job Templates are the existing nearby operational structure, and an approved mapping remains future work rather than a duplicate model.
+
 Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`; `main` is the default branch and source of truth.
 
 ```text

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-10 — Product Slice 5D — Canonical service catalogue
+
+### Added
+
+- Reconciled 11 primary services, Laundry Folding as one add-on record, and six canonical visual add-ons from the supplied `HestivaHQ/hestiva` catalogue sources.
+- Added ADMIN-only service search, creation, editing, deactivation, and reactivation at `/admin/settings/services`, plus primary/add-on classification and normalized duplicate protection.
+
+### Changed
+
+- Hestiva OS is now the canonical operational catalogue. `/services` is an active read-only catalogue; inactive records remain readable through historical relationships.
+- `Eco-Conscious Cleaning` is canonical and `Eco-Friendly Cleaning` is a recognized alias. Existing IDs and relationships are preserved by additive reconciliation.
+
+### Deferred
+
+- Public website synchronization and approved website job-type to Cleaning Job Template mapping remain separate work. Quote pseudo-options and the add-on landing page were intentionally excluded.
+
 ## 2026-08-10 — Product Slice 5C — Customer and Property controlled inputs
 
 ### Added
