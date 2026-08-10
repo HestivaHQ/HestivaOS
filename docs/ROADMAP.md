@@ -11,7 +11,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Deliver Employee Records (Slice 5) and the Supervisor experience as focused follow-ups; User Access Management (Slice 3) and Business Profile (Slice 4) are complete. Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
+- Employee Records (Slice 5), User Access Management (Slice 3), and Business Profile (Slice 4) are complete. Deliver the Supervisor experience and broader Employee Record management permissions as focused follow-ups; Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
 - Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.
 - Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
 - Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.

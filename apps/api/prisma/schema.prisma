@@ -96,6 +96,11 @@ enum UserStatus {
   INACTIVE
 }
 
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id String @id @default(uuid()) @db.Uuid
   authUserId String @unique @map("auth_user_id") @db.Uuid
@@ -109,6 +114,7 @@ model User {
   profilePhotoUrl String? @map("profile_photo_url")
   role UserRole @default(TECHNICIAN)
   status UserStatus @default(ACTIVE)
+  employeeRecord EmployeeRecord?
   customers Customer[] @relation("CustomerOwner")
   workOrders WorkOrder[] @relation("WorkOrderCreator")
   workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")
@@ -205,6 +211,7 @@ model Technician {
   skills String[] @default([])
   notes String?
   status TechnicianStatus @default(ACTIVE)
+  employeeRecord EmployeeRecord?
   workOrders WorkOrder[]
   shifts Shift[]
   crewMembership CrewMember?
@@ -213,6 +220,36 @@ model Technician {
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([lastName, firstName])
   @@map("technicians")
+}
+
+model EmployeeRecord {
+  id                    String         @id @default(uuid()) @db.Uuid
+  employeeReference     String         @unique @map("employee_reference")
+  firstName             String         @map("first_name")
+  lastName              String         @map("last_name")
+  preferredName         String?        @map("preferred_name")
+  phone                 String?
+  email                 String?
+  residentialAddress    String?        @map("residential_address")
+  emergencyContactName  String?        @map("emergency_contact_name")
+  emergencyRelationship String?        @map("emergency_relationship")
+  emergencyContactPhone String?        @map("emergency_contact_phone")
+  status                EmployeeStatus @default(ACTIVE)
+  jobTitle              String?        @map("job_title")
+  department            String?
+  startDate             DateTime?      @map("start_date") @db.Date
+  endDate               DateTime?      @map("end_date") @db.Date
+  internalNotes         String?        @map("internal_notes")
+  userId                String?        @unique @map("user_id") @db.Uuid
+  technicianId          String?        @unique @map("technician_id") @db.Uuid
+  user                  User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  technician            Technician?    @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  @@index([lastName, firstName])
+  @@index([status])
+  @@map("employee_records")
 }
 
 model Crew {

@@ -163,3 +163,9 @@ Subsequent repository commits also corrected the Cloudflare deployment working d
 - Values were recovered into platform configuration, not committed.
 - `npm test` fails because the API has no tests; this is known work, not a passing baseline.
 - Dependency vulnerability review, monitoring, backups, controller cleanup verification, hostname migration, and account identity cleanup remain open.
+
+## 2026-08-10 — Product Implementation Slice 5: Employee Records
+
+Implemented the canonical lean Employee Records area. The additive Prisma model uses independent employment status and nullable unique links to unchanged User and Technician records; the migration intentionally creates no inferred legacy links. Added ADMIN-only NestJS endpoints, strict input validation, privacy-limited list selection, read-only User access/role and Technician crew summaries, and no delete operation. Added a server-authorized responsive `/employees` interface with the seven approved sections, explicit save feedback, duplicate-submit prevention, search, filtering, inactive retention, and a link to authoritative User Access management.
+
+Focused Jest coverage verifies exact ADMIN authorization metadata, all four excluded roles, lean list privacy, creation without linked accounts, optional fields, unsupported-field and email rejection, logical dates, independent employment mutation, preserved Technician linkage, and lack of deletion. Documentation records deployment and recovery behavior, architectural rationale, scope exclusions, and deferred permissions.

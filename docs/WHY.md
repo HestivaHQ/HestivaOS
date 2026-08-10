@@ -34,3 +34,7 @@ The launch Admin dashboard prioritizes today's operating decisions rather than h
 ## Why the Business Profile is canonical and conservative
 
 Company information needs one reusable source so future quotations, invoices, emails, and generated documents do not drift. A database-enforced singleton with typed core fields is sufficient for the current one-company product and avoids premature multi-tenancy. Typed share booleans make every outgoing choice reviewable and evolvable without treating sharing as authorization. Public general details default on for useful first-run behavior, while banking and compliance details default off to avoid surprise disclosure. Exact ADMIN-only read and edit access is the current verified requirement; management view/share groups remain a future decision rather than speculative permissions.
+
+## Why Employee Records are separate
+
+Hestiva needs workforce details for people who may not use Hestiva OS and may not perform technician field work. A separate lean Employee Record avoids making authentication identity into an HR record or forcing office employees into the Technician scheduling graph. Optional unique links preserve useful OS-access and operations summaries while keeping their lifecycle authorities independent. The scope is intentionally operational rather than a full HRIS.

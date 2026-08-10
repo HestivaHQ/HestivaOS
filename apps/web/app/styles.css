@@ -297,3 +297,20 @@ h1, h2, h3, p { margin-top: 0; }
 .shareActions { margin-top: 20px; }
 .shareButtonGrid { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 @media (max-width: 700px) { .businessFieldGrid { grid-template-columns: 1fr; } .saveProfileBar, .shareActions { align-items: stretch; flex-direction: column; } .saveProfileBar button, .shareButtonGrid, .shareButtonGrid button { width: 100%; } }
+
+/* Employee Records */
+.employeeLayout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, .8fr); gap: 20px; align-items: start; }
+.employeeForm, .employeeList { display: grid; gap: 18px; min-width: 0; }
+.employeeSection { display: grid; gap: 12px; }
+.employeeSection h3, .employeeSection p { margin: 0; }
+.employeeSection p { color: #61727d; line-height: 1.5; overflow-wrap: anywhere; }
+.employeeFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.employeeFields label, .employeeFilters label { display: grid; min-width: 0; gap: 6px; color: #42545e; font-size: 13px; font-weight: 800; }
+.employeeFields input, .employeeFields select, .employeeFields textarea, .employeeFilters input, .employeeFilters select, .employeeSection > textarea { width: 100%; min-width: 0; border: 1px solid #cbd7dc; border-radius: 10px; padding: 11px 12px; background: white; }
+.wideField { grid-column: 1 / -1; }
+.employeeFilters { display: grid; grid-template-columns: 1fr 120px; gap: 10px; }
+.employeeCard { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 16px 0; border-bottom: 1px solid #e5ebee; }
+.employeeCard p { margin: 5px 0 0; color: #61727d; overflow-wrap: anywhere; }
+.employeeCard > div:last-child { display: grid; justify-items: end; gap: 9px; }
+@media (max-width: 1050px) { .employeeLayout { grid-template-columns: 1fr; } .employeeList { grid-row: 1; } }
+@media (max-width: 600px) { .employeeFields, .employeeFilters { grid-template-columns: 1fr; } .wideField { grid-column: auto; } .employeeCard { align-items: stretch; flex-direction: column; } .employeeCard > div:last-child { grid-template-columns: 1fr 1fr; align-items: center; justify-items: start; } .employeeCard button { min-height: 44px; width: 100%; } }
