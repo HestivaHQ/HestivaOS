@@ -149,3 +149,7 @@ Deploy additive migration `20260812120000_property_operational_profile` before t
 ## Slice 5K service availability rollout
 
 Deploy migration `20260810233000_service_availability_and_addon_reconciliation` through the existing Railway `db:migrate:deploy` sequence. It adds `ServiceType.BOTH`, updates the existing Interior Window Cleaning and Laundry Folding records by normalized name, and inserts six fixed add-on records using `ON CONFLICT DO NOTHING`; it creates no scope structures and writes no Work Order rows. After deployment, regenerate Prisma Client and verify both dual-context capabilities in primary and add-on selectors plus ADMIN availability management.
+
+## 2026-08-10 Property vocabulary migration
+
+Apply `20260810180000_property_quote_vocabulary` before deploying this release, then run `npm run db:generate`. The migration is additive: it adds four nullable columns and enum values and deliberately retains `is_estate_or_complex` and `THREE_PLUS`. It performs no data backfill; legacy `true` classifications and `THREE_PLUS` storeys require later manual enrichment when authoritative facts are available.

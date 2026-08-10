@@ -227,6 +227,10 @@ model Property {
   bathrooms BathroomCount?
   livingAreas LivingAreaCount? @map("living_areas")
   storeys StoreyCount?
+  floorSize FloorSize? @map("floor_size")
+  outdoorArea OutdoorArea? @map("outdoor_area")
+  estateClassification EstateClassification? @map("estate_classification")
+  unitFloor UnitFloor? @map("unit_floor")
   isEstateOrComplex Boolean? @map("is_estate_or_complex")
   requiresGateSecurityAccess Boolean? @map("requires_gate_security_access")
   parkingNotes String? @map("parking_notes")
@@ -256,6 +260,7 @@ enum BedroomCount {
   THREE
   FOUR
   FIVE_PLUS
+  OTHER
 }
 
 enum BathroomCount {
@@ -277,6 +282,40 @@ enum StoreyCount {
   ONE
   TWO
   THREE_PLUS
+  THREE
+  FOUR_PLUS
+  UNKNOWN
+}
+
+enum FloorSize {
+  UNDER_80
+  FROM_80_TO_150
+  FROM_151_TO_250
+  OVER_250
+  UNKNOWN
+}
+enum OutdoorArea {
+  NONE
+  BALCONY
+  PATIO
+  BOTH
+}
+enum EstateClassification {
+  NONE
+  ESTATE
+  COMPLEX
+  GATED_COMMUNITY
+}
+enum UnitFloor {
+  GROUND
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  FIFTH_TO_NINTH
+  TENTH_PLUS
+  THIRD_PLUS
+  UNKNOWN
 }
 
 model Technician {

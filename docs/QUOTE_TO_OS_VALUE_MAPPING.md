@@ -65,8 +65,30 @@ No service-specific frequency restrictions were found in the current source voca
 | Apartment unit floor | Ground floor; 1st; 2nd; 3rd; 4th; 5th–9th; 10th or above; Not sure | Not modeled; focused Property alignment follow-up required. |
 | Townhouse unit floor | Ground-level unit; 1st; 2nd; 3rd or above; Not sure | Not modeled; focused Property alignment follow-up required. |
 
-These verified vocabularies reopen a focused 5J Property-alignment follow-up before 5M. Slice 5K records them but changes no Property schema or UI.
+This table preserves the historical Slice 5K gap assessment. Slice 5J-A subsequently closed these Property destination gaps as recorded in the current-state table below; Slice 5K itself changed no Property schema or UI.
 
 ## Fail-closed rule
 
 Only exact current mappings and explicit legacy aliases above are deterministic. Unresolved terms do not create Services, Add-ons, Property values, or notes automatically. Future 5M must resolve canonical IDs/enums at its trust boundary and reject or route unknown/unresolved values for human review.
+
+## Current Property vocabulary — verified 2026-08-10
+
+Authority: current `HestivaHQ/hestiva/src/routes/quote.tsx`; older `quote-options.ts` values are not authoritative where they conflict.
+
+| Website field | Website value | OS field | OS value | Status |
+| --- | --- | --- | --- | --- |
+| Floor Size | Under 80 m² | `Property.floorSize` | `UNDER_80` | Deterministic |
+| Floor Size | 80–150 m² | `Property.floorSize` | `FROM_80_TO_150` | Deterministic |
+| Floor Size | 151–250 m² | `Property.floorSize` | `FROM_151_TO_250` | Deterministic |
+| Floor Size | Over 250 m² | `Property.floorSize` | `OVER_250` | Deterministic |
+| Floor Size | Not sure | `Property.floorSize` | `UNKNOWN` | Deterministic |
+| Outdoor | None / Balcony / Patio / Both | `Property.outdoorArea` | `NONE` / `BALCONY` / `PATIO` / `BOTH` | Deterministic; not the chargeable add-on |
+| Estate / Complex | No / Estate / Complex / Gated community | `Property.estateClassification` | `NONE` / `ESTATE` / `COMPLEX` / `GATED_COMMUNITY` | Deterministic for new input |
+| Apartment Floor | Ground / 1st / 2nd / 3rd / 4th / 5th–9th / 10th+ / Not sure | `Property.unitFloor` | `GROUND` / `FIRST` / `SECOND` / `THIRD` / `FOURTH` / `FIFTH_TO_NINTH` / `TENTH_PLUS` / `UNKNOWN` | Deterministic, Apartment-only subset |
+| Townhouse Floor | Ground-level / 1st / 2nd / 3rd+ / Not sure | `Property.unitFloor` | `GROUND` / `FIRST` / `SECOND` / `THIRD_PLUS` / `UNKNOWN` | Deterministic, Townhouse-only subset |
+| Bedrooms | Studio / 1 / 2 / 3 / 4 / 5+ / Other | `Property.bedrooms` | `STUDIO` / `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` / `OTHER` | Deterministic; Studio Apartment-only |
+| Bathrooms | 1 / 2 / 3 / 4 / 5+ | `Property.bathrooms` | `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` | Deterministic |
+| Storeys | 1 / 2 / 3 / 4+ / Not sure | `Property.storeys` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` / `UNKNOWN` | Deterministic |
+| Living Areas | 1 / 2 / 3 / 4+ | `Property.livingAreas` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` | Deterministic |
+
+All current website Property values required by a future 5M handoff have deterministic destinations. Remaining 5M blockers are orchestration itself and the intentionally unresolved commercial mappings for extra-refrigerator quantity, chargeable balcony/patio cleaning, eco-friendly-product ownership, and post-renovation dust-removal boundaries; none is a Property destination gap.
