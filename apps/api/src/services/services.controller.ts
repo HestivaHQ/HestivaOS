@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ServiceStatus, UserRole } from '@prisma/client';
+import { ServiceStatus, ServiceType, UserRole } from '@prisma/client';
 import { CreateServiceInput, ServicesService, UpdateServiceInput } from './services.service';
 import { Roles } from '../users/roles.decorator';
 
@@ -19,8 +19,9 @@ export class ServicesController {
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number,
     @Query('search') search?: string,
     @Query('status') status?: ServiceStatus,
+    @Query('type') type?: ServiceType,
   ) {
-    return this.services.findAll(page, pageSize, search, status);
+    return this.services.findAll(page, pageSize, search, status, type);
   }
 
   @Get(':id')

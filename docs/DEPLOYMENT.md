@@ -137,3 +137,7 @@ Migration `20260810230000_bootstrap_website_property_types` runs through the exi
 ## Slice 5H Work Order reference migration
 
 Apply additive migration `20260811010000_add_work_order_references` before the updated API. It adds nullable `reference` and `service_id`, database uniqueness and relationship indexes, and the daily counter table; it neither backfills nor removes historical titles. After deployment, create two authorized Work Orders with an active Service and verify distinct same-day references, reference search, legacy-row readability, and inactive-Service rejection.
+
+## Slice 5I accepted-quote Work Order migration
+
+Deploy additive migration `20260811150000_accepted_quote_work_order_structure` before the updated API. It adds nullable frequency, custom-frequency-note, and home-condition columns plus the `work_order_add_ons` relationship table. It does not backfill historical rows or rename/remove `service_id`. After deployment, verify an authorized create with one active PRIMARY, zero and multiple active ADD_ON Services, each controlled frequency/condition, and then confirm existing inactive/null service relationships remain readable. Roll back application code before considering database rollback; retain the additive columns/table while investigating to avoid discarding accepted-quote relationships.

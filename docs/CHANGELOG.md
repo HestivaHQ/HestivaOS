@@ -367,3 +367,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Preserved case-sensitive exact Customer cleanup confirmation while adding explicit mismatch feedback and a readable, narrowly scoped disabled destructive action; deletion semantics are unchanged.
 - Added server-generated immutable `WO-YYYYMMDD-####` references using Africa/Johannesburg creation-day semantics, an atomic database daily counter, serializable creation transaction, overflow protection, and database uniqueness.
 - Removed manual Title entry from normal Work Order creation, added the canonical active Service relationship, structured Service/Customer/Property labels, reference search, and historical nullable-reference/Service plus legacy-title compatibility.
+
+## 2026-08-10 — Product Slice 5I — Accepted-quote Work Order structure
+
+- Restructured new Work Orders around exactly one active canonical PRIMARY Service, separate zero-to-many canonical ADD_ON relationships, controlled accepted-quote frequency, and controlled visit-specific home condition.
+- Added backend validation for service type/status, duplicate add-ons, frequency/custom-note behavior, and home-condition values while preserving nullable and inactive historical relationships.
+- Reorganized Work Order creation into job, Property snapshot, visit instructions, and assignment concepts; retained Customer/Property continuation, automatic immutable reference generation, structured labels, and existing operational assignment/scheduling fields.
+- Deferred persistent Property quote fields to Slice 5J, catalogue/scope reconciliation to 5K, recurring agreements to 5L, and website handoff to 5M.

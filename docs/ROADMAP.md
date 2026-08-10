@@ -43,3 +43,10 @@ Only currently identified technical follow-up work is listed here.
 
 - Evaluate website Bedroom choices Studio, 1, 2, 3, 4, and 5+ as a future controlled-input alignment candidate. Slice 5G does not implement a Bedroom field or expand into the quote form.
 - Design safe Supabase Storage object cleanup for deleted Work Order photo metadata only if an approved server-side storage boundary and orphan-reconciliation procedure are introduced.
+
+## Accepted-quote follow-ups after Slice 5I
+
+- **Slice 5J — Property quote-data gaps:** design canonical Property ownership for bedrooms, bathrooms, living areas, storeys, approximate size, outdoor area, estate/complex status, parking, gate/security and key handover, presence, pets, cameras, off-limits areas, fragile items, product restrictions, and allergies. Slice 5I does not duplicate these on Work Order.
+- **Slice 5K — Service scope and add-on reconciliation:** reconcile website terms including Linen Change, Bed Making, Garage Sweep, Extra Bathroom, Extra Refrigerator, pet-hair treatment, eco-friendly products, and post-renovation dust removal against the canonical OS catalogue. Also resolve service scopes such as Whole Home/Selected Rooms and Single/Multiple Bathrooms without a duplicate job-type model.
+- **Slice 5L — Recurring agreement architecture:** own recurring agreement identity, recurrence rules, next service date, agreement status, individual Work Order generation, pause/resume/cancel behavior, exception dates, and approved long-term crew/service preferences.
+- **Slice 5M — Quote handoff:** implement the website-to-OS acceptance boundary only after receiving Customer, Property, catalogue/scope, and recurring models are ready. Slice 5I adds no webhook or automatic record creation.

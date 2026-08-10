@@ -60,3 +60,13 @@ The audit found that migrating every remaining candidate would combine unrelated
 The authoritative initial Property Type vocabulary was separately verified in `HestivaHQ/hestiva/src/routes/quote.tsx`: Apartment, Townhouse, House, Duplex, and Other. Hestiva OS now bootstraps these into the managed `PROPERTY_TYPE` Business List without hard-coding the Property selector. “Not classified” is not canonical and is not seeded; null continues to mean unselected/unclassified. Existing custom values, inactive lifecycle decisions, IDs, and historical Property assignments are preserved. New assignment uses active options only and canonical management is `/admin/settings/business-lists`.
 
 The same website source defines Bedroom values Studio, 1, 2, 3, 4, and 5+. They are recorded as a deferred controlled-input candidate and are not implemented in Slice 5G.
+
+## Slice 5I accepted-quote Work Order controls (verified 2026-08-10)
+
+| Area | Surface | Field | Control | Persistence | Classification | Historical behavior |
+| --- | --- | --- | --- | --- | --- | --- |
+| Work Orders | create/edit | Primary Service | filtered select | nullable `service_id` FK | RELATIONSHIP | New jobs require active PRIMARY; inactive/null historical links remain readable. |
+| Work Orders | create/edit | Add-ons | checkbox list | `WorkOrderAddOn` join | RELATIONSHIP (zero/many) | Newly attached rows require active ADD_ON; existing inactive rows remain readable. |
+| Work Orders | create/edit/list/detail | Frequency | fixed select | nullable `WorkOrderFrequency` | FIXED ENUM | Null history displays as not recorded; custom description is accepted only for CUSTOM. |
+| Work Orders | create/edit/list/detail | Home Condition | fixed select | nullable `HomeCondition` | FIXED ENUM | Null history remains readable without inferred condition. |
+| Work Orders | create/edit | Property snapshot/access | read-only summary | canonical Property fields | RELATIONSHIP DISPLAY | No property/home values are copied into Work Order. |
