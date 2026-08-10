@@ -35,6 +35,11 @@ enum ServiceStatus {
   INACTIVE
 }
 
+enum ServiceType {
+  PRIMARY
+  ADD_ON
+}
+
 enum CleaningJobTemplateStatus {
   ACTIVE
   INACTIVE
@@ -340,14 +345,17 @@ model Shift {
 model Service {
   id String @id @default(uuid()) @db.Uuid
   name String @unique
+  normalizedName String? @unique @map("normalized_name")
   description String?
   defaultDurationMinutes Int? @map("default_duration_minutes")
   status ServiceStatus @default(ACTIVE)
+  type ServiceType @default(PRIMARY)
   jobTemplates CleaningJobTemplate[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
   @@index([status])
+  @@index([type])
   @@map("services")
 }
 
