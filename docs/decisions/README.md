@@ -22,3 +22,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 
 - [ADR-0017: Use controlled inputs for reusable business values](ADR-0017-controlled-business-inputs.md)
 - [ADR-0018: Make Hestiva OS the canonical operational service catalogue](ADR-0018-canonical-service-catalogue.md)
+
+- [ADR-0019: Contact-first Customers and Team navigation](ADR-0019-contact-first-customers-and-team-navigation.md)

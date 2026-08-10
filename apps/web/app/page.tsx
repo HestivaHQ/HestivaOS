@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { displayCustomerName } from '../lib/customer-display';
 import { type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
 import { createAuthenticatedApi } from '../lib/api-server';
 import { createClient } from '../lib/supabase/server';
@@ -38,7 +39,7 @@ function JobRows({ jobs }: { jobs: WorkOrder[] }) {
     const assigned = assignment(job);
     return <Link className="todayJob" href={`/work-orders/${job.id}`} key={job.id}>
       <time dateTime={job.scheduledAt ?? undefined}>{formatTime(job.scheduledAt)}</time>
-      <span className="jobIdentity"><strong>{job.customer.name}</strong><small>{job.title}</small></span>
+      <span className="jobIdentity"><strong>{displayCustomerName(job.customer)}</strong><small>{job.title}</small></span>
       <span className="jobAddress">{address(job)}</span>
       <span className={assigned === 'Unassigned' ? 'jobAssignment unassigned' : 'jobAssignment'}>{assigned}</span>
       <span className="statusPill">{dashboardStatus(job.status)}</span>

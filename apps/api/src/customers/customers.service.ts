@@ -4,8 +4,8 @@ import { PrismaService } from '../prisma.service';
 
 export type CreateCustomerInput = {
   ownerId: string;
-  name: string;
-  contactName?: string;
+  name?: string;
+  contactName: string;
   email?: string;
   phone?: string;
   notes?: string;
@@ -19,16 +19,18 @@ export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(input: CreateCustomerInput) {
-    if (!input.ownerId || !input.name?.trim()) {
-      throw new BadRequestException('ownerId and name are required.');
+    if (!input.ownerId || !input.contactName?.trim()) {
+      throw new BadRequestException('ownerId and contactName are required.');
     }
     this.validateStatus(input.status);
 
     return this.prisma.customer.create({
       data: {
         ownerId: input.ownerId,
-        name: input.name.trim(),
-        contactName: input.contactName?.trim() || null,
+        // Keep the non-null historical field compatible without asking users
+        // to enter the same human name twice.
+        name: input.contactName.trim(),
+        contactName: input.contactName.trim(),
         email: input.email?.trim().toLowerCase() || null,
         phone: input.phone?.trim() || null,
         notes: input.notes?.trim() || null,
@@ -49,6 +51,7 @@ export class CustomersService {
               { name: { contains: search.trim(), mode: 'insensitive' } },
               { contactName: { contains: search.trim(), mode: 'insensitive' } },
               { email: { contains: search.trim(), mode: 'insensitive' } },
+              { phone: { contains: search.trim(), mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -81,12 +84,16 @@ export class CustomersService {
   async update(id: string, input: UpdateCustomerInput) {
     await this.findOne(id);
     this.validateStatus(input.status);
+    if (input.contactName !== undefined && !input.contactName.trim()) {
+      throw new BadRequestException('contactName is required.');
+    }
 
     return this.prisma.customer.update({
       where: { id },
       data: {
-        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-        ...(input.contactName !== undefined ? { contactName: input.contactName.trim() || null } : {}),
+        ...(input.contactName !== undefined
+          ? { name: input.contactName.trim(), contactName: input.contactName.trim() || null }
+          : {}),
         ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() || null } : {}),
         ...(input.phone !== undefined ? { phone: input.phone.trim() || null } : {}),
         ...(input.notes !== undefined ? { notes: input.notes.trim() || null } : {}),

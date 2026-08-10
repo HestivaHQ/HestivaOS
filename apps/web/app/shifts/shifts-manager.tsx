@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { displayCustomerName } from '../../lib/customer-display';
 import { api, Crew, Shift, ShiftInput, ShiftStatus, Technician, WorkOrder } from '../../lib/api';
 
 type ShiftForm = {
@@ -124,7 +125,7 @@ export function ShiftsManager() {
         <label>Unpaid break (minutes)<input min="0" type="number" value={form.unpaidBreakMinutes} onChange={(event) => setForm({ ...form, unpaidBreakMinutes: event.target.value })} /></label>
         <label>Crew<select value={form.crewId} onChange={(event) => setForm({ ...form, crewId: event.target.value, technicianId: '' })}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}</option>)}</select></label>
         <label>{selectedCrew ? 'Designated technician' : 'Technician'}<select value={form.technicianId} onChange={(event) => setForm({ ...form, technicianId: event.target.value })}><option value="">{selectedCrew ? 'Whole crew' : 'Select technician'}</option>{availableTechnicians.filter((technician) => technician.status === 'ACTIVE' || technician.id === form.technicianId).map((technician) => <option key={technician.id} value={technician.id}>{technician.firstName} {technician.lastName}</option>)}</select></label>
-        <label>Work order<select value={form.workOrderId} onChange={(event) => setForm({ ...form, workOrderId: event.target.value })}><option value="">No linked work order</option>{workOrders.map((workOrder) => <option key={workOrder.id} value={workOrder.id}>{workOrder.title} · {workOrder.customer.name}</option>)}</select></label>
+        <label>Work order<select value={form.workOrderId} onChange={(event) => setForm({ ...form, workOrderId: event.target.value })}><option value="">No linked work order</option>{workOrders.map((workOrder) => <option key={workOrder.id} value={workOrder.id}>{workOrder.title} · {displayCustomerName(workOrder.customer)}</option>)}</select></label>
         <label>Location<input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label>
         <label>Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as ShiftStatus })}>{['DRAFT','SCHEDULED','CONFIRMED','COMPLETED','CANCELLED'].map((status) => <option key={status}>{status}</option>)}</select></label>
         <label>Management notes<textarea rows={4} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></label>
@@ -134,7 +135,7 @@ export function ShiftsManager() {
       <section className="panel">
         <div className="panelHeader"><h3>Shift calendar</h3><div className="rowActions"><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></div></div>
         <div className="dataList">
-          {items.map((shift) => <article className="dataRow" key={shift.id}><div><strong>{shift.title}</strong><p>{new Intl.DateTimeFormat('en-ZA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(shift.startAt))} – {new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(shift.endAt))}</p><p>{shift.crew?.name || (shift.technician ? `${shift.technician.firstName} ${shift.technician.lastName}` : 'Unassigned')} · {shift.plannedHours} planned hours{shift.unpaidBreakMinutes ? ` · ${shift.unpaidBreakMinutes} min unpaid break` : ''}</p>{shift.workOrder ? <p>{shift.workOrder.title} · {shift.workOrder.customer.name}</p> : null}</div><div className="rowActions"><span className="statusPill">{readable(shift.status)}</span><button onClick={() => edit(shift)}>Edit</button><button onClick={() => void copy(shift)}>Copy</button><button className="dangerButton" onClick={() => void remove(shift)}>Delete</button></div></article>)}
+          {items.map((shift) => <article className="dataRow" key={shift.id}><div><strong>{shift.title}</strong><p>{new Intl.DateTimeFormat('en-ZA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(shift.startAt))} – {new Intl.DateTimeFormat('en-ZA', { timeStyle: 'short' }).format(new Date(shift.endAt))}</p><p>{shift.crew?.name || (shift.technician ? `${shift.technician.firstName} ${shift.technician.lastName}` : 'Unassigned')} · {shift.plannedHours} planned hours{shift.unpaidBreakMinutes ? ` · ${shift.unpaidBreakMinutes} min unpaid break` : ''}</p>{shift.workOrder ? <p>{shift.workOrder.title} · {displayCustomerName(shift.workOrder.customer)}</p> : null}</div><div className="rowActions"><span className="statusPill">{readable(shift.status)}</span><button onClick={() => edit(shift)}>Edit</button><button onClick={() => void copy(shift)}>Copy</button><button className="dangerButton" onClick={() => void remove(shift)}>Delete</button></div></article>)}
           {!items.length ? <div className="emptyState"><strong>No shifts scheduled</strong><p>Create the first crew or technician shift for this date range.</p></div> : null}
         </div>
       </section>

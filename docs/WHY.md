@@ -42,3 +42,7 @@ Company information needs one reusable source so future quotations, invoices, em
 ## Why Employee Records are separate
 
 Hestiva needs workforce details for people who may not use Hestiva OS and may not perform technician field work. A separate lean Employee Record avoids making authentication identity into an HR record or forcing office employees into the Technician scheduling graph. Optional unique links preserve useful OS-access and operations summaries while keeping their lifecycle authorities independent. The scope is intentionally operational rather than a full HRIS.
+
+## 2026-08-10 — Contact-first customers and grouped workforce navigation
+
+Hestiva's present workflow treats a Customer as the person represented by Contact name, so a second required Name input creates duplicate work without adding operational meaning. The retained database Name remains a compatibility field and legacy fallback rather than being destructively removed. The operational sidebar follows Customer → Property → Work Order creation, while Technicians, Crews, and Shift Planning express one Team concern. Employee Records and Services remain administrative ownership areas rather than daily operational destinations.

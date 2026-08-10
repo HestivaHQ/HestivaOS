@@ -6,7 +6,7 @@ If Customer deletion is unexpectedly refused, inspect its Property and Work Orde
 
 If the shell displays the wrong role, verify the Supabase identity, then the application User resolved by `/users/sync`; do not repair presentation through Supabase metadata, Technician records, email-based role inference, or a Profile visit. The shared shell and both responsive account views must receive the same authoritative application User. Existing verified-email reconciliation and disabled-access behavior remain the approved recovery path.
 
-For a broken continuation URL, remove invalid query parameters and select existing records in the form. Never create against an unknown Customer or mismatched Property. Property Type options recover with the existing Business List procedure below. Province is intentionally absent from ordinary forms: recover or inspect an existing value through authorized data/API processes without adding fabricated defaults or dropping the retained column.
+For a broken continuation URL, confirm the create response contains a persisted Customer UUID; the client deliberately refuses to build a URL from a missing or invalid ID. Remove invalid query parameters and select existing records in the form. Customer edits must not enter continuation. Do not rewrite legacy `Customer.name`: labels prefer Contact name and retain Name as the historical fallback. Never create against an unknown Customer or mismatched Property. Property Type options recover with the existing Business List procedure below. Province is intentionally absent from ordinary forms: recover or inspect an existing value through authorized data/API processes without adding fabricated defaults or dropping the retained column.
 
 ## Service catalogue recovery
 

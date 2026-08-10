@@ -50,7 +50,7 @@ export type DashboardOverview = {
   };
 };
 
-export type CustomerInput = { ownerId: string; name: string; contactName?: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };
+export type CustomerInput = { ownerId: string; name?: string; contactName: string; email?: string; phone?: string; notes?: string; status?: Customer['status'] };
 export type PropertyInput = { customerId: string; name: string; addressLine1: string; addressLine2?: string; city: string; province?: string; postalCode?: string; country?: string; accessNotes?: string; propertyTypeOptionId?: string | null };
 export type TechnicianInput = { firstName: string; lastName: string; email?: string; phone?: string; skills?: string[]; notes?: string; status?: Technician['status'] };
 export type CrewInput = { name: string; description?: string; leaderId?: string | null; memberIds?: string[]; status?: Crew['status'] };
