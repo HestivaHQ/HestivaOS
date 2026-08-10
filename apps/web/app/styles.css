@@ -293,6 +293,7 @@ h1, h2, h3, p { margin-top: 0; }
 .saveProfileBar, .shareActions { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .saveProfileBar { position: sticky; z-index: 5; bottom: 12px; padding: 16px 18px; border: 1px solid #cfe0e6; border-radius: 12px; background: rgba(255,255,255,.97); box-shadow: 0 5px 20px rgba(16,35,45,.1); }
 .saveProfileBar button, .shareButtonGrid button { min-height: 46px; border: 1px solid #176b87; border-radius: 9px; padding: 10px 15px; background: white; color: #176b87; font-weight: 800; }
+.saveProfileBar button.primaryButton, .shareButtonGrid button.primaryButton { color: white; }
 .shareActions { margin-top: 20px; }
 .shareButtonGrid { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 @media (max-width: 700px) { .businessFieldGrid { grid-template-columns: 1fr; } .saveProfileBar, .shareActions { align-items: stretch; flex-direction: column; } .saveProfileBar button, .shareButtonGrid, .shareButtonGrid button { width: 100%; } }
