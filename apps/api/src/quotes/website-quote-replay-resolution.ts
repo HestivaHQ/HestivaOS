@@ -17,19 +17,19 @@ export async function resolveWebsiteQuoteReplay(
     select: {
       id: true,
       reference: true,
-      currentRevisionNumber: true,
       revisions: {
-        select: { revisionNumber: true, structuredData: true },
+        where: { origin: 'CUSTOMER_SUBMISSION' },
+        orderBy: { revisionNumber: 'asc' },
+        take: 1,
+        select: { structuredData: true },
       },
     },
   });
 
   if (!existing) return { kind: 'NEW' };
 
-  const currentRevision = existing.revisions.find(
-    (revision) => revision.revisionNumber === existing.currentRevisionNumber,
-  );
-  if (!currentRevision) {
+  const originalSubmission = existing.revisions[0];
+  if (!originalSubmission) {
     return {
       kind: 'CORRUPT_EXISTING',
       quoteId: existing.id,
@@ -38,7 +38,7 @@ export async function resolveWebsiteQuoteReplay(
   }
 
   const incomingFingerprint = websiteQuotePayloadFingerprint(payload);
-  const storedFingerprint = websiteQuotePayloadFingerprint(currentRevision.structuredData);
+  const storedFingerprint = websiteQuotePayloadFingerprint(originalSubmission.structuredData);
 
   if (incomingFingerprint === storedFingerprint) {
     return {
