@@ -1,22 +1,40 @@
 # Current website quote-to-OS value mapping
 
-Verified 2026-08-10 against the authoritative current website vocabulary supplied from `HestivaHQ/hestiva` `src/routes/quote.tsx` and the Hestiva OS schema/catalogue. This is the canonical reconciliation input for future Slice 5M. It does not connect the website to Hestiva OS.
+## Slice 5M-B current contract supersession — 2026-08-11
 
-## Current quote flow
+The historical Slice 5K reconciliation below is retained for engineering history, but it is no longer the current integration contract where Issue #73 has since resolved a gap. The current cross-repository boundary is [`WEBSITE_QUOTE_CONTRACT_V1.md`](WEBSITE_QUOTE_CONTRACT_V1.md) and `apps/api/src/quotes/website-quote-contract.ts`.
 
-The eight steps are: Your Home; Cleaning Requirements; Personalise Your Service; Preferred Visit; Access and Household Details; Photos and Notes; Your Details; Review and Submit.
+Current resolved rules that supersede older unresolved statements below:
 
-Required fields are Property Type, Suburb, Address, Floor Size, Bedrooms, and Bathrooms in Step 1; Service, Frequency, and Condition in Step 2; Preferred Date and Preferred Time in Step 4; and Full Name, Mobile, Email, and Contact Method in Step 7. Other values from the personalization, access/household, photo/note, and review steps remain optional quote inputs whose exact 5M transport contract is not implemented here.
+- Current website source does enforce service-specific frequency restrictions; Slice 5M-B preserves those verified rules rather than claiming none exist.
+- `Post-Renovation Cleaning` is a primary Service intent; `RECENTLY_RENOVATED` remains an independent Home Condition.
+- `Eco-friendly products` is a boolean quote preference, not an add-on.
+- `Extra Refrigerator` and `Balcony / Patio Cleaning` carry explicit positive-integer quantity in payload v1; other v1 add-ons use quantity 1.
+- Bathrooms in payload v1 are only `ONE`, `TWO`, `THREE`, `FOUR`, or `FIVE_PLUS`.
+- `Add-on Services` and `Not sure` remain explicit pseudo choices with `canonicalService: null`, which requires `NEEDS_ATTENTION`; unknown mappings fail closed.
+- Exact Apartment/Townhouse floor is transported as integer `exactFloor` 0–50 with explicit building-access method. The older grouped `Property.unitFloor` remains current Property storage, so exact operational persistence is still a later 5M handoff responsibility and must not be falsely claimed as already implemented.
+- Customer Quote photo identity is stable `clientPhotoId` plus SHA-256 in payload v1. The merged 5M-A schema provides Quote photo retry/status storage but does not yet persist the hash; runtime storage/deduplication mapping remains later integration work.
+- Pricing v1 is HestivaOS-authoritative, returned as immutable ZAR integer-minor-unit subtotal/adjustments/total plus line breakdown. The 5M-A storage model exists; the calculator and external-to-persistence adapter are not implemented by this mapping document.
 
-## Service capability rules
+## Historical Slice 5K reconciliation
+
+Verified 2026-08-10 against the authoritative current website vocabulary supplied from `HestivaHQ/hestiva` `src/routes/quote.tsx` and the Hestiva OS schema/catalogue. This was the canonical reconciliation input for future Slice 5M at that point in time. It did not connect the website to Hestiva OS.
+
+### Historical quote flow
+
+The eight steps were: Your Home; Cleaning Requirements; Personalise Your Service; Preferred Visit; Access and Household Details; Photos and Notes; Your Details; Review and Submit.
+
+Required fields were Property Type, Suburb, Address, Floor Size, Bedrooms, and Bathrooms in Step 1; Service, Frequency, and Condition in Step 2; Preferred Date and Preferred Time in Step 4; and Full Name, Mobile, Email, and Contact Method in Step 7. Other values from the personalization, access/household, photo/note, and review steps remained optional quote inputs whose exact 5M transport contract was not implemented in Slice 5K.
+
+### Service capability rules
 
 One `Service` represents one canonical business capability. `Service.type` is availability with `PRIMARY`, `ADD_ON`, or `BOTH`; `BOTH` prevents duplicate records where the same capability is selectable in both contexts. Work Orders still have exactly one primary-capable `serviceId` and zero or many add-on-capable `WorkOrderAddOn` relationships. Cleaning Job Templates remain operational task definitions. The current quote contains no approved Service Scope values, so Hestiva OS has no `ServiceScopeOption` architecture.
 
-Current primary selector values map by canonical normalized name except `Eco-Friendly Cleaning`, which aliases to `Eco-Conscious Cleaning`. `Add-on Services` and `Not sure` are quote-flow choices and must never become canonical Primary Services.
+The historical primary selector mapped by canonical normalized name except `Eco-Friendly Cleaning`, which aliases to `Eco-Conscious Cleaning`. `Add-on Services` and `Not sure` are quote-flow choices and must never become canonical Primary Services.
 
-## Current frequency
+### Historical frequency mapping
 
-| Current website value | WorkOrderFrequency | Disposition |
+| Website value | WorkOrderFrequency | Disposition |
 | --- | --- | --- |
 | One-time | `ONE_TIME` | Exact deterministic mapping |
 | Weekly | `WEEKLY` | Exact deterministic mapping |
@@ -25,74 +43,66 @@ Current primary selector values map by canonical normalized name except `Eco-Fri
 | Custom | `CUSTOM` | Exact mapping; details use the existing custom note boundary |
 | Fortnightly | `EVERY_TWO_WEEKS` | Legacy alias only; not current canonical website wording |
 
-No service-specific frequency restrictions were found in the current source vocabulary.
+The Slice 5K statement that no service-specific frequency restrictions were found is superseded by the verified current website `LiveFormSubmission.tsx` rules and the Slice 5M-B contract.
 
-## Current website add-ons
+### Historical website add-on assessment
 
-| Website value | Canonical concept | Disposition | Reason / boundary |
+| Website value | Canonical concept | Historical Slice 5K disposition | Current 5M note |
 | --- | --- | --- | --- |
-| Inside oven | Inside Oven Cleaning | Deterministic alias | Existing canonical add-on capability. |
-| Inside fridge | Inside Fridge Cleaning | Deterministic alias | Existing canonical add-on capability. |
-| Inside cupboards | Interior Cupboard Cleaning | Deterministic alias | Existing canonical add-on capability. |
-| Interior windows | Interior Window Cleaning | Deterministic capability mapping | The one canonical capability is `BOTH`; no duplicate Service. |
-| Laundry folding | Laundry Folding | Deterministic capability mapping | The one canonical capability is `BOTH`; no duplicate Service. |
-| Ironing | Ironing | New canonical add-on | Current distinct website add-on capability. |
-| Bed making | Bed Making | New canonical add-on | Current distinct website add-on capability. |
-| Linen change | Linen Change | New canonical add-on | Current distinct website add-on capability. |
-| Balcony or patio | — | Unresolved; fail closed | Existing Balcony Sweeping does not prove Patio equivalence. No lossy alias or new record. |
-| Garage sweep | Garage Sweeping | Deterministic alias | Approved consistent operational wording. |
-| Extra bathroom | Extra Bathroom Cleaning | New canonical add-on | Current add-on evidence distinguishes it from the Bathroom Sanitisation primary capability. One selection means one extra bathroom. |
-| Extra refrigerator | — | Unresolved; fail closed | Means an additional unit; it is not an alias for Inside Fridge Cleaning. Quantity/pricing ownership needs a commercial decision. |
-| Pet-hair treatment | Pet-Hair Treatment | New canonical add-on | Current distinct website add-on, with Property pet facts remaining separate context. |
-| Eco-friendly products | — | Unresolved; fail closed | May be a product preference/restriction or chargeable capability; `productRestrictionNotes` and Eco-Conscious Cleaning do not establish pricing semantics. |
-| Post-renovation dust removal | — | Unresolved; fail closed | `RECENTLY_RENOVATED` describes condition; the website value requests a possible task/charge. Both can coexist, but commercial semantics are unapproved. |
+| Inside oven | Inside Oven Cleaning | Deterministic alias | Deterministic structured mapping |
+| Inside fridge | Inside Fridge Cleaning | Deterministic alias | Deterministic structured mapping |
+| Inside cupboards | Interior Cupboard Cleaning | Deterministic alias | Deterministic structured mapping |
+| Interior windows | Interior Window Cleaning | Deterministic capability mapping | One canonical `BOTH` capability |
+| Laundry folding | Laundry Folding | Deterministic capability mapping | One canonical `BOTH` capability |
+| Ironing | Ironing | New canonical add-on | Structured add-on, quantity 1 |
+| Bed making | Bed Making | New canonical add-on | Structured add-on, quantity 1 |
+| Linen change | Linen Change | New canonical add-on | Structured add-on, quantity 1 |
+| Balcony or patio | — | Unresolved; fail closed | Resolved product intent as `Balcony / Patio Cleaning` with explicit quantity; catalogue/runtime resolution still must be exact |
+| Garage sweep | Garage Sweeping | Deterministic alias | Structured add-on, quantity 1 |
+| Extra bathroom | Extra Bathroom Cleaning | New canonical add-on | Structured add-on, quantity 1 in v1 |
+| Extra refrigerator | — | Unresolved; fail closed | Resolved as `Extra Refrigerator` with explicit quantity |
+| Pet-hair treatment | Pet-Hair Treatment | New canonical add-on | Structured add-on, quantity 1 |
+| Eco-friendly products | — | Unresolved; fail closed | Resolved as boolean preference, not add-on |
+| Post-renovation dust removal | — | Unresolved; fail closed | Superseded by primary `Post-Renovation Cleaning`; `RECENTLY_RENOVATED` remains separate condition |
 
-`WorkOrderAddOn` currently has a composite identity and no quantity. Repeated Service IDs are invalid. Slice 5K does not add a generic quantity/pricing engine. Extra refrigerator therefore blocks deterministic 5M handoff until quantity or an approved extra-unit capability is designed; it is never silently reduced to one Inside Fridge Cleaning selection.
+The historical `WorkOrderAddOn` model has no quantity. Slice 5M-B defines quote-payload quantity but does not claim accepted Work Order/Recurring Agreement quantity persistence is already implemented; that adapter/data requirement remains part of later accepted-handoff work.
 
-## Current Property vocabulary
+### Historical/current Property vocabulary
 
 | Website field | Current vocabulary | OS ownership / follow-up |
 | --- | --- | --- |
-| Property Type | Apartment; Townhouse; House; Duplex; Other | Managed `PROPERTY_TYPE`; verify exact bootstrap alignment before 5M. |
-| Floor Size | Under 80 m²; 80–150 m²; 151–250 m²; Over 250 m²; Not sure | Not modeled; focused Property alignment follow-up required. |
-| Living Areas | 1; 2; 3; 4+ | Maps to existing controlled Property living-area counts. |
-| Outdoor | None; Balcony; Patio; Both | Not modeled; focused Property alignment follow-up required. |
-| Estate | No; Yes — estate; Yes — complex; Yes — gated community | Existing booleans do not preserve this full classification; focused follow-up required. |
-| Apartment Bedrooms | Studio; 1; 2; 3; 4; 5+; Other | Existing controlled bedrooms cover all except `Other`; 5M/follow-up must fail closed on unsupported `Other`. |
-| Other-property Bedrooms | 1; 2; 3; 4; 5+; Other | Existing controlled bedrooms cover all except `Other`. |
-| Bathrooms | Dynamically constrained by bedroom selection | Existing counts own persisted value; website constraint requires 5M contract verification. |
-| Storeys | 1 storey; 2 storeys; 3 storeys; 4+ storeys; Not sure | Existing model groups 3+ and cannot deterministically preserve all values; follow-up required. |
-| Apartment unit floor | Ground floor; 1st; 2nd; 3rd; 4th; 5th–9th; 10th or above; Not sure | Not modeled; focused Property alignment follow-up required. |
-| Townhouse unit floor | Ground-level unit; 1st; 2nd; 3rd or above; Not sure | Not modeled; focused Property alignment follow-up required. |
+| Property Type | Apartment; Townhouse; House; Duplex; Other | Managed `PROPERTY_TYPE` and deterministic v1 enum mapping |
+| Floor Size | Under 80 m²; 80–150 m²; 151–250 m²; Over 250 m²; Not sure | Existing controlled Property destination |
+| Living Areas | 1; 2; 3; 4+ | Existing controlled Property destination |
+| Outdoor | None; Balcony; Patio; Both | Existing controlled Property destination; distinct from chargeable add-on |
+| Estate | No; Yes — estate; Yes — complex; Yes — gated community | Existing controlled Property destination |
+| Apartment Bedrooms | Studio; 1; 2; 3; 4; 5+; Other | Existing controlled destination; Studio Apartment-only |
+| Other-property Bedrooms | 1; 2; 3; 4; 5+; Other | Existing controlled destination |
+| Bathrooms | 1; 2; 3; 4; 5+ | Existing controlled destination; no `OTHER` in v1 |
+| Storeys | 1 storey; 2 storeys; 3 storeys; 4+ storeys; Not sure | Existing controlled destination including compatibility states |
+| Exact unit floor | Ground / Floor 1..50 in current enhancement layer | v1 transports integer 0..50; exact persistence is later 5M work |
+| Building access | Elevator / Stairs / both | v1 first-class field; later handoff owns operational destination |
 
-This table preserves the historical Slice 5K gap assessment. Slice 5J-A subsequently closed these Property destination gaps as recorded in the current-state table below; Slice 5K itself changed no Property schema or UI.
+### Existing deterministic Property mappings
+
+| Website value | OS field | OS value |
+| --- | --- | --- |
+| Under 80 m² | `Property.floorSize` | `UNDER_80` |
+| 80–150 m² | `Property.floorSize` | `FROM_80_TO_150` |
+| 151–250 m² | `Property.floorSize` | `FROM_151_TO_250` |
+| Over 250 m² | `Property.floorSize` | `OVER_250` |
+| Not sure (floor size) | `Property.floorSize` | `UNKNOWN` |
+| None / Balcony / Patio / Both | `Property.outdoorArea` | `NONE` / `BALCONY` / `PATIO` / `BOTH` |
+| No / Estate / Complex / Gated community | `Property.estateClassification` | `NONE` / `ESTATE` / `COMPLEX` / `GATED_COMMUNITY` |
+| Studio / 1 / 2 / 3 / 4 / 5+ / Other | `Property.bedrooms` | `STUDIO` / `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` / `OTHER` |
+| 1 / 2 / 3 / 4 / 5+ bathrooms | `Property.bathrooms` | `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` |
+| 1 / 2 / 3 / 4+ living areas | `Property.livingAreas` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` |
+| 1 / 2 / 3 / 4+ / Not sure storeys | `Property.storeys` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` / `UNKNOWN` |
 
 ## Fail-closed rule
 
-Only exact current mappings and explicit legacy aliases above are deterministic. Unresolved terms do not create Services, Add-ons, Property values, or notes automatically. Future 5M must resolve canonical IDs/enums at its trust boundary and reject or route unknown/unresolved values for human review.
+Only exact current mappings and explicit approved aliases are deterministic. Unknown or unresolved values do not create Services, Add-ons, Property values, or inferred notes automatically. The 5M trust boundary rejects them or persists the explicitly approved pseudo-choice as `NEEDS_ATTENTION`; it never invents a fuzzy mapping.
 
-## Current Property vocabulary — verified 2026-08-10
+## Recurring-service handoff target enabled by 5L
 
-Authority: current `HestivaHQ/hestiva/src/routes/quote.tsx`; older `quote-options.ts` values are not authoritative where they conflict.
-
-| Website field | Website value | OS field | OS value | Status |
-| --- | --- | --- | --- | --- |
-| Floor Size | Under 80 m² | `Property.floorSize` | `UNDER_80` | Deterministic |
-| Floor Size | 80–150 m² | `Property.floorSize` | `FROM_80_TO_150` | Deterministic |
-| Floor Size | 151–250 m² | `Property.floorSize` | `FROM_151_TO_250` | Deterministic |
-| Floor Size | Over 250 m² | `Property.floorSize` | `OVER_250` | Deterministic |
-| Floor Size | Not sure | `Property.floorSize` | `UNKNOWN` | Deterministic |
-| Outdoor | None / Balcony / Patio / Both | `Property.outdoorArea` | `NONE` / `BALCONY` / `PATIO` / `BOTH` | Deterministic; not the chargeable add-on |
-| Estate / Complex | No / Estate / Complex / Gated community | `Property.estateClassification` | `NONE` / `ESTATE` / `COMPLEX` / `GATED_COMMUNITY` | Deterministic for new input |
-| Apartment Floor | Ground / 1st / 2nd / 3rd / 4th / 5th–9th / 10th+ / Not sure | `Property.unitFloor` | `GROUND` / `FIRST` / `SECOND` / `THIRD` / `FOURTH` / `FIFTH_TO_NINTH` / `TENTH_PLUS` / `UNKNOWN` | Deterministic, Apartment-only subset |
-| Townhouse Floor | Ground-level / 1st / 2nd / 3rd+ / Not sure | `Property.unitFloor` | `GROUND` / `FIRST` / `SECOND` / `THIRD_PLUS` / `UNKNOWN` | Deterministic, Townhouse-only subset |
-| Bedrooms | Studio / 1 / 2 / 3 / 4 / 5+ / Other | `Property.bedrooms` | `STUDIO` / `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` / `OTHER` | Deterministic; Studio Apartment-only |
-| Bathrooms | 1 / 2 / 3 / 4 / 5+ | `Property.bathrooms` | `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` | Deterministic |
-| Storeys | 1 / 2 / 3 / 4+ / Not sure | `Property.storeys` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` / `UNKNOWN` | Deterministic |
-| Living Areas | 1 / 2 / 3 / 4+ | `Property.livingAreas` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` | Deterministic |
-
-All current website Property values required by a future 5M handoff have deterministic destinations. Remaining 5M blockers are orchestration itself and the intentionally unresolved commercial mappings for extra-refrigerator quantity, chargeable balcony/patio cleaning, eco-friendly-product ownership, and post-renovation dust-removal boundaries; none is a Property destination gap.
-
-## Slice 5M handoff target enabled by 5L (2026-08-11)
-
-No website handoff is implemented here. A future accepted ONE_TIME quote maps only to a Work Order. Weekly, Every two weeks, Monthly, and Custom map to `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` on a Property-owned recurring agreement, with the initial Work Order handled by the future 5M transaction. Preferred date seeds `effectiveDate`; Morning/Midday/Afternoon/Flexible map to the controlled preferred time window. CUSTOM requires a note and manual scheduling. Urgency remains initial-job/quote data, flexibility ownership remains for 5M/5O review, and Extra refrigerator quantity plus other 5K commercial questions remain unresolved.
+No accepted Quote handoff is implemented by 5M-B. A later accepted ONE_TIME Quote maps to a Work Order. Weekly, Every two weeks, Monthly, and Custom map to Property-owned recurring agreement rules, with the initial Work Order handled by the accepted-handoff transaction. Preferred date seeds the future effective date; `MORNING`, `MIDDAY`, `AFTERNOON`, and `FLEXIBLE` use the controlled time-window vocabulary. `CUSTOM` requires descriptive detail and remains manual scheduling. The Quote Submission contract itself creates no Customer, Property, Work Order, or Recurring Service Agreement.

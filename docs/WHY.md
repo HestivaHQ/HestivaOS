@@ -66,3 +66,9 @@ The current website presents Interior Window Cleaning and Laundry Folding as bot
 ## 2026-08-11 — Why recurring service is a separate operational record
 
 An ongoing commitment changes over time while a Work Order must preserve one visit's instructions and accepted values. A Property-owned agreement therefore holds recurrence and lifecycle, while generation snapshots visit data into an independently operated Work Order. Explicit one-visit generation and database occurrence uniqueness favor reviewable queues and concurrency safety over an uncontrolled scheduler.
+
+## 2026-08-11 — Why the website Quote boundary is versioned and server-to-server
+
+The public website and the operational OS have different responsibilities. The website should optimize customer capture and presentation, while HestivaOS owns official Quote identity, pricing, history, storage provenance, and eventual operational import. A versioned structured payload prevents email prose, display labels, or duplicated pricing logic from becoming hidden business interfaces that drift independently.
+
+A stable submission UUID and photo identity/hash make retries deterministic rather than depending on whether a browser saw a response. Keeping the private integration server-to-server prevents a long-lived integration credential from becoming a browser secret. Delaying the runtime endpoint until authentication, pricing, storage reconciliation, idempotent replay, and atomic persistence can be delivered together prevents a partially implemented boundary from accepting customer requests that it cannot safely complete.

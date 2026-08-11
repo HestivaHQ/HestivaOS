@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-11 — Slice 5M-B website Quote contract v1
+
+### Added
+
+- Added the versioned `1.0` structured Website Quote Submission contract, typed validation boundary, authoritative pricing-response shape, stable submission/photo retry identities, exact-floor/access transport, quantity-aware approved add-on semantics, and focused API tests.
+- Added the server-to-server route/authentication contract and ADR-0028 without exposing an incomplete ingestion endpoint or committing any integration credential.
+- Added `WEBSITE_QUOTE_CONTRACT_V1.md` as the consumer contract and reconciled the earlier Slice 5K mapping so resolved 5M decisions no longer appear as current unresolved blockers.
+
+### Preserved
+
+- Existing Quote persistence, Customer/Property/Work Order/Recurring Agreement behavior, production website submission, pricing calculation, storage, and deployment configuration remain unchanged in this contract-only sub-slice. Exact-floor persistence, photo-hash persistence/storage reconciliation, authoritative pricing calculation, authenticated ingestion, and accepted-Quote operational handoff remain later 5M implementation work.
+
 ## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
 
 ### Added
