@@ -6,7 +6,7 @@ This focused sub-slice adds two API-side primitives required before the private 
 
 ## Server-to-server bearer verification
 
-`apps/api/src/quotes/website-integration-auth.ts` verifies the approved `Authorization: Bearer ...` boundary against the server-side `HESTIVA_WEBSITE_INTEGRATION_SECRET` value. Missing configuration, missing/malformed headers, and non-exact values fail closed. Equal-length secret comparison uses Node's constant-time comparison primitive.
+`apps/api/src/quotes/website-integration-auth.ts` verifies the approved `Authorization: Bearer ...` boundary against the server-side `HESTIVA_WEBSITE_INTEGRATION_SECRET` value. Missing configuration, missing/malformed headers, and non-exact values fail closed. Both candidate and configured secret are first reduced to fixed-length SHA-256 digests, then compared with Node's constant-time comparison primitive.
 
 The helper is not wired to a controller in this sub-slice. No integration secret is created, committed, exposed to the browser, or added to deployment configuration here.
 
