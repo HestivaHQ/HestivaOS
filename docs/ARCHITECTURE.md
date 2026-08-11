@@ -18,6 +18,16 @@ Hestiva OS owns the operational service catalogue. `Service` has `PRIMARY`, `ADD
 
 The initial catalogue was reconciled from the supplied, verified `HestivaHQ/hestiva` sources `src/content/services.ts` and `src/lib/quote-options.ts`. The public-page name `Eco-Conscious Cleaning` is canonical and `Eco-Friendly Cleaning` is its recognized quote-form alias. The migration does not create `Multiple Services Required`, `Other (Please Describe)`, or the `Cleaning Add-On Services` landing/grouping page. Website synchronization is not live-coupled. The current `src/routes/quote.tsx` has no approved service-scope inputs, so no Service Scope schema, API, or UI exists. Cleaning Job Templates remain reusable operational task definitions. `docs/QUOTE_TO_OS_VALUE_MAPPING.md` owns the fail-closed current vocabulary mapping for future quote handoff.
 
+## Authoritative Quote domain foundation (Slice 5M-A, 2026-08-11)
+
+HestivaOS now owns the durable Quote aggregate used by the website, future Admin/manual capture, and future WhatsApp integration. `Quote` owns the stable public reference, lifecycle status, validity boundary, current revision pointer, and future operational linkage slots. A required database-unique `submissionKey` is separate from the human-facing `Q-...` reference and is the durable idempotency identity that later ingestion services must reuse across retries; repeating a submission key must resolve to the same Quote rather than creating another Quote.
+
+`QuoteRevision` is the immutable structured submission and pricing snapshot for a specific revision. It stores integer minor-unit pricing with initial `ZAR`, subtotal, optional Admin discount plus reason, dormant tax fields, and total. `QuoteLineItem` preserves line type, label/code, quantity, unit amount and line total. Later pricing-rule changes do not rewrite historical revisions. The foundation stores structured quote data as JSON; the typed website/API contract and pricing calculator are intentionally deferred to the next Slice 5M sub-slice.
+
+`QuotePhoto` is the durable owner of customer-submitted and later Admin-added quote evidence. Each photo has a required database-unique `transferKey` so repeated transfer attempts cannot create duplicate photo records, plus `PENDING`/`STORED`/`FAILED` state and provenance metadata. Work Orders will reference the applicable Quote assets later rather than duplicating them into Work Order photo ownership. `QuoteActivity` is the append-only Quote-domain history, and `QuoteDailyCounter` is the atomic sequence primitive for future `Q-YYYYMMDD-####` generation.
+
+This foundation does not yet expose a website endpoint, calculate pricing, issue or validate Accept/Decline links, match/create Customers or Properties, or create Work Orders/Recurring Service Agreements. The nullable operational IDs are non-enforced linkage slots until the later handoff transaction supplies validated relations. `NEEDS_ATTENTION` and photo transfer states provide durable recovery state, but retry execution and Admin alerting are later service-layer work.
+
 Hestiva OS is an npm-workspace monorepo owned in GitHub by `HestivaHQ/HestivaOS`; `main` is the default branch and source of truth.
 
 ```text
