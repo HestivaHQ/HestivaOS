@@ -32,3 +32,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0024: Allow one Service capability in both booking contexts](ADR-0024-dual-context-service-availability.md)
 - [ADR-0025: Preserve ambiguous Property states during quote vocabulary alignment](ADR-0025-property-quote-vocabulary-compatibility.md)
 - [ADR-0026: Separate recurring service agreements from visit Work Orders](ADR-0026-recurring-service-agreements.md)
+- [ADR-0027: Make HestivaOS the authoritative Quote domain](ADR-0027-authoritative-quote-domain.md)
