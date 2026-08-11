@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
+
+- Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
+- Added `apps/api/src/quotes/website-integration-auth.ts` with fail-closed `Authorization: Bearer ...` verification against `HESTIVA_WEBSITE_INTEGRATION_SECRET`. Missing/malformed authorization, missing configuration, and non-exact values are rejected. The implementation hashes both candidate and configured values to fixed-length SHA-256 digests before Node's `timingSafeEqual`, avoiding early length-based secret comparison while preserving exact equality semantics.
+- Added `apps/api/src/quotes/website-quote-idempotency.ts` to produce a deterministic SHA-256 fingerprint of the complete structured submission. Canonicalization recursively sorts object keys and preserves array order; identical material with different object-key serialization yields the same fingerprint, while changed nested data or reordered arrays yields a different fingerprint.
+- Added focused Jest coverage for exact and case-insensitive Bearer scheme parsing, missing/malformed credentials, missing configuration, prefix/suffix rejection, object-key-order stability, array-order preservation, nested material changes, and case-insensitive stored fingerprint comparison.
+- Manual review found one documentation statement that still described the pre-hardening equal-length comparison. Corrected it before merge review so the runtime-support document now matches the SHA-256-digest implementation. The repository-mandatory changelog and technical work-log entries were added without altering earlier history; an accidental historical wording change detected in final diff review was restored before the final-head quality-gate run.
+
 ## 2026-08-11 — Slice 5M-B website Quote submission/pricing contract
 
 - Re-read the locked Issue #73 payload, transport/authentication, pricing, photo retry/deduplication, and ownership decisions before implementation rather than deriving a new contract from the current website email text. The v1 contract is `schemaVersion: "1.0"`, stable website UUID `submissionId`, constant `HESTIVA_WEBSITE` source, canonical UTC submission time, and first-class customer/property/service/visit/access/household/safety/note/photo structures.
