@@ -30,3 +30,5 @@ The reusable `Property.floorSize` enum now supports all of the new precise bands
 No existing broad value is automatically converted to a narrower band. For example, an existing `FROM_80_TO_150` record cannot truthfully be changed to `FROM_80_TO_99`, `FROM_100_TO_129`, or `FROM_130_TO_169` without new evidence about the property.
 
 For new Property entries, the HestivaOS UI presents only the precise bands plus `Not sure`. When an existing Property carries a historical broad value, that value remains visible as a labelled legacy option during editing until an administrator has reliable information to replace it. Work-order property snapshots can display both the new precise values and historical broad values with explicit legacy labels.
+
+This compatibility layer changes vocabulary support only. It does not perform address-based floor-size inference, pricing, quote acceptance handoff, or automatic migration of historical Property facts.
