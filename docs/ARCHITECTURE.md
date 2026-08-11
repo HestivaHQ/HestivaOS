@@ -145,3 +145,11 @@ Full Property and authorized Work Order responses can carry operational details.
 ## Property quote vocabulary alignment (2026-08-10)
 
 The authorized full Property resource stores nullable `floorSize`, `outdoorArea`, `estateClassification`, and unified `unitFloor` enums. `unitFloor` is validated against the managed Property Type label: Apartment and Townhouse have distinct allowed subsets; other types clear the value on type change. `STUDIO` is Apartment-only. The legacy `isEstateOrComplex` boolean and `THREE_PLUS` storey remain readable compatibility states and are not used for new exact selections. Generic Property selectors remain identity-only; Work Orders read the live full Property profile.
+
+## Recurring service agreements (Slice 5L, 2026-08-11)
+
+`Customer → Property → RecurringServiceAgreement → WorkOrder` is the ownership chain. The agreement owns structured cadence, lifecycle, canonical primary Service/add-ons, date range, preferred time window, recurring instructions, and inspectable `nextServiceDate`; Property continues to own access and household facts. Customer is derived through Property rather than duplicated.
+
+Weekly rules select the next controlled weekday. Every-two-weeks rules use the first selected weekday on/after `effectiveDate` as a stable 14-day anchor. Monthly rules use day 1–31, clamped to the final valid day of short months. All business-date boundaries use `Africa/Johannesburg`; CUSTOM is prose-only and manual. An optional end date is inclusive.
+
+Explicit generation creates at most one upcoming visit per ACTIVE standard agreement when no future occurrence already exists. It skips missed dates, uses the normal `WO-YYYYMMDD-####` transaction, and snapshots Service, add-ons, frequency, and instructions. `(recurringAgreementId, recurrenceDate)` is database-unique. Generated Work Orders are independent records: edits, pause, resume, cancel, or natural end do not rewrite/delete them. Assignment remains the existing Work Order concern.

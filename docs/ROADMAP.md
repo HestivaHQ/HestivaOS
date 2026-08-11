@@ -58,3 +58,13 @@ Only currently identified technical follow-up work is listed here.
 
 - Completed Slice 5J-A: current website Property quote vocabulary now has controlled OS destinations, type-aware unit-floor/Studio validation, additive legacy compatibility, and live Work Order summaries.
 - Slice 5M remains planned and unimplemented. Property vocabulary has no destination blocker; handoff orchestration and the four unresolved Slice 5K commercial decisions remain outside this slice.
+
+## Completed 2026-08-11
+
+- Slice 5L introduced Property-owned recurring service agreements, structured standard recurrence, manual CUSTOM tracking, lifecycle management, idempotent one-upcoming-visit generation, Work Order snapshots, and Customer cleanup integration.
+
+## Protected follow-up after Slice 5L
+
+- Slice 5M remains the accepted quote-to-OS transaction: ONE_TIME creates no agreement; recurring quotes may create Customer, Property, agreement, and the appropriate initial visit.
+- Slice 5N remains the one/many Technician and optional Crew assignment redesign; agreement generation uses current Work Order assignment.
+- Slice 5O remains skills and remaining evidence-backed operational fields. Extra refrigerator quantity and the other recorded 5K commercial decisions remain unresolved.

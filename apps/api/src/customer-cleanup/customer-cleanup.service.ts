@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 export type CustomerCleanupCounts = {
   customerDeleted: number;
   propertiesDeleted: number;
+  recurringAgreementsDeleted: number;
   workOrdersDeleted: number;
   activitiesDeleted: number;
   checklistItemsDeleted: number;
@@ -36,11 +37,13 @@ export class CustomerCleanupService {
       // Shifts are shared planning records: detach their customer-owned work-order link, but preserve the shift.
       const shiftsDetached = await tx.shift.updateMany({ where: { workOrder: workOrderWhere }, data: { workOrderId: null } });
       const workOrdersDeleted = await tx.workOrder.deleteMany({ where: workOrderWhere });
+      const recurringAgreementsDeleted = await tx.recurringServiceAgreement.deleteMany({ where: { property: { customerId } } });
       const propertiesDeleted = await tx.property.deleteMany({ where: { customerId } });
       const customerDeleted = await tx.customer.deleteMany({ where: { id: customerId } });
       return {
         customerDeleted: customerDeleted.count,
         propertiesDeleted: propertiesDeleted.count,
+        recurringAgreementsDeleted: recurringAgreementsDeleted.count,
         workOrdersDeleted: workOrdersDeleted.count,
         activitiesDeleted: activitiesDeleted.count,
         checklistItemsDeleted: checklistItemsDeleted.count,
@@ -57,8 +60,9 @@ export class CustomerCleanupService {
     const customer = await tx.customer.findUnique({ where: { id: customerId }, select: { contactName: true, name: true } });
     if (!customer) throw new NotFoundException('Customer not found.');
     const workOrderWhere = { customerId };
-    const [properties, workOrders, activities, checklistItems, photos, signOffs, shifts] = await Promise.all([
+    const [properties, recurringAgreements, workOrders, activities, checklistItems, photos, signOffs, shifts] = await Promise.all([
       tx.property.count({ where: { customerId } }),
+      tx.recurringServiceAgreement.count({ where: { property: { customerId } } }),
       tx.workOrder.count({ where: workOrderWhere }),
       tx.workOrderActivity.count({ where: { workOrder: workOrderWhere } }),
       tx.workOrderChecklistItem.count({ where: { workOrder: workOrderWhere } }),
@@ -70,6 +74,7 @@ export class CustomerCleanupService {
       customerName: customer.contactName?.trim() || customer.name,
       customer: 1,
       properties,
+      recurringAgreements,
       workOrders,
       activities,
       checklistItems,

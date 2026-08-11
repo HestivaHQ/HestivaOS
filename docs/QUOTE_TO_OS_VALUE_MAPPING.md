@@ -92,3 +92,7 @@ Authority: current `HestivaHQ/hestiva/src/routes/quote.tsx`; older `quote-option
 | Living Areas | 1 / 2 / 3 / 4+ | `Property.livingAreas` | `ONE` / `TWO` / `THREE` / `FOUR_PLUS` | Deterministic |
 
 All current website Property values required by a future 5M handoff have deterministic destinations. Remaining 5M blockers are orchestration itself and the intentionally unresolved commercial mappings for extra-refrigerator quantity, chargeable balcony/patio cleaning, eco-friendly-product ownership, and post-renovation dust-removal boundaries; none is a Property destination gap.
+
+## Slice 5M handoff target enabled by 5L (2026-08-11)
+
+No website handoff is implemented here. A future accepted ONE_TIME quote maps only to a Work Order. Weekly, Every two weeks, Monthly, and Custom map to `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` on a Property-owned recurring agreement, with the initial Work Order handled by the future 5M transaction. Preferred date seeds `effectiveDate`; Morning/Midday/Afternoon/Flexible map to the controlled preferred time window. CUSTOM requires a note and manual scheduling. Urgency remains initial-job/quote data, flexibility ownership remains for 5M/5O review, and Extra refrigerator quantity plus other 5K commercial questions remain unresolved.

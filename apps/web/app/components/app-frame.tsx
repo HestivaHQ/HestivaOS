@@ -10,6 +10,7 @@ export const APP_NAVIGATION_ITEMS = [
   { href: '/customers', label: 'Customers' },
   { href: '/properties', label: 'Properties' },
   { href: '/work-orders', label: 'Work orders' },
+  { href: '/recurring-services', label: 'Recurring services' },
   { label: 'Team', children: [
     { href: '/technicians', label: 'Technicians' },
     { href: '/crews', label: 'Crews' },

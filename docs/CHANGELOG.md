@@ -419,3 +419,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Removed the staged replay harness's invalid dependency on an untracked, nonexistent `migration_lock.toml`; the successful clean PostgreSQL replay was unchanged.
 - Reconstructed pre-5K state directly from checked-in migration directories ordered before the exact 5K boundary, and added assertions that the staged phase finished exactly that set before the full chain runs.
 - Preserved both PostgreSQL 17 replay gates and all Property and Service reconciliation assertions.
+
+## 2026-08-11 — Slice 5L recurring service agreements
+
+- Added Property-owned recurring service agreements, canonical recurring add-ons, controlled lifecycle/weekday/time-window values, and Work Order occurrence links through an additive Prisma migration.
+- Added Johannesburg-aware weekly, anchored every-two-weeks, and clamped monthly recurrence; CUSTOM remains visibly manual.
+- Added authorized operational APIs and UI for agreement creation, lifecycle changes, and explicit idempotent one-upcoming-visit generation with normal Work Order references and snapshot semantics.
+- Integrated recurring agreements into ADMIN Customer Data Cleanup and preserved Services, historical visits, 5M, 5N, 5O, and unresolved 5K commercial decisions.
