@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
+
+### Added
+
+- Added the authoritative HestivaOS Quote aggregate with stable public reference, commercial lifecycle, 30-day validity boundary, immutable revision snapshots, structured pricing line items, durable quote-photo provenance/transfer state, append-only quote activities, and an atomic daily reference counter foundation.
+- Added an additive Prisma migration and focused source-contract tests for the new Quote domain.
+- Added ADR-0027 documenting HestivaOS ownership of quote identity/history/pricing snapshots while keeping website transport, pricing calculation, Accept/Decline security, and accepted-quote operational orchestration in later Slice 5M sub-slices.
+
+### Preserved
+
+- Existing Customer, Property, Work Order, recurring-agreement, website, authentication, deployment, and storage behavior is unchanged by this foundation. No historical rows are backfilled or rewritten.
+
 ## 2026-08-10 — Slice 5I-A Work Order add-on UI polish
 
 - Restyled Work Order add-ons as cohesive, full-row native checkbox choices in a responsive one- or two-column layout, with visible selected, focus, hover, and inactive-historical states.
