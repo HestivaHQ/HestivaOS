@@ -1,7 +1,7 @@
 # Website Quote Submission Contract v1
 
-**Status:** Slice 5M-B implementation contract  
-**Schema:** `1.0`  
+**Status:** Slice 5M-B implementation contract
+**Schema:** `1.0`
 **Authority:** HestivaOS Issue #73
 
 The website email description is presentation only. Integration uses the versioned structured payload defined in `apps/api/src/quotes/website-quote-contract.ts`.
