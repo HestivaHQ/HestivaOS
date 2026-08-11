@@ -663,3 +663,166 @@ model WorkOrderActivity {
   @@index([workOrderId, createdAt])
   @@map("work_order_activities")
 }
+
+enum QuoteStatus {
+  SUBMITTED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  NEEDS_ATTENTION
+}
+
+enum QuoteRevisionOrigin {
+  CUSTOMER_SUBMISSION
+  ADMIN_REVISION
+}
+
+enum QuoteLineItemType {
+  PRIMARY_SERVICE
+  ADD_ON
+  ADJUSTMENT
+}
+
+enum QuotePhotoSource {
+  CUSTOMER
+  ADMIN
+}
+
+enum QuotePhotoStatus {
+  PENDING
+  STORED
+  FAILED
+}
+
+enum QuoteActivityType {
+  QUOTE_SUBMITTED
+  STATUS_CHANGED
+  REVISION_CREATED
+  DISCOUNT_CHANGED
+  PRICE_CHANGED
+  NEEDS_ATTENTION_SET
+  NEEDS_ATTENTION_CLEARED
+  PHOTO_ADDED
+  PHOTO_TRANSFER_FAILED
+  PHOTO_TRANSFER_RECOVERED
+}
+
+model Quote {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique
+  status QuoteStatus @default(SUBMITTED)
+  currentRevisionNumber Int @default(1) @map("current_revision_number")
+  validUntil DateTime @map("valid_until")
+  acceptedAt DateTime? @map("accepted_at")
+  acceptedByUserId String? @map("accepted_by_user_id") @db.Uuid
+  declinedAt DateTime? @map("declined_at")
+  declinedByUserId String? @map("declined_by_user_id") @db.Uuid
+  customerId String? @map("customer_id") @db.Uuid
+  propertyId String? @map("property_id") @db.Uuid
+  workOrderId String? @map("work_order_id") @db.Uuid
+  recurringAgreementId String? @map("recurring_agreement_id") @db.Uuid
+  revisions QuoteRevision[]
+  photos QuotePhoto[]
+  activities QuoteActivity[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([validUntil])
+  @@index([customerId])
+  @@index([propertyId])
+  @@index([workOrderId])
+  @@index([recurringAgreementId])
+  @@map("quotes")
+}
+
+model QuoteRevision {
+  id String @id @default(uuid()) @db.Uuid
+  quoteId String @map("quote_id") @db.Uuid
+  revisionNumber Int @map("revision_number")
+  origin QuoteRevisionOrigin
+  structuredData Json @map("structured_data")
+  currency String @default("ZAR")
+  subtotalMinor Int @map("subtotal_minor")
+  discountMinor Int @default(0) @map("discount_minor")
+  discountReason String? @map("discount_reason")
+  taxEnabled Boolean @default(false) @map("tax_enabled")
+  taxMinor Int @default(0) @map("tax_minor")
+  totalMinor Int @map("total_minor")
+  createdByUserId String? @map("created_by_user_id") @db.Uuid
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  lineItems QuoteLineItem[]
+  photos QuotePhoto[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([quoteId, revisionNumber])
+  @@index([quoteId, createdAt])
+  @@map("quote_revisions")
+}
+
+model QuoteLineItem {
+  id String @id @default(uuid()) @db.Uuid
+  quoteRevisionId String @map("quote_revision_id") @db.Uuid
+  type QuoteLineItemType
+  code String?
+  label String
+  description String?
+  quantity Int @default(1)
+  unitAmountMinor Int @map("unit_amount_minor")
+  lineTotalMinor Int @map("line_total_minor")
+  sortOrder Int @default(0) @map("sort_order")
+  quoteRevision QuoteRevision @relation(fields: [quoteRevisionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([quoteRevisionId, sortOrder])
+  @@map("quote_line_items")
+}
+
+model QuotePhoto {
+  id String @id @default(uuid()) @db.Uuid
+  quoteId String @map("quote_id") @db.Uuid
+  quoteRevisionId String? @map("quote_revision_id") @db.Uuid
+  source QuotePhotoSource
+  status QuotePhotoStatus @default(PENDING)
+  originalFileName String @map("original_file_name")
+  mimeType String @map("mime_type")
+  sizeBytes Int? @map("size_bytes")
+  storagePath String? @map("storage_path")
+  url String?
+  failureReason String? @map("failure_reason")
+  addedByUserId String? @map("added_by_user_id") @db.Uuid
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteRevision QuoteRevision? @relation(fields: [quoteRevisionId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([quoteId, createdAt])
+  @@index([quoteRevisionId])
+  @@index([status])
+  @@map("quote_photos")
+}
+
+model QuoteActivity {
+  id String @id @default(uuid()) @db.Uuid
+  quoteId String @map("quote_id") @db.Uuid
+  type QuoteActivityType
+  previousStatus QuoteStatus? @map("previous_status")
+  newStatus QuoteStatus? @map("new_status")
+  note String?
+  metadata Json?
+  actorUserId String? @map("actor_user_id") @db.Uuid
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([quoteId, createdAt])
+  @@index([createdAt])
+  @@map("quote_activities")
+}
+
+model QuoteDailyCounter {
+  businessDate String @id @map("business_date")
+  sequence Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("quote_daily_counters")
+}
