@@ -11,6 +11,7 @@ Current resolved rules that supersede older unresolved statements below:
 - `Eco-friendly products` is a boolean quote preference, not an add-on.
 - `Extra Refrigerator` and `Balcony / Patio Cleaning` carry explicit positive-integer quantity in payload v1; other v1 add-ons use quantity 1.
 - Bathrooms in payload v1 are only `ONE`, `TWO`, `THREE`, `FOUR`, or `FIVE_PLUS`.
+- Floor size now uses the precise `UNDER_40`, `FROM_40_TO_59`, `FROM_60_TO_79`, `FROM_80_TO_99`, `FROM_100_TO_129`, `FROM_130_TO_169`, `FROM_170_TO_219`, `FROM_220_TO_299`, `FROM_300_UP`, or `UNKNOWN` vocabulary. New Website Quote submissions reject the superseded broad floor-size values. Reusable Property storage retains the old broad values only for historical compatibility and never auto-converts them to fabricated precision.
 - `Add-on Services` and `Not sure` remain explicit pseudo choices with `canonicalService: null`, which requires `NEEDS_ATTENTION`; unknown mappings fail closed.
 - Exact Apartment/Townhouse floor is transported as integer `exactFloor` 0–50 with explicit building-access method. The older grouped `Property.unitFloor` remains current Property storage, so exact operational persistence is still a later 5M handoff responsibility and must not be falsely claimed as already implemented.
 - Customer Quote photo identity is stable `clientPhotoId` plus SHA-256 in payload v1. The merged 5M-A schema provides Quote photo retry/status storage but does not yet persist the hash; runtime storage/deduplication mapping remains later integration work.
@@ -69,10 +70,10 @@ The historical `WorkOrderAddOn` model has no quantity. Slice 5M-B defines quote-
 
 ### Historical/current Property vocabulary
 
-| Website field | Current vocabulary | OS ownership / follow-up |
+| Website field | Current 5M vocabulary | OS ownership / follow-up |
 | --- | --- | --- |
 | Property Type | Apartment; Townhouse; House; Duplex; Other | Managed `PROPERTY_TYPE` and deterministic v1 enum mapping |
-| Floor Size | Under 80 m²; 80–150 m²; 151–250 m²; Over 250 m²; Not sure | Existing controlled Property destination |
+| Floor Size | Under 40 m²; 40–59 m²; 60–79 m²; 80–99 m²; 100–129 m²; 130–169 m²; 170–219 m²; 220–299 m²; 300+ m²; Not sure | Existing controlled Property destination; historical broad values remain compatibility-only |
 | Living Areas | 1; 2; 3; 4+ | Existing controlled Property destination |
 | Outdoor | None; Balcony; Patio; Both | Existing controlled Property destination; distinct from chargeable add-on |
 | Estate | No; Yes — estate; Yes — complex; Yes — gated community | Existing controlled Property destination |
@@ -83,15 +84,27 @@ The historical `WorkOrderAddOn` model has no quantity. Slice 5M-B defines quote-
 | Exact unit floor | Ground / Floor 1..50 in current enhancement layer | v1 transports integer 0..50; exact persistence is later 5M work |
 | Building access | Elevator / Stairs / both | v1 first-class field; later handoff owns operational destination |
 
-### Existing deterministic Property mappings
+### Current deterministic Property floor-size mappings
 
 | Website value | OS field | OS value |
 | --- | --- | --- |
-| Under 80 m² | `Property.floorSize` | `UNDER_80` |
-| 80–150 m² | `Property.floorSize` | `FROM_80_TO_150` |
-| 151–250 m² | `Property.floorSize` | `FROM_151_TO_250` |
-| Over 250 m² | `Property.floorSize` | `OVER_250` |
+| Under 40 m² | `Property.floorSize` | `UNDER_40` |
+| 40–59 m² | `Property.floorSize` | `FROM_40_TO_59` |
+| 60–79 m² | `Property.floorSize` | `FROM_60_TO_79` |
+| 80–99 m² | `Property.floorSize` | `FROM_80_TO_99` |
+| 100–129 m² | `Property.floorSize` | `FROM_100_TO_129` |
+| 130–169 m² | `Property.floorSize` | `FROM_130_TO_169` |
+| 170–219 m² | `Property.floorSize` | `FROM_170_TO_219` |
+| 220–299 m² | `Property.floorSize` | `FROM_220_TO_299` |
+| 300+ m² | `Property.floorSize` | `FROM_300_UP` |
 | Not sure (floor size) | `Property.floorSize` | `UNKNOWN` |
+
+Historical `UNDER_80`, `FROM_80_TO_150`, `FROM_151_TO_250`, and `OVER_250` remain valid only for previously stored reusable Property records. They are not valid values for new Website Quote Submission Payload v1 material and are not offered when creating a new Property in HestivaOS. When editing a legacy Property, its existing historical value remains visible until reliable size evidence is available.
+
+### Other deterministic Property mappings
+
+| Website value | OS field | OS value |
+| --- | --- | --- |
 | None / Balcony / Patio / Both | `Property.outdoorArea` | `NONE` / `BALCONY` / `PATIO` / `BOTH` |
 | No / Estate / Complex / Gated community | `Property.estateClassification` | `NONE` / `ESTATE` / `COMPLEX` / `GATED_COMMUNITY` |
 | Studio / 1 / 2 / 3 / 4 / 5+ / Other | `Property.bedrooms` | `STUDIO` / `ONE` / `TWO` / `THREE` / `FOUR` / `FIVE_PLUS` / `OTHER` |
