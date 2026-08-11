@@ -70,7 +70,7 @@ describe('website Quote replay resolution', () => {
     });
   });
 
-  it('always compares retries with the earliest CUSTOMER_SUBMISSION, not a later Admin revision', async () => {
+  it('queries only CUSTOMER_SUBMISSION revisions and reads enough rows to detect corruption', async () => {
     const submitted = payload();
     const existing: QuoteLookup = {
       id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
@@ -87,7 +87,7 @@ describe('website Quote replay resolution', () => {
         revisions: {
           where: { origin: 'CUSTOMER_SUBMISSION' },
           orderBy: { revisionNumber: 'asc' },
-          take: 1,
+          take: 2,
           select: { structuredData: true },
         },
       }),
@@ -119,6 +119,25 @@ describe('website Quote replay resolution', () => {
     const { prisma } = prismaWith(existing);
 
     await expect(resolveWebsiteQuoteReplay(prisma, payload())).resolves.toEqual({
+      kind: 'CORRUPT_EXISTING',
+      quoteId: existing.id,
+      quoteReference: existing.reference,
+    });
+  });
+
+  it('fails closed when the Quote has duplicate original customer-submission revisions', async () => {
+    const submitted = payload();
+    const existing: QuoteLookup = {
+      id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
+      reference: 'Q-20260811-0001',
+      revisions: [
+        { structuredData: submitted },
+        { structuredData: JSON.parse(JSON.stringify(submitted)) },
+      ],
+    };
+    const { prisma } = prismaWith(existing);
+
+    await expect(resolveWebsiteQuoteReplay(prisma, submitted)).resolves.toEqual({
       kind: 'CORRUPT_EXISTING',
       quoteId: existing.id,
       quoteReference: existing.reference,
