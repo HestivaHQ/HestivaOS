@@ -1,25 +1,6 @@
-export const WEBSITE_QUOTE_CONTRACT_VERSION = '2026-08-11.v1' as const;
-
-export const WEBSITE_PROPERTY_TYPES = ['Apartment', 'Townhouse', 'House', 'Duplex', 'Other'] as const;
-export const WEBSITE_FLOOR_SIZES = ['UNDER_80', 'FROM_80_TO_150', 'FROM_151_TO_250', 'OVER_250', 'UNKNOWN'] as const;
-export const WEBSITE_BEDROOM_COUNTS = ['STUDIO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE_PLUS', 'OTHER'] as const;
-export const WEBSITE_BATHROOM_COUNTS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE_PLUS'] as const;
-export const WEBSITE_LIVING_AREA_COUNTS = ['ONE', 'TWO', 'THREE', 'FOUR_PLUS'] as const;
-export const WEBSITE_STOREY_COUNTS = ['ONE', 'TWO', 'THREE', 'FOUR_PLUS', 'UNKNOWN'] as const;
-export const WEBSITE_OUTDOOR_AREAS = ['NONE', 'BALCONY', 'PATIO', 'BOTH'] as const;
-export const WEBSITE_ESTATE_CLASSIFICATIONS = ['NONE', 'ESTATE', 'COMPLEX', 'GATED_COMMUNITY'] as const;
-export const WEBSITE_UNIT_FLOORS = [
-  'GROUND',
-  'FIRST',
-  'SECOND',
-  'THIRD',
-  'FOURTH',
-  'FIFTH_TO_NINTH',
-  'TENTH_PLUS',
-  'THIRD_PLUS',
-  'UNKNOWN',
-] as const;
-export const WEBSITE_BUILDING_ACCESS = ['ELEVATOR', 'STAIRS', 'ELEVATOR_AND_STAIRS'] as const;
+export const WEBSITE_QUOTE_SCHEMA_VERSION = '1.0' as const;
+export const WEBSITE_QUOTE_SOURCE = 'HESTIVA_WEBSITE' as const;
+export const WEBSITE_QUOTE_INGESTION_PATH = '/api/integrations/website/quotes' as const;
 
 export const WEBSITE_FREQUENCIES = ['ONE_TIME', 'WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY', 'CUSTOM'] as const;
 export const WEBSITE_HOME_CONDITIONS = [
@@ -31,160 +12,139 @@ export const WEBSITE_HOME_CONDITIONS = [
   'VACANT',
   'MOVE_IN_OUT',
 ] as const;
-export const WEBSITE_TIME_WINDOWS = ['MORNING', 'MIDDAY', 'AFTERNOON', 'FLEXIBLE'] as const;
 
-export const WEBSITE_PRIMARY_SERVICES = [
-  'Regular Home Cleaning',
-  'Deep Cleaning',
-  'Move-In Cleaning',
-  'Move-Out Cleaning',
-  'Apartment Cleaning',
-  'Kitchen Cleaning',
-  'Bathroom Sanitisation',
-  'Bedroom Cleaning',
-  'Living Area Cleaning',
-  'Interior Window Cleaning',
-  'Laundry Folding',
-  'Eco-Conscious Cleaning',
-  'Post-Renovation Cleaning',
-] as const;
-
-export const WEBSITE_ADD_ONS = [
-  'Inside Oven Cleaning',
-  'Inside Fridge Cleaning',
-  'Interior Cupboard Cleaning',
-  'Interior Window Cleaning',
-  'Laundry Folding',
-  'Ironing',
-  'Bed Making',
-  'Linen Change',
-  'Balcony / Patio Cleaning',
-  'Garage Sweeping',
-  'Extra Bathroom Cleaning',
-  'Extra Refrigerator',
-  'Pet-Hair Treatment',
-] as const;
-
-export type WebsitePropertyType = (typeof WEBSITE_PROPERTY_TYPES)[number];
-export type WebsiteFloorSize = (typeof WEBSITE_FLOOR_SIZES)[number];
-export type WebsiteBedroomCount = (typeof WEBSITE_BEDROOM_COUNTS)[number];
-export type WebsiteBathroomCount = (typeof WEBSITE_BATHROOM_COUNTS)[number];
-export type WebsiteLivingAreaCount = (typeof WEBSITE_LIVING_AREA_COUNTS)[number];
-export type WebsiteStoreyCount = (typeof WEBSITE_STOREY_COUNTS)[number];
-export type WebsiteOutdoorArea = (typeof WEBSITE_OUTDOOR_AREAS)[number];
-export type WebsiteEstateClassification = (typeof WEBSITE_ESTATE_CLASSIFICATIONS)[number];
-export type WebsiteUnitFloor = (typeof WEBSITE_UNIT_FLOORS)[number];
-export type WebsiteBuildingAccess = (typeof WEBSITE_BUILDING_ACCESS)[number];
 export type WebsiteFrequency = (typeof WEBSITE_FREQUENCIES)[number];
 export type WebsiteHomeCondition = (typeof WEBSITE_HOME_CONDITIONS)[number];
-export type WebsiteTimeWindow = (typeof WEBSITE_TIME_WINDOWS)[number];
-export type WebsitePrimaryService = (typeof WEBSITE_PRIMARY_SERVICES)[number];
-export type WebsiteAddOnName = (typeof WEBSITE_ADD_ONS)[number];
 
-export type WebsiteQuotePhotoV1 = {
-  transferKey: string;
-  originalFileName: string;
-  mimeType: string;
-  sizeBytes?: number;
+export type CustomerInput = {
+  fullName: string;
+  email: string;
+  mobile: string;
+  preferredContact: 'PHONE' | 'EMAIL' | 'WHATSAPP';
 };
 
-export type WebsiteQuoteAddOnV1 = {
-  name: WebsiteAddOnName;
-  quantity: number;
+export type PropertyInput = {
+  propertyType: 'APARTMENT' | 'TOWNHOUSE' | 'HOUSE' | 'DUPLEX' | 'OTHER';
+  addressLine1: string;
+  suburb: string;
+  postalCode?: string;
+  country: 'South Africa';
+  location?: { latitude: number; longitude: number; accuracyMetres?: number };
+  floorSize: 'UNDER_80' | 'FROM_80_TO_150' | 'FROM_151_TO_250' | 'OVER_250' | 'UNKNOWN';
+  bedrooms: 'STUDIO' | 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS' | 'OTHER';
+  bathrooms: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS';
+  livingAreas: 'ONE' | 'TWO' | 'THREE' | 'FOUR_PLUS';
+  storeys?: 'ONE' | 'TWO' | 'THREE' | 'FOUR_PLUS' | 'UNKNOWN';
+  outdoorArea: 'NONE' | 'BALCONY' | 'PATIO' | 'BOTH';
+  estateClassification: 'NONE' | 'ESTATE' | 'COMPLEX' | 'GATED_COMMUNITY';
+  exactFloor?: number;
+  buildingAccess?: 'ELEVATOR' | 'STAIRS' | 'ELEVATOR_AND_STAIRS';
+};
+
+export type ServiceRequestInput = {
+  primaryService: {
+    websiteValue: string;
+    canonicalService: string | null;
+  };
+  frequency: WebsiteFrequency;
+  customFrequencyNote?: string;
+  homeCondition: WebsiteHomeCondition;
+  addOns: Array<{
+    websiteValue: string;
+    canonicalService: string;
+    quantity: number;
+  }>;
+  ecoFriendlyProducts?: boolean;
+};
+
+export type VisitPreferenceInput = {
+  preferredDate: string;
+  alternativeDate?: string;
+  preferredTime: 'MORNING' | 'MIDDAY' | 'AFTERNOON' | 'FLEXIBLE';
+  flexibility: string;
+  urgency: string;
+  recurringNotes?: string;
+};
+
+export type AccessInput = {
+  complexAccess: 'ACCESS_CODE' | 'NOT_APPLICABLE' | 'VISITOR_SIGN_IN' | 'RESIDENT_ARRANGED';
+  securityInstructions?: string;
+  parking?: string;
+  keyHandover: 'SOMEONE_WILL_OPEN' | 'CONCIERGE_RECEPTION' | 'TO_BE_ARRANGED';
+  keyHandoverDetails?: string;
+  someonePresent: boolean;
+};
+
+export type HouseholdInput = {
+  hasPets: boolean;
+  petType?: string;
+  petTemperament?: string;
+};
+
+export type SafetyInput = {
+  offLimitsAreas?: string;
+  fragileItems?: string;
+  productRestrictions?: string;
+  allergiesOrSensitivities?: string;
+  existingDamage?: string;
+};
+
+export type QuoteNotesInput = {
+  attentionAreas?: string;
+  renovationDust?: string;
+  applianceNotes?: string;
+  additionalNotes?: string;
+};
+
+export type QuotePhotoInput = {
+  clientPhotoId: string;
+  fileName: string;
+  contentType: string;
+  byteSize: number;
+  sha256: string;
+  transfer: { kind: 'UPLOAD'; dataBase64: string };
 };
 
 export type WebsiteQuoteSubmissionV1 = {
-  schemaVersion: typeof WEBSITE_QUOTE_CONTRACT_VERSION;
-  submissionKey: string;
-  customer: {
-    fullName: string;
-    email: string;
-    mobile: string;
-    preferredContactMethod: string;
-  };
-  property: {
-    propertyType: WebsitePropertyType;
-    suburb: string;
-    addressLine1: string;
-    postalCode?: string;
-    latitude?: number;
-    longitude?: number;
-    locationAccuracyMetres?: number;
-    floorSize: WebsiteFloorSize;
-    bedrooms: WebsiteBedroomCount;
-    bathrooms: WebsiteBathroomCount;
-    livingAreas: WebsiteLivingAreaCount;
-    storeys?: WebsiteStoreyCount;
-    outdoorArea: WebsiteOutdoorArea;
-    estateClassification: WebsiteEstateClassification;
-    unitFloor?: WebsiteUnitFloor;
-    buildingAccess?: WebsiteBuildingAccess;
-  };
-  service: {
-    primaryService: WebsitePrimaryService | null;
-    unresolvedPrimaryService?: 'ADD_ON_SERVICES' | 'NOT_SURE';
-    frequency: WebsiteFrequency;
-    customFrequencyNote?: string;
-    homeCondition: WebsiteHomeCondition;
-    addOns: WebsiteQuoteAddOnV1[];
-    ecoFriendlyProducts: boolean;
-  };
-  visit: {
-    preferredDate: string;
-    alternativeDate?: string;
-    preferredTimeWindow: WebsiteTimeWindow;
-    flexibility?: string;
-    urgency?: string;
-    recurringNotes?: string;
-  };
-  accessAndHousehold: {
-    complexAccessMethod: string;
-    securityInstructions?: string;
-    parkingNotes?: string;
-    keyHandoverMethod: string;
-    keyHandoverDetails?: string;
-    someonePresent: boolean;
-    hasPets: boolean;
-    petType?: string;
-    petTemperament?: string;
-    offLimitsNotes?: string;
-    fragileItemNotes?: string;
-    productRestrictionNotes?: string;
-    allergyNotes?: string;
-  };
-  notes: {
-    attentionAreas?: string;
-    existingDamage?: string;
-    generalNotes?: string;
-  };
-  photos: WebsiteQuotePhotoV1[];
+  schemaVersion: typeof WEBSITE_QUOTE_SCHEMA_VERSION;
+  submissionId: string;
+  source: typeof WEBSITE_QUOTE_SOURCE;
+  submittedAt: string;
+  customer: CustomerInput;
+  property: PropertyInput;
+  request: ServiceRequestInput;
+  visit: VisitPreferenceInput;
+  access: AccessInput;
+  household: HouseholdInput;
+  safety: SafetyInput;
+  notes: QuoteNotesInput;
+  photos: QuotePhotoInput[];
 };
 
 export type WebsiteQuotePricingLineV1 = {
-  type: 'PRIMARY_SERVICE' | 'ADD_ON' | 'ADJUSTMENT';
-  code?: string;
+  code: string;
   label: string;
   quantity: number;
   unitAmountMinor: number;
-  lineTotalMinor: number;
+  lineAmountMinor: number;
+};
+
+export type WebsiteQuotePricingSnapshotV1 = {
+  currency: 'ZAR';
+  subtotalMinor: number;
+  adjustmentsMinor: number;
+  totalMinor: number;
+  lines: WebsiteQuotePricingLineV1[];
 };
 
 export type WebsiteQuoteCreatedV1 = {
-  schemaVersion: typeof WEBSITE_QUOTE_CONTRACT_VERSION;
+  schemaVersion: typeof WEBSITE_QUOTE_SCHEMA_VERSION;
+  submissionId: string;
   quoteId: string;
-  reference: string;
-  revisionNumber: number;
-  validUntil: string;
-  status: 'SUBMITTED' | 'NEEDS_ATTENTION';
-  pricing: {
-    currency: 'ZAR';
-    subtotalMinor: number;
-    discountMinor: number;
-    taxEnabled: false;
-    taxMinor: 0;
-    totalMinor: number;
-    lines: WebsiteQuotePricingLineV1[];
-  };
+  quoteReference: string;
+  quoteStatus: 'SUBMITTED' | 'NEEDS_ATTENTION';
+  created: boolean;
+  pricing: WebsiteQuotePricingSnapshotV1;
 };
 
 export type WebsiteQuoteContractError = {
@@ -193,85 +153,131 @@ export type WebsiteQuoteContractError = {
   message: string;
 };
 
-const quantityBasedAddOns = new Set<WebsiteAddOnName>([
-  'Balcony / Patio Cleaning',
-  'Extra Bathroom Cleaning',
-  'Extra Refrigerator',
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const E164_PATTERN = /^\+[1-9]\d{7,14}$/;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/i;
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+const PSEUDO_PRIMARY_VALUES = new Set(['Add-on Services', 'Not sure']);
+const QUANTITY_ADD_ONS = new Set(['Extra Refrigerator', 'Balcony / Patio Cleaning']);
+
+const FREQUENCY_RULES = new Map<string, readonly WebsiteFrequency[]>([
+  ['Move-In Cleaning', ['ONE_TIME']],
+  ['Move-Out Cleaning', ['ONE_TIME']],
+  ['Regular Home Cleaning', WEBSITE_FREQUENCIES],
+  ['Apartment Cleaning', WEBSITE_FREQUENCIES],
+  ['Eco-Conscious Cleaning', WEBSITE_FREQUENCIES],
+  ['Deep Cleaning', ['ONE_TIME', 'MONTHLY', 'CUSTOM']],
+  ['Kitchen Cleaning', ['ONE_TIME', 'CUSTOM']],
+  ['Bathroom Sanitisation', ['ONE_TIME', 'CUSTOM']],
+  ['Bedroom Cleaning', ['ONE_TIME', 'CUSTOM']],
+  ['Living Area Cleaning', ['ONE_TIME', 'CUSTOM']],
+  ['Interior Window Cleaning', ['ONE_TIME', 'CUSTOM']],
+  ['Laundry Folding', ['ONE_TIME', 'CUSTOM']],
 ]);
 
-const recurringPrimaryServices = new Set<WebsitePrimaryService>([
-  'Regular Home Cleaning',
-  'Apartment Cleaning',
-  'Eco-Conscious Cleaning',
-]);
+export function allowedFrequenciesForCanonicalService(canonicalService: string | null): readonly WebsiteFrequency[] | null {
+  if (canonicalService === null) return ['ONE_TIME', 'CUSTOM'];
+  return FREQUENCY_RULES.get(canonicalService) ?? null;
+}
 
-const monthlyOrCustomPrimaryServices = new Set<WebsitePrimaryService>(['Deep Cleaning']);
-const oneTimeOnlyPrimaryServices = new Set<WebsitePrimaryService>(['Move-In Cleaning', 'Move-Out Cleaning', 'Post-Renovation Cleaning']);
-
-export function allowedFrequenciesForWebsiteService(service: WebsitePrimaryService | null): readonly WebsiteFrequency[] {
-  if (!service) return ['ONE_TIME', 'CUSTOM'];
-  if (oneTimeOnlyPrimaryServices.has(service)) return ['ONE_TIME'];
-  if (recurringPrimaryServices.has(service)) return WEBSITE_FREQUENCIES;
-  if (monthlyOrCustomPrimaryServices.has(service)) return ['ONE_TIME', 'MONTHLY', 'CUSTOM'];
-  return ['ONE_TIME', 'CUSTOM'];
+function isIsoUtc(value: string) {
+  if (!value.endsWith('Z')) return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
 }
 
 export function validateWebsiteQuoteSubmissionV1(payload: WebsiteQuoteSubmissionV1): WebsiteQuoteContractError[] {
   const errors: WebsiteQuoteContractError[] = [];
   const add = (path: string, code: string, message: string) => errors.push({ path, code, message });
 
-  if (payload.schemaVersion !== WEBSITE_QUOTE_CONTRACT_VERSION) {
-    add('schemaVersion', 'UNSUPPORTED_VERSION', 'Unsupported website quote contract version.');
+  if (payload.schemaVersion !== WEBSITE_QUOTE_SCHEMA_VERSION) {
+    add('schemaVersion', 'UNSUPPORTED_VERSION', 'Unsupported website quote schema version.');
   }
-  if (!payload.submissionKey.trim()) add('submissionKey', 'REQUIRED', 'Submission key is required.');
+  if (payload.source !== WEBSITE_QUOTE_SOURCE) add('source', 'INVALID_SOURCE', 'Invalid quote submission source.');
+  if (!UUID_PATTERN.test(payload.submissionId)) add('submissionId', 'INVALID_UUID', 'Submission ID must be a UUID.');
+  if (!isIsoUtc(payload.submittedAt)) add('submittedAt', 'INVALID_TIMESTAMP', 'Submitted time must be canonical ISO-8601 UTC.');
+
   if (!payload.customer.fullName.trim()) add('customer.fullName', 'REQUIRED', 'Full name is required.');
   if (!/^\S+@\S+\.\S+$/.test(payload.customer.email.trim())) add('customer.email', 'INVALID_EMAIL', 'Email address is invalid.');
-  if (!payload.customer.mobile.trim()) add('customer.mobile', 'REQUIRED', 'Mobile number is required.');
-  if (!payload.property.suburb.trim()) add('property.suburb', 'REQUIRED', 'Suburb is required.');
-  if (!payload.property.addressLine1.trim()) add('property.addressLine1', 'REQUIRED', 'Service address is required.');
+  if (!E164_PATTERN.test(payload.customer.mobile)) add('customer.mobile', 'INVALID_E164', 'Mobile number must be normalized to E.164.');
 
-  if (payload.property.bedrooms === 'STUDIO' && payload.property.propertyType !== 'Apartment') {
+  if (!payload.property.addressLine1.trim()) add('property.addressLine1', 'REQUIRED', 'Service address is required.');
+  if (!payload.property.suburb.trim()) add('property.suburb', 'REQUIRED', 'Suburb is required.');
+  if (payload.property.bedrooms === 'STUDIO' && payload.property.propertyType !== 'APARTMENT') {
     add('property.bedrooms', 'INVALID_COMBINATION', 'Studio is valid only for Apartment properties.');
   }
-  if ((payload.property.propertyType === 'Apartment' || payload.property.propertyType === 'Townhouse') && !payload.property.unitFloor) {
-    add('property.unitFloor', 'REQUIRED', 'Unit floor is required for Apartment and Townhouse properties.');
+  const unitProperty = payload.property.propertyType === 'APARTMENT' || payload.property.propertyType === 'TOWNHOUSE';
+  if (unitProperty && (!Number.isInteger(payload.property.exactFloor) || payload.property.exactFloor! < 0 || payload.property.exactFloor! > 50)) {
+    add('property.exactFloor', 'INVALID_EXACT_FLOOR', 'Apartment and Townhouse exact floor must be an integer from 0 to 50.');
   }
-  if ((payload.property.propertyType === 'Apartment' || payload.property.propertyType === 'Townhouse') && !payload.property.buildingAccess) {
+  if (unitProperty && !payload.property.buildingAccess) {
     add('property.buildingAccess', 'REQUIRED', 'Building access is required for Apartment and Townhouse properties.');
   }
 
-  if (!payload.service.primaryService && !payload.service.unresolvedPrimaryService) {
-    add('service.primaryService', 'REQUIRED', 'A canonical primary service or explicit unresolved primary-service state is required.');
+  const { primaryService } = payload.request;
+  if (!primaryService.websiteValue.trim()) add('request.primaryService.websiteValue', 'REQUIRED', 'Website service value is required.');
+  if (primaryService.canonicalService === null && !PSEUDO_PRIMARY_VALUES.has(primaryService.websiteValue)) {
+    add('request.primaryService.canonicalService', 'UNMAPPED_SERVICE', 'Null canonical service is allowed only for explicit review-required pseudo choices.');
   }
-  if (payload.service.primaryService && payload.service.unresolvedPrimaryService) {
-    add('service', 'CONFLICT', 'Canonical and unresolved primary-service values cannot both be supplied.');
-  }
-  if (!allowedFrequenciesForWebsiteService(payload.service.primaryService).includes(payload.service.frequency)) {
-    add('service.frequency', 'INVALID_FOR_SERVICE', 'Frequency is not allowed for the selected primary service.');
-  }
-  if (payload.service.frequency === 'CUSTOM' && !payload.service.customFrequencyNote?.trim()) {
-    add('service.customFrequencyNote', 'REQUIRED', 'Custom frequency requires a note.');
+  if (primaryService.canonicalService !== null && PSEUDO_PRIMARY_VALUES.has(primaryService.websiteValue)) {
+    add('request.primaryService', 'INVALID_MAPPING', 'Pseudo choices must not map to a canonical Service.');
   }
 
-  const seenAddOns = new Set<WebsiteAddOnName>();
-  payload.service.addOns.forEach((addOn, index) => {
-    if (seenAddOns.has(addOn.name)) add(`service.addOns.${index}.name`, 'DUPLICATE', 'Duplicate add-on is not allowed.');
-    seenAddOns.add(addOn.name);
-    if (!Number.isInteger(addOn.quantity) || addOn.quantity < 1) {
-      add(`service.addOns.${index}.quantity`, 'INVALID_QUANTITY', 'Add-on quantity must be a positive integer.');
+  const allowedFrequencies = allowedFrequenciesForCanonicalService(primaryService.canonicalService);
+  if (allowedFrequencies && !allowedFrequencies.includes(payload.request.frequency)) {
+    add('request.frequency', 'INVALID_FOR_SERVICE', 'Frequency is not allowed for the selected primary Service.');
+  }
+  if (payload.request.frequency === 'CUSTOM' && !payload.request.customFrequencyNote?.trim()) {
+    add('request.customFrequencyNote', 'REQUIRED', 'Custom frequency requires a note.');
+  }
+
+  const seenAddOns = new Set<string>();
+  payload.request.addOns.forEach((addOn, index) => {
+    if (!addOn.websiteValue.trim() || !addOn.canonicalService.trim()) {
+      add(`request.addOns.${index}`, 'UNMAPPED_ADD_ON', 'Website and canonical add-on values are required.');
     }
-    if (!quantityBasedAddOns.has(addOn.name) && addOn.quantity !== 1) {
-      add(`service.addOns.${index}.quantity`, 'QUANTITY_NOT_SUPPORTED', 'This add-on has a fixed quantity of 1.');
+    const identity = addOn.canonicalService.trim().toLowerCase();
+    if (seenAddOns.has(identity)) add(`request.addOns.${index}.canonicalService`, 'DUPLICATE', 'Duplicate canonical add-on is not allowed.');
+    seenAddOns.add(identity);
+    if (!Number.isInteger(addOn.quantity) || addOn.quantity < 1) {
+      add(`request.addOns.${index}.quantity`, 'INVALID_QUANTITY', 'Add-on quantity must be a positive integer.');
+    }
+    if (!QUANTITY_ADD_ONS.has(addOn.canonicalService) && addOn.quantity !== 1) {
+      add(`request.addOns.${index}.quantity`, 'QUANTITY_NOT_SUPPORTED', 'This add-on must use quantity 1 in contract v1.');
     }
   });
 
-  const seenPhotoKeys = new Set<string>();
+  if (!ISO_DATE_PATTERN.test(payload.visit.preferredDate)) add('visit.preferredDate', 'INVALID_DATE', 'Preferred date must use YYYY-MM-DD.');
+  if (payload.visit.alternativeDate && !ISO_DATE_PATTERN.test(payload.visit.alternativeDate)) {
+    add('visit.alternativeDate', 'INVALID_DATE', 'Alternative date must use YYYY-MM-DD.');
+  }
+  if (!payload.visit.flexibility.trim()) add('visit.flexibility', 'REQUIRED', 'Flexibility is required.');
+  if (!payload.visit.urgency.trim()) add('visit.urgency', 'REQUIRED', 'Urgency is required.');
+
+  if (payload.access.keyHandover === 'TO_BE_ARRANGED' && !payload.access.keyHandoverDetails?.trim()) {
+    add('access.keyHandoverDetails', 'REQUIRED', 'Key handover details are required when handover is to be arranged.');
+  }
+  if (payload.household.hasPets && !payload.household.petType?.trim()) add('household.petType', 'REQUIRED', 'Pet type is required when pets are present.');
+  if (payload.household.hasPets && !payload.household.petTemperament?.trim()) add('household.petTemperament', 'REQUIRED', 'Pet temperament is required when pets are present.');
+
+  if (payload.photos.length > 10) add('photos', 'TOO_MANY', 'A website quote may contain at most 10 customer photos.');
+  const photoIds = new Map<string, string>();
   payload.photos.forEach((photo, index) => {
-    if (!photo.transferKey.trim()) add(`photos.${index}.transferKey`, 'REQUIRED', 'Photo transfer key is required.');
-    if (seenPhotoKeys.has(photo.transferKey)) add(`photos.${index}.transferKey`, 'DUPLICATE', 'Photo transfer key must be unique within the submission.');
-    seenPhotoKeys.add(photo.transferKey);
-    if (!photo.originalFileName.trim()) add(`photos.${index}.originalFileName`, 'REQUIRED', 'Photo file name is required.');
-    if (!photo.mimeType.startsWith('image/')) add(`photos.${index}.mimeType`, 'INVALID_MIME_TYPE', 'Quote photos must use an image MIME type.');
+    if (!UUID_PATTERN.test(photo.clientPhotoId)) add(`photos.${index}.clientPhotoId`, 'INVALID_UUID', 'Photo ID must be a UUID.');
+    if (!photo.fileName.trim()) add(`photos.${index}.fileName`, 'REQUIRED', 'Photo file name is required.');
+    if (!photo.contentType.startsWith('image/')) add(`photos.${index}.contentType`, 'INVALID_CONTENT_TYPE', 'Quote photos must use an image content type.');
+    if (!Number.isInteger(photo.byteSize) || photo.byteSize < 1) add(`photos.${index}.byteSize`, 'INVALID_SIZE', 'Photo byte size must be a positive integer.');
+    if (!SHA256_PATTERN.test(photo.sha256)) add(`photos.${index}.sha256`, 'INVALID_SHA256', 'Photo SHA-256 must be 64 hexadecimal characters.');
+    if (!photo.transfer.dataBase64 || !BASE64_PATTERN.test(photo.transfer.dataBase64)) add(`photos.${index}.transfer.dataBase64`, 'INVALID_BASE64', 'Photo upload data must be valid base64.');
+    const previousHash = photoIds.get(photo.clientPhotoId);
+    if (previousHash && previousHash !== photo.sha256.toLowerCase()) {
+      add(`photos.${index}.clientPhotoId`, 'PHOTO_ID_HASH_CONFLICT', 'The same photo ID cannot identify different content.');
+    } else if (previousHash) {
+      add(`photos.${index}.clientPhotoId`, 'DUPLICATE', 'Duplicate photo identity is not allowed within one payload.');
+    }
+    photoIds.set(photo.clientPhotoId, photo.sha256.toLowerCase());
   });
 
   return errors;
