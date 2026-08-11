@@ -187,7 +187,11 @@
 
 ### Security
 
-- Enforced Admin Settings authorization from the server-rendered route against the synchronized authenticated User record and redirects every other current or future role to the dashboard. User Access and Business Profile are informational future-module cards only; their implementation remains Slice 3 and Slice 4, while Employee Records remains Slice 5. The existing role architecture is retained.
+- Enforced Admin Settings authorization from the server-rendered route against the synchronized application User role; only `ADMIN` is accepted. Supabase Auth remains credential authority and no password is stored in the application database.
+
+### Known issues
+
+- Verified email-change UX, User Access Management, Business Profile, and Employee Records remain deferred to Slices 3, 4, and 5 as applicable.
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
