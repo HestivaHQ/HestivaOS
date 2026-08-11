@@ -32,7 +32,17 @@ export type PropertyInput = {
   postalCode?: string;
   country: 'South Africa';
   location?: { latitude: number; longitude: number; accuracyMetres?: number };
-  floorSize: 'UNDER_80' | 'FROM_80_TO_150' | 'FROM_151_TO_250' | 'OVER_250' | 'UNKNOWN';
+  floorSize:
+    | 'UNDER_40'
+    | 'FROM_40_TO_59'
+    | 'FROM_60_TO_79'
+    | 'FROM_80_TO_99'
+    | 'FROM_100_TO_129'
+    | 'FROM_130_TO_169'
+    | 'FROM_170_TO_219'
+    | 'FROM_220_TO_299'
+    | 'FROM_300_UP'
+    | 'UNKNOWN';
   bedrooms: 'STUDIO' | 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS' | 'OTHER';
   bathrooms: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE_PLUS';
   livingAreas: 'ONE' | 'TWO' | 'THREE' | 'FOUR_PLUS';
@@ -165,7 +175,18 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/i;
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 const PROPERTY_TYPES = new Set(['APARTMENT', 'TOWNHOUSE', 'HOUSE', 'DUPLEX', 'OTHER']);
-const FLOOR_SIZES = new Set(['UNDER_80', 'FROM_80_TO_150', 'FROM_151_TO_250', 'OVER_250', 'UNKNOWN']);
+const FLOOR_SIZES = new Set([
+  'UNDER_40',
+  'FROM_40_TO_59',
+  'FROM_60_TO_79',
+  'FROM_80_TO_99',
+  'FROM_100_TO_129',
+  'FROM_130_TO_169',
+  'FROM_170_TO_219',
+  'FROM_220_TO_299',
+  'FROM_300_UP',
+  'UNKNOWN',
+]);
 const BEDROOM_COUNTS = new Set(['STUDIO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE_PLUS', 'OTHER']);
 const BATHROOM_COUNTS = new Set(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE_PLUS']);
 const LIVING_AREA_COUNTS = new Set(['ONE', 'TWO', 'THREE', 'FOUR_PLUS']);

@@ -27,7 +27,7 @@ function validPayload(): WebsiteQuoteSubmissionV1 {
       suburb: 'Rosebank',
       addressLine1: '1 Example Street',
       country: 'South Africa',
-      floorSize: 'FROM_80_TO_150',
+      floorSize: 'FROM_60_TO_79',
       bedrooms: 'TWO',
       bathrooms: 'TWO',
       livingAreas: 'ONE',
@@ -81,6 +81,35 @@ function validPayload(): WebsiteQuoteSubmissionV1 {
 describe('Slice 5M website quote contract', () => {
   it('accepts the locked structured website Quote Submission Payload v1', () => {
     expect(validateWebsiteQuoteSubmissionV1(validPayload())).toEqual([]);
+  });
+
+  it('accepts every approved floor-size band and rejects superseded broad bands', () => {
+    const approved = [
+      'UNDER_40',
+      'FROM_40_TO_59',
+      'FROM_60_TO_79',
+      'FROM_80_TO_99',
+      'FROM_100_TO_129',
+      'FROM_130_TO_169',
+      'FROM_170_TO_219',
+      'FROM_220_TO_299',
+      'FROM_300_UP',
+      'UNKNOWN',
+    ];
+
+    for (const floorSize of approved) {
+      const payload = validPayload() as unknown as Record<string, unknown>;
+      (payload.property as Record<string, unknown>).floorSize = floorSize;
+      expect(validateWebsiteQuoteSubmissionV1(payload)).toEqual([]);
+    }
+
+    const legacy = validPayload() as unknown as Record<string, unknown>;
+    (legacy.property as Record<string, unknown>).floorSize = 'FROM_80_TO_150';
+    expect(validateWebsiteQuoteSubmissionV1(legacy)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'property.floorSize', code: 'INVALID_ENUM' }),
+      ]),
+    );
   });
 
   it('treats arbitrary JSON as untrusted input and returns errors instead of throwing', () => {

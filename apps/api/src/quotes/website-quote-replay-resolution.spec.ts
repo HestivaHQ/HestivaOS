@@ -20,7 +20,7 @@ function payload(overrides: Record<string, unknown> = {}): WebsiteQuoteSubmissio
       addressLine1: '1 Test Street',
       suburb: 'Johannesburg',
       country: 'South Africa',
-      floorSize: 'UNDER_80',
+      floorSize: 'FROM_60_TO_79',
       bedrooms: 'TWO',
       bathrooms: 'ONE',
       livingAreas: 'ONE',
