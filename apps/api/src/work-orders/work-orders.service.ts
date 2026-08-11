@@ -31,6 +31,7 @@ const workOrderInclude = {
   technician: true,
   crew: { include: { leader: true, members: { include: { technician: true } } } },
   service: true,
+  recurringAgreement: true,
   addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } },
 } as const;
 

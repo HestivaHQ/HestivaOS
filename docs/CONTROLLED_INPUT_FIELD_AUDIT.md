@@ -99,3 +99,7 @@ The current website supplies no Service Scope field, so no scope control or free
 | `Property.unitFloor` | `UnitFloor` enum | Apartment/Townhouse subsets only | Cleared when type changes to an inapplicable type |
 | `Property.bedrooms` | `BedroomCount` enum | Studio is Apartment-only; Other is controlled | Existing values preserved |
 | `Property.storeys` | `StoreyCount` enum | New writes use ONE/TWO/THREE/FOUR_PLUS/UNKNOWN | THREE_PLUS remains readable legacy state |
+
+## Slice 5L recurring service controls (2026-08-11)
+
+Recurring agreement status (`ACTIVE`, `PAUSED`, `CANCELLED`, `ENDED`), frequency, weekday, and preferred time window (`MORNING`, `MIDDAY`, `AFTERNOON`, `FLEXIBLE`) are controlled enums in API and UI. Day of month is bounded 1–31. Free text is limited to CUSTOM's required manual-scheduling note and optional recurring service instructions. Primary/add-on selection reuses canonical Service context and active-status validation.

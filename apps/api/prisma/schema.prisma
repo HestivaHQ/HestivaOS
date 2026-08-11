@@ -97,6 +97,30 @@ enum WorkOrderFrequency {
   CUSTOM
 }
 
+enum RecurringServiceAgreementStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  ENDED
+}
+
+enum RecurrenceWeekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum PreferredTimeWindow {
+  MORNING
+  MIDDAY
+  AFTERNOON
+  FLEXIBLE
+}
+
 enum HomeCondition {
   LIGHT_UPKEEP
   STANDARD
@@ -245,6 +269,7 @@ model Property {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   propertyTypeOption BusinessListOption? @relation("PropertyType", fields: [propertyTypeOptionId], references: [id], onDelete: Restrict)
   workOrders WorkOrder[]
+  recurringServiceAgreements RecurringServiceAgreement[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
@@ -455,6 +480,8 @@ model Service {
   jobTemplates CleaningJobTemplate[]
   workOrders WorkOrder[]
   workOrderAddOns WorkOrderAddOn[]
+  recurringServiceAgreements RecurringServiceAgreement[]
+  recurringServiceAgreementAddOns RecurringServiceAgreementAddOn[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
@@ -485,6 +512,8 @@ model WorkOrder {
   technicianId String? @map("technician_id") @db.Uuid
   crewId String? @map("crew_id") @db.Uuid
   serviceId String? @map("service_id") @db.Uuid
+  recurringAgreementId String? @map("recurring_agreement_id") @db.Uuid
+  recurrenceDate DateTime? @map("recurrence_date") @db.Date
   reference String? @unique
   title String
   description String?
@@ -501,6 +530,7 @@ model WorkOrder {
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  recurringAgreement RecurringServiceAgreement? @relation(fields: [recurringAgreementId], references: [id], onDelete: Restrict)
   addOns WorkOrderAddOn[]
   shifts Shift[]
   activities WorkOrderActivity[]
@@ -515,9 +545,50 @@ model WorkOrder {
   @@index([technicianId])
   @@index([crewId])
   @@index([serviceId])
+  @@index([recurringAgreementId])
+  @@unique([recurringAgreementId, recurrenceDate])
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model RecurringServiceAgreement {
+  id String @id @default(uuid()) @db.Uuid
+  propertyId String @map("property_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  frequency WorkOrderFrequency
+  status RecurringServiceAgreementStatus @default(ACTIVE)
+  effectiveDate DateTime @map("effective_date") @db.Date
+  endDate DateTime? @map("end_date") @db.Date
+  weekday RecurrenceWeekday?
+  dayOfMonth Int? @map("day_of_month")
+  preferredTimeWindow PreferredTimeWindow? @map("preferred_time_window")
+  customFrequencyNote String? @map("custom_frequency_note")
+  recurringInstructions String? @map("recurring_instructions")
+  nextServiceDate DateTime? @map("next_service_date") @db.Date
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  addOns RecurringServiceAgreementAddOn[]
+  workOrders WorkOrder[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([propertyId])
+  @@index([serviceId])
+  @@index([status, nextServiceDate])
+  @@map("recurring_service_agreements")
+}
+
+model RecurringServiceAgreementAddOn {
+  recurringAgreementId String @map("recurring_agreement_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  recurringAgreement RecurringServiceAgreement @relation(fields: [recurringAgreementId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([recurringAgreementId, serviceId])
+  @@index([serviceId])
+  @@map("recurring_service_agreement_add_ons")
 }
 
 model WorkOrderAddOn {

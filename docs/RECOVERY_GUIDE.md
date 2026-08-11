@@ -198,3 +198,7 @@ Restore `services`, `work_orders`, and `work_order_add_ons` from one consistent 
 ## Property vocabulary compatibility (2026-08-10)
 
 After restore, verify the four nullable Property columns and their PostgreSQL enum types exist. Never infer Estate, Complex, or Gated community from a legacy `is_estate_or_complex = true`, and never convert `THREE_PLUS` to `THREE` or `FOUR_PLUS` without authoritative correction. A rollback must preserve the legacy columns/states and should not drop newly recorded enum data.
+
+## Recurring service migration verification (2026-08-11)
+
+For migration `20260811190000_recurring_service_agreements`, first use `prisma migrate status` and read-only catalogue inspection. A healthy database contains `recurring_service_agreements`, `recurring_service_agreement_add_ons`, nullable `work_orders.recurring_agreement_id`/`recurrence_date`, and the unique occurrence index. Do not resolve a failed row as applied unless every object and constraint is proven present. Generated Work Orders must be retained during agreement pause/cancel recovery; normal lifecycle actions never delete them.

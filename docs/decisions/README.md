@@ -31,3 +31,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0023: Make Property the live operational home profile](ADR-0023-property-operational-profile.md)
 - [ADR-0024: Allow one Service capability in both booking contexts](ADR-0024-dual-context-service-availability.md)
 - [ADR-0025: Preserve ambiguous Property states during quote vocabulary alignment](ADR-0025-property-quote-vocabulary-compatibility.md)
+- [ADR-0026: Separate recurring service agreements from visit Work Orders](ADR-0026-recurring-service-agreements.md)

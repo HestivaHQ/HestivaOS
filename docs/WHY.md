@@ -62,3 +62,7 @@ Repeatedly collecting stable home and household facts per visit creates conflict
 ## Why one Service can be available in both booking contexts
 
 The current website presents Interior Window Cleaning and Laundry Folding as both a primary selection and an add-on. Hestiva OS therefore marks one canonical capability `BOTH` rather than creating name-suffixed duplicates with diverging IDs. This preserves the distinction between the sold capability and its booking context while retaining existing Work Order primary and add-on relationships. No Service Scope model is justified because the current authoritative quote flow exposes no scope choices.
+
+## 2026-08-11 — Why recurring service is a separate operational record
+
+An ongoing commitment changes over time while a Work Order must preserve one visit's instructions and accepted values. A Property-owned agreement therefore holds recurrence and lifecycle, while generation snapshots visit data into an independently operated Work Order. Explicit one-visit generation and database occurrence uniqueness favor reviewable queues and concurrency safety over an uncontrolled scheduler.
