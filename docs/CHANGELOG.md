@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-11 — Slice 5M website Quote replay resolution
+
+### Added
+
+- Added database-aware Website → HestivaOS Quote replay classification using the durable unique `Quote.submissionKey` identity and the merged canonical payload fingerprint.
+- Added explicit `NEW`, `REPLAY`, `CONFLICT`, and fail-closed `CORRUPT_EXISTING` outcomes, with replay comparison anchored to exactly one immutable original `CUSTOMER_SUBMISSION` revision so later Admin revisions cannot invalidate a legitimate website retry.
+- Added focused Jest coverage for unseen submissions, identical retries, conflicting material, missing/duplicate original submission revisions, and identical retries after an Admin revision.
+
+### Preserved
+
+- No ingestion controller is exposed, no Quote or operational record is created, no pricing/photo/customer/property handoff runs, and no deployment configuration changes in this prerequisite sub-slice. Database uniqueness remains the final concurrency boundary for later atomic ingestion.
+
 ## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
 
 ### Added
@@ -175,11 +187,7 @@
 
 ### Security
 
-- Enforced Admin Settings authorization from the server-rendered route against the synchronized application User role; only `ADMIN` is accepted. Supabase Auth remains credential authority and no password is stored in the application database.
-
-### Known issues
-
-- Verified email-change UX, User Access Management, Business Profile, and Employee Records remain deferred to Slices 3, 4, and 5 as applicable.
+- Enforced Admin Settings authorization from the server-rendered route against the synchronized authenticated User record and redirects every other current or future role to the dashboard. User Access and Business Profile are informational future-module cards only; their implementation remains Slice 3 and Slice 4, while Employee Records remains Slice 5. The existing role architecture is retained.
 
 Notable engineering and operational changes are recorded manually here. Add new entries in reverse chronological order under a `YYYY-MM-DD` heading, grouped as Added, Changed, Fixed, Removed, Security, or Known issues as appropriate.
 
