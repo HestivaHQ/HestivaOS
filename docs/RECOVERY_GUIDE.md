@@ -1,5 +1,15 @@
 # Recovery guide
 
+## Slice 5M-A Quote-domain recovery
+
+Migration `20260811210000_quote_domain_foundation` is additive. If rollout fails, first determine whether the failure is application code, Prisma migration state, or database reachability. Do not drop Quote tables, delete `_prisma_migrations` rows, or regenerate customer-facing references as a recovery shortcut.
+
+For migration verification, use `prisma migrate status` and read-only inspection. A healthy database contains `quotes`, `quote_revisions`, `quote_line_items`, `quote_photos`, `quote_activities`, and `quote_daily_counters`, together with unique indexes `quotes_reference_key`, `quotes_submission_key_key`, `quote_revisions_quote_id_revision_number_key`, and `quote_photos_transfer_key_key`. The migration creates no historical Quote rows and does not alter existing Customer, Property, Work Order, Recurring Service Agreement, or Service records.
+
+The `submission_key` and `transfer_key` columns are operational recovery identities. If a website/ingestion request times out after the server may have committed, retry with the **same submission key** and resolve the existing Quote rather than generating another key/reference. If a photo transfer fails or its result is uncertain, retry with the **same transfer key** and reconcile the existing `QuotePhoto` state rather than creating another photo row. Never use a new idempotency key merely to bypass a uniqueness conflict; first investigate whether the prior operation already succeeded.
+
+If a Quote is `NEEDS_ATTENTION` or a photo is `FAILED`, preserve the Quote, its revision, successful photos, failure metadata, and activity history. Resolve the failed transfer and clear the attention state only through the later approved service-layer workflow; do not delete/recreate the Quote to obtain a clean status. If application rollback is needed before those services exist, redeploy the previous application and leave the additive Quote schema in place.
+
 ## 2026-08-10 PR #69 / PR #70 migration recovery
 
 PR #69 failed at `20260810233000_service_availability_and_addon_reconciliation` with Prisma P3018/PostgreSQL 55P04 because one migration batch both added and used `ServiceType.BOTH`. PostgreSQL does not permit use of a newly added enum value until the transaction that adds it commits. Prisma subsequently reports P3009 and blocks later migrations.
