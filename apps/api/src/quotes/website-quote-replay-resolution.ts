@@ -20,7 +20,7 @@ export async function resolveWebsiteQuoteReplay(
       revisions: {
         where: { origin: 'CUSTOMER_SUBMISSION' },
         orderBy: { revisionNumber: 'asc' },
-        take: 1,
+        take: 2,
         select: { structuredData: true },
       },
     },
@@ -28,8 +28,7 @@ export async function resolveWebsiteQuoteReplay(
 
   if (!existing) return { kind: 'NEW' };
 
-  const originalSubmission = existing.revisions[0];
-  if (!originalSubmission) {
+  if (existing.revisions.length !== 1) {
     return {
       kind: 'CORRUPT_EXISTING',
       quoteId: existing.id,
@@ -37,6 +36,7 @@ export async function resolveWebsiteQuoteReplay(
     };
   }
 
+  const originalSubmission = existing.revisions[0];
   const incomingFingerprint = websiteQuotePayloadFingerprint(payload);
   const storedFingerprint = websiteQuotePayloadFingerprint(originalSubmission.structuredData);
 
