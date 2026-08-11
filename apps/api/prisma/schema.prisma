@@ -710,6 +710,7 @@ enum QuoteActivityType {
 model Quote {
   id String @id @default(uuid()) @db.Uuid
   reference String @unique
+  submissionKey String @unique @map("submission_key")
   status QuoteStatus @default(SUBMITTED)
   currentRevisionNumber Int @default(1) @map("current_revision_number")
   validUntil DateTime @map("valid_until")
@@ -782,6 +783,7 @@ model QuotePhoto {
   id String @id @default(uuid()) @db.Uuid
   quoteId String @map("quote_id") @db.Uuid
   quoteRevisionId String? @map("quote_revision_id") @db.Uuid
+  transferKey String @unique @map("transfer_key")
   source QuotePhotoSource
   status QuotePhotoStatus @default(PENDING)
   originalFileName String @map("original_file_name")
