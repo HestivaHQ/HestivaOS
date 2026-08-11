@@ -7,9 +7,9 @@ This sub-slice converts the approved retry/idempotency rule into a database-awar
 `resolveWebsiteQuoteReplay` looks up the durable Quote by its unique `submissionKey` (the website `submissionId`) and resolves one of four explicit outcomes:
 
 - `NEW`: no Quote exists for the submission identity; later orchestration may attempt atomic creation.
-- `REPLAY`: the identity exists and the earliest immutable `CUSTOMER_SUBMISSION` revision contains the same canonical structured submission material; later orchestration must return the existing Quote rather than creating duplicates.
+- `REPLAY`: the identity exists and exactly one immutable `CUSTOMER_SUBMISSION` revision contains the same canonical structured submission material; later orchestration must return the existing Quote rather than creating duplicates.
 - `CONFLICT`: the identity exists but the incoming structured material differs from that original customer submission; later orchestration must fail closed and create nothing.
-- `CORRUPT_EXISTING`: the Quote has the submission identity but no original `CUSTOMER_SUBMISSION` revision can be found; later orchestration must fail closed and surface the data-integrity problem rather than guessing.
+- `CORRUPT_EXISTING`: the Quote has the submission identity but does not contain exactly one original `CUSTOMER_SUBMISSION` revision; missing or duplicate originals fail closed and surface the data-integrity problem rather than guessing.
 
 Retries are deliberately compared with the original customer submission rather than the current Quote revision. A later Admin revision must not cause an otherwise identical website retry to become a false conflict.
 
