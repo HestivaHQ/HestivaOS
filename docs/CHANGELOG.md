@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
+
+### Added
+
+- Added fail-closed API-side verification for the approved Website → HestivaOS bearer-secret boundary using a fixed-length SHA-256 digest comparison before Node's constant-time equality primitive.
+- Added deterministic SHA-256 fingerprinting for complete structured website Quote submissions, recursively sorting object keys while preserving array order so retries can distinguish identical material from conflicting reuse of the same submission identity.
+- Added focused Jest coverage for exact/malformed bearer credentials, missing configuration, prefix/suffix rejection, key-order stability, material payload changes, array-order preservation, and fingerprint comparison.
+
+### Preserved
+
+- No ingestion controller is exposed, no integration secret value or deployment configuration is added, no fingerprint is persisted, and no Quote, pricing, photo, Customer, Property, Work Order, or recurring-agreement record is created by this prerequisite-only sub-slice.
+
 ## 2026-08-11 — Slice 5M-B website Quote contract v1
 
 ### Added
