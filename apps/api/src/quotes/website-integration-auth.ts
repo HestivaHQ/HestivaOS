@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 
 export const HESTIVA_WEBSITE_INTEGRATION_SECRET_ENV = 'HESTIVA_WEBSITE_INTEGRATION_SECRET' as const;
 
@@ -9,6 +9,10 @@ function extractBearerToken(authorization: unknown): string | null {
   return token ? token : null;
 }
 
+function digestSecret(value: string): Buffer {
+  return createHash('sha256').update(value, 'utf8').digest();
+}
+
 export function verifyWebsiteIntegrationAuthorization(
   authorization: unknown,
   configuredSecret: unknown = process.env[HESTIVA_WEBSITE_INTEGRATION_SECRET_ENV],
@@ -16,9 +20,5 @@ export function verifyWebsiteIntegrationAuthorization(
   const token = extractBearerToken(authorization);
   if (!token || typeof configuredSecret !== 'string' || !configuredSecret) return false;
 
-  const tokenBuffer = Buffer.from(token, 'utf8');
-  const secretBuffer = Buffer.from(configuredSecret, 'utf8');
-  if (tokenBuffer.length !== secretBuffer.length) return false;
-
-  return timingSafeEqual(tokenBuffer, secretBuffer);
+  return timingSafeEqual(digestSecret(token), digestSecret(configuredSecret));
 }
