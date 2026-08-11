@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-11 — Slice 5M website Quote replay resolution
+
+### Added
+
+- Added database-aware Website → HestivaOS Quote replay classification using the durable unique `Quote.submissionKey` identity and the merged canonical payload fingerprint.
+- Added explicit `NEW`, `REPLAY`, `CONFLICT`, and fail-closed `CORRUPT_EXISTING` outcomes, with replay comparison anchored to exactly one immutable original `CUSTOMER_SUBMISSION` revision so later Admin revisions cannot invalidate a legitimate website retry.
+- Added focused Jest coverage for unseen submissions, identical retries, conflicting material, missing/duplicate original submission revisions, and identical retries after an Admin revision.
+
+### Preserved
+
+- No ingestion controller is exposed, no Quote or operational record is created, no pricing/photo/customer/property handoff runs, and no deployment configuration changes in this prerequisite sub-slice. Database uniqueness remains the final concurrency boundary for later atomic ingestion.
+
 ## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
 
 ### Added
