@@ -20,6 +20,7 @@ CREATE TYPE "QuoteActivityType" AS ENUM (
 CREATE TABLE "quotes" (
   "id" UUID NOT NULL,
   "reference" TEXT NOT NULL,
+  "submission_key" TEXT NOT NULL,
   "status" "QuoteStatus" NOT NULL DEFAULT 'SUBMITTED',
   "current_revision_number" INTEGER NOT NULL DEFAULT 1,
   "valid_until" TIMESTAMP(3) NOT NULL,
@@ -73,6 +74,7 @@ CREATE TABLE "quote_photos" (
   "id" UUID NOT NULL,
   "quote_id" UUID NOT NULL,
   "quote_revision_id" UUID,
+  "transfer_key" TEXT NOT NULL,
   "source" "QuotePhotoSource" NOT NULL,
   "status" "QuotePhotoStatus" NOT NULL DEFAULT 'PENDING',
   "original_file_name" TEXT NOT NULL,
@@ -108,6 +110,7 @@ CREATE TABLE "quote_daily_counters" (
 );
 
 CREATE UNIQUE INDEX "quotes_reference_key" ON "quotes"("reference");
+CREATE UNIQUE INDEX "quotes_submission_key_key" ON "quotes"("submission_key");
 CREATE INDEX "quotes_status_idx" ON "quotes"("status");
 CREATE INDEX "quotes_valid_until_idx" ON "quotes"("valid_until");
 CREATE INDEX "quotes_customer_id_idx" ON "quotes"("customer_id");
@@ -120,6 +123,7 @@ CREATE INDEX "quote_revisions_quote_id_created_at_idx" ON "quote_revisions"("quo
 
 CREATE INDEX "quote_line_items_quote_revision_id_sort_order_idx" ON "quote_line_items"("quote_revision_id", "sort_order");
 
+CREATE UNIQUE INDEX "quote_photos_transfer_key_key" ON "quote_photos"("transfer_key");
 CREATE INDEX "quote_photos_quote_id_created_at_idx" ON "quote_photos"("quote_id", "created_at");
 CREATE INDEX "quote_photos_quote_revision_id_idx" ON "quote_photos"("quote_revision_id");
 CREATE INDEX "quote_photos_status_idx" ON "quote_photos"("status");
