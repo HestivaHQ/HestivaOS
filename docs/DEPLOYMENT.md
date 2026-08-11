@@ -1,5 +1,13 @@
 # Deployment
 
+## Slice 5M-A Quote domain migration
+
+Deploy additive migration `20260811210000_quote_domain_foundation` through the normal Railway `npm run deploy:api` / Prisma deploy path before any later Slice 5M service code that reads or writes Quotes. It creates the Quote lifecycle, revision, pricing-line, photo, activity, and daily-counter tables plus their enums and indexes. It does not backfill or mutate existing Customers, Properties, Work Orders, Recurring Service Agreements, Services, or media records.
+
+The migration requires every Quote to carry a database-unique `submission_key` and every QuotePhoto to carry a database-unique `transfer_key`. These are internal retry/idempotency identities, not customer-facing references. Later ingestion/photo-transfer implementations must generate or receive the key once and reuse it on every retry; they must not mint a new key merely because a transport attempt timed out. The unique indexes are the final duplicate-prevention boundary.
+
+Before merge/deploy, require both PostgreSQL replay jobs and the normal repository verification job to pass. After deployment, verify Prisma reports the migration finished and inspect that `quotes_submission_key_key` and `quote_photos_transfer_key_key` exist. No runtime Quote endpoint exists in 5M-A, so there is no production Quote-creation smoke test until the next sub-slice. If application rollback is required, leave these additive tables in place and deploy the prior application; do not drop Quote history or retry identities as an application rollback step.
+
 The `20260810220000_canonical_service_catalogue` migration is additive and data-aware. It preserves existing Service IDs and relationships, classifies unambiguous catalogue matches, reconciles the approved Eco alias only when safe, creates missing approved records, and leaves ambiguous or OS-only rows intact. Apply it through the existing `npm run db:migrate:deploy` release path; do not manually delete or reseed production Services.
 
 ## Frontend: Cloudflare native Git builds
