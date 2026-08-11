@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved shared Website ↔ HestivaOS quote-contract vocabulary.
+Approved shared Website ↔ HestivaOS quote-contract and reusable Property vocabulary.
 
 ## Contract values
 
@@ -23,6 +23,10 @@ These values supersede the website-ingestion contract's earlier broad `UNDER_80 
 
 `UNKNOWN` remains valid. A future internal address-assisted estimation capability may resolve uncertain floor area, but it is not part of this implementation and must not add a customer-facing step.
 
-## Persistence boundary
+## Persistence compatibility
 
-This change updates the Website Quote Submission contract used for authoritative Quote ingestion. The existing reusable `Property.floorSize` persistence enum still contains historical broad values and must not be silently converted to narrower bands because that would fabricate precision. A separate additive compatibility migration is required before accepted-quote handoff writes these new precise bands into reusable Property records.
+The reusable `Property.floorSize` enum now supports all of the new precise bands **additively**. The historical broad enum values remain in the database and Prisma schema solely so existing Property records stay readable and editable without destructive inference.
+
+No existing broad value is automatically converted to a narrower band. For example, an existing `FROM_80_TO_150` record cannot truthfully be changed to `FROM_80_TO_99`, `FROM_100_TO_129`, or `FROM_130_TO_169` without new evidence about the property.
+
+For new Property entries, the HestivaOS UI presents only the precise bands plus `Not sure`. When an existing Property carries a historical broad value, that value remains visible as a labelled legacy option during editing until an administrator has reliable information to replace it.
