@@ -1,5 +1,14 @@
 # Technical work log
 
+## 2026-08-11 — Slice 5M website Quote replay resolution
+
+- Implemented `resolveWebsiteQuoteReplay` as a database-aware pre-creation classifier over the unique `Quote.submissionKey` identity. It returns explicit `NEW`, `REPLAY`, `CONFLICT`, or `CORRUPT_EXISTING` outcomes and creates no records itself.
+- Reused the merged canonical SHA-256 website-payload fingerprint so object-key ordering is normalized while material nested changes and array-order changes remain significant.
+- Manual review found a material correctness bug in the initial implementation: it compared retries with the mutable current Quote revision, which would falsely conflict after an Admin revision. The resolver now selects exactly one immutable `CUSTOMER_SUBMISSION` revision; missing or duplicate original submissions fail closed rather than guessing.
+- Added focused Jest coverage for unseen submission IDs, identical retries, conflicting material, missing original revision, duplicate original revisions, and an identical original website retry after a later Admin revision.
+- Preserved the concurrency boundary: a `NEW` classification is advisory only. Later atomic ingestion must rely on the existing database-unique `Quote.submissionKey`, re-read a concurrent winner, and apply the same replay/conflict rules before creating anything else.
+- This sub-slice does not expose the private ingestion endpoint, calculate pricing, transfer photos, match/create Customers or Properties, create Work Orders or Recurring Service Agreements, or change deployment configuration.
+
 ## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
 
 - Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
@@ -22,7 +31,7 @@
 ## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
 
 - Reconciled the accepted Slice 5M decisions in HestivaOS Issue #73 against current `main` before implementation. The existing schema had Customer, Property, Work Order, recurring agreements, Services, and Work Order daily references, but no durable Quote aggregate; the website reconciliation also confirmed its current quote reference is ephemeral and its payload is primarily presentation text.
-- Added an additive Quote domain without changing existing Customer/Property/Work Order behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance and transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
+- Added an additive Quote domain without changing existing Customer/Property/Work Order behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance/transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
 - Added database-unique retry identities at the durable boundary: every Quote has a required `submissionKey`, and every QuotePhoto has a required `transferKey`. Later ingestion/transfer services must reuse these keys across retries so duplicate requests cannot create duplicate Quote or photo records.
 - Stored pricing in integer minor units with initial `ZAR` currency, explicit subtotal/discount/total, and dormant tax fields defaulting disabled/zero. This foundation does not implement pricing calculation, customer-facing VAT presentation, coupon codes, or QuickBooks.
 - Preserved one stable public Quote reference across revisions. Revisions are uniquely numbered per Quote and keep the submitted structured JSON plus their own immutable financial line-item snapshot. Customer and Admin photos remain distinguishable; failed/pending/stored transfer states have durable metadata rather than relying on email attachments.
