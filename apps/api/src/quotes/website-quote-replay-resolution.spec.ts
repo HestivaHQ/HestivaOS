@@ -5,8 +5,7 @@ import { resolveWebsiteQuoteReplay } from './website-quote-replay-resolution';
 type QuoteLookup = {
   id: string;
   reference: string;
-  currentRevisionNumber: number;
-  revisions: Array<{ revisionNumber: number; structuredData: unknown }>;
+  revisions: Array<{ structuredData: unknown }>;
 } | null;
 
 function payload(overrides: Record<string, unknown> = {}): WebsiteQuoteSubmissionV1 {
@@ -45,59 +44,81 @@ function payload(overrides: Record<string, unknown> = {}): WebsiteQuoteSubmissio
 }
 
 function prismaWith(result: QuoteLookup) {
-  return {
-    quote: {
-      findUnique: jest.fn(async () => result),
-    },
-  } as never;
+  const findUnique = jest.fn(async () => result);
+  return { prisma: { quote: { findUnique } } as never, findUnique };
 }
 
 describe('website Quote replay resolution', () => {
   it('classifies an unseen submission identity as NEW', async () => {
-    await expect(resolveWebsiteQuoteReplay(prismaWith(null), payload())).resolves.toEqual({ kind: 'NEW' });
+    const { prisma } = prismaWith(null);
+    await expect(resolveWebsiteQuoteReplay(prisma, payload())).resolves.toEqual({ kind: 'NEW' });
   });
 
-  it('classifies the same submission identity and material as REPLAY', async () => {
+  it('classifies the same submission identity and original material as REPLAY', async () => {
     const submitted = payload();
     const existing: QuoteLookup = {
       id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
       reference: 'Q-20260811-0001',
-      currentRevisionNumber: 1,
-      revisions: [{ revisionNumber: 1, structuredData: JSON.parse(JSON.stringify(submitted)) }],
+      revisions: [{ structuredData: JSON.parse(JSON.stringify(submitted)) }],
     };
+    const { prisma } = prismaWith(existing);
 
-    await expect(resolveWebsiteQuoteReplay(prismaWith(existing), submitted)).resolves.toEqual({
+    await expect(resolveWebsiteQuoteReplay(prisma, submitted)).resolves.toEqual({
       kind: 'REPLAY',
       quoteId: existing.id,
       quoteReference: existing.reference,
     });
   });
 
-  it('classifies reuse of the same identity with changed material as CONFLICT', async () => {
+  it('always compares retries with the earliest CUSTOMER_SUBMISSION, not a later Admin revision', async () => {
     const submitted = payload();
     const existing: QuoteLookup = {
       id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
       reference: 'Q-20260811-0001',
-      currentRevisionNumber: 1,
-      revisions: [{ revisionNumber: 1, structuredData: { ...submitted, notes: { additionalNotes: 'original' } } }],
+      revisions: [{ structuredData: submitted }],
     };
+    const { prisma, findUnique } = prismaWith(existing);
 
-    await expect(resolveWebsiteQuoteReplay(prismaWith(existing), submitted)).resolves.toEqual({
+    await resolveWebsiteQuoteReplay(prisma, submitted);
+
+    expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({
+      where: { submissionKey: submitted.submissionId },
+      select: expect.objectContaining({
+        revisions: {
+          where: { origin: 'CUSTOMER_SUBMISSION' },
+          orderBy: { revisionNumber: 'asc' },
+          take: 1,
+          select: { structuredData: true },
+        },
+      }),
+    }));
+  });
+
+  it('classifies reuse of the same identity with changed original material as CONFLICT', async () => {
+    const submitted = payload();
+    const existing: QuoteLookup = {
+      id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
+      reference: 'Q-20260811-0001',
+      revisions: [{ structuredData: { ...submitted, notes: { additionalNotes: 'original' } } }],
+    };
+    const { prisma } = prismaWith(existing);
+
+    await expect(resolveWebsiteQuoteReplay(prisma, submitted)).resolves.toEqual({
       kind: 'CONFLICT',
       quoteId: existing.id,
       quoteReference: existing.reference,
     });
   });
 
-  it('fails closed when the current revision pointer has no matching revision', async () => {
+  it('fails closed when the Quote has no original customer-submission revision', async () => {
     const existing: QuoteLookup = {
       id: '5fcd12a2-d92a-4c92-95c6-21d1f7ed4869',
       reference: 'Q-20260811-0001',
-      currentRevisionNumber: 2,
-      revisions: [{ revisionNumber: 1, structuredData: payload() }],
+      revisions: [],
     };
+    const { prisma } = prismaWith(existing);
 
-    await expect(resolveWebsiteQuoteReplay(prismaWith(existing), payload())).resolves.toEqual({
+    await expect(resolveWebsiteQuoteReplay(prisma, payload())).resolves.toEqual({
       kind: 'CORRUPT_EXISTING',
       quoteId: existing.id,
       quoteReference: existing.reference,
