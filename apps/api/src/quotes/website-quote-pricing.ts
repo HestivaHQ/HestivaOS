@@ -1,6 +1,11 @@
 import type { WebsiteQuotePricingLineV1, WebsiteQuotePricingSnapshotV1, WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 import { resolveLaundryRequest } from './laundry-operating-model';
+import {
+  applyQuoteProfitabilityFloor,
+  type QuoteOperationalCostSnapshot,
+  type QuoteProfitabilityResult,
+} from './quote-profitability';
 
 export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
 
@@ -13,7 +18,8 @@ export type WebsiteQuotePricingAttentionReason = {
 export type WebsiteQuotePricingResult = {
   pricing: WebsiteQuotePricingSnapshotV1;
   attentionReasons: WebsiteQuotePricingAttentionReason[];
-  requiresBreakEvenReview: true;
+  requiresBreakEvenReview: boolean;
+  profitability?: QuoteProfitabilityResult;
 };
 
 const FLOOR_PRICE_MINOR: Record<string, Record<string, number>> = {
@@ -196,7 +202,10 @@ function addStructuredLaundry(
   }
 }
 
-export function calculateWebsiteQuotePricing(submission: WebsiteQuoteSubmission): WebsiteQuotePricingResult {
+export function calculateWebsiteQuotePricing(
+  submission: WebsiteQuoteSubmission,
+  operationalCosts?: QuoteOperationalCostSnapshot,
+): WebsiteQuotePricingResult {
   const lines: WebsiteQuotePricingLineV1[] = [];
   const attentionReasons: WebsiteQuotePricingAttentionReason[] = [];
   const primary = submission.request.primaryService.canonicalService;
@@ -234,25 +243,38 @@ export function calculateWebsiteQuotePricing(submission: WebsiteQuoteSubmission)
 
   const subtotalMinor = lines.reduce((sum, item) => sum + item.lineAmountMinor, 0);
 
-  // The canonical model requires a universal internal break-even/contribution check.
-  // Website Quote v1/v2 does not carry authoritative labour, deployment, consumables,
-  // vehicle/equipment reserve or overhead costs, so ingestion must retain Admin review
-  // until the HestivaOS cost engine can prove the profitability floor.
-  attentionReasons.push(attention(
-    'BREAK_EVEN_REVIEW_REQUIRED',
-    '$',
-    'Universal break-even protection requires HestivaOS operational cost inputs before the customer price can be finalised.',
-  ));
+  if (!operationalCosts) {
+    attentionReasons.push(attention(
+      'BREAK_EVEN_REVIEW_REQUIRED',
+      '$',
+      'Universal break-even protection requires HestivaOS operational cost inputs before the customer price can be finalised.',
+    ));
+
+    return {
+      pricing: {
+        currency: 'ZAR',
+        subtotalMinor,
+        adjustmentsMinor: 0,
+        totalMinor: subtotalMinor,
+        lines,
+      },
+      attentionReasons,
+      requiresBreakEvenReview: true,
+    };
+  }
+
+  const profitability = applyQuoteProfitabilityFloor(subtotalMinor, operationalCosts);
 
   return {
     pricing: {
       currency: 'ZAR',
       subtotalMinor,
-      adjustmentsMinor: 0,
-      totalMinor: subtotalMinor,
+      adjustmentsMinor: profitability.finalTotalMinor - subtotalMinor,
+      totalMinor: profitability.finalTotalMinor,
       lines,
     },
     attentionReasons,
-    requiresBreakEvenReview: true,
+    requiresBreakEvenReview: false,
+    profitability,
   };
 }
