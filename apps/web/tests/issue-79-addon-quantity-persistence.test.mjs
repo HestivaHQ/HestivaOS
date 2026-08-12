@@ -28,7 +28,7 @@ test('recurring agreements propagate quantity into generated work orders', () =>
   assert.match(recurring, /quantity: a\.quantity/);
   assert.match(recurring, /addOns: requestedAddOns/);
   assert.match(recurring, /capacityApproved/);
-  assert.match(recurringManager, /Labour\/time capacity checked for each recurring visit/);
+  assert.match(recurringManager, /Labour\/time capacity checked for this recurring plan/);
 });
 
 test('web API types expose quantities end to end', () => {
