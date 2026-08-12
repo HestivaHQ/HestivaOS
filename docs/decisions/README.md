@@ -35,3 +35,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0027: Make HestivaOS the authoritative Quote domain](ADR-0027-authoritative-quote-domain.md)
 - [ADR-0028: Version the website Quote submission contract](ADR-0028-website-quote-contract-v1.md)
 - [ADR-0029: Canonical service scope, pricing and commercial-policy model](ADR-0029-canonical-service-scope-pricing-model.md)
+- [ADR-0030: Enforce Laundry as an add-on-only runtime capability](ADR-0030-laundry-addon-runtime-policy.md)
