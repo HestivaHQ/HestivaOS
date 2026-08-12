@@ -3,8 +3,16 @@ import { Prisma, PreferredTimeWindow, RecurrenceWeekday, RecurringServiceAgreeme
 import { PrismaService } from '../prisma.service';
 import { dateOnly, johannesburgDate, nextOccurrence } from './recurrence';
 
+type AgreementAddOnInput = { serviceId: string; quantity?: number; capacityApproved?: boolean };
+type NormalizedAgreementAddOn = { serviceId: string; quantity: number; capacityApproved: boolean };
+const CAPACITY_REVIEW_ADD_ONS = new Set(['laundry', 'ironing']);
+
 export type AgreementInput = {
-  propertyId: string; serviceId: string; addOnIds?: string[]; frequency: WorkOrderFrequency;
+  propertyId: string; serviceId: string;
+  /** @deprecated Use addOns so quantity is not lost. */
+  addOnIds?: string[];
+  addOns?: AgreementAddOnInput[];
+  frequency: WorkOrderFrequency;
   effectiveDate: string; endDate?: string | null; weekday?: RecurrenceWeekday | null; dayOfMonth?: number | null;
   preferredTimeWindow?: PreferredTimeWindow | null; customFrequencyNote?: string | null; recurringInstructions?: string | null;
 };
@@ -16,15 +24,19 @@ export class RecurringServiceAgreementsService {
   findAll() { return this.prisma.recurringServiceAgreement.findMany({ include, orderBy: [{ nextServiceDate: 'asc' }, { createdAt: 'desc' }] }); }
   async findOne(id: string) { const value = await this.prisma.recurringServiceAgreement.findUnique({ where: { id }, include }); if (!value) throw new NotFoundException('Recurring service not found.'); return value; }
   async create(input: AgreementInput) {
-    const normalized = await this.validate(input);
-    return this.prisma.recurringServiceAgreement.create({ data: { ...normalized, addOns: input.addOnIds?.length ? { create: input.addOnIds.map((serviceId) => ({ serviceId })) } : undefined }, include });
+    const requestedAddOns = this.normalizeAddOns(input);
+    const normalized = await this.validate(input, undefined, [], requestedAddOns);
+    return this.prisma.recurringServiceAgreement.create({ data: { ...normalized, addOns: requestedAddOns.length ? { create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } : undefined }, include });
   }
   async update(id: string, input: Partial<AgreementInput>) {
     const existing = await this.findOne(id);
     if (input.propertyId && input.propertyId !== existing.propertyId && existing._count.workOrders > 0) throw new BadRequestException('Property cannot change after a work order has been generated.');
-    const merged: AgreementInput = { propertyId: input.propertyId ?? existing.propertyId, serviceId: input.serviceId ?? existing.serviceId, frequency: input.frequency ?? existing.frequency, effectiveDate: input.effectiveDate ?? existing.effectiveDate.toISOString().slice(0, 10), endDate: input.endDate === undefined ? existing.endDate?.toISOString().slice(0, 10) : input.endDate, weekday: input.weekday === undefined ? existing.weekday : input.weekday, dayOfMonth: input.dayOfMonth === undefined ? existing.dayOfMonth : input.dayOfMonth, preferredTimeWindow: input.preferredTimeWindow === undefined ? existing.preferredTimeWindow : input.preferredTimeWindow, customFrequencyNote: input.customFrequencyNote === undefined ? existing.customFrequencyNote : input.customFrequencyNote, recurringInstructions: input.recurringInstructions === undefined ? existing.recurringInstructions : input.recurringInstructions, addOnIds: input.addOnIds ?? existing.addOns.map((a) => a.serviceId) };
-    const normalized = await this.validate(merged, existing.serviceId, existing.addOns.map((a) => a.serviceId));
-    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { ...normalized, ...(input.addOnIds ? { addOns: { deleteMany: {}, create: input.addOnIds.map((serviceId) => ({ serviceId })) } } : {}) }, include });
+    const addOnsChanged = input.addOns !== undefined || input.addOnIds !== undefined;
+    const existingSelections: AgreementAddOnInput[] = existing.addOns.map((a) => ({ serviceId: a.serviceId, quantity: a.quantity, capacityApproved: true }));
+    const requestedAddOns = addOnsChanged ? this.normalizeAddOns(input) : existingSelections.map((a) => ({ serviceId: a.serviceId, quantity: a.quantity ?? 1, capacityApproved: true }));
+    const merged: AgreementInput = { propertyId: input.propertyId ?? existing.propertyId, serviceId: input.serviceId ?? existing.serviceId, frequency: input.frequency ?? existing.frequency, effectiveDate: input.effectiveDate ?? existing.effectiveDate.toISOString().slice(0, 10), endDate: input.endDate === undefined ? existing.endDate?.toISOString().slice(0, 10) : input.endDate, weekday: input.weekday === undefined ? existing.weekday : input.weekday, dayOfMonth: input.dayOfMonth === undefined ? existing.dayOfMonth : input.dayOfMonth, preferredTimeWindow: input.preferredTimeWindow === undefined ? existing.preferredTimeWindow : input.preferredTimeWindow, customFrequencyNote: input.customFrequencyNote === undefined ? existing.customFrequencyNote : input.customFrequencyNote, recurringInstructions: input.recurringInstructions === undefined ? existing.recurringInstructions : input.recurringInstructions, addOns: requestedAddOns };
+    const normalized = await this.validate(merged, existing.serviceId, existing.addOns.map((a) => a.serviceId), requestedAddOns);
+    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { ...normalized, ...(addOnsChanged ? { addOns: { deleteMany: {}, create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } } : {}) }, include });
   }
   async changeStatus(id: string, status: RecurringServiceAgreementStatus) {
     const agreement = await this.findOne(id);
@@ -47,7 +59,7 @@ export class RecurringServiceAgreementsService {
         const businessDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now).replaceAll('-', '');
         const counter = await tx.workOrderDailyCounter.upsert({ where: { businessDate }, create: { businessDate, sequence: 1 }, update: { sequence: { increment: 1 } } });
         const reference = `WO-${businessDate}-${String(counter.sequence).padStart(4, '0')}`;
-        const workOrder = await tx.workOrder.create({ data: { customerId: agreement.property.customerId, propertyId: agreement.propertyId, createdById, serviceId: agreement.serviceId, recurringAgreementId: agreement.id, recurrenceDate: occurrence, reference, title: reference, description: agreement.recurringInstructions, frequency: agreement.frequency, status: WorkOrderStatus.NEW, addOns: agreement.addOns.length ? { create: agreement.addOns.map((a) => ({ serviceId: a.serviceId })) } : undefined } });
+        const workOrder = await tx.workOrder.create({ data: { customerId: agreement.property.customerId, propertyId: agreement.propertyId, createdById, serviceId: agreement.serviceId, recurringAgreementId: agreement.id, recurrenceDate: occurrence, reference, title: reference, description: agreement.recurringInstructions, frequency: agreement.frequency, status: WorkOrderStatus.NEW, addOns: agreement.addOns.length ? { create: agreement.addOns.map((a) => ({ serviceId: a.serviceId, quantity: a.quantity })) } : undefined } });
         await tx.workOrderActivity.create({ data: { workOrderId: workOrder.id, type: WorkOrderActivityType.WORK_ORDER_CREATED, newStatus: WorkOrderStatus.NEW, actorId: createdById } });
         await tx.recurringServiceAgreement.update({ where: { id }, data: { nextServiceDate: occurrence } });
         return workOrder;
@@ -57,23 +69,41 @@ export class RecurringServiceAgreementsService {
       throw error;
     }
   }
-  private async validate(input: AgreementInput, existingServiceId?: string, existingAddOnIds: string[] = []) {
+
+  private normalizeAddOns(input: Pick<AgreementInput, 'addOns' | 'addOnIds'>): NormalizedAgreementAddOn[] {
+    if (input.addOns !== undefined && input.addOnIds !== undefined) throw new BadRequestException('Use either addOns or legacy addOnIds, not both.');
+    if (input.addOns !== undefined) {
+      return input.addOns.map((item) => ({ serviceId: item.serviceId, quantity: item.quantity ?? 1, capacityApproved: item.capacityApproved === true }));
+    }
+    return (input.addOnIds ?? []).map((serviceId) => ({ serviceId, quantity: 1, capacityApproved: false }));
+  }
+
+  private async validate(input: AgreementInput, existingServiceId?: string, existingAddOnIds: string[] = [], requestedAddOns = this.normalizeAddOns(input)) {
     if (input.frequency === WorkOrderFrequency.ONE_TIME) throw new BadRequestException('ONE_TIME does not create a recurring service.');
     if (!Object.values(WorkOrderFrequency).includes(input.frequency)) throw new BadRequestException('Invalid recurring frequency.');
     if ((input.frequency === WorkOrderFrequency.WEEKLY || input.frequency === WorkOrderFrequency.EVERY_TWO_WEEKS) && !input.weekday) throw new BadRequestException('A weekday is required for weekly recurrence.');
     if (input.frequency === WorkOrderFrequency.MONTHLY && (!Number.isInteger(input.dayOfMonth) || input.dayOfMonth! < 1 || input.dayOfMonth! > 31)) throw new BadRequestException('Monthly recurrence requires a day from 1 to 31.');
     if (input.frequency === WorkOrderFrequency.CUSTOM && !input.customFrequencyNote?.trim()) throw new BadRequestException('CUSTOM frequency requires a note and is manually scheduled.');
-    if (input.addOnIds && new Set(input.addOnIds).size !== input.addOnIds.length) throw new BadRequestException('Duplicate add-ons are not allowed.');
+    const ids = requestedAddOns.map((item) => item.serviceId);
+    if (new Set(ids).size !== ids.length) throw new BadRequestException('Duplicate add-ons are not allowed.');
+    if (requestedAddOns.some((item) => !item.serviceId || !Number.isInteger(item.quantity) || item.quantity < 1)) throw new BadRequestException('Each add-on requires a serviceId and a positive integer quantity.');
     let effectiveDate: Date; let endDate: Date | null;
     try { effectiveDate = dateOnly(input.effectiveDate); endDate = input.endDate ? dateOnly(input.endDate) : null; } catch { throw new BadRequestException('Dates must be valid YYYY-MM-DD calendar dates.'); }
     if (endDate && endDate < effectiveDate) throw new BadRequestException('End date cannot be before effective date.');
-    const [property, service, addOns] = await Promise.all([this.prisma.property.findUnique({ where: { id: input.propertyId }, select: { id: true } }), this.prisma.service.findUnique({ where: { id: input.serviceId } }), this.prisma.service.findMany({ where: { id: { in: input.addOnIds ?? [] } } })]);
+    const [property, service, addOns] = await Promise.all([this.prisma.property.findUnique({ where: { id: input.propertyId }, select: { id: true } }), this.prisma.service.findUnique({ where: { id: input.serviceId } }), this.prisma.service.findMany({ where: { id: { in: ids } } })]);
     if (!property) throw new NotFoundException('Property not found.'); if (!service) throw new NotFoundException('Service not found.');
     if (service.type !== ServiceType.PRIMARY && service.type !== ServiceType.BOTH) throw new BadRequestException('Primary service must be selectable in primary context.');
     if (service.status !== ServiceStatus.ACTIVE && service.id !== existingServiceId) throw new BadRequestException('Select an active primary service.');
-    if (addOns.length !== (input.addOnIds?.length ?? 0)) throw new NotFoundException('One or more add-ons were not found.');
+    if (addOns.length !== ids.length) throw new NotFoundException('One or more add-ons were not found.');
     if (addOns.some((s) => s.type !== ServiceType.ADD_ON && s.type !== ServiceType.BOTH)) throw new BadRequestException('Add-ons must be selectable in add-on context.');
     if (addOns.some((s) => s.status !== ServiceStatus.ACTIVE && !existingAddOnIds.includes(s.id))) throw new BadRequestException('Only active add-ons can be assigned.');
+    for (const requested of requestedAddOns) {
+      const selected = addOns.find((item) => item.id === requested.serviceId)!;
+      const normalizedName = (selected.normalizedName || selected.name).trim().toLowerCase();
+      if (CAPACITY_REVIEW_ADD_ONS.has(normalizedName) && !requested.capacityApproved) {
+        throw new BadRequestException(`${selected.name} requires explicit labour/time capacity approval before it can be accepted into a recurring service.`);
+      }
+    }
     const rule = { frequency: input.frequency, effectiveDate, endDate, weekday: input.weekday, dayOfMonth: input.dayOfMonth };
     return { propertyId: input.propertyId, serviceId: input.serviceId, frequency: input.frequency, effectiveDate, endDate, weekday: input.frequency === WorkOrderFrequency.WEEKLY || input.frequency === WorkOrderFrequency.EVERY_TWO_WEEKS ? input.weekday : null, dayOfMonth: input.frequency === WorkOrderFrequency.MONTHLY ? input.dayOfMonth : null, preferredTimeWindow: input.preferredTimeWindow ?? null, customFrequencyNote: input.frequency === WorkOrderFrequency.CUSTOM ? input.customFrequencyNote!.trim() : null, recurringInstructions: input.recurringInstructions?.trim() || null, nextServiceDate: nextOccurrence(rule, johannesburgDate()) };
   }
