@@ -1,0 +1,68 @@
+name: Temporary laundry quantity codemod
+
+on:
+  push:
+    branches:
+      - feat/issue-79b-laundry-quantity-contract
+
+permissions:
+  contents: write
+
+jobs:
+  codemod:
+    if: ${{ !contains(github.event.head_commit.message, '[laundry-codemod]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/issue-79b-laundry-quantity-contract
+          fetch-depth: 0
+
+      - name: Apply exact Prisma quantity codemod
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/api/prisma/schema.prisma')
+          text = path.read_text()
+
+          old = '''model RecurringServiceAgreementAddOn {
+  recurringAgreementId String @map("recurring_agreement_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  recurringAgreement RecurringServiceAgreement @relation(fields: [recurringAgreementId], references: [id], onDelete: Cascade)
+'''
+          new = '''model RecurringServiceAgreementAddOn {
+  recurringAgreementId String @map("recurring_agreement_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  quantity Int @default(1)
+  recurringAgreement RecurringServiceAgreement @relation(fields: [recurringAgreementId], references: [id], onDelete: Cascade)
+'''
+          if text.count(old) != 1:
+              raise SystemExit('Expected exactly one recurring add-on model match')
+          text = text.replace(old, new)
+
+          old = '''model WorkOrderAddOn {
+  workOrderId String @map("work_order_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+'''
+          new = '''model WorkOrderAddOn {
+  workOrderId String @map("work_order_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  quantity Int @default(1)
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+'''
+          if text.count(old) != 1:
+              raise SystemExit('Expected exactly one Work Order add-on model match')
+          text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
+      - name: Remove temporary workflow and commit codemod
+        run: |
+          rm .github/workflows/tmp-laundry-quantity-codemod.yml
+          git config user.name "HestivaHQ Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/api/prisma/schema.prisma .github/workflows/tmp-laundry-quantity-codemod.yml
+          git commit -m "feat: persist add-on quantities [laundry-codemod]"
+          git push origin HEAD:feat/issue-79b-laundry-quantity-contract
