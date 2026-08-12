@@ -177,4 +177,22 @@ describe('calculateWebsiteQuotePricing', () => {
       expect.objectContaining({ code: 'PREFERENCE_ECO_FRIENDLY', unitAmountMinor: 0, lineAmountMinor: 0 }),
     ]));
   });
+
+  it('applies authoritative internal cost inputs and upward R10 rounding', () => {
+    const result = calculateWebsiteQuotePricing(baseSubmission(), {
+      labourMinor: 50_000,
+      deploymentMinor: 15_000,
+      consumablesMinor: 5_000,
+      equipmentVehicleReserveMinor: 4_000,
+      overheadMinor: 8_000,
+      minimumContributionMinor: 10_000,
+    });
+
+    expect(result.requiresBreakEvenReview).toBe(false);
+    expect(result.attentionReasons.some((reason) => reason.code === 'BREAK_EVEN_REVIEW_REQUIRED')).toBe(false);
+    expect(result.pricing.subtotalMinor).toBe(87_500);
+    expect(result.profitability?.requiredMinimumMinor).toBe(92_000);
+    expect(result.pricing.adjustmentsMinor).toBe(4_500);
+    expect(result.pricing.totalMinor).toBe(92_000);
+  });
 });
