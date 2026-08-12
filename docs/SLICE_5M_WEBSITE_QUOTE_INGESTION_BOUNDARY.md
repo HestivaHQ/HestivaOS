@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented as a guarded runtime boundary. The canonical HestivaOS base-pricing calculator is now present, but new Quote persistence remains intentionally fail-closed until the universal break-even/contribution safeguard has authoritative operational cost inputs.
+Implemented as a guarded runtime boundary. The canonical HestivaOS base-pricing calculator and the universal profitability-floor calculation are now present. New Quote persistence remains intentionally fail-closed until the ingestion path can obtain a complete authoritative operational-cost snapshot for the individual booking.
 
 ## Endpoint
 
@@ -43,19 +43,38 @@ The adapter deliberately does not guess missing commercial facts. Post-Renovatio
 
 The superseded Post-Renovation R40/m² formula is not reinstated.
 
-## Universal break-even boundary
+## Universal break-even / profitability floor
 
-The canonical specification requires every customer quote to pass a minimum-contribution / break-even safeguard including relevant labour, address-based deployment, consumables, equipment/vehicle reserve and overhead allocation.
+`quote-profitability.ts` now implements the approved universal economics rule without inventing business amounts.
 
-Website Quote v1/v2 does not carry those authoritative internal cost inputs, and the current HestivaOS runtime does not yet expose a complete operational cost engine for this ingestion path. Therefore the pricing adapter always emits `BREAK_EVEN_REVIEW_REQUIRED` and the creation path remains gated rather than presenting a base catalogue subtotal as a commercially final quote.
+A complete `QuoteOperationalCostSnapshot` must supply authoritative ZAR minor-unit amounts for:
 
-This is a deliberate safety boundary. A canonical base-price calculation is not the same thing as proof that the final issued quote satisfies the approved profitability floor.
+- cleaner labour;
+- address-based transport/deployment;
+- chemicals/consumables;
+- equipment/vehicle reserve;
+- overhead allocation;
+- required minimum contribution.
+
+The engine rejects negative or fractional amounts. It calculates total operating cost, adds the required minimum contribution, compares that floor with the canonical catalogue subtotal, and raises the quote only where the catalogue subtotal would fall below the required floor. It never reduces an already-higher catalogue price.
+
+After the profitability floor is applied, the final customer amount is rounded **upward to the next R10**, exactly matching the canonical rule. The rounding delta and profitability delta remain separately inspectable in the internal result.
+
+No default cost values are embedded in code. Missing cost inputs remain a hard review/gating condition rather than silently becoming zero.
+
+## Remaining operational-cost source
+
+The current production `main` does not contain a complete authoritative cost-source path for quote ingestion. An older Worker Rates / Labour Costing PR exists historically but was closed without merge, and in any event it covered planned-shift labour rather than the full quote-level deployment, consumables, reserve, overhead and minimum-contribution snapshot required here.
+
+Therefore the runtime must not pretend that those inputs already exist. The next integration step is to establish the authoritative source for the per-booking operational-cost snapshot, then pass that snapshot into `calculateWebsiteQuotePricing`.
+
+When a complete snapshot is provided, the pricing adapter sets `requiresBreakEvenReview: false`, applies the profitability floor and upward R10 rounding, and returns the commercially protected total. Without it, `BREAK_EVEN_REVIEW_REQUIRED` remains present.
 
 ## Deliberate creation gate
 
 A `NEW` request still returns `503 Service Unavailable` after authentication, contract validation and replay classification.
 
-Persisting a Quote revision whose apparent total has not passed the mandatory break-even test could make an incomplete commercial price look final. The next runtime sub-slice must provide or connect the operational cost inputs, apply final upward-to-next-R10 rounding, and then create the Quote, immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction.
+Persisting a Quote revision whose apparent total has not passed the mandatory break-even test could make an incomplete commercial price look final. Once the authoritative operational-cost source is connected, the NEW path can create the Quote, immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction.
 
 Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, with a concurrent winner re-read through the same replay/conflict semantics.
 
@@ -72,3 +91,5 @@ Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, wi
 - Missing pricing dimensions fail closed into review instead of being guessed.
 - Post-Renovation assessment pricing remains intact.
 - The mandatory break-even safeguard cannot be bypassed by catalogue pricing alone.
+- Internal cost inputs are integer minor-unit values and may not silently default to zero.
+- Final customer pricing rounds upward to the next R10 and never downward.
