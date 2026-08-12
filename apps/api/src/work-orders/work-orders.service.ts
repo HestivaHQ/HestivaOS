@@ -2,6 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CrewStatus, HomeCondition, Prisma, ServiceStatus, ServiceType, WorkOrderActivityType, WorkOrderFrequency, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
+export type AddOnSelectionInput = {
+  serviceId: string;
+  quantity?: number;
+  capacityApproved?: boolean;
+};
+
 export type CreateWorkOrderInput = {
   customerId: string;
   propertyId: string;
@@ -9,7 +15,9 @@ export type CreateWorkOrderInput = {
   technicianId?: string | null;
   crewId?: string | null;
   serviceId: string;
+  /** @deprecated Use addOns so quantity is not lost. */
   addOnIds?: string[];
+  addOns?: AddOnSelectionInput[];
   frequency?: WorkOrderFrequency | null;
   customFrequencyNote?: string | null;
   homeCondition?: HomeCondition | null;
@@ -23,6 +31,10 @@ export type CreateWorkOrderInput = {
 export type UpdateWorkOrderInput = Partial<Omit<CreateWorkOrderInput, 'createdById' | 'serviceId'>> & { serviceId?: string };
 export type ChangeWorkOrderStatusInput = { status: WorkOrderStatus; note?: string; actorId?: string };
 export type WorkOrderAlert = 'overdue' | 'awaiting-assignment' | 'waiting-for-parts' | 'high-priority' | 'today-unassigned';
+
+type NormalizedAddOn = { serviceId: string; quantity: number; capacityApproved: boolean };
+
+const CAPACITY_REVIEW_ADD_ONS = new Set(['laundry', 'ironing']);
 
 const workOrderInclude = {
   customer: true,
@@ -61,6 +73,7 @@ export class WorkOrdersService {
     if (!input.customerId || !input.propertyId || !input.createdById || !input.serviceId) {
       throw new BadRequestException('customerId, propertyId, serviceId and createdById are required.');
     }
+    const requestedAddOns = this.normalizeAddOns(input);
 
     const [customer, property, user, service, technician, crew] = await Promise.all([
       this.prisma.customer.findUnique({ where: { id: input.customerId }, select: { id: true } }),
@@ -77,7 +90,7 @@ export class WorkOrdersService {
     if (!service) throw new NotFoundException('Service not found.');
     if (service.type !== ServiceType.PRIMARY && service.type !== ServiceType.BOTH) throw new BadRequestException('Primary service must be selectable as a primary service.');
     if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active primary service for a new work order.');
-    await this.validateAddOns(input.addOnIds ?? []);
+    await this.validateAddOns(requestedAddOns);
     if (property.customerId !== input.customerId) throw new BadRequestException('Property does not belong to the selected customer.');
     if (input.technicianId && !technician) throw new NotFoundException('Technician not found.');
     if (technician?.status === 'INACTIVE') throw new BadRequestException('Inactive technicians cannot be assigned to new work orders.');
@@ -111,7 +124,7 @@ export class WorkOrdersService {
           frequency: input.frequency ?? null,
           customFrequencyNote: input.frequency === WorkOrderFrequency.CUSTOM ? input.customFrequencyNote?.trim() || null : null,
           homeCondition: input.homeCondition ?? null,
-          addOns: input.addOnIds?.length ? { create: input.addOnIds.map((serviceId) => ({ serviceId })) } : undefined,
+          addOns: requestedAddOns.length ? { create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } : undefined,
           reference,
           title: reference,
           description: input.description?.trim() || null,
@@ -216,9 +229,10 @@ export class WorkOrdersService {
       if (service.status !== ServiceStatus.ACTIVE) throw new BadRequestException('Select an active primary service.');
     }
 
-    if (input.addOnIds !== undefined) {
-      const existingIds = existing.addOns.map((item) => item.serviceId);
-      await this.validateAddOns(input.addOnIds.filter((id) => !existingIds.includes(id)));
+    const addOnsChanged = input.addOns !== undefined || input.addOnIds !== undefined;
+    const requestedAddOns = addOnsChanged ? this.normalizeAddOns(input) : [];
+    if (addOnsChanged) {
+      await this.validateAddOns(requestedAddOns, existing.addOns.map((item) => item.serviceId));
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -233,7 +247,7 @@ export class WorkOrdersService {
           ...(input.description !== undefined ? { description: input.description.trim() || null } : {}),
           ...(input.frequency !== undefined ? { frequency: input.frequency, customFrequencyNote: input.frequency === WorkOrderFrequency.CUSTOM ? input.customFrequencyNote?.trim() || null : null } : {}),
           ...(input.homeCondition !== undefined ? { homeCondition: input.homeCondition } : {}),
-          ...(input.addOnIds !== undefined ? { addOns: { deleteMany: {}, create: input.addOnIds.map((serviceId) => ({ serviceId })) } } : {}),
+          ...(addOnsChanged ? { addOns: { deleteMany: {}, create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } } : {}),
           ...(nextStatus !== existing.status ? { status: nextStatus } : {}),
           ...(input.priority !== undefined ? { priority: input.priority } : {}),
           ...(input.scheduledAt !== undefined ? { scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null } : {}),
@@ -266,20 +280,48 @@ export class WorkOrdersService {
 
   async remove(id: string) { await this.findOne(id); return this.prisma.workOrder.delete({ where: { id } }); }
 
+  private normalizeAddOns(input: Pick<UpdateWorkOrderInput, 'addOns' | 'addOnIds'>): NormalizedAddOn[] {
+    if (input.addOns !== undefined && input.addOnIds !== undefined) {
+      throw new BadRequestException('Use either addOns or legacy addOnIds, not both.');
+    }
+    if (input.addOns !== undefined) {
+      return input.addOns.map((addOn) => ({
+        serviceId: addOn.serviceId,
+        quantity: addOn.quantity ?? 1,
+        capacityApproved: addOn.capacityApproved === true,
+      }));
+    }
+    return (input.addOnIds ?? []).map((serviceId) => ({ serviceId, quantity: 1, capacityApproved: false }));
+  }
 
-  private validateQuoteFields(input: Pick<UpdateWorkOrderInput, 'frequency' | 'customFrequencyNote' | 'homeCondition' | 'addOnIds'>) {
+  private validateQuoteFields(input: Pick<UpdateWorkOrderInput, 'frequency' | 'customFrequencyNote' | 'homeCondition' | 'addOnIds' | 'addOns'>) {
     if (input.frequency !== undefined && input.frequency !== null && !Object.values(WorkOrderFrequency).includes(input.frequency)) throw new BadRequestException('A valid work order frequency is required.');
     if (input.homeCondition !== undefined && input.homeCondition !== null && !Object.values(HomeCondition).includes(input.homeCondition)) throw new BadRequestException('A valid home condition is required.');
     if (input.customFrequencyNote?.trim() && input.frequency !== WorkOrderFrequency.CUSTOM) throw new BadRequestException('customFrequencyNote is only allowed for CUSTOM frequency.');
     if (input.addOnIds && new Set(input.addOnIds).size !== input.addOnIds.length) throw new BadRequestException('Duplicate add-on service IDs are not allowed.');
+    if (input.addOns) {
+      const ids = input.addOns.map((item) => item.serviceId);
+      if (new Set(ids).size !== ids.length) throw new BadRequestException('Duplicate add-on service IDs are not allowed.');
+      if (input.addOns.some((item) => !item.serviceId || !Number.isInteger(item.quantity ?? 1) || (item.quantity ?? 1) < 1)) {
+        throw new BadRequestException('Each add-on requires a serviceId and a positive integer quantity.');
+      }
+    }
   }
 
-  private async validateAddOns(ids: string[]) {
-    if (!ids.length) return;
-    const services = await this.prisma.service.findMany({ where: { id: { in: ids } }, select: { id: true, type: true, status: true } });
+  private async validateAddOns(addOns: NormalizedAddOn[], existingIds: string[] = []) {
+    if (!addOns.length) return;
+    const ids = addOns.map((item) => item.serviceId);
+    const services = await this.prisma.service.findMany({ where: { id: { in: ids } }, select: { id: true, type: true, status: true, normalizedName: true, name: true } });
     if (services.length !== ids.length) throw new NotFoundException('One or more add-on services were not found.');
     if (services.some((service) => service.type !== ServiceType.ADD_ON && service.type !== ServiceType.BOTH)) throw new BadRequestException('Add-ons must be selectable as add-ons.');
-    if (services.some((service) => service.status !== ServiceStatus.ACTIVE)) throw new BadRequestException('Only active add-ons can be newly assigned.');
+    if (services.some((service) => service.status !== ServiceStatus.ACTIVE && !existingIds.includes(service.id))) throw new BadRequestException('Only active add-ons can be newly assigned.');
+    for (const addOn of addOns) {
+      const service = services.find((item) => item.id === addOn.serviceId)!;
+      const normalized = (service.normalizedName || service.name).trim().toLowerCase();
+      if (CAPACITY_REVIEW_ADD_ONS.has(normalized) && !addOn.capacityApproved) {
+        throw new BadRequestException(`${service.name} requires explicit labour/time capacity approval before it can be placed on a work order.`);
+      }
+    }
   }
 
   private assertTransition(previousStatus: WorkOrderStatus, newStatus: WorkOrderStatus) {
