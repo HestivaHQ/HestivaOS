@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented as a guarded runtime boundary. New Quote creation remains intentionally fail-closed until the authoritative HestivaOS pricing calculator can populate the required immutable Quote revision totals and line items.
+Implemented as a guarded runtime boundary. The canonical HestivaOS base-pricing calculator is now present, but new Quote persistence remains intentionally fail-closed until the universal break-even/contribution safeguard has authoritative operational cost inputs.
 
 ## Endpoint
 
@@ -25,20 +25,50 @@ The endpoint reuses the immutable Website submission replay resolver:
 
 Both v1 and v2 payloads use the same canonical fingerprint comparison.
 
+## Canonical pricing adapter
+
+`website-quote-pricing.ts` translates only approved, sufficiently specified business rules into ZAR minor-unit line items. It uses the merged canonical pricing specification rather than website display prices or a second pricing engine.
+
+Implemented deterministic pricing includes:
+
+- Regular Home Cleaning floor-size ladder;
+- Deep Cleaning floor-size ladder;
+- Move-In / Move-Out shared floor-size ladder;
+- standard Bathroom / Bedroom / Living Area component pricing where the current contract carries count information;
+- Interior Window minimum component;
+- structured Laundry v2 Wash, Dry & Fold / Wash & Hang / Ironing per-load pricing;
+- Eco-Friendly preference at R0.
+
+The adapter deliberately does not guess missing commercial facts. Post-Renovation remains assessment-priced. Kitchen requires Standard vs Deep/Detailed and size/workload detail. Generic appliance, balcony, garage, linen, window and other add-ons remain review-required when their canonical size/condition/workload variant is not represented by the current website payload. Open-ended counts and `from` prices also carry review reasons.
+
+The superseded Post-Renovation R40/m² formula is not reinstated.
+
+## Universal break-even boundary
+
+The canonical specification requires every customer quote to pass a minimum-contribution / break-even safeguard including relevant labour, address-based deployment, consumables, equipment/vehicle reserve and overhead allocation.
+
+Website Quote v1/v2 does not carry those authoritative internal cost inputs, and the current HestivaOS runtime does not yet expose a complete operational cost engine for this ingestion path. Therefore the pricing adapter always emits `BREAK_EVEN_REVIEW_REQUIRED` and the creation path remains gated rather than presenting a base catalogue subtotal as a commercially final quote.
+
+This is a deliberate safety boundary. A canonical base-price calculation is not the same thing as proof that the final issued quote satisfies the approved profitability floor.
+
 ## Deliberate creation gate
 
-A `NEW` request currently returns `503 Service Unavailable` after authentication, contract validation and replay classification.
+A `NEW` request still returns `503 Service Unavailable` after authentication, contract validation and replay classification.
 
-This is intentional. `QuoteRevision` requires authoritative financial totals, and HestivaOS is the approved pricing authority. Persisting a fake zero-value revision or accepting website-calculated prices would violate that boundary and could create an unsafe quote that later appears commercially valid.
+Persisting a Quote revision whose apparent total has not passed the mandatory break-even test could make an incomplete commercial price look final. The next runtime sub-slice must provide or connect the operational cost inputs, apply final upward-to-next-R10 rounding, and then create the Quote, immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction.
 
-The next Slice 5M sub-slice must provide the authoritative pricing result. Once available, the `NEW` path will create the Quote, its immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction. Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, with a concurrent winner re-read through the same replay/conflict semantics.
+Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, with a concurrent winner re-read through the same replay/conflict semantics.
 
 ## Safety properties
 
 - No unauthenticated website ingestion.
 - No unsupported schema-version fallback.
-- No partial persistence before pricing is available.
+- No partial persistence before final pricing is commercially valid.
 - No zero-price placeholder Quote.
 - No duplicate Quote on an identical replay.
 - No silent overwrite when an idempotency identity conflicts.
 - Structured Laundry v2 is validated before activation.
+- Canonical catalogue prices are owned by HestivaOS.
+- Missing pricing dimensions fail closed into review instead of being guessed.
+- Post-Renovation assessment pricing remains intact.
+- The mandatory break-even safeguard cannot be bypassed by catalogue pricing alone.
