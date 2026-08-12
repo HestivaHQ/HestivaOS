@@ -15,14 +15,12 @@ test('primary and add-on services have separate canonical controls and filtered 
   assert.doesNotMatch(manager, /<label>Title<input/);
 });
 
-test('add-on selector presents accessible responsive choices without changing selection state', () => {
-  assert.match(manager, /Select any optional services for this job\./);
-  assert.doesNotMatch(manager, /Choose zero or more active add-on services\./);
+test('add-on selector persists quantities and exposes explicit capacity approval', () => {
+  assert.match(manager, /Select optional services and the accepted quantity/);
   assert.match(manager, /selectableAddOns\.map/);
-  assert.match(manager, /htmlFor=\{inputId\}/);
-  assert.match(manager, /id=\{inputId\} type="checkbox"/);
-  assert.match(manager, /event\.target\.checked \? \[\.\.\.form\.addOnIds, service\.id\] : form\.addOnIds\.filter/);
-  assert.match(manager, /service\.status === 'INACTIVE' \? <small>Inactive · historical selection<\/small>/);
+  assert.match(manager, /type="number" min=\{1\} step=\{1\}/);
+  assert.match(manager, /Labour\/time capacity checked for this job/);
+  assert.match(manager, /capacityApproved/);
   assert.match(manager, /No add-ons are currently available\./);
   assert.match(manager, /status=ACTIVE&type=ADD_ON/);
 });
@@ -33,18 +31,20 @@ test('accepted quote fields use controlled human labels', () => {
   assert.match(manager, /Job-specific instructions/);
 });
 
-test('schema keeps nullable historical fields and an explicit add-on join', () => {
+test('schema keeps nullable historical fields and an explicit quantity-bearing add-on join', () => {
   assert.match(schema, /frequency WorkOrderFrequency\?/);
   assert.match(schema, /homeCondition HomeCondition\?/);
-  assert.match(schema, /model WorkOrderAddOn/);
+  assert.match(schema, /model WorkOrderAddOn[\s\S]*quantity Int @default\(1\)/);
   assert.match(schema, /@@id\(\[workOrderId, serviceId\]\)/);
 });
 
-test('server validates primary type, add-on type and status, duplicates, and controlled enums', () => {
+test('server validates primary type, add-on type/status, quantities and capacity approval', () => {
   assert.match(api, /service\.type !== ServiceType\.PRIMARY && service\.type !== ServiceType\.BOTH/);
   assert.match(api, /service\.type !== ServiceType\.ADD_ON && service\.type !== ServiceType\.BOTH/);
   assert.match(api, /Only active add-ons can be newly assigned/);
   assert.match(api, /Duplicate add-on service IDs are not allowed/);
+  assert.match(api, /positive integer quantity/);
+  assert.match(api, /requires explicit labour\/time capacity approval/);
   assert.match(api, /Object\.values\(WorkOrderFrequency\)/);
   assert.match(api, /Object\.values\(HomeCondition\)/);
   assert.match(api, /customFrequencyNote is only allowed for CUSTOM frequency/);
