@@ -12,6 +12,7 @@ import { HealthController } from './health.controller';
 import { RequestLoggingMiddleware } from './monitoring/request-logging.middleware';
 import { PrismaService } from './prisma.service';
 import { PropertiesModule } from './properties/properties.module';
+import { QuotesModule } from './quotes/quotes.module';
 import { RecurringServiceAgreementsModule } from './recurring-service-agreements/recurring-service-agreements.module';
 import { ServicesModule } from './services/services.module';
 import { ShiftsModule } from './shifts/shifts.module';
@@ -24,7 +25,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { SupabaseAuthGuard } from './users/supabase-auth.guard';
 
 @Module({
-  imports: [BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, EmployeesModule, UsersModule, CustomersModule, PropertiesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule, ShiftsModule],
+  imports: [BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, EmployeesModule, UsersModule, CustomersModule, PropertiesModule, QuotesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, CrewsModule, ShiftsModule],
   controllers: [HealthController],
   providers: [PrismaService, { provide: APP_GUARD, useClass: SupabaseAuthGuard }],
 })
