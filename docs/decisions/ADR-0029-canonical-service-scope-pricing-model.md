@@ -1,4 +1,4 @@
-# ADR-0025: Canonical service scope, pricing and commercial-policy model
+# ADR-0029: Canonical service scope, pricing and commercial-policy model
 
 - **Status:** Accepted for migration
 - **Date:** 2026-08-12
