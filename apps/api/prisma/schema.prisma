@@ -591,6 +591,7 @@ model RecurringServiceAgreement {
 model RecurringServiceAgreementAddOn {
   recurringAgreementId String @map("recurring_agreement_id") @db.Uuid
   serviceId String @map("service_id") @db.Uuid
+  quantity Int @default(1)
   recurringAgreement RecurringServiceAgreement @relation(fields: [recurringAgreementId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
@@ -603,6 +604,7 @@ model RecurringServiceAgreementAddOn {
 model WorkOrderAddOn {
   workOrderId String @map("work_order_id") @db.Uuid
   serviceId String @map("service_id") @db.Uuid
+  quantity Int @default(1)
   workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
