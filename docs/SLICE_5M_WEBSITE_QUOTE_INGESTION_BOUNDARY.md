@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented as a guarded runtime boundary. The canonical HestivaOS base-pricing calculator and the universal profitability-floor calculation are now present. New Quote persistence remains intentionally fail-closed until the ingestion path can obtain a complete authoritative operational-cost snapshot for the individual booking.
+Implemented as a guarded runtime boundary. The canonical HestivaOS base-pricing calculator, universal profitability-floor calculation and fail-closed operational-cost source layer are now present. New Quote persistence remains intentionally gated until real authoritative component resolvers are connected for the individual booking.
 
 ## Endpoint
 
@@ -45,7 +45,7 @@ The superseded Post-Renovation R40/m² formula is not reinstated.
 
 ## Universal break-even / profitability floor
 
-`quote-profitability.ts` now implements the approved universal economics rule without inventing business amounts.
+`quote-profitability.ts` implements the approved universal economics rule without inventing business amounts.
 
 A complete `QuoteOperationalCostSnapshot` must supply authoritative ZAR minor-unit amounts for:
 
@@ -62,19 +62,34 @@ After the profitability floor is applied, the final customer amount is rounded *
 
 No default cost values are embedded in code. Missing cost inputs remain a hard review/gating condition rather than silently becoming zero.
 
-## Remaining operational-cost source
+## Operational-cost source layer
 
-The current production `main` does not contain a complete authoritative cost-source path for quote ingestion. An older Worker Rates / Labour Costing PR exists historically but was closed without merge, and in any event it covered planned-shift labour rather than the full quote-level deployment, consumables, reserve, overhead and minimum-contribution snapshot required here.
+`quote-operational-cost-source.ts` defines the authoritative booking-level source boundary. A `QuoteOperationalCostProvider` receives the complete Website Quote submission and may return candidate values plus per-component provenance. The boundary validates all six required categories and returns only one of two outcomes:
 
-Therefore the runtime must not pretend that those inputs already exist. The next integration step is to establish the authoritative source for the per-booking operational-cost snapshot, then pass that snapshot into `calculateWebsiteQuotePricing`.
+- `READY` — every required amount is a non-negative integer ZAR minor-unit value;
+- `NEEDS_ATTENTION` — at least one category is missing or invalid.
 
-When a complete snapshot is provided, the pricing adapter sets `requiresBreakEvenReview: false`, applies the profitability floor and upward R10 rounding, and returns the commercially protected total. Without it, `BREAK_EVEN_REVIEW_REQUIRED` remains present.
+A missing provider value is never converted to zero. Negative and fractional amounts are rejected. Provenance is retained independently for each cost category so later audit/persistence can show where labour, deployment, consumables, reserve, overhead and contribution values came from.
+
+`CompositeQuoteOperationalCostProvider` composes independent resolvers for the six categories. This lets HestivaOS connect each category to its proper authoritative subsystem instead of creating one opaque pricing blob. The composite provider preserves unresolved values as unresolved and does not own any business formula itself.
+
+This design deliberately separates three responsibilities:
+
+1. canonical catalogue pricing decides what the service itself costs;
+2. operational cost sources provide internal booking economics;
+3. the profitability engine protects the final customer price against the approved minimum floor and performs upward R10 rounding.
+
+## Remaining component resolvers
+
+The source layer is now implemented, but actual production resolvers still need authoritative business inputs. Current `main` does not contain complete approved sources for all six categories. An older Worker Rates / Labour Costing PR was closed without merge and covered planned-shift labour only, so it is not treated as a substitute.
+
+No cost category will be fabricated merely to activate ingestion. The next implementation step is to connect real labour, address-based deployment, consumables, reserve, overhead and minimum-contribution resolver inputs, then feed the resulting `READY` snapshot into `calculateWebsiteQuotePricing`.
 
 ## Deliberate creation gate
 
 A `NEW` request still returns `503 Service Unavailable` after authentication, contract validation and replay classification.
 
-Persisting a Quote revision whose apparent total has not passed the mandatory break-even test could make an incomplete commercial price look final. Once the authoritative operational-cost source is connected, the NEW path can create the Quote, immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction.
+Persisting a Quote revision whose apparent total has not passed the mandatory break-even test could make an incomplete commercial price look final. Once the authoritative component resolvers produce a complete operational-cost snapshot, the NEW path can create the Quote, immutable `CUSTOMER_SUBMISSION` revision, line items, activity and reference identity inside one database transaction.
 
 Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, with a concurrent winner re-read through the same replay/conflict semantics.
 
@@ -92,4 +107,6 @@ Unique `Quote.submissionKey` remains the final concurrency/idempotency guard, wi
 - Post-Renovation assessment pricing remains intact.
 - The mandatory break-even safeguard cannot be bypassed by catalogue pricing alone.
 - Internal cost inputs are integer minor-unit values and may not silently default to zero.
+- Missing operational-cost component values remain unresolved rather than becoming zero.
+- Cost-component provenance can be retained independently for auditability.
 - Final customer pricing rounds upward to the next R10 and never downward.
