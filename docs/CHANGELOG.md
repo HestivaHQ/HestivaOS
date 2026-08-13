@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-14 — Reliable GitHub connector workflow
+
+### Changed
+
+- Adopted READ → VERIFY → WRITE → VERIFY → PR as the repository-default connector operating sequence.
+- Required exact target-branch file reads and current blob SHAs before replacement, serialized dependent writes, and post-write state verification before dependent work proceeds.
+- Required a GitHub state re-read after blocked, failed, or timed-out connector operations before any corrected retry; low-level Git APIs are not a default bypass for a blocked normal action.
+- Kept CI corrections on the existing scoped branch, required exact-head verification after fixes, and prohibited merging red or still-running required gates.
+- Changed routine documentation batching from approximately 3–5 decisions to a maximum of approximately 15 substantive approved decisions while preserving earlier synchronization for major architecture, security, legal/compliance, infrastructure, payment and cross-system changes.
+
+### Preserved
+
+- No runtime application code, API contract, database schema, deployment setting, authentication behavior, financial policy, or production environment was changed by this repository-workflow update.
+
 ## 2026-08-11 — Slice 5M website Quote replay resolution
 
 ### Added
