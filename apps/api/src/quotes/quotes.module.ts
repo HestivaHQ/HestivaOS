@@ -5,7 +5,7 @@ import {
   type AllocatedRouteDistanceResolver,
   UnavailableAllocatedRouteDistanceResolver,
 } from './approved-quote-operational-cost-provider';
-import { OpenRouteServiceAllocatedRouteDistanceResolver } from './google-routes-allocated-route-distance-resolver';
+import { OpenRouteServiceAllocatedRouteDistanceResolver } from './openrouteservice-allocated-route-distance-resolver';
 import { QUOTE_OPERATIONAL_COST_PROVIDER } from './quote-operational-cost-source';
 import { WebsiteQuoteIngestionController } from './website-quote-ingestion.controller';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
