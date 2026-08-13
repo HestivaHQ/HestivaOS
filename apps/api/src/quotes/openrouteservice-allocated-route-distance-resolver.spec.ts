@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { OpenRouteServiceAllocatedRouteDistanceResolver } from './google-routes-allocated-route-distance-resolver';
+import { OpenRouteServiceAllocatedRouteDistanceResolver } from './openrouteservice-allocated-route-distance-resolver';
 import type { WebsiteQuoteSubmission } from './quote-operational-cost-source';
 
 const submission = {
