@@ -4,6 +4,8 @@ import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 
 export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
 
+export const QUOTE_OPERATIONAL_COST_PROVIDER = 'QUOTE_OPERATIONAL_COST_PROVIDER' as const;
+
 export const QUOTE_OPERATIONAL_COST_COMPONENTS = [
   'labourMinor',
   'deploymentMinor',
