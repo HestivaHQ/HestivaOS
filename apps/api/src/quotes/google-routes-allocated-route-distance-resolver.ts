@@ -4,15 +4,15 @@ import type {
 } from './approved-quote-operational-cost-provider';
 import type { WebsiteQuoteSubmission } from './quote-operational-cost-source';
 
-export type GoogleRoutesAllocatedRouteDistanceResolverOptions = {
+export type OpenRouteServiceAllocatedRouteDistanceResolverOptions = {
   apiKey: string;
   deploymentBaseLatitude: number;
   deploymentBaseLongitude: number;
   fetchImpl?: typeof fetch;
 };
 
-type GoogleRoutesResponse = {
-  routes?: Array<{ distanceMeters?: number }>;
+type OpenRouteServiceResponse = {
+  routes?: Array<{ summary?: { distance?: number } }>;
 };
 
 function validCoordinate(value: number, min: number, max: number): boolean {
@@ -20,16 +20,16 @@ function validCoordinate(value: number, min: number, max: number): boolean {
 }
 
 /**
- * Uses Google Routes API driving distance for the factual road-distance leg.
+ * Uses openrouteservice driving distance for the factual road-distance leg.
  * Quote-time allocation is intentionally conservative: until a multi-booking
  * route plan exists, the booking is costed as an isolated base -> property -> base
  * round trip. Later scheduling/clustering may improve the realised economics but
  * must never make the original quote less protected.
  */
-export class GoogleRoutesAllocatedRouteDistanceResolver implements AllocatedRouteDistanceResolver {
+export class OpenRouteServiceAllocatedRouteDistanceResolver implements AllocatedRouteDistanceResolver {
   private readonly fetchImpl: typeof fetch;
 
-  constructor(private readonly options: GoogleRoutesAllocatedRouteDistanceResolverOptions) {
+  constructor(private readonly options: OpenRouteServiceAllocatedRouteDistanceResolverOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
@@ -38,7 +38,7 @@ export class GoogleRoutesAllocatedRouteDistanceResolver implements AllocatedRout
     if (!destination) {
       return {
         allocatedRouteKm: null,
-        provenance: 'google-routes:v1;destination-coordinates=unresolved',
+        provenance: 'openrouteservice:v1;destination-coordinates=unresolved',
       };
     }
 
@@ -50,66 +50,51 @@ export class GoogleRoutesAllocatedRouteDistanceResolver implements AllocatedRout
     ) {
       return {
         allocatedRouteKm: null,
-        provenance: 'google-routes:v1;coordinates=invalid',
+        provenance: 'openrouteservice:v1;coordinates=invalid',
       };
     }
 
     try {
-      const response = await this.fetchImpl('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      const response = await this.fetchImpl('https://api.heigit.org/openrouteservice/v2/directions/driving-car', {
         method: 'POST',
         headers: {
+          Accept: 'application/json',
+          Authorization: this.options.apiKey,
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': this.options.apiKey,
-          'X-Goog-FieldMask': 'routes.distanceMeters',
         },
         body: JSON.stringify({
-          origin: {
-            location: {
-              latLng: {
-                latitude: this.options.deploymentBaseLatitude,
-                longitude: this.options.deploymentBaseLongitude,
-              },
-            },
-          },
-          destination: {
-            location: {
-              latLng: {
-                latitude: destination.latitude,
-                longitude: destination.longitude,
-              },
-            },
-          },
-          travelMode: 'DRIVE',
-          routingPreference: 'TRAFFIC_UNAWARE',
-          computeAlternativeRoutes: false,
+          coordinates: [
+            [this.options.deploymentBaseLongitude, this.options.deploymentBaseLatitude],
+            [destination.longitude, destination.latitude],
+          ],
         }),
       });
 
       if (!response.ok) {
         return {
           allocatedRouteKm: null,
-          provenance: `google-routes:v1;http-status=${response.status}`,
+          provenance: `openrouteservice:v1;http-status=${response.status}`,
         };
       }
 
-      const payload = (await response.json()) as GoogleRoutesResponse;
-      const oneWayMeters = payload.routes?.[0]?.distanceMeters;
-      if (!Number.isInteger(oneWayMeters) || !oneWayMeters || oneWayMeters <= 0) {
+      const payload = (await response.json()) as OpenRouteServiceResponse;
+      const oneWayMeters = payload.routes?.[0]?.summary?.distance;
+      if (!Number.isFinite(oneWayMeters) || !oneWayMeters || oneWayMeters <= 0) {
         return {
           allocatedRouteKm: null,
-          provenance: 'google-routes:v1;distance=missing-or-invalid',
+          provenance: 'openrouteservice:v1;distance=missing-or-invalid',
         };
       }
 
       const isolatedRoundTripKm = (oneWayMeters * 2) / 1000;
       return {
         allocatedRouteKm: isolatedRoundTripKm,
-        provenance: `google-routes:v1;allocation=isolated-round-trip;one-way-m=${oneWayMeters}`,
+        provenance: `openrouteservice:v1;allocation=isolated-round-trip;one-way-m=${Math.round(oneWayMeters)}`,
       };
     } catch {
       return {
         allocatedRouteKm: null,
-        provenance: 'google-routes:v1;request-failed',
+        provenance: 'openrouteservice:v1;request-failed',
       };
     }
   }
