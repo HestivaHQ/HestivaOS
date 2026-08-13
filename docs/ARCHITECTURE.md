@@ -179,3 +179,29 @@ The authorized full Property resource stores nullable `floorSize`, `outdoorArea`
 Weekly rules select the next controlled weekday. Every-two-weeks rules use the first selected weekday on/after `effectiveDate` as a stable 14-day anchor. Monthly rules use day 1–31, clamped to the final valid day of short months. All business-date boundaries use `Africa/Johannesburg`; CUSTOM is prose-only and manual. An optional end date is inclusive.
 
 Explicit generation creates at most one upcoming visit per ACTIVE standard agreement when no future occurrence already exists. It skips missed dates, uses the normal `WO-YYYYMMDD-####` transaction, and snapshots Service, add-ons, frequency, and instructions. `(recurringAgreementId, recurrenceDate)` is database-unique. Generated Work Orders are independent records: edits, pause, resume, cancel, or natural end do not rewrite/delete them. Assignment remains the existing Work Order concern.
+### Local Supabase JWT verification
+
+As of 2026-08-13 22:24 SAST, the NestJS API authentication boundary verifies Supabase access tokens locally rather than calling Supabase Auth `/auth/v1/user` for every protected API request.
+
+The production Supabase project uses asymmetric ECC P-256 signing keys. The API therefore accepts ES256 bearer tokens and verifies their signatures cryptographically against Supabase's public JWKS endpoint.
+
+Public JWKS data is cached in-process for ten minutes. If a token presents an unknown `kid`, the guard performs one forced JWKS refresh so a legitimate signing-key rotation can be discovered before normal cache expiry.
+
+Local verification remains fail closed. A token must have:
+
+- the `ES256` algorithm;
+- a known signing-key identifier;
+- a valid cryptographic signature;
+- the expected Supabase Auth issuer;
+- the `authenticated` audience;
+- a non-empty subject;
+- a valid expiry; and
+- a valid optional `nbf` value, allowing only the configured narrow clock-skew tolerance.
+
+Malformed, expired, incorrectly scoped, unsupported, unknown-key, or cryptographically unverifiable tokens are rejected.
+
+This optimization changes only Supabase provider-token verification. HestivaOS application authorization remains separate and unchanged: after token verification, the global guard resolves the canonical application `User`, requires `ACTIVE` status, and applies route role metadata. The narrow `/users/sync` bootstrap exception remains available for a cryptographically authenticated Supabase identity that does not yet have an application User.
+
+Supabase remains the authentication identity and signing-key authority. HestivaOS stores no Supabase private signing key for this mechanism.
+
+See ADR-0034 for the durable architectural decision.

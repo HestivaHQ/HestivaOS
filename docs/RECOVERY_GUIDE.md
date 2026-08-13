@@ -212,3 +212,19 @@ After restore, verify the four nullable Property columns and their PostgreSQL en
 ## Recurring service migration verification (2026-08-11)
 
 For migration `20260811190000_recurring_service_agreements`, first use `prisma migrate status` and read-only catalogue inspection. A healthy database contains `recurring_service_agreements`, `recurring_service_agreement_add_ons`, nullable `work_orders.recurring_agreement_id`/`recurrence_date`, and the unique occurrence index. Do not resolve a failed row as applied unless every object and constraint is proven present. Generated Work Orders must be retained during agreement pause/cancel recovery; normal lifecycle actions never delete them.
+## 2026-08-13 22:25 SAST — Local JWT verification recovery
+
+HestivaOS API authentication uses local ES256 verification of Supabase access tokens against the project's public JWKS. The verified production Supabase signing configuration is ECC P-256.
+
+If authenticated API requests begin failing after an authentication or signing-key change:
+
+1. Confirm the production Supabase project still uses an asymmetric ECC P-256 / ES256 signing key.
+2. Confirm Railway has the correct `SUPABASE_URL` for the production Supabase project.
+3. Confirm the public JWKS endpoint is reachable at `<SUPABASE_URL>/auth/v1/.well-known/jwks.json`.
+4. Do not copy a Supabase private signing key, JWT secret, service-role key, or other privileged credential into HestivaOS.
+5. Check API logs for authentication failures without logging bearer tokens or key material.
+6. If Supabase signing keys were recently rotated, restart/redeploy the Railway API if immediate cache clearing is required. Otherwise the in-process JWKS cache expires after ten minutes, and an unknown token `kid` also causes one forced JWKS refresh.
+7. Verify authentication with a legitimate Supabase session and then verify that HestivaOS application authorization still enforces ACTIVE user status and route roles.
+8. If JWKS retrieval or cryptographic verification fails, keep authentication fail closed. Do not temporarily bypass signature, issuer, audience, expiry, subject, or application-user validation to restore access.
+
+A deliberate migration away from ES256 requires a reviewed code change, tests, ADR update, deployment/recovery documentation, and production verification before changing the Supabase signing algorithm.

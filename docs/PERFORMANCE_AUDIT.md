@@ -14,14 +14,21 @@ This audit records verified performance work undertaken because routine HestivaO
 
 ### Verified remaining hot paths
 
-The first pass does not claim to solve all latency. Repository inspection identified additional performance work that requires separate review because it touches shared authentication or dashboard architecture:
-
 - The web middleware verifies the Supabase user for protected navigation, while many server-rendered pages also call Supabase user verification again.
 - `AppFrame` synchronizes the HestivaOS application user when a page does not supply one, which can add another API request during navigation.
-- The API authentication guard currently validates every authenticated bearer token by requesting Supabase Auth `/auth/v1/user`, then performs a HestivaOS `User` lookup before endpoint-specific work. This is a system-wide network hot path and must not be removed without an equally secure token-verification replacement.
 - The dashboard overview currently executes a broad set of database reads and aggregates, including data not required by the present daily command-centre UI. A later performance change should reduce that over-fetching rather than weakening correctness.
 - The login client currently performs navigation and then an explicit router refresh; this is under review as a redundant post-login render.
 
+## 2026-08-13 — API local JWT verification
+
+The API authentication guard previously requested Supabase Auth `/auth/v1/user` for every protected API request. That remote verification was a system-wide latency multiplier because pages commonly make several authenticated API calls in parallel.
+
+The Supabase project was verified to use the current asymmetric ECC P-256 signing-key configuration. The API guard now verifies ES256 bearer tokens cryptographically against Supabase's public JWKS endpoint. Public JWKS data is cached in-process for ten minutes; an unknown `kid` forces one refresh so signing-key rotation can be discovered without waiting for cache expiry.
+
+Local verification remains fail closed. Tokens must have a valid ES256 signature and signing-key identifier, the expected Supabase issuer, the `authenticated` audience, a non-empty subject, and valid expiry/not-before timing with a narrow clock-skew allowance. Malformed, expired, incorrectly scoped, unverifiable, or unknown-key tokens are rejected. The existing HestivaOS application-user lookup, ACTIVE-status enforcement, synchronization exception, and route-role authorization remain in place.
+
+This removes the per-request Supabase Auth user network call after JWKS warm-up. It does not remove Supabase as the identity authority and does not trust decoded JWT payloads without signature verification.
+
 ### Guardrails
 
-Performance changes must preserve application access enforcement, role checks, Supabase identity ownership, auditability, and fail-closed behavior. Security checks will not be bypassed merely to improve perceived speed. Larger authentication changes require verified local JWT-signature validation or another equivalent trust-preserving design before the current remote verification path can be replaced.
+Performance changes must preserve application access enforcement, role checks, Supabase identity ownership, auditability, and fail-closed behavior. Security checks are not bypassed merely to improve perceived speed.
