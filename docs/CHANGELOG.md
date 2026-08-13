@@ -474,3 +474,17 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added Johannesburg-aware weekly, anchored every-two-weeks, and clamped monthly recurrence; CUSTOM remains visibly manual.
 - Added authorized operational APIs and UI for agreement creation, lifecycle changes, and explicit idempotent one-upcoming-visit generation with normal Work Order references and snapshot semantics.
 - Integrated recurring agreements into ADMIN Customer Data Cleanup and preserved Services, historical visits, 5M, 5N, 5O, and unresolved 5K commercial decisions.
+## 2026-08-13 22:16 SAST — Local Supabase JWT verification performance
+
+### Changed
+
+- Replaced the API authentication guard's per-request Supabase Auth `/auth/v1/user` network verification with local cryptographic ES256 JWT verification against Supabase's public JWKS.
+- Added a ten-minute in-process JWKS cache and forced refresh for unknown signing-key IDs to support key rotation.
+- Preserved HestivaOS application-user lookup, ACTIVE-status enforcement, role authorization, and the `/users/sync` bootstrap exception.
+- Added JWT verification tests covering valid authentication, authorization roles, disabled users, expired tokens, and invalid audiences.
+- Updated the performance, environment, architecture, recovery, decision, and engineering-history documentation for the authentication change.
+
+### Performance
+
+- Protected API requests no longer require a Supabase Auth `/user` network round trip after JWKS warm-up.
+- Supabase remains the identity and signing-key authority; authentication continues to fail closed when a token cannot be cryptographically verified.
