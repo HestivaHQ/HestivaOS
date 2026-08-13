@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   ApprovedQuoteOperationalCostProvider,
+  type AllocatedRouteDistanceResolver,
   UnavailableAllocatedRouteDistanceResolver,
 } from './approved-quote-operational-cost-provider';
+import { GoogleRoutesAllocatedRouteDistanceResolver } from './google-routes-allocated-route-distance-resolver';
 import { QUOTE_OPERATIONAL_COST_PROVIDER } from './quote-operational-cost-source';
 import { WebsiteQuoteIngestionController } from './website-quote-ingestion.controller';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
@@ -15,6 +17,26 @@ function configuredCoidaRate(): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
+  const apiKey = process.env.GOOGLE_MAPS_ROUTES_API_KEY?.trim();
+  const latitude = Number(process.env.HESTIVA_DEPLOYMENT_BASE_LATITUDE);
+  const longitude = Number(process.env.HESTIVA_DEPLOYMENT_BASE_LONGITUDE);
+
+  if (
+    apiKey &&
+    Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
+    Number.isFinite(longitude) && longitude >= -180 && longitude <= 180
+  ) {
+    return new GoogleRoutesAllocatedRouteDistanceResolver({
+      apiKey,
+      deploymentBaseLatitude: latitude,
+      deploymentBaseLongitude: longitude,
+    });
+  }
+
+  return new UnavailableAllocatedRouteDistanceResolver();
+}
+
 @Module({
   controllers: [WebsiteQuoteIngestionController],
   providers: [
@@ -24,9 +46,7 @@ function configuredCoidaRate(): number | null {
       provide: QUOTE_OPERATIONAL_COST_PROVIDER,
       useFactory: () => new ApprovedQuoteOperationalCostProvider({
         coidaRate: configuredCoidaRate(),
-        // Actual road distance is an approved requirement. Keep ingestion fail-closed
-        // until a routing-backed allocated-route resolver is connected.
-        routeDistanceResolver: new UnavailableAllocatedRouteDistanceResolver(),
+        routeDistanceResolver: configuredRouteDistanceResolver(),
       }),
     },
   ],
