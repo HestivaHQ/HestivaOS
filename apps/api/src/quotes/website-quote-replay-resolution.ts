@@ -1,5 +1,6 @@
 import type { PrismaService } from '../prisma.service';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
+import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 import { websiteQuotePayloadFingerprint } from './website-quote-idempotency';
 
 export type WebsiteQuoteReplayResolution =
@@ -10,7 +11,7 @@ export type WebsiteQuoteReplayResolution =
 
 export async function resolveWebsiteQuoteReplay(
   prisma: Pick<PrismaService, 'quote'>,
-  payload: WebsiteQuoteSubmissionV1,
+  payload: WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2,
 ): Promise<WebsiteQuoteReplayResolution> {
   const existing = await prisma.quote.findUnique({
     where: { submissionKey: payload.submissionId },
