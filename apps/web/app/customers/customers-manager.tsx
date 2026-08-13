@@ -12,18 +12,23 @@ export function CustomersManager({ ownerId }: { ownerId: string }) {
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function load() {
     try {
-      const query = search.trim() ? `?page=1&pageSize=100&search=${encodeURIComponent(search.trim())}` : '?page=1&pageSize=100';
+      const query = debouncedSearch.trim() ? `?page=1&pageSize=100&search=${encodeURIComponent(debouncedSearch.trim())}` : '?page=1&pageSize=100';
       setItems((await api.customers(query)).items);
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load customers.'); }
   }
 
-  useEffect(() => { void load(); }, [search]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  useEffect(() => { void load(); }, [debouncedSearch]);
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true);
