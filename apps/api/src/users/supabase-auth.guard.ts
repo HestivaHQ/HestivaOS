@@ -39,6 +39,7 @@ type JsonWebKeyWithKid = JsonWebKey & {
   kid?: string;
   alg?: string;
   use?: string;
+  [key: string]: unknown;
 };
 
 type JwksResponse = {
