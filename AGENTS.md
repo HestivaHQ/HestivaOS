@@ -16,8 +16,8 @@ These instructions apply to every file in this repository and are mandatory for 
 
 Do not allow substantive product, business, operational, financial, customer-policy, cross-system, or architecture decisions to accumulate only in chat history.
 
-- After approximately **3–5 substantive decisions**, pause further implementation and update the appropriate canonical repository documentation before continuing.
-- Update documentation sooner when a major architecture, payment, legal/customer-terms, booking, operational, security, deployment, or cross-system decision is approved.
+- Routine documentation synchronization may batch up to approximately **15 substantive approved decisions** where each synchronization has material coordination cost. This is a batching maximum, not a requirement to manufacture decisions or delay a natural checkpoint.
+- Update documentation sooner when a major architecture, payment, legal/customer-terms, booking, operational, security, deployment, infrastructure, or cross-system decision is approved, or when continuing without synchronization would make implementation unsafe or inconsistent.
 - Minor clarifications that do not create or change policy do not individually trigger a checkpoint.
 - Handovers and chat history are navigation aids only; the repository is the durable source of truth.
 - For decisions affecting both the public website and HestivaOS, synchronize the permanent documentation in both repositories and the active coordination issue/contract before incompatible implementation proceeds.
@@ -32,6 +32,51 @@ Do not write implementation or documentation changes directly to `main` by defau
 - Open a pull request targeting `main`.
 - A direct write to `main` is allowed only when the maintainer explicitly authorizes that exception for the specific change. General approval to make a change does **not** waive the branch/PR rule.
 - If a tool unexpectedly writes directly to `main`, report the deviation immediately and reconcile any affected documentation instead of concealing it.
+
+## GitHub connector operating procedure
+
+For repository work performed through a GitHub connector or API-backed tool, use the following sequence by default:
+
+**READ → VERIFY → WRITE → VERIFY → PR**
+
+### Read and verify before every write
+
+- Resolve the current repository, branch, path and intended scope before mutating anything.
+- Fetch the exact target file from the exact target branch immediately before editing it. Use the returned current blob SHA for an existing-file update.
+- Never reconstruct an existing repository file from chat memory, an earlier tool response, a stale local copy or a previous branch version when the current target file can be fetched.
+- Before continuing an existing branch, compare or otherwise verify it against current `main`. If it is behind and contains no unique conflicting work, fast-forward it rather than creating unnecessary replacement branches.
+- Prefer the existing focused branch when a fix or follow-up belongs to the same PR scope.
+
+### Write one dependency at a time
+
+- Make one dependent repository write at a time and wait for its result before starting the next dependent write.
+- After updating a file, treat the returned content SHA as authoritative for any subsequent update to that same file.
+- Do not run parallel writes to the same path or assume a mutation succeeded because it was requested.
+- Do not bypass the branch/PR workflow by writing to `main` because a connector action is inconvenient or blocked.
+
+### Verify after every important mutation
+
+- Read back or otherwise verify the exact branch/file state after an important write before declaring it complete or building further dependent work on top of it.
+- Before opening a PR, compare the feature branch with `main`, inspect the complete changed-file set and confirm there are no unintended files, stale statements or duplicated sources of truth.
+- After opening a PR, verify the PR base, head, exact head SHA, changed files and required quality-gate run.
+
+### Failure handling
+
+If a connector/API operation fails, times out, or is blocked:
+
+1. Do **not** blindly repeat the identical mutation.
+2. Re-read GitHub state first to determine whether the requested change actually occurred despite the failed response.
+3. Diagnose the current branch, file SHA, path, PR state or other evidenced cause before retrying.
+4. Retry only after current state is known and the operation is corrected where necessary.
+5. Do not immediately switch to low-level Git object/ref APIs merely to bypass a blocked normal contents/PR action. Use an alternate route only when it is justified by the repository task itself and current state has been verified.
+6. If the connector continues to block a legitimate operation, preserve the safe repository state and ask the maintainer for the smallest manual action required rather than broad manual editing.
+
+### CI and PR correction
+
+- A failed quality gate stays on the existing PR branch unless the branch itself is irreparably wrong.
+- Inspect the actual failing job/step/logs, fix the evidenced cause on the same branch, verify the new head SHA and let the required gates rerun.
+- Never merge a red or still-running required gate merely to move forward.
+- Merge only the reviewed exact head that passed the required gates; if the head changes after verification, re-check the new head before merge.
 
 ## New-chat / resumed-work reading rule
 
