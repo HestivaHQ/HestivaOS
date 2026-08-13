@@ -12,6 +12,37 @@ These instructions apply to every file in this repository and are mandatory for 
 - Never modify runtime or deployment configuration without documenting the change, its scope, and its verification.
 - Documentation statements must distinguish verified current state, planned work, and historical state.
 
+## Decision-documentation checkpoint
+
+Do not allow substantive product, business, operational, financial, customer-policy, cross-system, or architecture decisions to accumulate only in chat history.
+
+- After approximately **3–5 substantive decisions**, pause further implementation and update the appropriate canonical repository documentation before continuing.
+- Update documentation sooner when a major architecture, payment, legal/customer-terms, booking, operational, security, deployment, or cross-system decision is approved.
+- Minor clarifications that do not create or change policy do not individually trigger a checkpoint.
+- Handovers and chat history are navigation aids only; the repository is the durable source of truth.
+- For decisions affecting both the public website and HestivaOS, synchronize the permanent documentation in both repositories and the active coordination issue/contract before incompatible implementation proceeds.
+
+## Branch and pull-request rule
+
+Do not write implementation or documentation changes directly to `main` by default.
+
+- Create or use a focused feature/documentation branch.
+- Make the scoped changes on that branch.
+- Run the required validation and review the complete diff.
+- Open a pull request targeting `main`.
+- A direct write to `main` is allowed only when the maintainer explicitly authorizes that exception for the specific change. General approval to make a change does **not** waive the branch/PR rule.
+- If a tool unexpectedly writes directly to `main`, report the deviation immediately and reconcile any affected documentation instead of concealing it.
+
+## New-chat / resumed-work reading rule
+
+Before continuing substantial HestivaOS work in a new or resumed development chat, read at minimum:
+
+1. `AGENTS.md`;
+2. the relevant current-state architecture/business documentation and ADRs for the task; and
+3. any active coordination issue when the task affects another system, especially Website ↔ HestivaOS integration work.
+
+Prefer verified repository state over remembered conversation details if they conflict.
+
 ## Required update matrix
 
 For every implementation, inspect all rows that apply and update **every listed file whose content is affected**. `docs/TECHNICAL_WORK_LOG.md` and `docs/CHANGELOG.md` are mandatory for every implementation change. An applicable ADR is mandatory when a durable architectural or operational decision is introduced or superseded. Do not edit an unrelated document merely to satisfy automation.
