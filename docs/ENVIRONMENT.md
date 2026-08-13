@@ -12,10 +12,12 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 - `PORT`
 - `NODE_ENV`
 - `CORS_ALLOWED_ORIGINS` — comma-separated exact browser origins; surrounding whitespace and trailing slashes are normalized, while arbitrary origins remain blocked
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_SUPABASE_URL` (supported API fallback)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (supported API fallback)
+- `SUPABASE_URL` — preferred API project URL; the API derives the public JWKS endpoint from this value for local ES256 bearer-token verification
+- `SUPABASE_ANON_KEY` — retained for API features/readiness that still use the Supabase client credential; local bearer-token verification does not send this key to the JWKS endpoint
+- `NEXT_PUBLIC_SUPABASE_URL` (supported API fallback for the project URL)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (supported API fallback where existing API code requires the anonymous client credential)
+
+The verified production signing configuration is asymmetric ECC P-256 / ES256. The API authentication guard intentionally accepts ES256 only. Do not rotate production to another JWT signing algorithm without reviewing the guard, tests, ADR-0033, recovery procedure, and deployment verification first. The public JWKS contains verification keys only; never configure or commit a Supabase private signing key in HestivaOS.
 
 ## Cloudflare Worker runtime
 
