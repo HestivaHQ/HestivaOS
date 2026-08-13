@@ -37,6 +37,14 @@ The system must not assume four visits per month. Four-clean and five-clean mont
 
 The customer-facing account/correspondence experience must make the running liability clear, including selected billing date, completed services in the active cycle, running amount, expected amount due, standing security/advance, and next payment date.
 
+## Loss and rehabilitation
+
+If the customer reaches `PAYMENT SUSPENSION` twice within a rolling 12-month period, month-end billing privilege is withdrawn after the outstanding account has been settled and the customer returns to standard recurring per-job billing.
+
+After withdrawal, the customer may become eligible to request month-end billing again after three consecutive successful months of standard per-job billing, provided the account is current and there has been no further payment suspension during that rehabilitation period.
+
+Rehabilitation eligibility does not automatically restore month-end billing. The customer must request it and Homent must approve the return to month-end billing.
+
 ## HestivaOS financial planning
 
 Upcoming Payments must be capable of representing customer, property, recurring agreement, billing method, selected billing date, next due date, completed services in the current billing cycle, expected amount, standing advance/security held, outstanding amount, next scheduled clean, payment/account status, whether future service is on hold, and reminder status.
