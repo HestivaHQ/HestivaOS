@@ -21,6 +21,10 @@ The temporary `Next.js 16 migration validation` workflow is also manual-only. It
 | Document | Class | Purpose |
 | --- | --- | --- |
 | [Architecture](ARCHITECTURE.md) | Architectural | Production components, ownership, and data flow. |
+| [Financial architecture](FINANCIAL_ARCHITECTURE.md) | Architectural | Financial-domain ownership, recurrence separation, cash-flow planning, and cross-system boundary. |
+| [Month-end billing policy](financial/MONTH_END_BILLING_POLICY.md) | Product/financial | Eligibility, billing-date fallback, transition, live statement, and Upcoming Payments requirements. |
+| [Collections, refunds and price changes](financial/COLLECTIONS_REFUNDS_AND_PRICE_CHANGES.md) | Product/financial | Expected cash out, overdue state, month-end privilege, and recurring price-change rules. |
+| [Customer financial disclosure](financial/CUSTOMER_FINANCIAL_DISCLOSURE.md) | Product/financial | Required customer-facing financial disclosure and preserved recurring-payment terms. |
 | [Deployment](DEPLOYMENT.md) | Operational | Current Cloudflare and Railway release procedures. |
 | [Environment](ENVIRONMENT.md) | Operational | Variable names, scopes, and safe recovery. |
 | [Recovery guide](RECOVERY_GUIDE.md) | Operational | Ordered incident diagnosis and recovery. |
