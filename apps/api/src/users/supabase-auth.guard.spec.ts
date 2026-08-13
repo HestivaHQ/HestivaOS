@@ -4,14 +4,14 @@ import { generateKeyPairSync, sign } from 'node:crypto';
 import { SupabaseAuthGuard } from './supabase-auth.guard';
 
 const SUPABASE_URL = 'https://example.supabase.co';
-const KID = 'test-key';
 
 function tokenFor(overrides: Record<string, unknown> = {}) {
   const { privateKey, publicKey } = generateKeyPairSync('ec', {
     namedCurve: 'P-256',
   });
+  const kid = `test-key-${Date.now()}-${Math.random()}`;
   const header = Buffer.from(
-    JSON.stringify({ alg: 'ES256', kid: KID, typ: 'JWT' }),
+    JSON.stringify({ alg: 'ES256', kid, typ: 'JWT' }),
   ).toString('base64url');
   const payload = Buffer.from(
     JSON.stringify({
@@ -30,7 +30,7 @@ function tokenFor(overrides: Record<string, unknown> = {}) {
   const jwk = publicKey.export({ format: 'jwk' });
   return {
     token: `${header}.${payload}.${signature}`,
-    jwk: { ...jwk, kid: KID, alg: 'ES256', use: 'sig' },
+    jwk: { ...jwk, kid, alg: 'ES256', use: 'sig' },
   };
 }
 
