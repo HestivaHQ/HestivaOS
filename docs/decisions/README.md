@@ -34,4 +34,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0030: Enforce Laundry as an add-on-only runtime capability](ADR-0030-laundry-addon-runtime-policy.md)
 - [ADR-0031: Version Website Quote contract for structured Laundry](ADR-0031-website-quote-contract-v2-laundry.md)
 - [ADR-0032: Persist add-on quantities and require capacity approval for labour-bound add-ons](ADR-0032-persist-addon-quantities-and-capacity-approval.md)
-- [ADR-0033: Verify Supabase access tokens locally at the API boundary](ADR-0033-local-supabase-jwt-verification.md)
+- [ADR-0033: Model recurring payment arrangements separately and expose upcoming payments](ADR-0033-recurring-payment-arrangements-and-upcoming-payments.md)
+- [ADR-0034: Verify Supabase access tokens locally at the API boundary](ADR-0034-local-supabase-jwt-verification.md)

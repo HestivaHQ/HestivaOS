@@ -204,4 +204,4 @@ This optimization changes only Supabase provider-token verification. HestivaOS a
 
 Supabase remains the authentication identity and signing-key authority. HestivaOS stores no Supabase private signing key for this mechanism.
 
-See ADR-0033 for the durable architectural decision.
+See ADR-0034 for the durable architectural decision.
