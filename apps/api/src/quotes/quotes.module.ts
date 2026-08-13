@@ -18,20 +18,40 @@ function configuredCoidaRate(): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function configuredCoordinate(
+  raw: string | undefined,
+  min: number,
+  max: number,
+): number | null {
+  const trimmed = raw?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max
+    ? parsed
+    : null;
+}
+
 function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
   const apiKey = process.env.OPENROUTESERVICE_API_KEY?.trim();
-  const latitude = Number(process.env.HESTIVA_DEPLOYMENT_BASE_LATITUDE);
-  const longitude = Number(process.env.HESTIVA_DEPLOYMENT_BASE_LONGITUDE);
 
-  if (
-    apiKey &&
-    Number.isFinite(latitude) &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    Number.isFinite(longitude) &&
-    longitude >= -180 &&
-    longitude <= 180
-  ) {
+  const latitude = configuredCoordinate(
+    process.env.HESTIVA_DEPLOYMENT_BASE_LATITUDE,
+    -90,
+    90,
+  );
+
+  const longitude = configuredCoordinate(
+    process.env.HESTIVA_DEPLOYMENT_BASE_LONGITUDE,
+    -180,
+    180,
+  );
+
+  if (apiKey && latitude !== null && longitude !== null) {
     return new OpenRouteServiceAllocatedRouteDistanceResolver({
       apiKey,
       deploymentBaseLatitude: latitude,
