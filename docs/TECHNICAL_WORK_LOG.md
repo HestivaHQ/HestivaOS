@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — Reliable GitHub connector operating procedure
+
+- Replaced the earlier 3–5-decision routine checkpoint with a batching maximum of approximately 15 substantive approved decisions while retaining immediate synchronization for architecture, security, legal/compliance, infrastructure, payment and cross-system decisions where delay would create risk or inconsistency.
+- Added a mandatory connector sequence of READ → VERIFY → WRITE → VERIFY → PR. Existing files must be fetched from the exact target branch immediately before replacement, current blob SHAs are used for writes, dependent mutations are serialized, and important writes are read back before later work depends on them.
+- Added explicit failure handling: after a blocked, failed or timed-out mutation, re-read GitHub state before retrying; do not blindly repeat the same mutation or jump to low-level Git object/ref operations merely to bypass a normal connector block.
+- Added branch/PR recovery rules: continue fixes on the same focused branch when scope is unchanged, inspect actual CI evidence, verify each new head SHA, and never merge a red or still-running required gate.
+- Updated the documentation map to make the connector procedure discoverable. No application runtime, deployment, database, API, authentication, business policy or production configuration changed.
+
 ## 2026-08-11 — Slice 5M website Quote replay resolution
 
 - Implemented `resolveWebsiteQuoteReplay` as a database-aware pre-creation classifier over the unique `Quote.submissionKey` identity. It returns explicit `NEW`, `REPLAY`, `CONFLICT`, or `CORRUPT_EXISTING` outcomes and creates no records itself.
