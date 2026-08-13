@@ -16,15 +16,11 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0012: Next.js 16 frontend security migration](ADR-0012-nextjs-16-security-migration.md)
 - [ADR-0013: Reconcile replaced Supabase identities by verified email](ADR-0013-verified-auth-identity-reconciliation.md)
 - [ADR-0014: Enforce application access at the API boundary](ADR-0014-application-access-enforcement.md)
-
 - [ADR-0015: Use one typed canonical Business Profile](ADR-0015-canonical-business-profile.md)
 - [ADR-0016: Use a canonical Employee Record with optional User and Technician links](ADR-0016-canonical-employee-record.md)
-
 - [ADR-0017: Use controlled inputs for reusable business values](ADR-0017-controlled-business-inputs.md)
 - [ADR-0018: Make Hestiva OS the canonical operational service catalogue](ADR-0018-canonical-service-catalogue.md)
-
 - [ADR-0019: Contact-first Customers and Team navigation](ADR-0019-contact-first-customers-and-team-navigation.md)
-
 - [ADR-0020: Isolate destructive Customer-tree cleanup behind exact ADMIN authorization](ADR-0020-admin-customer-tree-cleanup.md)
 - [ADR-0021: Generate daily Work Order references and relate canonical Services](ADR-0021-work-order-reference-and-service.md)
 - [ADR-0022: Separate accepted-quote data by operational ownership](ADR-0022-accepted-quote-work-order-ownership.md)
@@ -38,3 +34,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0030: Enforce Laundry as an add-on-only runtime capability](ADR-0030-laundry-addon-runtime-policy.md)
 - [ADR-0031: Version Website Quote contract for structured Laundry](ADR-0031-website-quote-contract-v2-laundry.md)
 - [ADR-0032: Persist add-on quantities and require capacity approval for labour-bound add-ons](ADR-0032-persist-addon-quantities-and-capacity-approval.md)
+- [ADR-0033: Verify Supabase access tokens locally at the API boundary](ADR-0033-local-supabase-jwt-verification.md)
