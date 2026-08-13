@@ -68,10 +68,9 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
     setForm((current) => ({ ...current, addOns: current.addOns.map((item) => item.serviceId === serviceId ? { ...item, ...patch } : item) }));
   }
 
-  async function load() {
+  async function loadReferenceData() {
     try {
-      const [workData, customerData, propertyData, technicianData, crewData, primaryData, addOnData] = await Promise.all([
-        api.workOrders(`?page=1&pageSize=100${search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''}${alert ? `&alert=${encodeURIComponent(alert)}` : ''}`),
+      const [customerData, propertyData, technicianData, crewData, primaryData, addOnData] = await Promise.all([
         api.customers('?page=1&pageSize=100'),
         api.properties('?page=1&pageSize=100'),
         api.technicians('?page=1&pageSize=100'),
@@ -79,7 +78,6 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
         api.services('?page=1&pageSize=100&status=ACTIVE&type=PRIMARY'),
         api.services('?page=1&pageSize=100&status=ACTIVE&type=ADD_ON'),
       ]);
-      setItems(workData.items);
       setCustomers(customerData.items);
       setProperties(propertyData.items);
       setTechnicians(technicianData.items);
@@ -90,10 +88,21 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
       const property = preselectedPropertyId ? propertyData.items.find((item) => item.id === preselectedPropertyId && item.customerId === customer?.id) : propertyData.items.find((item) => item.customerId === customer?.id);
       setForm((current) => current.customerId || !customer ? current : { ...current, customerId: customer.id, propertyId: property?.id ?? '' });
       setError((preselectedCustomerId && !customer) || (preselectedPropertyId && !property) ? 'Validation failed. The selected customer or property is unavailable or mismatched.' : '');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work-order reference data.'); }
+  }
+
+  async function loadWorkOrders() {
+    try {
+      const workData = await api.workOrders(`?page=1&pageSize=100${search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''}${alert ? `&alert=${encodeURIComponent(alert)}` : ''}`);
+      setItems(workData.items);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
   }
 
-  useEffect(() => { void load(); }, [alert, preselectedCustomerId, preselectedPropertyId, search]);
+  useEffect(() => { void loadReferenceData(); }, [preselectedCustomerId, preselectedPropertyId]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadWorkOrders(); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [alert, search]);
   useEffect(() => {
     const workOrder = items.find((item) => item.id === editId);
     if (workOrder && editingId !== workOrder.id) edit(workOrder);
@@ -112,7 +121,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
       setChecklist([]);
       setTimeline([]);
       setForm({ ...emptyForm, customerId: customers[0]?.id ?? '', propertyId: properties.find((p) => p.customerId === customers[0]?.id)?.id ?? '' });
-      await load();
+      await loadWorkOrders();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save work order.'); }
   }
 
@@ -142,7 +151,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
 
   async function remove(id: string) {
     if (!window.confirm('Delete this work order?')) return;
-    try { await api.deleteWorkOrder(id); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete work order.'); }
+    try { await api.deleteWorkOrder(id); await loadWorkOrders(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete work order.'); }
   }
 
   return <>
