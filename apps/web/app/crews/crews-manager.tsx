@@ -17,17 +17,26 @@ export function CrewsManager() {
 
   const selectedMembers = useMemo(() => technicians.filter((technician) => form.memberIds.includes(technician.id)), [form.memberIds, technicians]);
 
-  async function load() {
+  async function loadCrews() {
     try {
       const query = search.trim() ? `?page=1&pageSize=100&search=${encodeURIComponent(search.trim())}` : '?page=1&pageSize=100';
-      const [crewData, technicianData] = await Promise.all([api.crews(query), api.technicians('?page=1&pageSize=100')]);
-      setItems(crewData.items);
-      setTechnicians(technicianData.items);
+      setItems((await api.crews(query)).items);
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load crews.'); }
   }
 
-  useEffect(() => { void load(); }, [search]);
+  async function loadTechnicians() {
+    try {
+      setTechnicians((await api.technicians('?page=1&pageSize=100')).items);
+      setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load technicians.'); }
+  }
+
+  useEffect(() => { void loadTechnicians(); }, []);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void loadCrews(); }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   function toggleMember(id: string) {
     const memberIds = form.memberIds.includes(id) ? form.memberIds.filter((memberId) => memberId !== id) : [...form.memberIds, id];
@@ -43,7 +52,7 @@ export function CrewsManager() {
       else await api.createCrew(payload);
       setForm(emptyForm);
       setEditingId(null);
-      await load();
+      await loadCrews();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save crew.'); }
     finally { setBusy(false); }
   }
@@ -55,7 +64,7 @@ export function CrewsManager() {
 
   async function remove(id: string) {
     if (!window.confirm('Delete this crew? Crews assigned to active work orders cannot be deleted.')) return;
-    try { await api.deleteCrew(id); await load(); }
+    try { await api.deleteCrew(id); await loadCrews(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete crew.'); }
   }
 

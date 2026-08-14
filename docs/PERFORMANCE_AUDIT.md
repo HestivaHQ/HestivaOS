@@ -1,5 +1,23 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2C: Team load optimization
+
+The Team area now avoids repeated list traffic during common search and date-range interactions without changing Team business rules or API contracts.
+
+### Implemented on `perf/team-load-optimization`
+
+- Technician search is debounced by 300 ms instead of issuing an API request on every keystroke.
+- Crew search is debounced by 300 ms and refreshes only the crew list. The full technician reference list used for crew membership and leader selection now loads once when the screen opens rather than reloading on every crew-search change.
+- Shift Planning now separates range-dependent shift loading from reference data. Crews, technicians, and Work Orders load once when the screen opens; changing `dateFrom` or `dateTo` refreshes only the shift list for that range.
+- Shift create/update/copy/delete operations refresh only the visible shift list because those actions do not mutate crew, technician, or Work Order reference records.
+- Existing save/delete behavior, crew membership rules, shift assignment semantics, date filters, list page sizes, API contracts, authentication, authorization, Prisma schema, migrations, and deployment configuration are unchanged.
+
+### Remaining hot paths
+
+- Several protected Team and secondary pages still perform page-level Supabase `getUser()` calls before `AppFrame` synchronizes the HestivaOS user. A direct Technicians page cleanup was attempted in this pass but the connector blocked the write twice; the file was verified unchanged and was not bypassed.
+- Services, Cleaning Job Templates, Profile, and Admin Settings pages still need measured navigation/load review.
+- The dashboard still returns broad related Work Order records for compatibility; a later measured payload-specific pass may introduce a narrower dashboard DTO if network payload size remains material.
+
 ## 2026-08-14 — UI/UX speed pass 2B: dashboard query slimming
 
 The Admin dashboard now serves the live daily command-centre from a focused operational query service rather than calculating historical analytics that the current UI does not render.
