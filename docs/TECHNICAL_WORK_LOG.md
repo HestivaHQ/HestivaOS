@@ -1,5 +1,21 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2G dashboard payload slimming
+
+- Audited the live dashboard response after query-count slimming and confirmed the remaining three Work Order queries still selected broad related records while the current UI consumes only a narrow subset for today's rows and aggregate data for upcoming/overdue work.
+- Replaced broad relation includes with explicit Prisma selections. Today's rows now fetch only rendered identity/status/schedule/assignment/customer/address/service/technician/crew fields; upcoming rows fetch only schedule and assignment IDs; overdue rows fetch only IDs required for the count.
+- Preserved the three-query boundary, Johannesburg business-day semantics, today workload and assignment rules, visible dashboard behavior, route, authentication, authorization, Prisma schema, migrations, and deployment configuration.
+- Kept legacy top-level upcoming/overdue response arrays as empty compatibility fields rather than duplicating records the current page does not consume; removal of legacy outer fields remains a separate contract-cleanup task.
+- The implementation-only head passed the full PR quality gate before reconciliation with merged pass 2F history. The final documented head must pass the same gates before merge.
+
+## 2026-08-14 — UI/UX speed pass 2F Business Lists auth-wrapper cleanup
+
+- Audited Admin Settings → Business Lists after the page-wrapper authentication cleanup and confirmed it was the final routine page still obtaining its own Supabase session because it manually passed `session.access_token` into `api.businessLists(...)`.
+- Added `businessLists(includeInactive)` to `createAuthenticatedApi()` so the server wrapper reuses the authenticated session/token it already owns.
+- Updated the Business Lists page to resolve one authenticated API wrapper, synchronize the authoritative HestivaOS application User, preserve the existing exact ADMIN role check, load Business Lists through the wrapper, and use `appUser.email` for shell identity.
+- Preserved Supabase identity ownership, protected-route middleware, API JWT verification, ACTIVE-status enforcement, ADMIN authorization, API contracts, Prisma schema, migrations, business behavior, deployment configuration, and fail-closed authentication.
+- The implementation-only head passed the full PR quality gate before this mandatory history reconciliation. The final documented head must pass the same gates before merge.
+
 ## 2026-08-14 — UI/UX speed pass 2E final page-auth cleanup
 
 - Audited the remaining server-rendered page wrappers after passes 2A–2D and separated presentation-only Supabase Auth reads from pages that still consume provider session data directly.
@@ -45,7 +61,7 @@
 - Implemented `resolveWebsiteQuoteReplay` as a database-aware pre-creation classifier over the unique `Quote.submissionKey` identity. It returns explicit `NEW`, `REPLAY`, `CONFLICT`, or `CORRUPT_EXISTING` outcomes and creates no records itself.
 - Reused the merged canonical SHA-256 website-payload fingerprint so object-key ordering is normalized while material nested changes and array-order changes remain significant.
 - Manual review found a material correctness bug in the initial implementation: it compared retries with the mutable current Quote revision, which would falsely conflict after an Admin revision. The resolver now selects exactly one immutable `CUSTOMER_SUBMISSION` revision; missing or duplicate original submissions fail closed rather than guessing.
-- Added focused Jest coverage for unseen submission IDs, identical retries, conflicting material, missing original revision, duplicate original revisions, and an identical original website retry after a later Admin revision.
+- Added focused Jest coverage for unseen submissions, identical retries, conflicting material, missing original revision, duplicate original revisions, and an identical original website retry after a later Admin revision.
 - Preserved the concurrency boundary: a `NEW` classification is advisory only. Later atomic ingestion must rely on the existing database-unique `Quote.submissionKey`, re-read a concurrent winner, and apply the same replay/conflict rules before creating anything else.
 - This sub-slice does not expose the private ingestion endpoint, calculate pricing, transfer photos, match/create Customers or Properties, create Work Orders or Recurring Service Agreements, or change deployment configuration.
 
