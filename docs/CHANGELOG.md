@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-14 — UI/UX speed pass 2E
+
+### Changed
+
+- Removed redundant page-level Supabase `auth.getUser()` calls from Technicians, Crews, Shift Planning, Work Order detail, Admin Settings, Employee Records, Admin Services, User Access, Business Profile, and Customer Data Cleanup. These pages now use the authoritative HestivaOS application User for shell identity while preserving their existing role checks.
+- Left Business Lists unchanged because it currently consumes the Supabase session access token directly for its API request; refactoring that path is separate work.
+
+### Preserved
+
+- Supabase remains the identity authority. Protected-route middleware, authenticated API token acquisition, local API JWT verification, HestivaOS application-user synchronization, ACTIVE-status enforcement, ADMIN/role authorization, and fail-closed behavior remain unchanged.
+- No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
+
 ## 2026-08-14 — UI/UX speed pass 2D
 
 ### Changed
