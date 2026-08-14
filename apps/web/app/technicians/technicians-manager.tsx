@@ -22,7 +22,10 @@ export function TechniciansManager() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load technicians.'); }
   }
 
-  useEffect(() => { void load(); }, [search]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void load(); }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true);
