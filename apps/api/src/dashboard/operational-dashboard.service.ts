@@ -31,13 +31,45 @@ export class OperationalDashboardService {
             scheduledAt: { gte: todayStart, lt: tomorrowStart },
           },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
-          include: {
-            customer: true,
-            property: true,
-            service: true,
-            createdBy: true,
-            technician: true,
-            crew: true,
+          select: {
+            id: true,
+            reference: true,
+            title: true,
+            status: true,
+            scheduledAt: true,
+            technicianId: true,
+            crewId: true,
+            customer: {
+              select: {
+                name: true,
+                contactName: true,
+              },
+            },
+            property: {
+              select: {
+                name: true,
+                addressLine1: true,
+                addressLine2: true,
+                city: true,
+                province: true,
+              },
+            },
+            service: {
+              select: {
+                name: true,
+              },
+            },
+            technician: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+            crew: {
+              select: {
+                name: true,
+              },
+            },
           },
         }),
         this.prisma.workOrder.findMany({
@@ -46,13 +78,10 @@ export class OperationalDashboardService {
             scheduledAt: { gte: tomorrowStart, lt: upcomingEnd },
           },
           orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
-          include: {
-            customer: true,
-            property: true,
-            service: true,
-            createdBy: true,
-            technician: true,
-            crew: true,
+          select: {
+            scheduledAt: true,
+            technicianId: true,
+            crewId: true,
           },
         }),
         this.prisma.workOrder.findMany({
@@ -60,13 +89,8 @@ export class OperationalDashboardService {
             status: { in: DASHBOARD_OVERDUE_STATUSES },
             scheduledAt: { lt: todayStart },
           },
-          orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'asc' }],
-          include: {
-            customer: true,
-            property: true,
-            createdBy: true,
-            technician: true,
-            crew: true,
+          select: {
+            id: true,
           },
         }),
       ]);
@@ -87,15 +111,7 @@ export class OperationalDashboardService {
       (total, day) => total + day.unassignedCount,
       0,
     );
-    const overdueWorkOrdersList = overdueWorkOrderRecords.map((workOrder) => ({
-      ...workOrder,
-      daysOverdue: Math.max(
-        1,
-        Math.floor(
-          (todayStart.getTime() - workOrder.scheduledAt!.getTime()) / 86_400_000,
-        ),
-      ),
-    }));
+    const overdueCount = overdueWorkOrderRecords.length;
     const statusBreakdown = Object.values(WorkOrderStatus).reduce<
       Record<WorkOrderStatus, number>
     >((result, status) => {
@@ -113,11 +129,11 @@ export class OperationalDashboardService {
       statistics: {
         openWorkOrders: 0,
         completedToday: 0,
-        overdueWorkOrders: overdueWorkOrdersList.length,
+        overdueWorkOrders: overdueCount,
         activeTechnicians: 0,
       },
       alerts: {
-        overdueWorkOrders: overdueWorkOrdersList.length,
+        overdueWorkOrders: overdueCount,
         awaitingAssignment: 0,
         waitingForParts: 0,
         highPriorityJobs: 0,
@@ -136,8 +152,8 @@ export class OperationalDashboardService {
       technicianWorkload: [],
       recentWorkOrderActivities: [],
       todayScheduledWorkOrders,
-      upcomingScheduledWorkOrders,
-      overdueWorkOrdersList,
+      upcomingScheduledWorkOrders: [],
+      overdueWorkOrdersList: [],
       statusBreakdown,
       operationalDashboard: {
         operationalDate: new Intl.DateTimeFormat('en-CA', {
@@ -145,7 +161,7 @@ export class OperationalDashboardService {
         }).format(todayStart),
         todayStatusBreakdown,
         todayUnassignedJobs,
-        actionableOverdueWorkOrders: overdueWorkOrdersList,
+        actionableOverdueWorkOrders: overdueWorkOrderRecords,
         upcomingWorkSummary,
         upcomingJobCount: upcomingScheduledWorkOrders.length,
         upcomingUnassignedCount,
