@@ -1,5 +1,23 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2B: dashboard query slimming
+
+The Admin dashboard now serves the live daily command-centre from a focused operational query service rather than calculating historical analytics that the current UI does not render.
+
+### Implemented on `perf/dashboard-query-slimming`
+
+- The live `/dashboard` controller keeps its existing route and injection token, while the Dashboard module binds that token to `OperationalDashboardService`.
+- The live dashboard database boundary drops from 21 transaction operations to three Work Order list queries: today's scheduled jobs, the next seven calendar days of scheduled jobs, and actionable overdue jobs.
+- Today status counts, today unassigned count, upcoming daily summaries, upcoming unassigned count, and overdue day counts are derived in memory from those three result sets.
+- Africa/Johannesburg business-day boundaries, today workload status exclusions, crew-or-technician assignment semantics, and the current dashboard response shape are preserved.
+- Legacy top-level analytics fields that the current UI does not render remain temporarily present as zero-cost compatibility placeholders. Their expensive historical queries are no longer executed by the live route; removing those legacy response fields is a separate contract-cleanup task.
+- The original `DashboardService` remains in the repository temporarily for its existing pure helper tests and as an explicit rollback/reference path, but it is no longer the provider used by the live dashboard controller.
+
+### Remaining hot paths
+
+- Several lower-frequency protected pages still perform page-level Supabase `getUser()` calls before `AppFrame` synchronizes the HestivaOS user.
+- The three operational Work Order queries still return broad related records for contract compatibility. A later measured pass may introduce a narrower dashboard-specific DTO if payload size remains material after query-count reduction.
+
 ## 2026-08-14 — UI/UX speed pass 2A: navigation authentication
 
 The second UI/UX performance pass continues the existing single-authoritative-user pattern without weakening authentication or application access enforcement.

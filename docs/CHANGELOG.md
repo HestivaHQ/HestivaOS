@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-14 — Dashboard operational query slimming
+
+### Changed
+
+- Switched the live Admin dashboard to a focused operational service through the existing `DashboardService` injection token, preserving the `/dashboard` controller and route contract.
+- Reduced the live dashboard database workload from 21 transaction operations to three Work Order list queries covering today's schedule, the next seven calendar days, and actionable overdue work. Current workload, assignment and upcoming summaries are derived in memory.
+- Retained the unused legacy analytics response fields as zero/empty compatibility placeholders so their former historical, technician and activity queries no longer run on ordinary dashboard loads.
+
+### Preserved
+
+- Preserved Africa/Johannesburg business-day boundaries, workload status exclusions, crew-or-technician assignment semantics, authentication and authorization, Prisma schema and migrations, deployment configuration, and the existing web-facing dashboard response shape.
+
+### Known issues
+
+- The legacy analytics response fields and original non-live `DashboardService` remain temporary compatibility/reference debt; a later focused contract cleanup may remove them after confirming no consumers require them.
+
 ## 2026-08-14 — UI/UX speed pass 2A
 
 ### Changed
