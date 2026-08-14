@@ -1,5 +1,22 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2D: secondary-page authentication cleanup
+
+Profile, Services, and Cleaning Job Templates now use the same single-authoritative-user page bootstrap already established on the primary operational routes.
+
+### Implemented on `perf/secondary-auth-cleanup`
+
+- Profile no longer calls Supabase `auth.getUser()` and `auth.getSession()` before synchronizing the HestivaOS application user. The authenticated API bootstrap remains the fail-closed session boundary, and the synchronized application user's email is used for shell identity and the read-only authenticated-email field.
+- Services and Cleaning Job Templates no longer perform a page-level Supabase `getUser()` call solely to obtain the shell email. Each page resolves the authoritative HestivaOS application user once and supplies it directly to `AppFrame`.
+- `AppFrame` no longer performs a second `syncUser()` call on these three routes because the page supplies the synchronized user explicitly.
+- Supabase remains the credential and identity authority. Protected-route middleware, authenticated API token acquisition, API JWT verification, ACTIVE-status enforcement, role authorization, and fail-closed behavior are unchanged.
+- No API contract, database schema, migration, business workflow, deployment setting, or production configuration changes in this pass.
+
+### Remaining hot paths
+
+- Team page wrappers and Admin Settings pages still need the same measured page-level authentication review where they retain duplicate Supabase reads.
+- The dashboard still returns broad related Work Order records for compatibility; a later payload-specific pass may introduce a narrower dashboard DTO if measured network payload remains material.
+
 ## 2026-08-14 — UI/UX speed pass 2C: Team load optimization
 
 The Team area now avoids repeated list traffic during common search and date-range interactions without changing Team business rules or API contracts.
