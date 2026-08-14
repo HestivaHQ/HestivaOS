@@ -209,6 +209,7 @@
 - Serialized ADMIN-removing changes with a PostgreSQL transaction advisory lock and serializable transaction; self-demotion/self-disable are also prohibited.
 
 ### Security
+
 - Disabled users are rejected on their next Hestiva API request and signed out during web bootstrap. Provider-wide Supabase session revocation is not implemented; no service-role credential is present or exposed. Verified-email stale-identity reconciliation remains unchanged.
 
 ### Known issues
@@ -308,6 +309,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ## 2026-08-08 — Next.js 16 security migration
 
 ### Security
+
 - Migrated the web workspace from Next.js 15.5.21 to stable Next.js 16.3.0. Normal Next.js dependency resolution moved PostCSS 8.4.31 to 8.5.23 and the Next-owned Sharp path from 0.34.5 to 0.35.3 without direct pins, overrides, or unrelated framework upgrades.
 
 ### Changed
@@ -408,6 +410,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ## 2026-08-07 — Railway API startup migration cleanup
 
 ### Fixed
+
 - Removed the API workspace's duplicate Prisma migration invocation so Railway's root `deploy:api` path runs deployment migrations exactly once before starting NestJS from `dist/main.js`.
 
 ## 2026-08-07 — Repository documentation policy
