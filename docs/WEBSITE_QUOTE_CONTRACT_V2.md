@@ -1,8 +1,8 @@
 # Website → HestivaOS Quote Contract v2
 
-**Status:** Contract definition; transport activation remains a separate runtime step.
+**Status:** Implemented and active across the Website → HestivaOS guarded ingestion boundary.
 
-Contract v2 extends the established v1 Website Quote payload specifically to make Laundry and Ironing non-lossy and fail-closed.
+Contract v2 extends the established v1 Website Quote payload specifically to make Laundry and Ironing non-lossy and fail-closed. HestivaOS continues to accept v1 for backward compatibility while the website uses the structured v2 path for Laundry/Ironing-capable submissions.
 
 ## Version
 
@@ -48,7 +48,7 @@ Facilities are required when `laundryLoads` is supplied. They are not required w
 - `ironingLoads`: optional positive integer.
 - At least one of the two must be present when `request.laundry` exists.
 
-Requested quantities are commercial/operational requests, not a promise that unlimited loads can be completed. Final accepted quantities remain subject to the approved job-duration/labour-capacity guard before Work Order approval.
+Requested quantities are commercial/operational requests, not a promise that unlimited loads can be completed. `WorkOrderAddOn` and `RecurringServiceAgreementAddOn` now persist positive integer quantities, recurring generation copies them into generated Work Orders, and Laundry/Ironing require explicit labour/time capacity approval before operational acceptance.
 
 ## Eligibility
 
@@ -75,4 +75,6 @@ The website may display these approved amounts but is not the authoritative pric
 
 ## Runtime boundary
 
-This contract definition does not by itself expose or switch the private Website → HestivaOS ingestion endpoint. Runtime activation must be coordinated with the website sender and accepted-operation quantity persistence so no request can be accepted and then lose its Laundry/Ironing quantities.
+The guarded `POST /api/v1/integrations/website/quotes` runtime accepts and validates v2 submissions behind the dedicated Website integration bearer secret. The website sender uses the structured v2 fields and requires HestivaOS acknowledgement with the authoritative `quoteReference` before reporting successful intake.
+
+Accepted-operation quantity persistence and capacity approval are implemented in HestivaOS; v2 Laundry/Ironing quantities therefore no longer cross a lossy boolean-only add-on boundary. Historical v1 compatibility remains intact and does not redefine the v2 Laundry rules.
