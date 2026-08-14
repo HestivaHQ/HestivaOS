@@ -1,5 +1,22 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2E: final page-wrapper auth cleanup
+
+The remaining routine protected page wrappers now use the same single-authoritative-user bootstrap pattern established in earlier performance passes, eliminating redundant page-level Supabase user verification where the provider response was used only for shell email presentation.
+
+### Implemented on `perf/final-page-auth-cleanup`
+
+- Technicians, Crews, Shift Planning, and Work Order detail now resolve the authoritative HestivaOS application user once through `createAuthenticatedApi().syncUser()`, use `appUser.email` for shell identity, and pass that same user into `AppFrame`.
+- Admin Settings, Employee Records, Admin Services, User Access, Business Profile, and Customer Data Cleanup retain their existing HestivaOS role checks while dropping the separate Supabase `auth.getUser()` call that previously supplied only the email address.
+- Supabase remains the credential and identity authority. Protected-route middleware, authenticated API token acquisition, local API JWT verification, application-user synchronization, ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
+- No API contract, Prisma schema, migration, domain workflow, deployment setting, dependency, or production configuration changes in this pass.
+
+### Deliberate exception and remaining measured work
+
+- Admin Settings → Business Lists is intentionally unchanged. It currently consumes `supabase.auth.getSession()` because the page passes `session.access_token` directly into `api.businessLists(...)`; removing that provider session read requires a separate API-helper refactor rather than the presentation-only cleanup applied here.
+- After this pass, routine page-wrapper duplicate Supabase user verification is no longer the main performance target. Remaining work should be selected from measured network payload, API/data loading, rendering, or interaction bottlenecks rather than continuing auth micro-optimizations by default.
+- The dashboard still returns broad related Work Order records for response compatibility; a later payload-specific pass may introduce a narrower dashboard DTO if measured network payload remains material.
+
 ## 2026-08-14 — UI/UX speed pass 2D: secondary-page authentication cleanup
 
 Profile, Services, and Cleaning Job Templates now use the same single-authoritative-user page bootstrap already established on the primary operational routes.
