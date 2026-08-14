@@ -1,5 +1,21 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2G: dashboard payload slimming
+
+The live dashboard had already reduced its database operation count, but each of the three remaining Work Order queries still selected broad related records and the response duplicated upcoming and overdue records that the current dashboard does not render.
+
+### Implemented on `perf/dashboard-payload-slimming`
+
+- Today's scheduled Work Orders now use explicit Prisma `select` fields limited to the values actually rendered by the dashboard: ID/reference/title/status/time, assignment IDs, customer display-name inputs, visible address fragments, Service name, Technician name, and Crew name.
+- Upcoming Work Orders now select only `scheduledAt`, `technicianId`, and `crewId`, which are the only fields required to build the seven-day job/unassigned summary.
+- Actionable overdue Work Orders now select only IDs because the current dashboard consumes only their count. The top-level legacy upcoming and overdue arrays remain present as empty compatibility fields rather than duplicating records the page never reads.
+- The dashboard keeps the same three-query boundary, Johannesburg date semantics, today status/assignment rules, visible UI content, route, authentication, authorization, Prisma schema, migrations, and deployment configuration.
+
+### Remaining measured work
+
+- The operational dashboard response still carries legacy zero/empty analytics fields for compatibility. Removing those outer fields entirely should be treated as an explicit contract cleanup rather than bundled into payload selection work.
+- Future performance work should now be selected from observed manager/API/render bottlenecks rather than assuming authentication or dashboard query count remains dominant.
+
 ## 2026-08-14 — UI/UX speed pass 2E: final page-wrapper auth cleanup
 
 The remaining routine protected page wrappers now use the same single-authoritative-user bootstrap pattern established in earlier performance passes, eliminating redundant page-level Supabase user verification where the provider response was used only for shell email presentation.
