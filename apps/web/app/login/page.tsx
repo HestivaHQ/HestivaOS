@@ -39,7 +39,6 @@ export default function LoginPage() {
         return;
       }
       router.replace(nextPath);
-      router.refresh();
     } catch {
       setMessage('Authentication is temporarily unavailable. Please try again.');
     } finally {
