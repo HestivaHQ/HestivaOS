@@ -105,6 +105,7 @@
 - Kept explicit origins and credential support, and made the existing GET/HEAD/PUT/PATCH/POST/DELETE methods plus the actually required `Authorization` and `Content-Type` headers explicit. Added focused API and web policy tests. No route, authorization rule, data model, Prisma artifact, dependency, Cloudflare architecture, Railway architecture, or platform setting changed.
 
 ## 2026-08-10 — Business Profile primary button label correction
+
 - Corrected the Business Profile-specific CSS cascade so its filled primary Save and Copy controls retain white label text instead of inheriting the teal text intended for adjacent outlined controls.
 - Kept the existing button elements, labels, responsive layout, save and clipboard handlers, submit/loading/disabled behavior, WhatsApp and email controls, data model, API, authorization, dependencies, and sharing logic unchanged.
 
