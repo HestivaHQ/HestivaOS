@@ -1,5 +1,10 @@
 # Technical roadmap
 
+## Completed 2026-08-14
+
+- HestivaOS Issue #79 completed the system-wide Laundry & Ironing add-on operating model: add-on-only eligibility for Regular Home Cleaning and Deep Cleaning, equipment-dependent Wash/Dry/Fold versus Wash/Hang outcomes, approved per-load pricing, structured Website Quote Contract v2 transport, HestivaOS-owned validation/pricing, positive operational add-on quantities, recurring-visit quantity propagation, and explicit labour/time capacity approval. Historical Laundry Folding identity remains preserved while new selection uses canonical Laundry as `ADD_ON`.
+- The Website → HestivaOS guarded ingestion boundary is live in source and production-handoff smoke-tested. The website requires HestivaOS acknowledgement/authoritative `quoteReference` before reporting successful quote intake. Remaining COIDA assessment replacement is an operational costing-input follow-up, not unfinished Issue #79 software behavior.
+
 ## Completed 2026-08-10
 
 - Product Slice 5F completed Contact-name-first Customer compatibility, corrected create-only Customer continuation, and Team/Admin navigation ownership; Slice 5E completed the verified operational continuation from Customer to Property to Work Order, controlled Customer deletion conflicts, authoritative shared-shell role presentation, Property Type empty-state behavior, dormant Province UI, and shared operational navigation ordering. A broader Customer archival lifecycle remains separate planned work only if product requirements approve it.
@@ -15,9 +20,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Reconcile the public `HestivaHQ/hestiva` quote form to the OS-owned `Eco-Conscious Cleaning` wording and implement its conversion to the versioned Website Quote Submission v1 contract without exposing authenticated OS management APIs.
-- Implement the next Slice 5M runtime boundary: private server-to-server ingestion authentication, atomic Quote/reference/pricing persistence, idempotent replay/conflict handling, exact-floor persistence destination, Customer Quote photo SHA-256/storage reconciliation, and `NEEDS_ATTENTION` behavior. Do not switch production website submission until this boundary is complete and reviewed.
-- Implement the accepted-Quote orchestration after ingestion: protected Admin Accept/Decline, Customer/Property match-or-review, ONE_TIME Work Order creation, recurring agreement + initial visit creation, and safe operational import without partial records.
+- Complete the remaining Slice 5M work outside Issue #79 after the now-implemented guarded Website ingestion/pricing boundary, including unresolved exact-floor/photo-storage mapping where still required and accepted-Quote orchestration: protected Admin Accept/Decline, Customer/Property match-or-review, ONE_TIME Work Order creation, recurring agreement + initial visit creation, and safe operational import without partial records.
 - Map approved website subordinate job-type choices to the existing Cleaning Job Template architecture (or explicitly record why a choice is quote-flow-only) before importing controlled options.
 
 - Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
@@ -43,7 +46,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Deferred website controlled-input alignment
 
-- The versioned Slice 5M-B contract now resolves the quote-boundary meaning of bathrooms, exact floor/building access, Post-Renovation Cleaning, eco-friendly preference, and quantity-bearing Extra Refrigerator/Balcony-Patio selections. Persistent exact-floor and accepted-operation quantity destinations remain part of later 5M runtime/handoff implementation rather than controlled-input guesswork.
+- The versioned Slice 5M contracts resolve the quote-boundary meaning of bathrooms, exact floor/building access, Post-Renovation Cleaning, eco-friendly preference, quantity-bearing Extra Refrigerator/Balcony-Patio selections, and structured Laundry/Ironing. Accepted-operation add-on quantity persistence is complete for Work Orders and Recurring Service Agreements; exact-floor persistence and other non-Laundry handoff gaps remain separate Slice 5M work where still unresolved.
 - Design safe Supabase Storage object cleanup for deleted Work Order photo metadata only if an approved server-side storage boundary and orphan-reconciliation procedure are introduced.
 
 ## Accepted-quote follow-ups after Slice 5I
@@ -51,26 +54,26 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5N — Work Order Technician/Crew assignment:** support one or many Technicians per Work Order and optional existing Crew selection; allow Crew selection to prepopulate Technicians followed by job-specific adjustments; permit one-Technician jobs without a permanent Crew; and count supervisors/drivers as job Technicians only when they perform the job. The canonical worker term remains Technician.
 
 - **Slice 5J — Property operational profile (completed 2026-08-10):** Property owns nullable controlled bedrooms, bathrooms, living areas, storeys, floor size, outdoor area, estate classification, grouped unit-floor compatibility, and lean persistent logistics/household/care fields. Slice 5M-B separately transports exact unit floor 0–50 and building access for later non-lossy accepted handoff.
-- **Slice 5K — Current website service/add-on reconciliation (completed 2026-08-10):** reconciled the then-current quote vocabulary, introduced dual-context Service availability, added six evidence-backed capabilities, removed stale undeployed scope architecture, and documented fail-closed ambiguities. Later Issue #73 product decisions and Slice 5M-B supersede the previously unresolved quote-contract semantics where explicitly recorded.
+- **Slice 5K — Current website service/add-on reconciliation (completed 2026-08-10):** reconciled the then-current quote vocabulary, introduced dual-context Service availability, added six evidence-backed capabilities, removed stale undeployed scope architecture, and documented fail-closed ambiguities. Later Issue #73 product decisions and Slice 5M contracts supersede the previously unresolved quote-contract semantics where explicitly recorded.
 - **Slice 5J-A — Current Property quote vocabulary alignment (completed 2026-08-10):** added controlled Property destinations and compatibility behavior for the then-verified Property vocabulary.
 - **Slice 5L — Recurring agreement architecture (completed 2026-08-11):** owns recurring agreement identity, standard recurrence rules, next service date, lifecycle, and independent generated Work Orders.
 - **Slice 5M-A — Quote domain foundation (completed 2026-08-11):** added authoritative Quote identity, revisions, pricing snapshots/line items, photo provenance/status, activities, and retry identities.
-- **Slice 5M-B — Website Quote submission/pricing contract (current implementation):** defines the locked structured v1 payload, validation semantics, private transport/authentication contract, authoritative pricing response, photo identity/hash contract, and cross-repository consumer documentation. It deliberately does not expose the runtime ingestion endpoint.
-- **Slice 5M-C/D — Runtime ingestion, acceptance/handoff, review/UI/recovery:** remains pending after 5M-B review/merge.
+- **Slice 5M-B plus Laundry v2 contract work (completed):** defines the structured Website Quote contracts, validation semantics, private transport/authentication contract, authoritative pricing response, photo identity/hash contract, structured Laundry/Ironing fields, and cross-repository consumer documentation. Later runtime work exposed the guarded ingestion endpoint rather than changing these contract semantics.
+- **Slice 5M runtime ingestion:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, and atomic NEW Quote persistence are implemented. Accepted-Quote orchestration, review/UI and remaining non-Laundry handoff/recovery work remain separate follow-ups.
 
 ## 2026-08-10 status update
 
 - Completed Slice 5J-A: current website Property quote vocabulary received controlled OS destinations, type-aware unit-floor/Studio validation, additive legacy compatibility, and live Work Order summaries.
-- At that point Slice 5M remained planned and unimplemented; this historical status is superseded by the 2026-08-11 status below.
+- At that point Slice 5M remained planned and unimplemented; this historical status is superseded by the 2026-08-11 and later 2026-08-14 status above.
 
 ## Completed 2026-08-11
 
 - Slice 5L introduced Property-owned recurring service agreements, structured standard recurrence, manual CUSTOM tracking, lifecycle management, idempotent one-upcoming-visit generation, Work Order snapshots, and Customer cleanup integration.
 - Slice 5M-A introduced the authoritative Quote domain and durable retry identities.
-- Slice 5M-B defines the website Quote contract on its focused branch; it is not considered merged/complete until its PR passes checks and final review.
+- Slice 5M-B defined the website Quote contract on its focused branch; this is a historical checkpoint superseded by the later merged contract/runtime work recorded above.
 
 ## Protected follow-up after Slice 5M-B
 
-- Slice 5M runtime integration remains the next protected path: implement the authenticated ingestion transaction and authoritative pricing before connecting the production website, then implement Admin decision and accepted-Quote operational handoff.
+- Guarded Slice 5M Website ingestion and authoritative pricing are now implemented. The remaining protected path is accepted-Quote decision/orchestration and any still-unresolved non-Laundry persistence/storage mappings; do not regress the established Website authentication, idempotency, profitability or structured-v2 boundaries.
 - Slice 5N remains the one/many Technician and optional Crew assignment redesign; recurring agreement generation uses current Work Order assignment.
 - Slice 5O remains skills and remaining evidence-backed operational fields.
