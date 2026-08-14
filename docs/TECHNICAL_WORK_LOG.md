@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2B dashboard query slimming
+
+- Audited the live Admin dashboard against its API response and confirmed the current command-centre renders today's schedule plus the operational today/unassigned/overdue/upcoming summaries, while the legacy service still executed 21 transaction operations for historical totals, completion analytics, technician workload, recent activity, full status aggregation, and other data the current UI does not render.
+- Added `OperationalDashboardService` and bound the existing `DashboardService` injection token to it in `DashboardModule`, leaving the public `/dashboard` controller and route unchanged. The original `DashboardService` remains temporarily as a non-live helper/reference path.
+- Reduced the live database boundary from 21 transaction operations to three Work Order list queries: today's scheduled work, the next seven calendar days, and actionable overdue work. Today workload, today-unassigned count, upcoming day summaries, upcoming-unassigned count, and overdue-day values are derived in memory from those results.
+- Preserved Africa/Johannesburg business-day boundaries, current workload status exclusions, crew-or-technician assignment semantics, authentication and authorization, Prisma schema and migrations, deployment topology, and the existing dashboard response shape. Legacy analytics fields remain as zero/empty compatibility placeholders without their former expensive queries; contract cleanup is deferred.
+- The first PR run exposed one TypeScript inference mismatch in the in-memory actionable-status check. Replaced the inferred-array membership check with an explicit `Set<WorkOrderStatus>` boundary; the corrected exact head passed documentation validation, secret scanning, typecheck, full and independent builds, workspace tests, Cloudflare/OpenNext/Wrangler validation, whitespace checks, and clean/staged PostgreSQL migration replay.
+
 ## 2026-08-14 — UI/UX speed pass 2A
 
 - Audited the remaining web-navigation hot paths after PR #85 and the local-JWT authentication pass. Protected middleware already verifies Supabase navigation, but several server-rendered pages still performed their own `supabase.auth.getUser()` before separately synchronizing or causing `AppFrame` to synchronize the HestivaOS application User.
