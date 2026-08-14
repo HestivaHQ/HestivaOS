@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2F Business Lists auth-wrapper cleanup
+
+- Audited Admin Settings → Business Lists after the page-wrapper authentication cleanup and confirmed it was the final routine page still obtaining its own Supabase session because it manually passed `session.access_token` into `api.businessLists(...)`.
+- Added `businessLists(includeInactive)` to `createAuthenticatedApi()` so the server wrapper reuses the authenticated session/token it already owns.
+- Updated the Business Lists page to resolve one authenticated API wrapper, synchronize the authoritative HestivaOS application User, preserve the existing exact ADMIN role check, load Business Lists through the wrapper, and use `appUser.email` for shell identity.
+- Preserved Supabase identity ownership, protected-route middleware, API JWT verification, ACTIVE-status enforcement, ADMIN authorization, API contracts, Prisma schema, migrations, business behavior, deployment configuration, and fail-closed authentication.
+- The implementation-only head passed the full PR quality gate before this mandatory history reconciliation. The final documented head must pass the same gates before merge.
+
 ## 2026-08-14 — UI/UX speed pass 2E final page-auth cleanup
 
 - Audited the remaining server-rendered page wrappers after passes 2A–2D and separated presentation-only Supabase Auth reads from pages that still consume provider session data directly.
@@ -71,7 +79,7 @@
 ## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
 
 - Reconciled the accepted Slice 5M decisions in HestivaOS Issue #73 against current `main` before implementation. The existing schema had Customer, Property, Work Order, recurring agreements, Services, and Work Order daily references, but no durable Quote aggregate; the website reconciliation also confirmed its current quote reference is ephemeral and its payload is primarily presentation text.
-- Added an additive Quote domain without changing existing Customer/Property/Work Order behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance and transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
+- Added an additive Quote domain without changing existing Customer/Property/WorkOrder behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance and transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
 - Added database-unique retry identities at the durable boundary: every Quote has a required `submissionKey`, and every QuotePhoto has a required `transferKey`. Later ingestion/transfer services must reuse these keys across retries so duplicate requests cannot create duplicate Quote or photo records.
 - Stored pricing in integer minor units with initial `ZAR` currency, explicit subtotal/discount/total, and dormant tax fields defaulting disabled/zero. This foundation does not implement pricing calculation, customer-facing VAT presentation, coupon codes, or QuickBooks.
 - Preserved one stable public Quote reference across revisions. Revisions are uniquely numbered per Quote and keep the submitted structured JSON plus their own immutable financial line-item snapshot. Customer and Admin photos remain distinguishable; failed/pending/stored transfer states have durable metadata rather than relying on email attachments.
