@@ -39,21 +39,28 @@ export function ShiftsManager() {
   const selectedCrew = useMemo(() => crews.find((crew) => crew.id === form.crewId), [crews, form.crewId]);
   const availableTechnicians = useMemo(() => selectedCrew ? selectedCrew.members.map((member) => member.technician) : technicians, [selectedCrew, technicians]);
 
-  async function load() {
+  async function loadShifts() {
     try {
       const query = `?page=1&pageSize=100&dateFrom=${encodeURIComponent(`${dateFrom}T00:00:00`)}&dateTo=${encodeURIComponent(`${dateTo}T23:59:59`)}`;
-      const [shiftData, crewData, technicianData, workOrderData] = await Promise.all([
-        api.shifts(query), api.crews('?page=1&pageSize=100'), api.technicians('?page=1&pageSize=100'), api.workOrders('?page=1&pageSize=100'),
-      ]);
-      setItems(shiftData.items);
-      setCrews(crewData.items);
-      setTechnicians(technicianData.items);
-      setWorkOrders(workOrderData.items);
+      setItems((await api.shifts(query)).items);
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load shifts.'); }
   }
 
-  useEffect(() => { void load(); }, [dateFrom, dateTo]);
+  async function loadReferenceData() {
+    try {
+      const [crewData, technicianData, workOrderData] = await Promise.all([
+        api.crews('?page=1&pageSize=100'), api.technicians('?page=1&pageSize=100'), api.workOrders('?page=1&pageSize=100'),
+      ]);
+      setCrews(crewData.items);
+      setTechnicians(technicianData.items);
+      setWorkOrders(workOrderData.items);
+      setError('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load shift reference data.'); }
+  }
+
+  useEffect(() => { void loadReferenceData(); }, []);
+  useEffect(() => { void loadShifts(); }, [dateFrom, dateTo]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -75,7 +82,7 @@ export function ShiftsManager() {
       else await api.createShift(payload);
       setForm(emptyForm);
       setEditingId(null);
-      await load();
+      await loadShifts();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save shift.'); }
     finally { setBusy(false); }
   }
@@ -103,13 +110,13 @@ export function ShiftsManager() {
     const end = new Date(shift.endAt);
     const copiedStart = new Date(`${targetDate}T${start.toISOString().slice(11, 19)}`);
     const copiedEnd = new Date(`${targetDate}T${end.toISOString().slice(11, 19)}`);
-    try { await api.copyShift(shift.id, { startAt: copiedStart.toISOString(), endAt: copiedEnd.toISOString() }); await load(); }
+    try { await api.copyShift(shift.id, { startAt: copiedStart.toISOString(), endAt: copiedEnd.toISOString() }); await loadShifts(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to copy shift.'); }
   }
 
   async function remove(shift: Shift) {
     if (!window.confirm(`Delete shift "${shift.title}"?`)) return;
-    try { await api.deleteShift(shift.id); await load(); }
+    try { await api.deleteShift(shift.id); await loadShifts(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to delete shift.'); }
   }
 
