@@ -11,6 +11,9 @@ import {
 const DASHBOARD_OVERDUE_STATUSES = DASHBOARD_WORKLOAD_STATUSES.filter(
   (status) => status !== WorkOrderStatus.COMPLETED,
 );
+const DASHBOARD_OVERDUE_STATUS_SET = new Set<WorkOrderStatus>(
+  DASHBOARD_OVERDUE_STATUSES,
+);
 
 @Injectable()
 export class OperationalDashboardService {
@@ -73,7 +76,7 @@ export class OperationalDashboardService {
     );
     const todayUnassignedJobs = todayScheduledWorkOrders.filter(
       (workOrder) =>
-        DASHBOARD_OVERDUE_STATUSES.includes(workOrder.status) &&
+        DASHBOARD_OVERDUE_STATUS_SET.has(workOrder.status as WorkOrderStatus) &&
         !workOrder.technicianId &&
         !workOrder.crewId,
     ).length;
