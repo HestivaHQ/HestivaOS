@@ -61,7 +61,7 @@
 - Implemented `resolveWebsiteQuoteReplay` as a database-aware pre-creation classifier over the unique `Quote.submissionKey` identity. It returns explicit `NEW`, `REPLAY`, `CONFLICT`, or `CORRUPT_EXISTING` outcomes and creates no records itself.
 - Reused the merged canonical SHA-256 website-payload fingerprint so object-key ordering is normalized while material nested changes and array-order changes remain significant.
 - Manual review found a material correctness bug in the initial implementation: it compared retries with the mutable current Quote revision, which would falsely conflict after an Admin revision. The resolver now selects exactly one immutable `CUSTOMER_SUBMISSION` revision; missing or duplicate original submissions fail closed rather than guessing.
-- Added focused Jest coverage for unseen submissions, identical retries, conflicting material, missing original revision, duplicate original revisions, and an identical original website retry after a later Admin revision.
+- Added focused Jest coverage for unseen submission IDs, identical retries, conflicting material, missing original revision, duplicate original revisions, and an identical original website retry after a later Admin revision.
 - Preserved the concurrency boundary: a `NEW` classification is advisory only. Later atomic ingestion must rely on the existing database-unique `Quote.submissionKey`, re-read a concurrent winner, and apply the same replay/conflict rules before creating anything else.
 - This sub-slice does not expose the private ingestion endpoint, calculate pricing, transfer photos, match/create Customers or Properties, create Work Orders or Recurring Service Agreements, or change deployment configuration.
 
