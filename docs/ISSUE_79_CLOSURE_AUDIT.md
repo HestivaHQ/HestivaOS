@@ -1,6 +1,6 @@
 # Issue #79 closure audit — Laundry & Ironing operating model
 
-**Audit date:** 2026-08-14  
+**Audit date:** 2026-08-14
 **Scope:** `HestivaHQ/HestivaOS` Issue #79 and the coordinated `HestivaHQ/hestiva` website implementation.
 
 ## Result
