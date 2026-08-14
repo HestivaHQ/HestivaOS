@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-14 — UI/UX speed pass 2D
+
+### Changed
+
+- Removed redundant page-level Supabase Auth reads from Profile, Services, and Cleaning Job Templates. Each page now resolves the authoritative HestivaOS application User once through the authenticated API and passes that same User to the shared application frame.
+- Profile no longer performs separate `auth.getUser()` and `auth.getSession()` calls before application-user synchronization; the authoritative application User email remains the read-only authenticated email shown by the page.
+
+### Preserved
+
+- Supabase remains the identity authority. Protected-route middleware, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
+- No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
+
 ## 2026-08-14 — Dashboard operational query slimming
 
 ### Changed

@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2D secondary-page auth cleanup
+
+- Audited Profile, Services, and Cleaning Job Templates after the earlier navigation-auth passes. All three protected pages still performed page-level Supabase Auth reads before the shared HestivaOS application-user bootstrap; Profile additionally called both `auth.getUser()` and `auth.getSession()` before `syncUser()` even though the returned session token was only checked and not otherwise consumed by the page.
+- Changed Profile to resolve the authoritative HestivaOS application User once through `createAuthenticatedApi().syncUser()`, use `appUser.email` for the shell and read-only authenticated-email presentation, and pass the same User into `AppFrame` so no second shell synchronization occurs.
+- Applied the same single-user bootstrap to Services and Cleaning Job Templates. Both pages now resolve `syncUser()` once, use the application User email for presentation, and pass the User into `AppFrame` rather than calling Supabase `getUser()` and then causing the shell to perform a separate application-user synchronization.
+- Preserved Supabase as identity authority, protected-route middleware, authenticated API token acquisition, local API JWT verification, HestivaOS User synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior. No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
+- The implementation-only head passed documentation validation, secret scanning, typecheck, full and independent builds, workspace tests, Cloudflare/OpenNext/Wrangler validation, whitespace checks, and clean/staged PostgreSQL migration replay before this mandatory history reconciliation. The final documented head must pass the same gates before merge.
+
 ## 2026-08-14 — UI/UX speed pass 2B dashboard query slimming
 
 - Audited the live Admin dashboard against its API response and confirmed the current command-centre renders today's schedule plus the operational today/unassigned/overdue/upcoming summaries, while the legacy service still executed 21 transaction operations for historical totals, completion analytics, technician workload, recent activity, full status aggregation, and other data the current UI does not render.
