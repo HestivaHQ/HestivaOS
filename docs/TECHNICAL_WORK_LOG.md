@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2E final page-auth cleanup
+
+- Audited the remaining server-rendered page wrappers after passes 2A–2D and separated presentation-only Supabase Auth reads from pages that still consume provider session data directly.
+- Removed redundant page-level Supabase `auth.getUser()` calls from Technicians, Crews, Shift Planning, Work Order detail, Admin Settings, Employee Records, Admin Services, User Access, Business Profile, and Customer Data Cleanup. Each changed page now resolves the authoritative HestivaOS application User through the authenticated API and uses `appUser.email` for shell presentation.
+- Preserved all existing HestivaOS authorization behavior, including ADMIN checks on administrative routes, protected-route middleware, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, and fail-closed behavior.
+- Deliberately left Business Lists unchanged because it currently consumes the Supabase session access token directly for its `api.businessLists(...)` request; removing that session read requires a separate API-helper refactor rather than a presentation-only cleanup.
+- No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed. The implementation-only head passed the full PR quality gate before this mandatory history reconciliation; the final documented head must pass the same gates before merge.
+
 ## 2026-08-14 — UI/UX speed pass 2D secondary-page auth cleanup
 
 - Audited Profile, Services, and Cleaning Job Templates after the earlier navigation-auth passes. All three protected pages still performed page-level Supabase Auth reads before the shared HestivaOS application-user bootstrap; Profile additionally called both `auth.getUser()` and `auth.getSession()` before `syncUser()` even though the returned session token was only checked and not otherwise consumed by the page.
