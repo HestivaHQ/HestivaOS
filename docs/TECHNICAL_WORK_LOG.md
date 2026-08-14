@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2F Business Lists auth-wrapper cleanup
+
+- Audited Admin Settings → Business Lists after the page-wrapper authentication cleanup and confirmed it was the final routine page still obtaining its own Supabase session because it manually passed `session.access_token` into `api.businessLists(...)`.
+- Added `businessLists(includeInactive)` to `createAuthenticatedApi()` so the server wrapper reuses the authenticated session/token it already owns.
+- Updated the Business Lists page to resolve one authenticated API wrapper, synchronize the authoritative HestivaOS application User, preserve the existing exact ADMIN role check, load Business Lists through the wrapper, and use `appUser.email` for shell identity.
+- Preserved Supabase identity ownership, protected-route middleware, API JWT verification, ACTIVE-status enforcement, ADMIN authorization, API contracts, Prisma schema, migrations, business behavior, deployment configuration, and fail-closed authentication.
+- The implementation-only head passed the full PR quality gate before this mandatory history reconciliation. The final documented head must pass the same gates before merge.
+
 ## 2026-08-14 — UI/UX speed pass 2E final page-auth cleanup
 
 - Audited the remaining server-rendered page wrappers after passes 2A–2D and separated presentation-only Supabase Auth reads from pages that still consume provider session data directly.

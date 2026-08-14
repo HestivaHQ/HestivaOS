@@ -1,5 +1,21 @@
 # HestivaOS performance audit
 
+## 2026-08-14 — UI/UX speed pass 2F: Business Lists authenticated wrapper cleanup
+
+Admin Settings → Business Lists now uses the same authenticated server API boundary as the rest of the protected server-rendered application instead of reading the Supabase session separately at the page level.
+
+### Implemented on `perf/business-lists-auth-wrapper`
+
+- Added `businessLists(includeInactive)` to `createAuthenticatedApi()`, reusing the access token from the single server-side Supabase session already acquired by that wrapper.
+- Business Lists now creates one authenticated server API instance, synchronizes the authoritative HestivaOS application user, preserves the existing ADMIN role check, loads Business Lists through the wrapper, and uses `appUser.email` for shell presentation.
+- Removed the page's separate `createClient()`, `auth.getSession()`, direct `session.access_token` plumbing, and direct `api.businessLists(...)` call.
+- Supabase remains the credential and identity authority. The wrapper still fails closed when no authenticated session/access token exists; API JWT verification, application-user synchronization, ACTIVE-status enforcement, ADMIN authorization, and existing Business Lists API behavior remain unchanged.
+- No API endpoint, Prisma schema, migration, domain workflow, deployment setting, dependency, or production configuration changed.
+
+### Next measured target
+
+- The dashboard remains the clearest payload-level hotspot: its three optimized Work Order queries still return broad related records, while the current UI consumes only a narrow subset for today's rows and aggregate counts for upcoming/overdue work. A dedicated dashboard DTO/select pass should be evaluated separately from this wrapper cleanup.
+
 ## 2026-08-14 — UI/UX speed pass 2E: final page-wrapper auth cleanup
 
 The remaining routine protected page wrappers now use the same single-authoritative-user bootstrap pattern established in earlier performance passes, eliminating redundant page-level Supabase user verification where the provider response was used only for shell email presentation.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-14 — UI/UX speed pass 2F
+
+### Changed
+
+- Unified Admin Settings → Business Lists with the authenticated server API wrapper. The page no longer performs its own Supabase session read or manually passes `session.access_token` into the Business Lists API call.
+- Added Business Lists access to `createAuthenticatedApi()` so the existing authenticated server session/token is reused.
+
+### Preserved
+
+- Supabase remains the identity authority. Existing ADMIN authorization, application-user synchronization, ACTIVE-status enforcement, API JWT verification, fail-closed behavior, API contracts, Prisma schema, migrations, business behavior, and deployment configuration remain unchanged.
+
 ## 2026-08-14 — UI/UX speed pass 2E
 
 ### Changed
