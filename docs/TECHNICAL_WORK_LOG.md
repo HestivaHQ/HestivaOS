@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-14 — UI/UX speed pass 2A
+
+- Audited the remaining web-navigation hot paths after PR #85 and the local-JWT authentication pass. Protected middleware already verifies Supabase navigation, but several server-rendered pages still performed their own `supabase.auth.getUser()` before separately synchronizing or causing `AppFrame` to synchronize the HestivaOS application User.
+- Removed that duplicate page-level Supabase user verification from Dashboard, Customers, Properties, Work Orders, and Recurring Services. Each changed route now resolves the authoritative HestivaOS application User once through the authenticated API and uses its email/ID for the same shell and page behavior.
+- Removed the login client's immediate `router.refresh()` after `router.replace(nextPath)`, eliminating a redundant post-login render/request cycle while preserving the existing safe next-path handling, duplicate-submit guard, and Supabase sign-in/sign-up flow.
+- Preserved protected-route middleware authentication, Supabase identity ownership, API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior. No database, API contract, business workflow, deployment setting, dependency, or production configuration changed.
+- Verified remaining performance debt rather than broadening this slice: lower-frequency protected pages still contain duplicate page-level Supabase user verification, and the dashboard overview API still computes substantial legacy totals, performance metrics, technician workload, recent activity, full status aggregates, and list data not rendered by the current daily command-centre UI. Dashboard query slimming is the next high-impact target.
+
 ## 2026-08-14 — Reliable GitHub connector operating procedure
 
 - Replaced the earlier 3–5-decision routine checkpoint with a batching maximum of approximately 15 substantive approved decisions while retaining immediate synchronization for architecture, security, legal/compliance, infrastructure, payment and cross-system decisions where delay would create risk or inconsistency.

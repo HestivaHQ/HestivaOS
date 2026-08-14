@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-14 — UI/UX speed pass 2A
+
+### Changed
+
+- Removed redundant page-level Supabase `auth.getUser()` verification from Dashboard, Customers, Properties, Work Orders, and Recurring Services. These routes now use the already synchronized authoritative HestivaOS application User for shell identity/email after protected-route middleware verification.
+- Removed the immediate `router.refresh()` after successful login navigation; `router.replace()` remains the single post-authentication navigation action.
+
+### Preserved
+
+- Supabase remains the identity authority. Protected-route middleware authentication, API JWT verification, HestivaOS application-user synchronization, ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
+- No API contract, database schema, migration, business workflow, deployment setting, or production configuration changed.
+
+### Known issues
+
+- Lower-frequency protected pages still contain duplicate page-level Supabase user verification and remain follow-up work.
+- The dashboard API still computes substantial legacy totals, metrics, technician workload, activity, and list data not rendered by the current daily command-centre UI; query slimming remains the next high-impact performance target.
+
 ## 2026-08-14 — Reliable GitHub connector workflow
 
 ### Changed
