@@ -19,6 +19,7 @@ export async function createAuthenticatedApi() {
     },
     updateProfile: (input: Parameters<typeof api.updateProfile>[1]) => api.updateProfile(session.access_token, input),
     businessProfile: () => api.businessProfile(session.access_token),
+    businessLists: (includeInactive = false) => api.businessLists(session.access_token, includeInactive),
     adminUsers: (search = '') => api.adminUsers(session.access_token, search),
     dashboard: () => api.dashboard(session.access_token),
   };
