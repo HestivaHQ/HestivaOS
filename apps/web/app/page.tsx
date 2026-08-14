@@ -1,9 +1,7 @@
 import Link from 'next/link';
-import { displayCustomerName } from '../lib/customer-display';
 import { workOrderDisplayLabel, workOrderReference } from '../lib/work-order-display';
 import { type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
 import { createAuthenticatedApi } from '../lib/api-server';
-import { createClient } from '../lib/supabase/server';
 import { AppFrame } from './components/app-frame';
 import { DashboardSection } from './components/dashboard-section';
 
@@ -49,9 +47,6 @@ function JobRows({ jobs }: { jobs: WorkOrder[] }) {
 }
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) throw new Error('Authenticated user is required.');
   const authenticatedApi = await createAuthenticatedApi();
   const appUser = await authenticatedApi.syncUser();
   let dashboard = EMPTY_DASHBOARD;
@@ -66,7 +61,7 @@ export default async function HomePage() {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
   const naturalDate = new Intl.DateTimeFormat('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
-  return <AppFrame active="/" email={user.email} user={appUser}>
+  return <AppFrame active="/" email={appUser.email} user={appUser}>
     <div className="dashboard">
       <header className="dashboardHeader">
         <div><p className="eyebrow">Daily command centre</p><h2>{greeting}, {nameFor(appUser)}</h2><p>{naturalDate}</p><strong>{plural(todayCount, 'job')} scheduled today <span>·</span> {plural(alertCount, 'item')} require attention</strong>{!available ? <small className="dashboardUnavailable">Live operational data is temporarily unavailable.</small> : null}</div>
