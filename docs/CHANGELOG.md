@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-14 — UI/UX speed pass 2G
+
+### Changed
+
+- Narrowed the three live dashboard Work Order queries to explicit fields the current command-centre actually uses instead of returning broad related records.
+- Today's rows retain only the rendered identity, status, schedule, assignment, customer, address, service, technician, and crew fields. Upcoming rows now carry only schedule and assignment IDs; overdue rows carry only IDs required for the count.
+- Kept the legacy top-level upcoming and overdue arrays present as empty compatibility fields rather than duplicating records the current dashboard does not consume.
+
+### Preserved
+
+- Preserved the three-query dashboard boundary, Africa/Johannesburg date semantics, workload and assignment rules, visible UI behavior, route, authentication, authorization, Prisma schema, migrations, and deployment configuration.
+- Removal of the remaining legacy zero/empty outer analytics fields remains a separate contract-cleanup task.
+
 ## 2026-08-14 — UI/UX speed pass 2F
 
 ### Changed
