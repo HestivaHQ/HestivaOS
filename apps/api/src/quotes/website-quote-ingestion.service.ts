@@ -74,19 +74,23 @@ export class WebsiteQuoteIngestionService {
     }
 
     const costResolution = await resolveQuoteOperationalCosts(this.operationalCostProvider, submission);
-    if (costResolution.kind === 'NEEDS_ATTENTION') {
-      throw new ServiceUnavailableException({
-        message: 'Authoritative quote operational costs are not complete yet.',
-        missing: costResolution.missing,
-        invalid: costResolution.invalid,
-        provenance: costResolution.provenance,
-      });
-    }
-
-    const pricingResult = calculateWebsiteQuotePricing(submission, costResolution.costs);
-    const quoteStatus = pricingResult.attentionReasons.length ? QuoteStatus.NEEDS_ATTENTION : QuoteStatus.SUBMITTED;
+    const pricingResult = costResolution.kind === 'READY'
+      ? calculateWebsiteQuotePricing(submission, costResolution.costs)
+      : calculateWebsiteQuotePricing(submission);
+    const quoteStatus =
+      costResolution.kind === 'NEEDS_ATTENTION' || pricingResult.attentionReasons.length
+        ? QuoteStatus.NEEDS_ATTENTION
+        : QuoteStatus.SUBMITTED;
     const validUntil = new Date(submission.submittedAt);
     validUntil.setUTCDate(validUntil.getUTCDate() + 30);
+
+    const operationalCostAttention = costResolution.kind === 'NEEDS_ATTENTION'
+      ? {
+          missing: costResolution.missing,
+          invalid: costResolution.invalid,
+          provenance: costResolution.provenance,
+        }
+      : undefined;
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -159,6 +163,7 @@ export class WebsiteQuoteIngestionService {
                   newStatus: quoteStatus,
                   metadata: {
                     reasons: pricingResult.attentionReasons,
+                    operationalCosts: operationalCostAttention,
                   } as Prisma.InputJsonValue,
                 }] : []),
               ],

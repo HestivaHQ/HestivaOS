@@ -1,5 +1,15 @@
 # Technical work log
 
+## 2026-08-15 — Website Quote review-required intake and Townhouse v2 correction
+
+- Investigated the live Website “quote not sent” path across `HestivaHQ/hestiva` and HestivaOS rather than bypassing the structured submission owner introduced by the website's PR #144. Verified that the production Website → Railway handoff had succeeded previously, so the integration architecture and credential contract were known-good rather than never configured.
+- Found that `WebsiteQuoteIngestionService` rejected every `resolveQuoteOperationalCosts(...)=NEEDS_ATTENTION` result with HTTP 503 before the existing `calculateWebsiteQuotePricing(submission)` review-required path could run. This caused otherwise valid requests—such as open-ended floor/room bands or scopes without a complete deterministic cost model—to be lost instead of becoming durable review work.
+- Changed ingestion so READY cost snapshots retain the full profitability-floor calculation, while incomplete authoritative cost snapshots use the existing review-required pricing result and are persisted atomically as `QuoteStatus.NEEDS_ATTENTION` with a real `Q-...` reference. The `NEEDS_ATTENTION_SET` activity retains unresolved `missing`/`invalid` cost components and provenance. Missing cost facts are not guessed, treated as zero, or represented as a final customer price.
+- Preserved the true trust/persistence failure boundary: bearer-secret authentication, v1/v2 schema validation, immutable replay/conflict classification, database uniqueness/transactions, and daily Quote-reference capacity remain fail-closed.
+- Traced the corrected Website form against Contract v2 and found a second mismatch: the historical v1 validator treats Apartment and Townhouse as exact-floor unit properties, while the corrected Website now models Townhouse by storeys. Contract v2 now filters only the inherited Townhouse exact-floor/building-access errors and continues to require those fields for Apartments. Historical v1 validation is unchanged.
+- Added focused Jest coverage proving valid review-required submissions persist with `NEEDS_ATTENTION` and authoritative references, Townhouse v2 accepts storeys without apartment floor/access fields, and Apartment v2 still requires the exact-floor/access data.
+- Updated the active cross-system coordination issue before implementation and synchronized current architecture, Slice 5M ingestion guidance, changelog, and this durable work log on the same branch. No production secret value, deployment setting, Prisma schema, migration, Customer/Property record, or accepted-Quote operational handoff is changed by this repair.
+
 ## 2026-08-14 — UI/UX speed pass 2G dashboard payload slimming
 
 - Audited the live dashboard response after query-count slimming and confirmed the remaining three Work Order queries still selected broad related records while the current UI consumes only a narrow subset for today's rows and aggregate data for upcoming/overdue work.

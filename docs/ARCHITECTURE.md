@@ -1,5 +1,15 @@
 # Production architecture
 
+## Website Quote v2 review-required intake correction (2026-08-15)
+
+The production Website → HestivaOS Quote boundary remains the guarded server-to-server `POST /api/v1/integrations/website/quotes` route authenticated by the dedicated Website integration bearer secret. Contract validation, immutable submission replay/conflict classification, HestivaOS-owned pricing, serializable Quote persistence, and authoritative `Q-YYYYMMDD-####` references remain on the HestivaOS side.
+
+A valid authenticated Contract v2 submission is no longer discarded solely because one or more authoritative operational-cost components cannot yet be completed from the submitted facts. The ingestion service resolves costs first; a complete cost snapshot follows the normal profitability-floor calculation, while an incomplete/ambiguous cost snapshot uses the existing review-required pricing result and persists the Quote as `NEEDS_ATTENTION`. The Quote retains the customer submission, authoritative reference, non-final pricing snapshot, attention reasons, and unresolved cost/provenance metadata. This preserves the customer request without fabricating missing costs or treating the stored amount as a final profitability-protected quotation. Acceptance and operational progression remain blocked until review resolves the outstanding facts.
+
+Contract v2 also corrects Townhouse layout semantics without rewriting historical v1 compatibility. Apartment continues to require exact floor and building-access transport. Townhouse v2 is storey-based and does not inherit the Apartment 0–50 exact-floor/elevator-or-stairs requirement. Contract v1 retains its historical validation behavior for backward compatibility; the live Website uses v2.
+
+Failures at the actual trust/persistence boundary remain fail-closed: invalid authentication, malformed/unsupported contract data, immutable-submission conflicts/corruption, database failures, and exhausted daily Quote-reference capacity do not become successful Quote intake. Incomplete commercial or operational costing facts instead become durable review work because the shared Quote domain and Website contract already support `NEEDS_ATTENTION` as a non-final state.
+
 ## Operational continuation, identity presentation, and controlled deletion
 
 The shared authenticated `AppFrame` resolves `POST /users/sync` when its caller has not already supplied an application User. Desktop and mobile account presentations then receive that same authoritative `AppUser` and display its application role; neither presentation invents a Technician role while identity is unresolved. Supabase Auth remains the authentication identity authority and the application `User` remains the role and OS-access authority.

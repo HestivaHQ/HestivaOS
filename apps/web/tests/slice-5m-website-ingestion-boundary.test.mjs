@@ -25,9 +25,13 @@ test('ingestion validates both contract versions and reuses immutable replay res
   assert.match(service, /replay\.kind === 'CORRUPT_EXISTING'/);
 });
 
-test('new submissions require authoritative operational costs before immutable quote revision totals are persisted', () => {
-  assert.match(service, /ServiceUnavailableException/);
-  assert.match(service, /Authoritative quote operational costs are not complete yet\./);
+test('new submissions persist review-required pricing without zeroing immutable quote revision totals', () => {
+  assert.match(service, /costResolution\.kind === 'READY'/);
+  assert.match(service, /calculateWebsiteQuotePricing\(submission\)/);
+  assert.match(service, /costResolution\.kind === 'NEEDS_ATTENTION'/);
+  assert.match(service, /QuoteStatus\.NEEDS_ATTENTION/);
+  assert.match(service, /operationalCostAttention/);
+  assert.doesNotMatch(service, /Authoritative quote operational costs are not complete yet\./);
   assert.doesNotMatch(service, /subtotalMinor:\s*0/);
   assert.doesNotMatch(service, /totalMinor:\s*0/);
   assert.match(service, /quote\.create/);

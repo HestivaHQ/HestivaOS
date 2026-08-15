@@ -4,7 +4,11 @@
 
 Implemented as a guarded runtime boundary with canonical HestivaOS base pricing, the approved six-bucket cost model, universal profitability-floor calculation, atomic NEW Quote persistence, and an OpenRouteService-backed actual-road-distance source.
 
-The runtime fails closed when required costing inputs or routing configuration are missing or invalid. A production website handoff smoke test has succeeded with the configured HestivaOS endpoint and routing prerequisites. The currently configured COIDA input is provisional for internal costing pending the business's authoritative Compensation Fund assessment; replacing that factual input remains an operational costing follow-up rather than a Website Quote or Laundry-contract implementation gap.
+A valid Website Quote submission is not discarded merely because its commercial or operational facts require human review. When the request passes authentication and contract validation but the operational-cost resolver cannot yet produce every authoritative cost component, HestivaOS persists the Quote atomically as `NEEDS_ATTENTION`, returns the authoritative `Q-...` reference, and records the unresolved cost components/provenance for review. The stored pricing snapshot is explicitly non-final because the profitability floor cannot be completed until those cost facts are resolved.
+
+The runtime still fails closed for genuine boundary failures such as invalid authentication, invalid contract data, idempotency conflicts, database failures, exhausted Quote-reference capacity, or routing/infrastructure failures that prevent the request from reaching a safe persistence decision. Missing or uncertain commercial facts are never guessed or silently treated as zero.
+
+A production website handoff smoke test has succeeded with the configured HestivaOS endpoint and routing prerequisites. The currently configured COIDA input is provisional for internal costing pending the business's authoritative Compensation Fund assessment; replacing that factual input remains an operational costing follow-up rather than a Website Quote or Laundry-contract implementation gap.
 
 ## Routing / deployment cost
 
@@ -22,14 +26,16 @@ Required deployment configuration:
 - `HESTIVA_DEPLOYMENT_BASE_LATITUDE`
 - `HESTIVA_DEPLOYMENT_BASE_LONGITUDE`
 
-The resolver fails closed when configuration is missing or invalid, neither valid supplied property coordinates nor a geocodable service address can resolve the destination, OpenRouteService cannot return a valid route distance, or the request fails. It never substitutes geometric/straight-line distance or the customer's current device location for the service property.
+The resolver does not substitute geometric/straight-line distance or the customer's current device location for the service property. If route facts cannot be resolved for a valid submission, the unresolved deployment-cost component is retained as review metadata and the Quote remains `NEEDS_ATTENTION`; the system must not represent the stored amount as a final profitability-protected customer price until factual routing is available.
 
 ## COIDA
 
 Labour requires a configured valid COIDA rate through `HESTIVA_COIDA_RATE`. The application does not infer an employer-specific rate from a generic public tariff. The production value used for the verified handoff is provisional for internal costing pending the authoritative Compensation Fund assessment and must be replaced when that assessment is known.
 
+If the factual COIDA input is unavailable or invalid for an otherwise valid Website Quote submission, labour cost remains unresolved and the Quote is persisted as `NEEDS_ATTENTION`; the profitability-protected price is not treated as final until the cost input is corrected.
+
 ## Other implemented safeguards
 
-The private Website ingestion endpoint retains bearer-secret authentication, v1/v2 contract validation, immutable replay/conflict classification, HestivaOS-owned canonical pricing, approved cleaner-hour cost formulas, the 20%/R100 contribution floor, upward-to-next-R10 customer-price rounding, and serializable atomic NEW persistence when every required cost component is available.
+The private Website ingestion endpoint retains bearer-secret authentication, v1/v2 contract validation, immutable replay/conflict classification, HestivaOS-owned canonical pricing, approved cleaner-hour cost formulas, the 20%/R100 contribution floor, upward-to-next-R10 customer-price rounding when a complete cost snapshot exists, and serializable atomic NEW persistence.
 
-Missing commercial scope, cost inputs, route facts, or invalid configuration remain explicit review/gating conditions rather than being silently treated as zero or guessed.
+Review-required examples include open-ended floor/room bands, services whose workload needs more scope detail, or incomplete operational cost components. These conditions create a durable `NEEDS_ATTENTION` Quote rather than losing the customer request. Acceptance/operational progression remains blocked until the required review is completed.
