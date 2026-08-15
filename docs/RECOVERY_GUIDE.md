@@ -1,5 +1,13 @@
 # Recovery guide
 
+## Internal Quote decision foundation recovery
+
+Migration `20260815190000_quote_review_decision_foundation` adds the nullable accepted-revision link and unique restricted foreign keys for future Work Order and Recurring Service Agreement linkage. Deploy it through the normal Prisma migration path before serving the internal Quote review API. Verify `quotes_accepted_revision_id_key`, `quotes_work_order_id_key`, and `quotes_recurring_agreement_id_key` plus their foreign keys. Do not remove accepted revisions or operational records to bypass a restriction.
+
+If Decline returns a conflict after a timeout, read the Quote detail and activities before retrying. An identical retry with the same Admin, expected revision and normalized reason returns the existing declined decision. A different actor/reason/revision is intentionally a conflict and must be reviewed rather than overwritten. Never manually set `ACCEPTED`: this slice has no Accept endpoint and operational conversion is not implemented.
+
+Application rollback may leave the additive column, indexes and foreign keys in place. Before rolling back the database, inspect for populated linkage values and accepted-revision references; never drop accepted history as an application-recovery shortcut.
+
 ## Slice 5M-A Quote-domain recovery
 
 Migration `20260811210000_quote_domain_foundation` is additive. If rollout fails, first determine whether the failure is application code, Prisma migration state, or database reachability. Do not drop Quote tables, delete `_prisma_migrations` rows, or regenerate customer-facing references as a recovery shortcut.

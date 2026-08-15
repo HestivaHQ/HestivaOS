@@ -1,5 +1,13 @@
 # Production architecture
 
+## Internal Quote review and decision foundation (2026-08-15)
+
+The authenticated API exposes ADMIN-only `GET /api/v1/quotes`, `GET /api/v1/quotes/:id`, `GET /api/v1/quotes/:id/preflight?expectedRevisionNumber=...`, and `PATCH /api/v1/quotes/:id/decline`. This internal controller is separate from guarded Website ingestion. Detail resolves the exact `currentRevisionNumber` and returns its immutable structured request, pricing snapshot, line items, Quote photo metadata and append-only activities. Preflight performs no mutation and reports current deterministic blockers together with deferred Customer/Property and atomic operational-conversion work.
+
+Decline is terminal and revision-checked. An eligible `SUBMITTED` or `NEEDS_ATTENTION` Quote transitions to `DECLINED` with actor/time and a `STATUS_CHANGED` activity in one serializable transaction. Identical retries return the existing decision; stale revisions, conflicting retries, concurrent decisions and incompatible terminal states fail closed. There is deliberately no Accept endpoint.
+
+`Quote.acceptedRevisionId` is a nullable unique restricted foreign key to the immutable revision a future acceptance transaction selects. Quote links to Work Order and Recurring Service Agreement are also nullable unique restricted foreign keys. Same-Quote revision ownership, frequency-specific link shape, and complete accepted metadata remain future service invariants enforced by the atomic accepted-Quote transaction; this slice creates no operational records and never sets `ACCEPTED`.
+
 ## Website Quote v2 review-required intake correction (2026-08-15)
 
 The production Website → HestivaOS Quote boundary remains the guarded server-to-server `POST /api/v1/integrations/website/quotes` route authenticated by the dedicated Website integration bearer secret. Contract validation, immutable submission replay/conflict classification, HestivaOS-owned pricing, serializable Quote persistence, and authoritative `Q-YYYYMMDD-####` references remain on the HestivaOS side.

@@ -10,6 +10,8 @@ import { QUOTE_OPERATIONAL_COST_PROVIDER } from './quote-operational-cost-source
 import { WebsiteIntegrationHealthController } from './website-integration-health.controller';
 import { WebsiteQuoteIngestionController } from './website-quote-ingestion.controller';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
+import { QuoteReviewController } from './quote-review.controller';
+import { QuoteReviewService } from './quote-review.service';
 
 function configuredCoidaRate(): number | null {
   const raw = process.env.HESTIVA_COIDA_RATE;
@@ -64,10 +66,11 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
 }
 
 @Module({
-  controllers: [WebsiteIntegrationHealthController, WebsiteQuoteIngestionController],
+  controllers: [QuoteReviewController, WebsiteIntegrationHealthController, WebsiteQuoteIngestionController],
   providers: [
     PrismaService,
     WebsiteQuoteIngestionService,
+    QuoteReviewService,
     {
       provide: QUOTE_OPERATIONAL_COST_PROVIDER,
       useFactory: () =>
