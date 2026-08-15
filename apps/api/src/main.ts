@@ -4,6 +4,7 @@ import { APPLICATION_VERSION } from './monitoring/application-version';
 import { StructuredExceptionFilter } from './monitoring/http-exception.filter';
 import { JsonLogger } from './monitoring/json-logger';
 import { createCorsOptions } from './cors';
+import { websiteIntegrationSecretFingerprint } from './quotes/website-integration-auth';
 
 async function bootstrap(): Promise<void> {
   const startedAt = process.hrtime.bigint();
@@ -22,6 +23,7 @@ async function bootstrap(): Promise<void> {
     startupDurationMs: Number(startupDurationMs.toFixed(3)),
     port,
     status: 'started',
+    websiteIntegrationSecretFingerprint: websiteIntegrationSecretFingerprint() ?? 'missing',
   });
 }
 
@@ -35,3 +37,4 @@ bootstrap().catch((error: unknown) => {
   }, startupError.stack);
   process.exit(1);
 });
+
