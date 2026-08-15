@@ -44,6 +44,11 @@ function isLaundryFacilities(value: unknown): value is LaundryFacilities {
  * Laundry and Ironing are intentionally removed from the v1 generic add-on pass:
  * v2 owns them through request.laundry so facilities and quantities cannot be
  * reconstructed from display labels or free text.
+ *
+ * Contract v2 also corrects the property-layout model for Townhouses. Exact
+ * floor/building-access data remains required for Apartments, while Townhouses
+ * are represented by their home storeys and must not inherit the apartment
+ * 0-50-floor validation rule.
  */
 export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuoteContractError[] {
   const errors: WebsiteQuoteContractError[] = [];
@@ -58,6 +63,8 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
     add('schemaVersion', 'UNSUPPORTED_VERSION', 'Unsupported website quote schema version.');
   }
 
+  const property = isRecord(payload.property) ? payload.property : undefined;
+  const townhouse = property?.propertyType === 'TOWNHOUSE';
   const request = isRecord(payload.request) ? payload.request : undefined;
   const addOns = request?.addOns;
 
@@ -80,9 +87,16 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
   }
 
   errors.push(
-    ...validateWebsiteQuoteSubmissionV1(v1CompatiblePayload).filter(
-      (error) => error.path !== 'schemaVersion',
-    ),
+    ...validateWebsiteQuoteSubmissionV1(v1CompatiblePayload).filter((error) => {
+      if (error.path === 'schemaVersion') return false;
+      if (
+        townhouse &&
+        (error.path === 'property.exactFloor' || error.path === 'property.buildingAccess')
+      ) {
+        return false;
+      }
+      return true;
+    }),
   );
 
   if (!request) return errors;
