@@ -15,19 +15,8 @@ describe('OpenRouteServiceAllocatedRouteDistanceResolver', () => {
   it('uses driving distance and allocates an isolated round trip at quote time', async () => {
     const fetchImpl = jest.fn<typeof fetch>().mockResolvedValue(
       new Response(
-        JSON.stringify({
-          routes: [
-            {
-              summary: {
-                distance: 60_000,
-              },
-            },
-          ],
-        }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        },
+        JSON.stringify({ routes: [{ summary: { distance: 60_000 } }] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
     );
 
@@ -41,30 +30,40 @@ describe('OpenRouteServiceAllocatedRouteDistanceResolver', () => {
     const result = await resolver.resolve(submission);
 
     expect(result.allocatedRouteKm).toBe(120);
+    expect(result.provenance).toContain('destination=gps');
     expect(result.provenance).toContain('allocation=isolated-round-trip');
     expect(fetchImpl).toHaveBeenCalledTimes(1);
 
     const [url, request] = fetchImpl.mock.calls[0];
-
-    expect(url).toBe(
-      'https://api.heigit.org/openrouteservice/v2/directions/driving-car',
-    );
-
+    expect(url).toBe('https://api.heigit.org/openrouteservice/v2/directions/driving-car');
     expect(request?.headers).toMatchObject({
       Authorization: 'test-key',
       'Content-Type': 'application/json',
     });
-
     const body = JSON.parse(String(request?.body));
-
     expect(body.coordinates).toEqual([
       [27.85, -26.483],
       [28.0567, -26.1076],
     ]);
   });
 
-  it('fails closed when website coordinates are absent', async () => {
-    const fetchImpl = jest.fn<typeof fetch>();
+  it('geocodes the required service address when browser coordinates are absent', async () => {
+    const fetchImpl = jest
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            features: [{ geometry: { coordinates: [28.0567, -26.1076] } }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ routes: [{ summary: { distance: 25_000 } }] }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
 
     const resolver = new OpenRouteServiceAllocatedRouteDistanceResolver({
       apiKey: 'test-key',
@@ -74,10 +73,39 @@ describe('OpenRouteServiceAllocatedRouteDistanceResolver', () => {
     });
 
     const result = await resolver.resolve({
-      property: {},
+      property: {
+        addressLine1: '1 Example Street',
+        suburb: 'Johannesburg',
+        country: 'South Africa',
+      },
     } as WebsiteQuoteSubmission);
 
+    expect(result.allocatedRouteKm).toBe(50);
+    expect(result.provenance).toContain('destination=address-geocode');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(String(fetchImpl.mock.calls[0][0])).toContain('/geocode/search');
+    expect(String(fetchImpl.mock.calls[0][0])).toContain('boundary.country=ZA');
+
+    const routeBody = JSON.parse(String(fetchImpl.mock.calls[1][1]?.body));
+    expect(routeBody.coordinates).toEqual([
+      [27.85, -26.483],
+      [28.0567, -26.1076],
+    ]);
+  });
+
+  it('fails closed when neither coordinates nor a geocodable address are available', async () => {
+    const fetchImpl = jest.fn<typeof fetch>();
+    const resolver = new OpenRouteServiceAllocatedRouteDistanceResolver({
+      apiKey: 'test-key',
+      deploymentBaseLatitude: -26.483,
+      deploymentBaseLongitude: 27.85,
+      fetchImpl,
+    });
+
+    const result = await resolver.resolve({ property: {} } as WebsiteQuoteSubmission);
+
     expect(result.allocatedRouteKm).toBeNull();
+    expect(result.provenance).toContain('destination=unresolved');
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -86,9 +114,7 @@ describe('OpenRouteServiceAllocatedRouteDistanceResolver', () => {
       apiKey: 'test-key',
       deploymentBaseLatitude: -26.483,
       deploymentBaseLongitude: 27.85,
-      fetchImpl: jest
-        .fn<typeof fetch>()
-        .mockResolvedValue(new Response('{}', { status: 503 })),
+      fetchImpl: jest.fn<typeof fetch>().mockResolvedValue(new Response('{}', { status: 503 })),
     });
 
     const result = await resolver.resolve(submission);
