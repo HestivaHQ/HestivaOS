@@ -208,4 +208,47 @@ describe('Website Quote contract v2 structured laundry', () => {
       ]),
     );
   });
+
+  it('accepts the full recurring frequency vocabulary for Bedroom Cleaning in v2', () => {
+    for (const frequency of ['ONE_TIME', 'WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY', 'CUSTOM'] as const) {
+      const payload = validV2();
+      payload.request.laundry = undefined;
+      payload.request.primaryService = {
+        websiteValue: 'Bedroom Cleaning',
+        canonicalService: 'Bedroom Cleaning',
+      };
+      payload.request.frequency = frequency;
+      payload.request.customFrequencyNote = frequency === 'CUSTOM' ? 'Every six weeks' : undefined;
+      expect(validateWebsiteQuoteSubmissionV2(payload)).toEqual([]);
+    }
+  });
+
+  it('accepts the full recurring frequency vocabulary for Living Area Cleaning in v2', () => {
+    for (const frequency of ['ONE_TIME', 'WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY', 'CUSTOM'] as const) {
+      const payload = validV2();
+      payload.request.laundry = undefined;
+      payload.request.primaryService = {
+        websiteValue: 'Living Area Cleaning',
+        canonicalService: 'Living Area Cleaning',
+      };
+      payload.request.frequency = frequency;
+      payload.request.customFrequencyNote = frequency === 'CUSTOM' ? 'Every six weeks' : undefined;
+      expect(validateWebsiteQuoteSubmissionV2(payload)).toEqual([]);
+    }
+  });
+
+  it('does not broaden Kitchen Cleaning frequency policy', () => {
+    const payload = validV2();
+    payload.request.laundry = undefined;
+    payload.request.primaryService = {
+      websiteValue: 'Kitchen Cleaning',
+      canonicalService: 'Kitchen Cleaning',
+    };
+    payload.request.frequency = 'WEEKLY';
+    expect(validateWebsiteQuoteSubmissionV2(payload)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'request.frequency', code: 'INVALID_FOR_SERVICE' }),
+      ]),
+    );
+  });
 });
