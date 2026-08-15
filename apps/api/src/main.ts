@@ -37,4 +37,3 @@ bootstrap().catch((error: unknown) => {
   }, startupError.stack);
   process.exit(1);
 });
-
