@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
-import { verifyWebsiteIntegrationAuthorization } from './website-integration-auth';
+import {
+  verifyWebsiteIntegrationAuthorization,
+  websiteIntegrationSecretFingerprint,
+} from './website-integration-auth';
 
 describe('website integration authorization', () => {
   it('accepts only the exact configured bearer secret', () => {
@@ -21,5 +24,15 @@ describe('website integration authorization', () => {
     const secret = 'integration-secret';
     expect(verifyWebsiteIntegrationAuthorization('Bearer integration', secret)).toBe(false);
     expect(verifyWebsiteIntegrationAuthorization('Bearer integration-secret-extra', secret)).toBe(false);
+  });
+
+  it('returns a stable short fingerprint without exposing the secret', () => {
+    const secret = 'server-side-secret-value';
+    const fingerprint = websiteIntegrationSecretFingerprint(secret);
+
+    expect(fingerprint).toMatch(/^[a-f0-9]{12}$/);
+    expect(fingerprint).toBe(websiteIntegrationSecretFingerprint(secret));
+    expect(fingerprint).not.toContain(secret);
+    expect(websiteIntegrationSecretFingerprint(undefined)).toBeNull();
   });
 });
