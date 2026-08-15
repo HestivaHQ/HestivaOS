@@ -48,6 +48,8 @@ Key website evidence:
 
 ## Separate follow-ups that do not reopen Issue #79
 
+The operational quantity rows cited above describe the implemented destination models and manual operational paths. They do not claim that the separate Slice 5M Website Quote → accepted operational conversion is implemented.
+
 - Replace the provisional `HESTIVA_COIDA_RATE` costing input when the business receives/confirms its authoritative Compensation Fund assessed rate.
 - Complete remaining Slice 5M accepted-Quote orchestration and any non-Laundry exact-floor/photo-storage mapping still outstanding.
 - Build the broader dedicated Supervisor experience when that separate product slice is approved.

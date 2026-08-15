@@ -546,6 +546,7 @@ model WorkOrder {
   checklistItems WorkOrderChecklistItem[]
   photos WorkOrderPhoto[]
   customerSignOff WorkOrderCustomerSignOff?
+  sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
@@ -579,6 +580,7 @@ model RecurringServiceAgreement {
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   addOns RecurringServiceAgreementAddOn[]
   workOrders WorkOrder[]
+  sourceQuote Quote? @relation("AcceptedQuoteRecurringAgreement")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -727,12 +729,16 @@ model Quote {
   validUntil DateTime @map("valid_until")
   acceptedAt DateTime? @map("accepted_at")
   acceptedByUserId String? @map("accepted_by_user_id") @db.Uuid
+  acceptedRevisionId String? @unique @map("accepted_revision_id") @db.Uuid
   declinedAt DateTime? @map("declined_at")
   declinedByUserId String? @map("declined_by_user_id") @db.Uuid
   customerId String? @map("customer_id") @db.Uuid
   propertyId String? @map("property_id") @db.Uuid
   workOrderId String? @map("work_order_id") @db.Uuid
   recurringAgreementId String? @map("recurring_agreement_id") @db.Uuid
+  acceptedRevision QuoteRevision? @relation("AcceptedQuoteRevision", fields: [acceptedRevisionId], references: [id], onDelete: Restrict)
+  workOrder WorkOrder? @relation("AcceptedQuoteWorkOrder", fields: [workOrderId], references: [id], onDelete: Restrict)
+  recurringAgreement RecurringServiceAgreement? @relation("AcceptedQuoteRecurringAgreement", fields: [recurringAgreementId], references: [id], onDelete: Restrict)
   revisions QuoteRevision[]
   photos QuotePhoto[]
   activities QuoteActivity[]
@@ -743,8 +749,8 @@ model Quote {
   @@index([validUntil])
   @@index([customerId])
   @@index([propertyId])
-  @@index([workOrderId])
-  @@index([recurringAgreementId])
+  @@unique([workOrderId])
+  @@unique([recurringAgreementId])
   @@map("quotes")
 }
 
@@ -763,6 +769,7 @@ model QuoteRevision {
   totalMinor Int @map("total_minor")
   createdByUserId String? @map("created_by_user_id") @db.Uuid
   quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  acceptedForQuote Quote? @relation("AcceptedQuoteRevision")
   lineItems QuoteLineItem[]
   photos QuotePhoto[]
   createdAt DateTime @default(now()) @map("created_at")

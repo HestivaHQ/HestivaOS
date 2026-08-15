@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-15 — Internal Quote review and terminal Decline foundation
+
+- Added a separate ADMIN-only internal Quote list/detail surface that resolves the exact current immutable revision with line items, activities and photo/linkage review data; the guarded Website ingestion controller and service are unchanged.
+- Added non-mutating readiness preflight. It reports stale revision, attention/terminal/expiry, unresolved Customer/Property, persisted photo state and the deliberately unavailable atomic conversion rather than fabricating acceptance readiness.
+- Added terminal revision-checked Decline with one serializable transaction for the conditional status update and append-only activity. Identical actor/revision/reason retries return the existing decision; conflicts and incompatible states fail closed.
+- Added a nullable unique restricted accepted-revision relation and unique restricted future Work Order/Recurring Service Agreement links. No Quote is marked accepted and no Customer, Property or operational record is created.
+- Clarified that Issue #79 delivered structured Quote quantities, quantity-bearing operational destinations and recurring propagation, while the separate end-to-end accepted-Quote adapter remains planned.
+
 ## 2026-08-15 — Website Quote review-required intake and Townhouse v2 correction
 
 - Investigated the live Website “quote not sent” path across `HestivaHQ/hestiva` and HestivaOS rather than bypassing the structured submission owner introduced by the website's PR #144. Verified that the production Website → Railway handoff had succeeded previously, so the integration architecture and credential contract were known-good rather than never configured.

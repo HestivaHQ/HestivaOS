@@ -1,5 +1,9 @@
 # Technical roadmap
 
+## Completed 2026-08-15
+
+- Added the ADMIN-only internal Quote list/detail, non-mutating acceptance-readiness preflight, terminal revision-checked Decline workflow, durable accepted-revision identity, and unique restricted future operational links. Quote Accept remains unavailable until Customer/Property resolution and Work Order/Recurring Service Agreement creation can commit atomically.
+
 ## Completed 2026-08-14
 
 - HestivaOS Issue #79 completed the system-wide Laundry & Ironing add-on operating model: add-on-only eligibility for Regular Home Cleaning and Deep Cleaning, equipment-dependent Wash/Dry/Fold versus Wash/Hang outcomes, approved per-load pricing, structured Website Quote Contract v2 transport, HestivaOS-owned validation/pricing, positive operational add-on quantities, recurring-visit quantity propagation, and explicit labour/time capacity approval. Historical Laundry Folding identity remains preserved while new selection uses canonical Laundry as `ADD_ON`.
@@ -20,7 +24,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Complete the remaining Slice 5M work outside Issue #79 after the now-implemented guarded Website ingestion/pricing boundary, including unresolved exact-floor/photo-storage mapping where still required and accepted-Quote orchestration: protected Admin Accept/Decline, Customer/Property match-or-review, ONE_TIME Work Order creation, recurring agreement + initial visit creation, and safe operational import without partial records.
+- Complete the remaining Slice 5M work outside Issue #79 after the guarded Website ingestion/pricing and internal review/Decline foundations: Customer/Property match-or-review, atomic Accept, ONE_TIME Work Order creation, recurring agreement + initial visit creation, unresolved exact-floor/photo-storage mapping, and safe operational import without partial records.
 - Map approved website subordinate job-type choices to the existing Cleaning Job Template architecture (or explicitly record why a choice is quote-flow-only) before importing controlled options.
 
 - Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
@@ -59,7 +63,7 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5L — Recurring agreement architecture (completed 2026-08-11):** owns recurring agreement identity, standard recurrence rules, next service date, lifecycle, and independent generated Work Orders.
 - **Slice 5M-A — Quote domain foundation (completed 2026-08-11):** added authoritative Quote identity, revisions, pricing snapshots/line items, photo provenance/status, activities, and retry identities.
 - **Slice 5M-B plus Laundry v2 contract work (completed):** defines the structured Website Quote contracts, validation semantics, private transport/authentication contract, authoritative pricing response, photo identity/hash contract, structured Laundry/Ironing fields, and cross-repository consumer documentation. Later runtime work exposed the guarded ingestion endpoint rather than changing these contract semantics.
-- **Slice 5M runtime ingestion:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, and atomic NEW Quote persistence are implemented. Accepted-Quote orchestration, review/UI and remaining non-Laundry handoff/recovery work remain separate follow-ups.
+- **Slice 5M runtime ingestion and decision foundation:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, atomic NEW Quote persistence, ADMIN review APIs, readiness preflight and terminal Decline are implemented. Atomic Accept conversion, review UI and remaining non-Laundry handoff/recovery work remain separate follow-ups.
 
 ## 2026-08-10 status update
 

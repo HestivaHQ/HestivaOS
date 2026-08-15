@@ -38,3 +38,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0034: Verify Supabase access tokens locally at the API boundary](ADR-0034-local-supabase-jwt-verification.md)
 - [ADR-0035: Recurring financial policy v2](ADR-0035-recurring-financial-policy-v2.md)
 - [ADR-0036: Launch financial controls and payment policy v3](ADR-0036-launch-financial-controls-and-payment-policy-v3.md)
+- [ADR-0037: Protect internal Quote review and defer acceptance until atomic conversion](ADR-0037-internal-quote-decision-foundation.md)

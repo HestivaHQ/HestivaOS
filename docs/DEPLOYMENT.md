@@ -1,5 +1,11 @@
 # Deployment
 
+## Internal Quote decision foundation migration
+
+Deploy additive migration `20260815190000_quote_review_decision_foundation` through the normal Railway `npm run deploy:api` path before the API version that serves internal Quote review. It adds a nullable accepted-revision foreign key and replaces ordinary future operational-link indexes with unique restricted foreign keys. It creates no Customer, Property, Work Order, Recurring Service Agreement or accepted Quote and does not modify Website ingestion data.
+
+After deployment, verify the migration completed and inspect the three unique indexes and foreign keys on `quotes`. Smoke-check that an ADMIN can list/detail/preflight Quotes, non-ADMIN access is forbidden, and no Accept route exists. A prior application can run with the additive schema; retain the constraints during application rollback unless a separately reviewed database rollback is required.
+
 ## Slice 5M-A Quote domain migration
 
 Deploy additive migration `20260811210000_quote_domain_foundation` through the normal Railway `npm run deploy:api` / Prisma deploy path before any later Slice 5M service code that reads or writes Quotes. It creates the Quote lifecycle, revision, pricing-line, photo, activity, and daily-counter tables plus their enums and indexes. It does not backfill or mutate existing Customers, Properties, Work Orders, Recurring Service Agreements, Services, or media records.

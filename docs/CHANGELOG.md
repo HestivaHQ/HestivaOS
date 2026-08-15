@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-15 — Internal Quote review and decision foundation
+
+### Added
+
+- Added ADMIN-only internal Quote list/detail and non-mutating readiness preflight endpoints.
+- Added terminal, expected-revision-protected Quote Decline with atomic status/activity auditing and safe identical retry behavior.
+- Added durable accepted-revision identity plus unique restricted future Work Order and recurring-agreement links.
+
+### Preserved
+
+- Quote Accept conversion remains unavailable; this change creates no Customer, Property, Work Order or Recurring Service Agreement records and never sets `ACCEPTED`.
+- Guarded Website ingestion, authentication, v1/v2 validation, replay/idempotency, pricing/profitability, OpenRouteService costing and Laundry/Ironing behavior are unchanged.
+
 ## 2026-08-15 — Website Quote review-required intake correction
 
 ### Fixed
