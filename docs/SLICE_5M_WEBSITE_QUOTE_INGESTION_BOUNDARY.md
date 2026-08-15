@@ -10,7 +10,9 @@ The runtime fails closed when required costing inputs or routing configuration a
 
 The approved deployment cost remains **R1.82 per allocated planned road kilometre**.
 
-`OpenRouteServiceAllocatedRouteDistanceResolver` obtains the one-way driving distance from OpenRouteService/HeiGIT using the configured deployment-base coordinates and the property coordinates carried by the Website Quote submission, then allocates the isolated round trip to the quote.
+`OpenRouteServiceAllocatedRouteDistanceResolver` obtains the one-way driving distance from OpenRouteService/HeiGIT using the configured deployment-base coordinates and the service property's coordinates, then allocates the isolated round trip to the quote.
+
+Browser-provided property coordinates are preferred when present and valid. They are not required from the customer: when browser GPS is absent, HestivaOS geocodes the required service address (`addressLine1`, suburb, optional postal code, South Africa) server-side and uses the resolved property coordinates for road routing. This keeps quote submission independent of browser location permission and supports customers requesting a quote while physically away from the service property.
 
 Quote-time allocation is conservative: until an actual multi-booking route plan exists, the booking is costed as an isolated **deployment base → property → deployment base** round trip. Later route clustering may improve realised economics but does not weaken the original quote profitability safeguard.
 
@@ -20,7 +22,7 @@ Required deployment configuration:
 - `HESTIVA_DEPLOYMENT_BASE_LATITUDE`
 - `HESTIVA_DEPLOYMENT_BASE_LONGITUDE`
 
-The resolver fails closed when configuration is missing or invalid, the Website payload has no valid coordinates, OpenRouteService cannot return a valid route distance, or the request fails. It never substitutes geometric/straight-line distance.
+The resolver fails closed when configuration is missing or invalid, neither valid supplied property coordinates nor a geocodable service address can resolve the destination, OpenRouteService cannot return a valid route distance, or the request fails. It never substitutes geometric/straight-line distance or the customer's current device location for the service property.
 
 ## COIDA
 
