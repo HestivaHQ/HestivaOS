@@ -25,9 +25,13 @@ export class JsonLogger implements LoggerService {
   }
 
   event(level: LogLevel, fields: StructuredFields, stack?: string): void {
+    const eventName = typeof fields.event === 'string' && fields.event.trim()
+      ? fields.event.trim()
+      : 'application_event';
     this.emit({
       timestamp: new Date().toISOString(),
       level,
+      message: eventName,
       ...fields,
       ...(stack ? { stack } : {}),
     });
