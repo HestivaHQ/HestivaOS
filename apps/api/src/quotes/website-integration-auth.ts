@@ -13,6 +13,13 @@ function digestSecret(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest();
 }
 
+export function websiteIntegrationSecretFingerprint(
+  configuredSecret: unknown = process.env[HESTIVA_WEBSITE_INTEGRATION_SECRET_ENV],
+): string | null {
+  if (typeof configuredSecret !== 'string' || !configuredSecret) return null;
+  return createHash('sha256').update(configuredSecret, 'utf8').digest('hex').slice(0, 12);
+}
+
 export function verifyWebsiteIntegrationAuthorization(
   authorization: unknown,
   configuredSecret: unknown = process.env[HESTIVA_WEBSITE_INTEGRATION_SECRET_ENV],
