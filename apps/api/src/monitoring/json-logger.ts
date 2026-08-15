@@ -3,6 +3,8 @@ import type { LoggerService } from '@nestjs/common';
 type LogLevel = 'debug' | 'error' | 'info' | 'warn';
 type StructuredFields = Record<string, boolean | number | string>;
 
+const SAFE_MESSAGE_FIELDS = ['method', 'endpoint', 'path', 'status', 'requestId'] as const;
+
 export class JsonLogger implements LoggerService {
   log(message: unknown, context?: string): void {
     this.write('info', message, context);
@@ -28,10 +30,17 @@ export class JsonLogger implements LoggerService {
     const eventName = typeof fields.event === 'string' && fields.event.trim()
       ? fields.event.trim()
       : 'application_event';
+    const messageParts = [eventName];
+    for (const key of SAFE_MESSAGE_FIELDS) {
+      const value = fields[key];
+      if (typeof value === 'string' || typeof value === 'number') {
+        messageParts.push(`${key}=${value}`);
+      }
+    }
     this.emit({
       timestamp: new Date().toISOString(),
       level,
-      message: eventName,
+      message: messageParts.join(' '),
       ...fields,
       ...(stack ? { stack } : {}),
     });
