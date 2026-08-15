@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-15 — Website Quote review-required intake correction
+
+### Fixed
+
+- Valid authenticated Website Quote submissions no longer fail with HTTP 503 solely because an authoritative operational-cost component cannot yet be resolved from the submitted facts. HestivaOS now persists those requests atomically as `NEEDS_ATTENTION`, returns the authoritative `Q-...` reference, and records unresolved cost/provenance details for Admin review.
+- Contract v2 no longer applies the historical Apartment/Townhouse exact-floor rule to Townhouses. Apartments continue to require exact floor and building access; Townhouses v2 use storeys and can omit apartment-style floor/elevator data.
+- Added regression coverage for review-required Quote persistence and corrected Townhouse Contract v2 validation.
+
+### Preserved
+
+- Bearer-secret authentication, contract validation, immutable replay/conflict handling, HestivaOS pricing authority, serializable persistence, Quote-reference generation, and fail-closed handling of genuine trust/data/persistence failures remain intact.
+- Incomplete cost facts are not guessed or silently treated as zero, and a `NEEDS_ATTENTION` Quote is not a final profitability-protected customer price or an accepted operational booking.
+- Historical Contract v1 validation remains unchanged for backward compatibility; the live Website uses Contract v2.
+
 ## 2026-08-14 — UI/UX speed pass 2G
 
 ### Changed
