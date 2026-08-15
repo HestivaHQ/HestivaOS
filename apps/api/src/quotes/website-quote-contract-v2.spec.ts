@@ -176,4 +176,36 @@ describe('Website Quote contract v2 structured laundry', () => {
       ]),
     );
   });
+
+  it('accepts Townhouse storeys without apartment exact-floor or building-access fields', () => {
+    const payload = validV2();
+    payload.request.laundry = undefined;
+    payload.property = {
+      ...payload.property,
+      propertyType: 'TOWNHOUSE',
+      storeys: 'TWO',
+    };
+    delete payload.property.exactFloor;
+    delete payload.property.buildingAccess;
+
+    expect(validateWebsiteQuoteSubmissionV2(payload)).toEqual([]);
+  });
+
+  it('continues to require exact-floor and building-access fields for Apartments', () => {
+    const payload = validV2();
+    payload.request.laundry = undefined;
+    payload.property = {
+      ...payload.property,
+      propertyType: 'APARTMENT',
+    };
+    delete payload.property.exactFloor;
+    delete payload.property.buildingAccess;
+
+    expect(validateWebsiteQuoteSubmissionV2(payload)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: 'property.exactFloor', code: 'INVALID_EXACT_FLOOR' }),
+        expect.objectContaining({ path: 'property.buildingAccess' }),
+      ]),
+    );
+  });
 });
