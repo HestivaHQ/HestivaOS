@@ -29,6 +29,14 @@ export type WebsiteQuoteSubmissionV2 = Omit<WebsiteQuoteSubmissionV1, 'schemaVer
 };
 
 const STRUCTURED_LAUNDRY_CANONICAL_SERVICES = new Set(['Laundry', 'Laundry Folding', 'Ironing']);
+const V2_FULL_RECURRING_SERVICES = new Set(['Bedroom Cleaning', 'Living Area Cleaning']);
+const V2_FULL_RECURRING_FREQUENCIES = new Set([
+  'ONE_TIME',
+  'WEEKLY',
+  'EVERY_TWO_WEEKS',
+  'MONTHLY',
+  'CUSTOM',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -49,6 +57,10 @@ function isLaundryFacilities(value: unknown): value is LaundryFacilities {
  * floor/building-access data remains required for Apartments, while Townhouses
  * are represented by their home storeys and must not inherit the apartment
  * 0-50-floor validation rule.
+ *
+ * Bedroom Cleaning and Living Area Cleaning use the full recurring frequency
+ * vocabulary in v2. Historical v1 validation remains unchanged for backward
+ * compatibility.
  */
 export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuoteContractError[] {
   const errors: WebsiteQuoteContractError[] = [];
@@ -67,6 +79,13 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
   const townhouse = property?.propertyType === 'TOWNHOUSE';
   const request = isRecord(payload.request) ? payload.request : undefined;
   const addOns = request?.addOns;
+  const primary = isRecord(request?.primaryService) ? request.primaryService.canonicalService : null;
+  const frequency = request?.frequency;
+  const v2FullRecurring =
+    typeof primary === 'string' &&
+    V2_FULL_RECURRING_SERVICES.has(primary) &&
+    typeof frequency === 'string' &&
+    V2_FULL_RECURRING_FREQUENCIES.has(frequency);
 
   // Reuse v1 validation for every unchanged field and unchanged generic add-on.
   const v1CompatiblePayload: Record<string, unknown> = {
@@ -92,6 +111,13 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
       if (
         townhouse &&
         (error.path === 'property.exactFloor' || error.path === 'property.buildingAccess')
+      ) {
+        return false;
+      }
+      if (
+        v2FullRecurring &&
+        error.path === 'request.frequency' &&
+        error.code === 'INVALID_FOR_SERVICE'
       ) {
         return false;
       }
@@ -142,7 +168,6 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
     return errors;
   }
 
-  const primary = isRecord(request.primaryService) ? request.primaryService.canonicalService : null;
   const resolved = resolveLaundryRequest({
     primaryService: typeof primary === 'string' ? primary : null,
     facilities,
