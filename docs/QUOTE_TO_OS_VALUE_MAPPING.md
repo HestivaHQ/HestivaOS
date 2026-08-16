@@ -1,5 +1,11 @@
 # Current website quote-to-OS value mapping
 
+## Match/review boundary (2026-08-15)
+
+Customer `email` and E.164 `mobile` participate in identity suggestions; `fullName` is display/review context only. Property identity uses `addressLine1`, `suburb` (mapped to current Property `city` semantics), `postalCode`, and `country`, scoped to the resolved Customer. Exact floor and property-type profile values are not used to overwrite identity during review.
+
+Visit/access fields (`complexAccess`, security instructions, parking, key handover, someone-present), household notes, safety fields, preferred dates/times, and free-form Quote notes remain Quote/visit context. They are deliberately excluded from matching and still require a safe Work Order, recurring-agreement, or reviewed persistent-Property destination in the future acceptance transaction.
+
 ## Slice 5M-B current contract supersession — 2026-08-11
 
 The historical Slice 5K reconciliation below is retained for engineering history, but it is no longer the current integration contract where Issue #73 has since resolved a gap. The current cross-repository boundary is [`WEBSITE_QUOTE_CONTRACT_V1.md`](WEBSITE_QUOTE_CONTRACT_V1.md) and `apps/api/src/quotes/website-quote-contract.ts`.

@@ -9,7 +9,7 @@ describe('QuoteReviewController authorization and delegation', () => {
   it('is ADMIN-only and does not bypass the global authentication guard', () => {
     expect(Reflect.getMetadata(ROLES_KEY, QuoteReviewController)).toEqual([UserRole.ADMIN]);
     expect(Reflect.getMetadata(IS_PUBLIC_KEY, QuoteReviewController)).not.toBe(true);
-    for (const method of ['findAll', 'findOne', 'preflight', 'decline'] as const) {
+    for (const method of ['findAll', 'findOne', 'preflight', 'decline', 'recordResolution'] as const) {
       expect(Reflect.getMetadata(IS_PUBLIC_KEY, QuoteReviewController.prototype[method])).not.toBe(true);
     }
   });

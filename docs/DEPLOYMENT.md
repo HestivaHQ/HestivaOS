@@ -1,5 +1,9 @@
 # Deployment
 
+## 2026-08-15 Quote match-resolution migration
+
+Deploy migration `20260815220000_quote_customer_property_resolution` before the matching API revision. It additively creates `QuoteEntityResolution`, adds `MATCH_RESOLUTION_RECORDED`, and adds nullable Quote decision/revision columns with consistency checks. Run the normal `npm run db:migrate:deploy`; no environment variable changes are required.
+
 ## Internal Quote decision foundation migration
 
 Deploy additive migration `20260815190000_quote_review_decision_foundation` through the normal Railway `npm run deploy:api` path before the API version that serves internal Quote review. It adds a nullable accepted-revision foreign key and replaces ordinary future operational-link indexes with unique restricted foreign keys. It creates no Customer, Property, Work Order, Recurring Service Agreement or accepted Quote and does not modify Website ingestion data.

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Query
 import { QuoteStatus, User, UserRole } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
-import { DeclineQuoteInput, QuoteReviewService } from './quote-review.service';
+import { DeclineQuoteInput, QuoteReviewService, RecordQuoteResolutionInput } from './quote-review.service';
 
 @Controller('quotes')
 @Roles(UserRole.ADMIN)
@@ -22,6 +22,11 @@ export class QuoteReviewController {
   @Patch(':id/decline')
   decline(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: DeclineQuoteInput, @CurrentUser() user: User) {
     return this.quotes.decline(id, input, user.id);
+  }
+
+  @Patch(':id/resolution')
+  recordResolution(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: RecordQuoteResolutionInput, @CurrentUser() user: User) {
+    return this.quotes.recordResolution(id, input, user.id);
   }
 
   @Get(':id')

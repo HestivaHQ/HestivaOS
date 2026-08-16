@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-15 — Slice 5M Customer + Property match-or-review
+
+- Added deterministic current-revision Customer/contact and Customer-scoped Property/address matching.
+- Added ADMIN-only durable paired resolution intent with audit activity, stale-revision compare-and-set protection, safe retries, and conflict rejection.
+- Extended Quote detail/preflight without changing Website ingestion or implementing acceptance/operational creation.
+- Added the additive Quote resolution migration, focused tests, architecture/operations/mapping documentation, and ADR-0038.
+
 ## 2026-08-15 — Internal Quote review and terminal Decline foundation
 
 - Added a separate ADMIN-only internal Quote list/detail surface that resolves the exact current immutable revision with line items, activities and photo/linkage review data; the guarded Website ingestion controller and service are unchanged.
