@@ -426,3 +426,7 @@ Added role-protected CRUD/lifecycle and explicit generation APIs plus the operat
 - Preserved ADR-0014 application authorization: the HestivaOS User lookup, ACTIVE-status check, route-role enforcement, and narrow `/users/sync` bootstrap exception remain after provider-token verification.
 - Reworked guard tests to generate real P-256 test keys and signed JWTs, mock only the public JWKS fetch, and cover valid ADMIN access, non-admin role rejection, disabled-user rejection, expired-token rejection, and wrong-audience rejection.
 - Updated the performance audit, environment inventory, recovery guidance, architecture description, changelog, and ADR index; added ADR-0033 for the durable authentication-boundary decision.
+
+## 2026-08-16 — Non-lossy accepted Quote operational handoff
+
+Audited Website Quote values against Customer, Property, Work Order, recurring agreement, photo and pricing ownership. Added typed visit projection, stable recurring inheritance, accepted-revision photo references, and a non-inherited temporary-access credential boundary inside atomic acceptance. Existing Customer/Property records and Website ingestion/pricing behavior remain unchanged.

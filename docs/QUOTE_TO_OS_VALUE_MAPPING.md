@@ -1,21 +1,45 @@
 # Current website quote-to-OS value mapping
 
+## Non-lossy accepted handoff (2026-08-16)
+
+The immutable `QuoteRevision` selected by `Quote.acceptedRevisionId` remains the accepted commercial source of truth. `Quote.workOrderId` and, for recurring work, `Quote.recurringAgreementId` provide the operational route back to that revision and its immutable integer-minor-unit totals and line items. Acceptance projects only typed operational values inside the existing serializable transaction.
+
+| Website source | Classification | ONE_TIME destination | RECURRING destination / future inheritance | Status and rationale |
+| --- | --- | --- | --- | --- |
+| `customer.fullName/email/mobile` | A — Customer master | New `Customer` only after CREATE_NEW resolution | Same | Projected for new records; existing Customer is never overwritten. `preferredContact` remains source-only because Customer has no canonical field. |
+| Property address/type/size/rooms/storeys/outdoor/estate and household/care restrictions | B — Property master | New `Property` only after CREATE_NEW resolution | Same Property | Projected only for a new Property; resolved existing Property is never mutated. Location coordinates remain source-only because Property has no verified coordinate fields. |
+| `property.exactFloor`, `buildingAccess` | C — visit data | `WorkOrder.exactFloor`, `buildingAccess` | Initial Work Order only | Projected as an accepted-visit snapshot; not promoted to Property or future visits without reviewed persistent ownership. |
+| Canonical primary Service, home condition, add-ons and quantities | C/D | Work Order Service, condition, `WorkOrderAddOn` | Agreement and initial Work Order; future visits inherit Service/add-ons and quantities | Projected exactly; pricing is not recalculated. |
+| Preferred date/time, alternative date, flexibility, urgency | C | `scheduledAt`, `preferredTimeWindow`, `alternativeDate`, `dateFlexibility`, `urgency` | Effective/recurrence date and preferred time on agreement; full values on initial Work Order. Future visits inherit only agreement preferred time. | Projected. Alternative/flexibility/urgency are initial-visit intent, not recurrence rules. |
+| Attention, renovation, appliance, additional notes | C | `description` | Initial Work Order; used as agreement instruction fallback only when no explicit recurring note exists | Projected operational text. |
+| `visit.recurringNotes` | D | Source-only for ONE_TIME | `RecurringServiceAgreement.recurringInstructions`; inherited into future visits | Projected only when recurring. |
+| `access.complexAccess`, security instructions, parking, key handover/details, someone present | C | Dedicated Work Order fields | Initial Work Order only | Projected as visit-specific. Never overwrites Property and never automatically recurs. |
+| `request.ecoFriendlyProducts` | C/D | Work Order preference | Agreement plus initial Work Order; inherited into future visits | Projected without turning the preference into a chargeable add-on. |
+| `safety.existingDamage` | C | `customerDeclaredExistingDamage` | Initial Work Order only | Projected with customer-declared provenance in the field name; it is not verified cleaner evidence. |
+| Stored photos belonging to the accepted revision | F — customer Quote evidence | `WorkOrderQuoteEvidence` references `QuotePhoto` | Initial Work Order only | Projected by reference; blobs are not copied. This relation is distinct from cleaner `WorkOrderPhoto` before/after evidence. |
+| Temporary code/QR/credential | E — temporary credential | `WorkOrderTemporaryAccessCredential` boundary | Relevant Work Order only; never agreement/future inheritance | The current Website contract has no typed credential payload, so no value is inferred from security text. The destination supports type, validity, expiry, single-use and revocation metadata. |
+| Currency, subtotal, discount/tax/total and accepted line items | G — commercial snapshot | Via `Quote.workOrderId` → `Quote.acceptedRevision` | Also via agreement Quote link and initial Work Order Quote link | Referenced, not duplicated or recalculated. Catalogue changes cannot mutate the accepted revision. |
+| `customer.preferredContact`, submitted timestamp/identity, raw website labels, location accuracy | H — source-only | Accepted revision | Accepted revision | No safe operational owner beyond provenance; projecting would duplicate identity or invent unsupported master data. |
+
+The access instruction field is ordinary visit logistics, not a credential store. Acceptance deliberately does not scrape codes from prose. Sensitive credentials must use the separate Work-Order-owned credential model, enabling later role-filtered reads and suppression/revocation of expired usable values.
+
 ## Accepted recurring conversion
 
-Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` accepted Quotes now create one Property-owned recurring agreement and one initial Work Order atomically. Preferred date maps to agreement effective date and initial date-only recurrence; weekly variants derive weekday, monthly derives day-of-month, and CUSTOM retains its required descriptive note without automatic future generation. Preferred time maps only to the agreement controlled field. Canonical primary/add-on Services and exact generic/Laundry/Ironing quantities copy to both agreement and initial visit; home condition maps to the visit. Accepted revision remains the commercial and source-only truth for fields without safe destinations. ONE_TIME mapping remains unchanged.
+
+Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` accepted Quotes now create one Property-owned recurring agreement and one initial Work Order atomically. Preferred date maps to agreement effective date and initial date-only recurrence; weekly variants derive weekday, monthly derives day-of-month, and CUSTOM retains its required descriptive note without automatic future generation. Preferred time maps to the agreement and initial Work Order controlled fields. Canonical primary/add-on Services and exact generic/Laundry/Ironing quantities copy to both agreement and initial visit; home condition maps to the visit. Accepted revision remains the commercial and source-only truth for fields without safe destinations. ONE_TIME mapping remains unchanged.
 
 
 ## Accepted ONE_TIME operational projection (2026-08-16)
 
 An eligible accepted `ONE_TIME` Quote now creates exactly one Work Order atomically. Customer and Property use the current durable Admin resolution. New records use normalized submitted identity/address plus established Property-owned profile, household, and care fields; existing records are never overwritten. The Work Order receives the canonical primary Service, ONE_TIME frequency, home condition, preferred date in Johannesburg date semantics, supported attention/renovation/appliance/additional notes, and canonical add-ons with exact quantities. Structured Laundry loads map to the canonical Laundry add-on quantity and Ironing loads map to Ironing quantity without boolean collapse.
 
-The immutable accepted revision remains authoritative for the ZAR pricing snapshot and source facts without a safe destination. Preferred time window, alternative date, flexibility/urgency, exact floor, building access, complex/security/parking/key/someone-present details, eco preference, existing-damage detail, source-photo linkage, and other source-only facts are not yet projected to unrelated fields. They are non-blocking where the accepted revision safely preserves them. Supported recurring conversion uses the agreement and initial-visit mapping described above.
+The immutable accepted revision remains authoritative for the ZAR pricing snapshot and source facts without a safe destination. Typed visit fields and accepted-revision photo references now use the destinations in the table above; they are not stuffed into unrelated Property or generic-note fields. Supported recurring conversion uses the agreement and initial-visit mapping described above.
 
 ## Match/review boundary (2026-08-15)
 
 Customer `email` and E.164 `mobile` participate in identity suggestions; `fullName` is display/review context only. Property identity uses `addressLine1`, `suburb` (mapped to current Property `city` semantics), `postalCode`, and `country`, scoped to the resolved Customer. Exact floor and property-type profile values are not used to overwrite identity during review.
 
-Visit/access fields (`complexAccess`, security instructions, parking, key handover, someone-present), household notes, safety fields, preferred dates/times, and free-form Quote notes remain Quote/visit context and are deliberately excluded from matching. The later ONE_TIME acceptance maps only the authoritative destinations listed above; remaining source-only fields still require a safe Work Order, recurring-agreement, or reviewed persistent-Property destination.
+Visit/access fields (`complexAccess`, security instructions, parking, key handover, someone-present), household notes, safety fields, preferred dates/times, and free-form Quote notes remain Quote/visit context and are deliberately excluded from matching. Acceptance maps the authoritative destinations listed above while matching remains unchanged and excludes visit context.
 
 ## Slice 5M-B current contract supersession — 2026-08-11
 
@@ -30,7 +54,7 @@ Current resolved rules that supersede older unresolved statements below:
 - Bathrooms in payload v1 are only `ONE`, `TWO`, `THREE`, `FOUR`, or `FIVE_PLUS`.
 - Floor size now uses the precise `UNDER_40`, `FROM_40_TO_59`, `FROM_60_TO_79`, `FROM_80_TO_99`, `FROM_100_TO_129`, `FROM_130_TO_169`, `FROM_170_TO_219`, `FROM_220_TO_299`, `FROM_300_UP`, or `UNKNOWN` vocabulary. New Website Quote submissions reject the superseded broad floor-size values. Reusable Property storage retains the old broad values only for historical compatibility and never auto-converts them to fabricated precision.
 - `Add-on Services` and `Not sure` remain explicit pseudo choices with `canonicalService: null`, which requires `NEEDS_ATTENTION`; unknown mappings fail closed.
-- Exact Apartment/Townhouse floor is transported as integer `exactFloor` 0–50 with explicit building-access method. The older grouped `Property.unitFloor` remains current Property storage, so exact operational persistence is still a later 5M handoff responsibility and must not be falsely claimed as already implemented.
+- Exact Apartment/Townhouse floor is transported as integer `exactFloor` 0–50 with explicit building-access method. The older grouped `Property.unitFloor` remains current Property storage, so accepted visits now persist exact operational floor on Work Order; Property retains grouped master data.
 - Customer Quote photo identity is stable `clientPhotoId` plus SHA-256 in payload v1. The merged 5M-A schema provides Quote photo retry/status storage but does not yet persist the hash; runtime storage/deduplication mapping remains later integration work.
 - Pricing v1 is HestivaOS-authoritative, returned as immutable ZAR integer-minor-unit subtotal/adjustments/total plus line breakdown. The 5M-A storage model exists; the calculator and external-to-persistence adapter are not implemented by this mapping document.
 
@@ -98,8 +122,8 @@ The historical `WorkOrderAddOn` model has no quantity. Slice 5M-B defines quote-
 | Other-property Bedrooms | 1; 2; 3; 4; 5+; Other | Existing controlled destination |
 | Bathrooms | 1; 2; 3; 4; 5+ | Existing controlled destination; no `OTHER` in v1 |
 | Storeys | 1 storey; 2 storeys; 3 storeys; 4+ storeys; Not sure | Existing controlled destination including compatibility states |
-| Exact unit floor | Ground / Floor 1..50 in current enhancement layer | v1 transports integer 0..50; exact persistence is later 5M work |
-| Building access | Elevator / Stairs / both | v1 first-class field; later handoff owns operational destination |
+| Exact unit floor | Ground / Floor 1..50 in current enhancement layer | accepted visits persist the exact value on Work Order |
+| Building access | Elevator / Stairs / both | accepted visits persist it on Work Order |
 
 ### Current deterministic Property floor-size mappings
 

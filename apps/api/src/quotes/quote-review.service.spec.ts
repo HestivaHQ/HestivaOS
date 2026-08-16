@@ -148,12 +148,14 @@ describe('QuoteReviewService durable match resolution', () => {
 describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
   const acceptedSubmission: any = {
     schemaVersion: '2.0', customer: { fullName: 'Alex', email: 'alex@example.com', mobile: '+27821234567' },
-    property: { propertyType: 'HOUSE', addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa', floorSize: 'FROM_80_TO_99', bedrooms: 'THREE', bathrooms: 'TWO', livingAreas: 'ONE', outdoorArea: 'NONE', estateClassification: 'NONE' },
-    request: { primaryService: { canonicalService: 'Regular Home Cleaning' }, frequency: 'ONE_TIME', homeCondition: 'STANDARD', addOns: [], laundry: { facilities: 'WASHER_DRYER', laundryLoads: 3, ironingLoads: 4 } },
-    visit: { preferredDate: '2026-08-20', preferredTime: 'MORNING' }, household: { hasPets: false }, safety: {}, notes: {},
+    property: { propertyType: 'HOUSE', addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa', floorSize: 'FROM_80_TO_99', bedrooms: 'THREE', bathrooms: 'TWO', livingAreas: 'ONE', outdoorArea: 'NONE', estateClassification: 'NONE', exactFloor: 4, buildingAccess: 'STAIRS' },
+    request: { primaryService: { canonicalService: 'Regular Home Cleaning' }, frequency: 'ONE_TIME', homeCondition: 'STANDARD', addOns: [], ecoFriendlyProducts: true, laundry: { facilities: 'WASHER_DRYER', laundryLoads: 3, ironingLoads: 4 } },
+    visit: { preferredDate: '2026-08-20', alternativeDate: '2026-08-22', preferredTime: 'MORNING', flexibility: 'Two days', urgency: 'Normal', recurringNotes: 'Use the same products each visit' },
+    access: { complexAccess: 'VISITOR_SIGN_IN', securityInstructions: 'Check in', parking: 'Visitor bay', keyHandover: 'SOMEONE_WILL_OPEN', someonePresent: true },
+    household: { hasPets: false }, safety: { existingDamage: 'Customer reports scratched floor' }, notes: {},
   };
   function harness(quoteOverrides: any = {}) {
-    const quote = { ...baseQuote, customerResolution: QuoteEntityResolution.USE_EXISTING, propertyResolution: QuoteEntityResolution.USE_EXISTING, resolutionRevisionNumber: 2, customerId: 'customer-1', propertyId: 'property-1', ...quoteOverrides };
+    const quote = { ...baseQuote, photos: [{ id: 'photo-1', quoteRevisionId: 'revision-1', status: 'STORED' }], customerResolution: QuoteEntityResolution.USE_EXISTING, propertyResolution: QuoteEntityResolution.USE_EXISTING, resolutionRevisionNumber: 2, customerId: 'customer-1', propertyId: 'property-1', ...quoteOverrides };
     const tx: any = {
       quote: { findUnique: jest.fn(async () => quote), updateMany: jest.fn(async () => ({ count: 1 })), findUniqueOrThrow: jest.fn(async () => ({ ...quote, status: QuoteStatus.ACCEPTED, workOrderId: 'work-order-1' })) },
       quoteRevision: { findUnique: jest.fn(async () => ({ ...revision, structuredData: acceptedSubmission })) },
@@ -177,7 +179,13 @@ describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
   it('creates and links one WorkOrder with exact accepted revision and load quantities', async () => {
     const { service, tx } = harness();
     await service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1');
-    expect(tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: 'customer-1', propertyId: 'property-1', frequency: 'ONE_TIME', addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] } }) });
+    expect(tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      customerId: 'customer-1', propertyId: 'property-1', frequency: 'ONE_TIME', preferredTimeWindow: 'MORNING', alternativeDate: new Date('2026-08-22T00:00:00.000Z'),
+      dateFlexibility: 'Two days', urgency: 'Normal', exactFloor: 4, buildingAccess: 'STAIRS', complexAccess: 'VISITOR_SIGN_IN', accessInstructions: 'Check in',
+      parkingInstructions: 'Visitor bay', keyHandover: 'SOMEONE_WILL_OPEN', someonePresent: true, ecoFriendlyProducts: true,
+      customerDeclaredExistingDamage: 'Customer reports scratched floor', quoteEvidence: { create: [{ quotePhotoId: 'photo-1' }] },
+      addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] },
+    }) });
     expect(tx.quote.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: QuoteStatus.ACCEPTED, acceptedRevisionId: 'revision-1', workOrderId: 'work-order-1' }) }));
     expect(tx.quoteActivity.create).toHaveBeenCalledWith({ data: expect.objectContaining({ previousStatus: QuoteStatus.SUBMITTED, newStatus: QuoteStatus.ACCEPTED, actorUserId: 'admin-1' }) });
   });
@@ -221,6 +229,7 @@ describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
     await recurring.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1');
     expect(recurring.tx.recurringServiceAgreement.create).toHaveBeenCalledWith({ data: expect.objectContaining({
       propertyId: 'property-1', serviceId: 'primary-1', frequency, effectiveDate: new Date('2026-08-20T00:00:00.000Z'),
+      preferredTimeWindow: 'MORNING', recurringInstructions: 'Use the same products each visit', ecoFriendlyProducts: true,
       addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] },
     }) });
     expect(recurring.tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({

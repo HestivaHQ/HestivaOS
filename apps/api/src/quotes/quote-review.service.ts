@@ -28,7 +28,7 @@ const detailInclude = {
 } as const;
 const acceptedResultInclude = {
   acceptedRevision: { include: { lineItems: { orderBy: { sortOrder: 'asc' as const } } } },
-  workOrder: { include: { customer: true, property: true, service: true, addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } } } },
+  workOrder: { include: { customer: true, property: true, service: true, addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } }, quoteEvidence: { include: { quotePhoto: true } } } },
   recurringAgreement: { include: { property: { include: { customer: true } }, service: true, addOns: { include: { service: true } } } },
   activities: { orderBy: { createdAt: 'asc' as const } },
 } as const;
@@ -176,7 +176,8 @@ export class QuoteReviewService {
               status: RecurringServiceAgreementStatus.ACTIVE, effectiveDate: recurringProjection.effectiveDate,
               weekday: recurringProjection.weekday, dayOfMonth: recurringProjection.dayOfMonth,
               preferredTimeWindow: recurringProjection.preferredTimeWindow, customFrequencyNote: recurringProjection.customFrequencyNote,
-              recurringInstructions: recurringProjection.description, nextServiceDate: recurringProjection.effectiveDate,
+              recurringInstructions: recurringProjection.recurringInstructions, ecoFriendlyProducts: recurringProjection.ecoFriendlyProducts,
+              nextServiceDate: recurringProjection.effectiveDate,
               addOns: addOns.length ? { create: addOns.map((item) => ({ serviceId: item.service!.id, quantity: item.quantity })) } : undefined,
             } });
             recurringAgreementId = agreement.id;
@@ -192,7 +193,16 @@ export class QuoteReviewService {
             reference, title: reference, description: projection.description, frequency: projection.frequency,
             customFrequencyNote: recurring ? (projection as ReturnType<typeof projectAcceptedRecurringSubmission>).customFrequencyNote : undefined,
             homeCondition: projection.homeCondition, scheduledAt: recurring ? undefined : (projection as ReturnType<typeof projectAcceptedOneTimeSubmission>).scheduledAt, status: WorkOrderStatus.NEW,
+            preferredTimeWindow: projection.preferredTimeWindow, alternativeDate: projection.alternativeDate,
+            dateFlexibility: projection.dateFlexibility, urgency: projection.urgency,
+            exactFloor: projection.exactFloor, buildingAccess: projection.buildingAccess,
+            complexAccess: projection.complexAccess, accessInstructions: projection.accessInstructions,
+            parkingInstructions: projection.parkingInstructions, keyHandover: projection.keyHandover,
+            keyHandoverDetails: projection.keyHandoverDetails, someonePresent: projection.someonePresent,
+            ecoFriendlyProducts: projection.ecoFriendlyProducts,
+            customerDeclaredExistingDamage: projection.customerDeclaredExistingDamage,
             addOns: addOns.length ? { create: addOns.map((item) => ({ serviceId: item.service!.id, quantity: item.quantity })) } : undefined,
+            quoteEvidence: { create: quote.photos.filter((photo) => photo.quoteRevisionId === revision.id).map((photo) => ({ quotePhotoId: photo.id })) },
           } });
           await tx.workOrderActivity.create({ data: { workOrderId: workOrder.id, type: WorkOrderActivityType.WORK_ORDER_CREATED, newStatus: WorkOrderStatus.NEW, actorId: actorUserId } });
           const acceptedAt = new Date();

@@ -43,3 +43,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0039: Convert accepted ONE_TIME Quotes atomically](ADR-0039-atomic-one-time-quote-acceptance.md)
 
 - [ADR-0040: Convert accepted recurring Quotes atomically](ADR-0040-atomic-recurring-quote-acceptance.md)
+- [ADR-0041: Own accepted Quote operational context by lifecycle](ADR-0041-non-lossy-accepted-quote-operational-context.md)

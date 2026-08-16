@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
-  BathroomCount, BedroomCount, EstateClassification, FloorSize, HomeCondition,
-  LivingAreaCount, OutdoorArea, PreferredTimeWindow, RecurrenceWeekday, StoreyCount, WorkOrderFrequency,
+  BathroomCount, BedroomCount, BuildingAccessMethod, ComplexAccessMethod, EstateClassification, FloorSize, HomeCondition,
+  KeyHandoverMethod, LivingAreaCount, OutdoorArea, PreferredTimeWindow, RecurrenceWeekday, StoreyCount, WorkOrderFrequency,
 } from '@prisma/client';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
@@ -15,14 +15,28 @@ export type AcceptanceProjection = {
   homeCondition: HomeCondition;
   scheduledAt: Date;
   description: string | null;
+  preferredTimeWindow: PreferredTimeWindow;
+  alternativeDate: Date | null;
+  dateFlexibility: string | null;
+  urgency: string | null;
+  exactFloor: number | null;
+  buildingAccess: BuildingAccessMethod | null;
+  complexAccess: ComplexAccessMethod | null;
+  accessInstructions: string | null;
+  parkingInstructions: string | null;
+  keyHandover: KeyHandoverMethod | null;
+  keyHandoverDetails: string | null;
+  someonePresent: boolean | null;
+  ecoFriendlyProducts: boolean | null;
+  customerDeclaredExistingDamage: string | null;
 };
 
 export type RecurringAcceptanceProjection = Omit<AcceptanceProjection, 'scheduledAt'> & {
   effectiveDate: Date;
   weekday: RecurrenceWeekday | null;
   dayOfMonth: number | null;
-  preferredTimeWindow: PreferredTimeWindow;
   customFrequencyNote: string | null;
+  recurringInstructions: string | null;
 };
 
 const propertyTypeLabels: Record<string, string> = {
@@ -55,6 +69,20 @@ export function projectAcceptedOneTimeSubmission(submission: AcceptedSubmission)
     homeCondition: submission.request.homeCondition as HomeCondition,
     scheduledAt,
     description: instructions.length ? instructions.join('\n') : null,
+    preferredTimeWindow: submission.visit.preferredTime as PreferredTimeWindow,
+    alternativeDate: submission.visit.alternativeDate ? new Date(`${submission.visit.alternativeDate}T00:00:00.000Z`) : null,
+    dateFlexibility: submission.visit.flexibility?.trim() || null,
+    urgency: submission.visit.urgency?.trim() || null,
+    exactFloor: submission.property.exactFloor ?? null,
+    buildingAccess: (submission.property.buildingAccess as BuildingAccessMethod | undefined) ?? null,
+    complexAccess: (submission.access?.complexAccess as ComplexAccessMethod | undefined) ?? null,
+    accessInstructions: submission.access?.securityInstructions?.trim() || null,
+    parkingInstructions: submission.access?.parking?.trim() || null,
+    keyHandover: (submission.access?.keyHandover as KeyHandoverMethod | undefined) ?? null,
+    keyHandoverDetails: submission.access?.keyHandoverDetails?.trim() || null,
+    someonePresent: submission.access?.someonePresent ?? null,
+    ecoFriendlyProducts: submission.request.ecoFriendlyProducts ?? null,
+    customerDeclaredExistingDamage: submission.safety?.existingDamage?.trim() || null,
   };
 }
 
@@ -78,6 +106,7 @@ export function projectAcceptedRecurringSubmission(submission: AcceptedSubmissio
     dayOfMonth: frequency === WorkOrderFrequency.MONTHLY ? effectiveDate.getUTCDate() : null,
     preferredTimeWindow: submission.visit.preferredTime as PreferredTimeWindow,
     customFrequencyNote,
+    recurringInstructions: submission.visit.recurringNotes?.trim() || oneTimeShape.description,
   };
 }
 

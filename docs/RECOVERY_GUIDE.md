@@ -251,3 +251,7 @@ If authenticated API requests begin failing after an authentication or signing-k
 8. If JWKS retrieval or cryptographic verification fails, keep authentication fail closed. Do not temporarily bypass signature, issuer, audience, expiry, subject, or application-user validation to restore access.
 
 A deliberate migration away from ES256 requires a reviewed code change, tests, ADR update, deployment/recovery documentation, and production verification before changing the Supabase signing algorithm.
+
+### Accepted Quote operational-context verification (2026-08-16)
+
+After migration recovery, verify an accepted Quote links to exactly one initial Work Order, that its accepted-revision stored photos have `work_order_quote_evidence` rows, and that the Work Order retains the structured visit context. For recurring Quotes, verify stable instructions/time/eco preference on the agreement and initial visit. Never reconstruct missing temporary credentials from Property notes or copy them to later visits; recover credential metadata only from an authorized source and revoke unusable records.

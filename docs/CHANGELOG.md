@@ -645,3 +645,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 - Protected API requests no longer require a Supabase Auth `/user` network round trip after JWKS warm-up.
 - Supabase remains the identity and signing-key authority; authentication continues to fail closed when a token cannot be cryptographically verified.
+
+## 2026-08-16 — Accepted Quote operational context
+
+- Added non-lossy typed Work Order context for accepted ONE_TIME and initial recurring visits.
+- Added stable recurring instruction/time/eco preference inheritance without temporary access propagation.
+- Linked accepted Quote photos without blob duplication and separated customer declarations from cleaner evidence.
+- Added a visit-scoped temporary access credential data boundary with expiry/revocation metadata.

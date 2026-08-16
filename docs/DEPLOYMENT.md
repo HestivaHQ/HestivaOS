@@ -186,3 +186,7 @@ The timestamp places this migration before `20260812120000_property_operational_
 ## Recurring service migration (2026-08-11)
 
 Migration `20260811190000_recurring_service_agreements` is additive: it creates three new enums, two tables, nullable Work Order link/date columns, indexes, foreign keys, and occurrence uniqueness. It does not rewrite existing Work Orders or Services. Deploy through the existing `prisma migrate deploy` path and retain both clean and staged PostgreSQL replay gates. After deploy, verify the migration is finished and the unique index `work_orders_recurring_agreement_id_recurrence_date_key` exists before invoking generation.
+
+### 2026-08-16 non-lossy Quote handoff migration
+
+Migration `20260816170000_non_lossy_quote_handoff` additively creates typed Work Order context columns, the recurring eco-product preference, accepted-Quote evidence links, and visit-scoped temporary-access credentials. Deploy with the normal Prisma migration-before-start sequence. No environment variable changes are required.

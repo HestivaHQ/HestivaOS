@@ -91,3 +91,5 @@ Only currently identified technical follow-up work is listed here.
 - Guarded Slice 5M Website ingestion and authoritative pricing are now implemented. The remaining protected path is accepted-Quote decision/orchestration and any still-unresolved non-Laundry persistence/storage mappings; do not regress the established Website authentication, idempotency, profitability or structured-v2 boundaries.
 - Slice 5N remains the one/many Technician and optional Crew assignment redesign; recurring agreement generation uses current Work Order assignment.
 - Slice 5O remains skills and remaining evidence-backed operational fields.
+
+- **Completed 2026-08-16:** non-lossy accepted Quote handoff now projects typed initial-visit context, stable recurring context, accepted-revision photo references, and a visit-scoped temporary-credential boundary. Admin/cleaner presentation and role-filtered credential APIs remain planned UI/security work.
