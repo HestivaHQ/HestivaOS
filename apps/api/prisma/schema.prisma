@@ -229,6 +229,7 @@ model Customer {
   owner User @relation("CustomerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   properties Property[]
   workOrders WorkOrder[]
+  quotes Quote[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([ownerId])
@@ -270,6 +271,7 @@ model Property {
   propertyTypeOption BusinessListOption? @relation("PropertyType", fields: [propertyTypeOptionId], references: [id], onDelete: Restrict)
   workOrders WorkOrder[]
   recurringServiceAgreements RecurringServiceAgreement[]
+  quotes Quote[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
@@ -748,6 +750,8 @@ model Quote {
   acceptedRevision QuoteRevision? @relation("AcceptedQuoteRevision", fields: [acceptedRevisionId], references: [id], onDelete: Restrict)
   workOrder WorkOrder? @relation("AcceptedQuoteWorkOrder", fields: [workOrderId], references: [id], onDelete: Restrict)
   recurringAgreement RecurringServiceAgreement? @relation("AcceptedQuoteRecurringAgreement", fields: [recurringAgreementId], references: [id], onDelete: Restrict)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   revisions QuoteRevision[]
   photos QuotePhoto[]
   activities QuoteActivity[]

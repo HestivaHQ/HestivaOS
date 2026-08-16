@@ -1,5 +1,11 @@
 # Recovery guide
 
+## Atomic ONE_TIME Quote acceptance recovery
+
+Migration `20260816120000_atomic_one_time_quote_acceptance` replaces the pre-acceptance resolution checks, adds restricted Quote Customer/Property foreign keys, and requires complete accepted operational shape. Deploy it before the Accept API revision. If acceptance times out or returns a serialization conflict, reload Quote detail using the same expected revision before retrying. A complete accepted ONE_TIME result can be recovered by an identical retry; do not create a direct replacement Work Order or manually relink IDs.
+
+If any Customer, Property, Work Order, or acceptance activity exists without the complete accepted Quote after a reported failed transaction, stop and investigate database/transaction health: normal failure rolls back every record. Never mark a Quote `ACCEPTED` manually. For incompatible accepted state, preserve all rows and obtain a reviewed reconciliation plan. Application rollback may retain the additive foreign keys/check; database rollback must not remove accepted history.
+
 ## Quote match-resolution recovery
 
 If a resolution request returns conflict, reload Quote detail/preflight and compare `currentRevisionNumber`, stored decisions, and selected IDs. Identical retries are safe; a differing stored decision is intentionally not overwritten. Correcting a deliberate decision currently requires a separately reviewed replacement mechanism or database recovery—do not clear fields ad hoc. No Customer, Property, Work Order, or recurring agreement needs rollback because review does not create them.
@@ -8,7 +14,7 @@ If a resolution request returns conflict, reload Quote detail/preflight and comp
 
 Migration `20260815190000_quote_review_decision_foundation` adds the nullable accepted-revision link and unique restricted foreign keys for future Work Order and Recurring Service Agreement linkage. Deploy it through the normal Prisma migration path before serving the internal Quote review API. Verify `quotes_accepted_revision_id_key`, `quotes_work_order_id_key`, and `quotes_recurring_agreement_id_key` plus their foreign keys. Do not remove accepted revisions or operational records to bypass a restriction.
 
-If Decline returns a conflict after a timeout, read the Quote detail and activities before retrying. An identical retry with the same Admin, expected revision and normalized reason returns the existing declined decision. A different actor/reason/revision is intentionally a conflict and must be reviewed rather than overwritten. Never manually set `ACCEPTED`: this slice has no Accept endpoint and operational conversion is not implemented.
+If Decline returns a conflict after a timeout, read the Quote detail and activities before retrying. An identical retry with the same Admin, expected revision and normalized reason returns the existing declined decision. A different actor/reason/revision is intentionally a conflict and must be reviewed rather than overwritten. At that historical foundation checkpoint no Accept endpoint existed; use only the later atomic ONE_TIME endpoint described above and never manually set `ACCEPTED`.
 
 Application rollback may leave the additive column, indexes and foreign keys in place. Before rolling back the database, inspect for populated linkage values and accepted-revision references; never drop accepted history as an application-recovery shortcut.
 
