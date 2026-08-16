@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-16 — Atomic recurring Quote acceptance
+
+### Added
+
+- Extended the ADMIN Quote Accept transaction to dispatch canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` Quotes into exactly one recurring agreement and one linked initial Work Order.
+- Preserved exact generic, Laundry, and Ironing quantities across both operational records, with accepted-revision linkage, audit metadata, conditional transition, serializable retries, and complete-result recovery.
+
+### Preserved and deferred
+
+- ONE_TIME conversion and Website ingestion/authentication/contracts/replay/pricing are unchanged. Review UI and remaining non-lossy source-field handoff remain planned; Issue #79 remains historically closed.
+
+
 ## 2026-08-16 — Atomic ONE_TIME Quote acceptance
 
 ### Added

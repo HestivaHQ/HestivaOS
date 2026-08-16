@@ -1,5 +1,10 @@
 # Recovery guide
 
+## Atomic recurring Quote acceptance recovery
+
+Deploy `20260816180000_atomic_recurring_quote_acceptance` before the recurring Accept revision. It strengthens accepted shape so every accepted Quote has an initial Work Order; a recurring accepted result must additionally have an agreement and a Work Order linked to that same agreement. After a timeout or serialization conflict, reload and retry with the same revision. A complete matching result is returned without duplicate writes; incompatible linkage fails closed. Never create a replacement agreement/visit or manually mark the Quote accepted. Any reported partial Customer, Property, agreement, visit, or activity indicates abnormal transaction/database behavior and requires investigation.
+
+
 ## Atomic ONE_TIME Quote acceptance recovery
 
 Migration `20260816120000_atomic_one_time_quote_acceptance` replaces the pre-acceptance resolution checks, adds restricted Quote Customer/Property foreign keys, and requires complete accepted operational shape. Deploy it before the Accept API revision. If acceptance times out or returns a serialization conflict, reload Quote detail using the same expected revision before retrying. A complete accepted ONE_TIME result can be recovered by an identical retry; do not create a direct replacement Work Order or manually relink IDs.

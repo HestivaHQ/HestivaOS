@@ -1,10 +1,15 @@
 # Current website quote-to-OS value mapping
 
+## Accepted recurring conversion
+
+Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` accepted Quotes now create one Property-owned recurring agreement and one initial Work Order atomically. Preferred date maps to agreement effective date and initial date-only recurrence; weekly variants derive weekday, monthly derives day-of-month, and CUSTOM retains its required descriptive note without automatic future generation. Preferred time maps only to the agreement controlled field. Canonical primary/add-on Services and exact generic/Laundry/Ironing quantities copy to both agreement and initial visit; home condition maps to the visit. Accepted revision remains the commercial and source-only truth for fields without safe destinations. ONE_TIME mapping remains unchanged.
+
+
 ## Accepted ONE_TIME operational projection (2026-08-16)
 
 An eligible accepted `ONE_TIME` Quote now creates exactly one Work Order atomically. Customer and Property use the current durable Admin resolution. New records use normalized submitted identity/address plus established Property-owned profile, household, and care fields; existing records are never overwritten. The Work Order receives the canonical primary Service, ONE_TIME frequency, home condition, preferred date in Johannesburg date semantics, supported attention/renovation/appliance/additional notes, and canonical add-ons with exact quantities. Structured Laundry loads map to the canonical Laundry add-on quantity and Ironing loads map to Ironing quantity without boolean collapse.
 
-The immutable accepted revision remains authoritative for the ZAR pricing snapshot and source facts without a safe destination. Preferred time window, alternative date, flexibility/urgency, exact floor, building access, complex/security/parking/key/someone-present details, eco preference, existing-damage detail, source-photo linkage, and other source-only facts are not yet projected to unrelated fields. They are non-blocking where the accepted revision safely preserves them. Recurring conversion remains unsupported and creates no recurring agreement.
+The immutable accepted revision remains authoritative for the ZAR pricing snapshot and source facts without a safe destination. Preferred time window, alternative date, flexibility/urgency, exact floor, building access, complex/security/parking/key/someone-present details, eco preference, existing-damage detail, source-photo linkage, and other source-only facts are not yet projected to unrelated fields. They are non-blocking where the accepted revision safely preserves them. Supported recurring conversion uses the agreement and initial-visit mapping described above.
 
 ## Match/review boundary (2026-08-15)
 

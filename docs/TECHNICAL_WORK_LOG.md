@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-16 — Atomic recurring Quote acceptance
+
+- Reused the ONE_TIME endpoint and serializable transaction to convert supported recurring Quotes into one agreement plus one initial `NEW` visit, materializing Customer/Property decisions in the same transaction.
+- Mapped preferred date to agreement effective date and initial recurrence date, derived standard recurrence rules, retained CUSTOM manual semantics, and copied canonical Services/add-ons with exact quantities.
+- Added the accepted-shape migration, recurring dispatch/projection/retry tests, deployment/recovery/mapping documentation, and ADR-0040. Website ingestion and ordinary recurring generation were not changed.
+
+
 ## 2026-08-16 — Atomic ONE_TIME Quote acceptance
 
 - Added ADMIN-only revision-checked Accept and truthful preflight for ONE_TIME Quotes.
