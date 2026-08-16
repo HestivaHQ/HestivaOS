@@ -1,14 +1,14 @@
 # Technical roadmap
 
-## Slice 5M ONE_TIME acceptance status (2026-08-16)
+## Slice 5M accepted conversion status (2026-08-16)
 
 - Completed: atomic ADMIN acceptance of eligible ONE_TIME Quotes into one linked Work Order, including durable resolution consumption/materialization, exact accepted revision, quantity-bearing add-ons, audit, rollback, and retry/concurrency protections.
-- Still planned: recurring Quote conversion, review UI, controlled resolution replacement/duplicate merge, and non-lossy exact-floor/access/time-window/photo/commercial handoff.
+- Completed: supported recurring conversion into one agreement plus one initial visit. Still planned: review UI, controlled resolution replacement/duplicate merge, and non-lossy exact-floor/access/time-window/photo/commercial handoff.
 
 ## Slice 5M match/review status (2026-08-15)
 
 - Completed: Customer + Property match-or-review foundation for accepted-Quote preparation, including ADMIN resolution persistence and preflight visibility.
-- Historical plan now partially completed by the 2026-08-16 ONE_TIME conversion. Recurring conversion and controlled duplicate-Customer merge/reversal and resolution replacement remain separate work.
+- Historical plan is completed for ONE_TIME and supported recurring operational conversion as of 2026-08-16. Controlled duplicate-Customer merge/reversal and resolution replacement remain separate work.
 
 ## Completed 2026-08-15
 
@@ -34,7 +34,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Complete remaining Slice 5M work after ONE_TIME atomic acceptance: recurring agreement + initial-visit conversion, review UI, unresolved exact-floor/access/time-window/photo/commercial mapping, and safe non-lossy operational import.
+- Complete remaining Slice 5M work after atomic ONE_TIME and recurring conversion: review UI, unresolved exact-floor/access/time-window/photo/commercial mapping, and safe non-lossy operational import.
 - Map approved website subordinate job-type choices to the existing Cleaning Job Template architecture (or explicitly record why a choice is quote-flow-only) before importing controlled options.
 
 - Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
@@ -73,7 +73,7 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5L — Recurring agreement architecture (completed 2026-08-11):** owns recurring agreement identity, standard recurrence rules, next service date, lifecycle, and independent generated Work Orders.
 - **Slice 5M-A — Quote domain foundation (completed 2026-08-11):** added authoritative Quote identity, revisions, pricing snapshots/line items, photo provenance/status, activities, and retry identities.
 - **Slice 5M-B plus Laundry v2 contract work (completed):** defines the structured Website Quote contracts, validation semantics, private transport/authentication contract, authoritative pricing response, photo identity/hash contract, structured Laundry/Ironing fields, and cross-repository consumer documentation. Later runtime work exposed the guarded ingestion endpoint rather than changing these contract semantics.
-- **Slice 5M runtime ingestion and decision foundation:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, atomic NEW Quote persistence, ADMIN review APIs, readiness preflight, terminal Decline, and atomic ONE_TIME Accept conversion are implemented. Recurring Accept, review UI and remaining non-lossy handoff/recovery work remain separate follow-ups.
+- **Slice 5M runtime ingestion and decision foundation:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, atomic NEW Quote persistence, ADMIN review APIs, readiness preflight, terminal Decline, and atomic ONE_TIME and supported recurring Accept conversion are implemented. Review UI and remaining non-lossy handoff/recovery work remain separate follow-ups.
 
 ## 2026-08-10 status update
 

@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, QuoteActivityType, QuoteEntityResolution, QuoteStatus, ServiceStatus, ServiceType, WorkOrderActivityType, WorkOrderStatus } from '@prisma/client';
+import { Prisma, QuoteActivityType, QuoteEntityResolution, QuoteStatus, RecurringServiceAgreementStatus, ServiceStatus, ServiceType, WorkOrderActivityType, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { johannesburgBusinessDate } from '../work-orders/work-orders.service';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
-import { newCustomerData, newPropertyData, projectAcceptedOneTimeSubmission, propertyTypeLabel, type AcceptedSubmission } from './quote-acceptance';
+import { newCustomerData, newPropertyData, projectAcceptedOneTimeSubmission, projectAcceptedRecurringSubmission, propertyTypeLabel, type AcceptedSubmission } from './quote-acceptance';
 import { resolveCustomerMatch, resolvePropertyMatch, type MatchResult } from './quote-match-resolution';
 
 export type DeclineQuoteInput = { expectedRevisionNumber: number; reason?: string };
@@ -29,6 +29,7 @@ const detailInclude = {
 const acceptedResultInclude = {
   acceptedRevision: { include: { lineItems: { orderBy: { sortOrder: 'asc' as const } } } },
   workOrder: { include: { customer: true, property: true, service: true, addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } } } },
+  recurringAgreement: { include: { property: { include: { customer: true } }, service: true, addOns: { include: { service: true } } } },
   activities: { orderBy: { createdAt: 'asc' as const } },
 } as const;
 
@@ -100,7 +101,11 @@ export class QuoteReviewService {
     if (!quote.customerResolution || quote.resolutionRevisionNumber !== expectedRevisionNumber || quote.resolution.customer.readiness !== 'READY') blockers.push({ code: 'CUSTOMER_UNRESOLVED', message: 'Customer match-or-review requires a current Admin decision.', resolvableInCurrentSlice: true });
     if (!quote.propertyResolution || quote.resolutionRevisionNumber !== expectedRevisionNumber || quote.resolution.property.readiness !== 'READY') blockers.push({ code: 'PROPERTY_UNRESOLVED', message: 'Property match-or-review requires a current Admin decision.', resolvableInCurrentSlice: true });
     if (quote.photos.some((photo) => photo.status !== 'STORED')) blockers.push({ code: 'QUOTE_EVIDENCE_UNRESOLVED', message: 'One or more persisted Quote photos are not stored.', resolvableInCurrentSlice: false });
-    try { projectAcceptedOneTimeSubmission(submissionFrom(quote.currentRevision.structuredData) as AcceptedSubmission); }
+    try {
+      const submission = submissionFrom(quote.currentRevision.structuredData) as AcceptedSubmission;
+      if (submission.request.frequency === 'ONE_TIME') projectAcceptedOneTimeSubmission(submission);
+      else projectAcceptedRecurringSubmission(submission);
+    }
     catch (error) { blockers.push({ code: 'OPERATIONAL_MAPPING_BLOCKED', message: error instanceof Error ? error.message : 'Quote cannot be projected safely.', resolvableInCurrentSlice: false }); }
     return { quoteId: quote.id, quoteReference: quote.reference, currentRevisionNumber: quote.currentRevisionNumber, expectedRevisionNumber, resolution: quote.resolution, resolutionReady: Boolean(quote.customerResolution && quote.propertyResolution && quote.resolutionRevisionNumber === expectedRevisionNumber && quote.resolution.customer.readiness === 'READY' && quote.resolution.property.readiness === 'READY'), eligibleForAcceptance: blockers.length === 0, blockers };
   }
@@ -116,7 +121,10 @@ export class QuoteReviewService {
           if (quote.currentRevisionNumber !== input.expectedRevisionNumber) throw new ConflictException(`Quote revision is stale. Current revision is ${quote.currentRevisionNumber}.`);
           if (quote.status === QuoteStatus.ACCEPTED) {
             const expectedRevision = await tx.quoteRevision.findUnique({ where: { quoteId_revisionNumber: { quoteId: id, revisionNumber: input.expectedRevisionNumber } }, select: { id: true } });
-            if (expectedRevision?.id === quote.acceptedRevisionId && quote.customerId && quote.propertyId && quote.workOrderId && !quote.recurringAgreementId) return tx.quote.findUniqueOrThrow({ where: { id }, include: acceptedResultInclude });
+            if (expectedRevision?.id === quote.acceptedRevisionId && quote.customerId && quote.propertyId && quote.workOrderId) {
+              const linkedWorkOrder = await tx.workOrder.findUnique({ where: { id: quote.workOrderId }, select: { recurringAgreementId: true } });
+              if ((!quote.recurringAgreementId && !linkedWorkOrder?.recurringAgreementId) || (quote.recurringAgreementId && linkedWorkOrder?.recurringAgreementId === quote.recurringAgreementId)) return tx.quote.findUniqueOrThrow({ where: { id }, include: acceptedResultInclude });
+            }
             throw new ConflictException('Quote has incompatible accepted state and requires recovery.');
           }
           if (quote.status !== QuoteStatus.SUBMITTED) throw new ConflictException(`${quote.status} Quote cannot be accepted.`);
@@ -126,7 +134,8 @@ export class QuoteReviewService {
           const revision = await tx.quoteRevision.findUnique({ where: { quoteId_revisionNumber: { quoteId: id, revisionNumber: input.expectedRevisionNumber } }, include: { lineItems: true } });
           if (!revision) throw new ConflictException('Quote current revision is missing and requires recovery.');
           const submission = submissionFrom(revision.structuredData) as AcceptedSubmission;
-          const projection = projectAcceptedOneTimeSubmission(submission);
+          const recurring = submission.request.frequency !== 'ONE_TIME';
+          const projection = recurring ? projectAcceptedRecurringSubmission(submission) : projectAcceptedOneTimeSubmission(submission);
           const actor = await tx.user.findUnique({ where: { id: actorUserId }, select: { id: true } });
           if (!actor) throw new BadRequestException('Accepting user does not exist.');
 
@@ -159,21 +168,37 @@ export class QuoteReviewService {
           const addOns = projection.addOns.map((item) => ({ ...item, service: serviceFor(item.serviceName) }));
           if (addOns.some((item) => !item.service || item.service.status !== ServiceStatus.ACTIVE || (item.service.type !== ServiceType.ADD_ON && item.service.type !== ServiceType.BOTH))) throw new ConflictException('A canonical add-on Service is missing, inactive, or not add-on-capable.');
 
+          let recurringAgreementId: string | null = null;
+          if (recurring) {
+            const recurringProjection = projection as ReturnType<typeof projectAcceptedRecurringSubmission>;
+            const agreement = await tx.recurringServiceAgreement.create({ data: {
+              propertyId: propertyId!, serviceId: primary.id, frequency: recurringProjection.frequency,
+              status: RecurringServiceAgreementStatus.ACTIVE, effectiveDate: recurringProjection.effectiveDate,
+              weekday: recurringProjection.weekday, dayOfMonth: recurringProjection.dayOfMonth,
+              preferredTimeWindow: recurringProjection.preferredTimeWindow, customFrequencyNote: recurringProjection.customFrequencyNote,
+              recurringInstructions: recurringProjection.description, nextServiceDate: recurringProjection.effectiveDate,
+              addOns: addOns.length ? { create: addOns.map((item) => ({ serviceId: item.service!.id, quantity: item.quantity })) } : undefined,
+            } });
+            recurringAgreementId = agreement.id;
+          }
+
           const businessDate = johannesburgBusinessDate();
           const counter = await tx.workOrderDailyCounter.upsert({ where: { businessDate }, create: { businessDate, sequence: 1 }, update: { sequence: { increment: 1 } } });
           if (counter.sequence > 9999) throw new ConflictException('The daily work order reference limit has been reached.');
           const reference = `WO-${businessDate}-${String(counter.sequence).padStart(4, '0')}`;
           const workOrder = await tx.workOrder.create({ data: {
             customerId: customerId!, propertyId: propertyId!, createdById: actorUserId, serviceId: primary.id,
+            recurringAgreementId, recurrenceDate: recurring ? (projection as ReturnType<typeof projectAcceptedRecurringSubmission>).effectiveDate : undefined,
             reference, title: reference, description: projection.description, frequency: projection.frequency,
-            homeCondition: projection.homeCondition, scheduledAt: projection.scheduledAt, status: WorkOrderStatus.NEW,
+            customFrequencyNote: recurring ? (projection as ReturnType<typeof projectAcceptedRecurringSubmission>).customFrequencyNote : undefined,
+            homeCondition: projection.homeCondition, scheduledAt: recurring ? undefined : (projection as ReturnType<typeof projectAcceptedOneTimeSubmission>).scheduledAt, status: WorkOrderStatus.NEW,
             addOns: addOns.length ? { create: addOns.map((item) => ({ serviceId: item.service!.id, quantity: item.quantity })) } : undefined,
           } });
           await tx.workOrderActivity.create({ data: { workOrderId: workOrder.id, type: WorkOrderActivityType.WORK_ORDER_CREATED, newStatus: WorkOrderStatus.NEW, actorId: actorUserId } });
           const acceptedAt = new Date();
-          const transition = await tx.quote.updateMany({ where: { id, status: QuoteStatus.SUBMITTED, currentRevisionNumber: input.expectedRevisionNumber, workOrderId: null, acceptedRevisionId: null }, data: { status: QuoteStatus.ACCEPTED, acceptedAt, acceptedByUserId: actorUserId, acceptedRevisionId: revision.id, customerId, propertyId, workOrderId: workOrder.id } });
+          const transition = await tx.quote.updateMany({ where: { id, status: QuoteStatus.SUBMITTED, currentRevisionNumber: input.expectedRevisionNumber, workOrderId: null, recurringAgreementId: null, acceptedRevisionId: null }, data: { status: QuoteStatus.ACCEPTED, acceptedAt, acceptedByUserId: actorUserId, acceptedRevisionId: revision.id, customerId, propertyId, workOrderId: workOrder.id, recurringAgreementId } });
           if (transition.count !== 1) throw new ConflictException('Quote decision changed concurrently. Review the current Quote before retrying.');
-          await tx.quoteActivity.create({ data: { quoteId: id, type: QuoteActivityType.STATUS_CHANGED, previousStatus: quote.status, newStatus: QuoteStatus.ACCEPTED, actorUserId, metadata: { expectedRevisionNumber: input.expectedRevisionNumber, acceptedRevisionId: revision.id, customerResolution: quote.customerResolution, customerId, propertyResolution: quote.propertyResolution, propertyId, workOrderId: workOrder.id } } });
+          await tx.quoteActivity.create({ data: { quoteId: id, type: QuoteActivityType.STATUS_CHANGED, previousStatus: quote.status, newStatus: QuoteStatus.ACCEPTED, actorUserId, metadata: { expectedRevisionNumber: input.expectedRevisionNumber, acceptedRevisionId: revision.id, customerResolution: quote.customerResolution, customerId, propertyResolution: quote.propertyResolution, propertyId, recurringAgreementId, workOrderId: workOrder.id, frequency: projection.frequency } } });
           return tx.quote.findUniqueOrThrow({ where: { id }, include: acceptedResultInclude });
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {

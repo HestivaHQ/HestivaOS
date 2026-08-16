@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
   BathroomCount, BedroomCount, EstateClassification, FloorSize, HomeCondition,
-  LivingAreaCount, OutdoorArea, StoreyCount, WorkOrderFrequency,
+  LivingAreaCount, OutdoorArea, PreferredTimeWindow, RecurrenceWeekday, StoreyCount, WorkOrderFrequency,
 } from '@prisma/client';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
@@ -15,6 +15,14 @@ export type AcceptanceProjection = {
   homeCondition: HomeCondition;
   scheduledAt: Date;
   description: string | null;
+};
+
+export type RecurringAcceptanceProjection = Omit<AcceptanceProjection, 'scheduledAt'> & {
+  effectiveDate: Date;
+  weekday: RecurrenceWeekday | null;
+  dayOfMonth: number | null;
+  preferredTimeWindow: PreferredTimeWindow;
+  customFrequencyNote: string | null;
 };
 
 const propertyTypeLabels: Record<string, string> = {
@@ -47,6 +55,29 @@ export function projectAcceptedOneTimeSubmission(submission: AcceptedSubmission)
     homeCondition: submission.request.homeCondition as HomeCondition,
     scheduledAt,
     description: instructions.length ? instructions.join('\n') : null,
+  };
+}
+
+export function projectAcceptedRecurringSubmission(submission: AcceptedSubmission): RecurringAcceptanceProjection {
+  if (submission.request.frequency === 'ONE_TIME') throw new ConflictException('ONE_TIME Quotes require the one-time conversion path.');
+  const frequency = submission.request.frequency;
+  if (!([WorkOrderFrequency.WEEKLY, WorkOrderFrequency.EVERY_TWO_WEEKS, WorkOrderFrequency.MONTHLY, WorkOrderFrequency.CUSTOM] as string[]).includes(frequency)) {
+    throw new ConflictException('Quote recurring frequency is not supported.');
+  }
+  const oneTimeShape = projectAcceptedOneTimeSubmission({ ...submission, request: { ...submission.request, frequency: 'ONE_TIME' } } as AcceptedSubmission);
+  const effectiveDate = new Date(`${submission.visit.preferredDate}T00:00:00.000Z`);
+  if (Number.isNaN(effectiveDate.valueOf()) || effectiveDate.toISOString().slice(0, 10) !== submission.visit.preferredDate) throw new ConflictException('Quote preferred service date is invalid.');
+  const weekdays: RecurrenceWeekday[] = [RecurrenceWeekday.SUNDAY, RecurrenceWeekday.MONDAY, RecurrenceWeekday.TUESDAY, RecurrenceWeekday.WEDNESDAY, RecurrenceWeekday.THURSDAY, RecurrenceWeekday.FRIDAY, RecurrenceWeekday.SATURDAY];
+  const customFrequencyNote = submission.request.customFrequencyNote?.trim() || null;
+  if (frequency === WorkOrderFrequency.CUSTOM && !customFrequencyNote) throw new ConflictException('CUSTOM frequency requires a descriptive note.');
+  return {
+    ...oneTimeShape,
+    frequency,
+    effectiveDate,
+    weekday: frequency === WorkOrderFrequency.WEEKLY || frequency === WorkOrderFrequency.EVERY_TWO_WEEKS ? weekdays[effectiveDate.getUTCDay()] : null,
+    dayOfMonth: frequency === WorkOrderFrequency.MONTHLY ? effectiveDate.getUTCDate() : null,
+    preferredTimeWindow: submission.visit.preferredTime as PreferredTimeWindow,
+    customFrequencyNote,
   };
 }
 

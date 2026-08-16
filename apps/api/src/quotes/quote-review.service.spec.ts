@@ -166,7 +166,8 @@ describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
         { id: 'ironing-1', name: 'Ironing', normalizedName: 'ironing', status: 'ACTIVE', type: 'ADD_ON' },
       ]) },
       workOrderDailyCounter: { upsert: jest.fn(async () => ({ sequence: 1 })) },
-      workOrder: { create: jest.fn(async ({ data }: any) => ({ id: 'work-order-1', ...data })) },
+      recurringServiceAgreement: { create: jest.fn(async ({ data }: any) => ({ id: 'agreement-1', ...data })) },
+      workOrder: { findUnique: jest.fn(async () => ({ recurringAgreementId: quote.recurringAgreementId })), create: jest.fn(async ({ data }: any) => ({ id: 'work-order-1', ...data })) },
       workOrderActivity: { create: jest.fn(async () => ({})) }, quoteActivity: { create: jest.fn(async () => ({})) },
     };
     const prisma = { $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)) } as unknown as PrismaService;
@@ -199,7 +200,7 @@ describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
     expect(tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: 'new-customer', propertyId: 'new-property' }) });
   });
 
-  it('fails before operational writes for stale, terminal, recurring, and cross-Customer inputs', async () => {
+  it('fails before operational writes for stale, terminal, and cross-Customer inputs', async () => {
     const stale = harness();
     await expect(stale.service.accept('quote-1', { expectedRevisionNumber: 1 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
     expect(stale.tx.workOrder.create).not.toHaveBeenCalled();
@@ -209,8 +210,36 @@ describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
     const crossCustomer = harness();
     crossCustomer.tx.property.findUnique.mockResolvedValue({ id: 'property-1', customerId: 'other-customer' });
     await expect(crossCustomer.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it.each(['WEEKLY', 'EVERY_TWO_WEEKS', 'MONTHLY', 'CUSTOM'])('atomically creates a %s agreement and its initial visit', async (frequency) => {
     const recurring = harness();
-    recurring.tx.quoteRevision.findUnique.mockResolvedValue({ ...revision, structuredData: { ...acceptedSubmission, request: { ...acceptedSubmission.request, frequency: 'WEEKLY' } } });
-    await expect(recurring.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+    recurring.tx.quoteRevision.findUnique.mockResolvedValue({ ...revision, structuredData: {
+      ...acceptedSubmission,
+      request: { ...acceptedSubmission.request, frequency, customFrequencyNote: frequency === 'CUSTOM' ? 'Every six weeks' : undefined },
+    } });
+    await recurring.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1');
+    expect(recurring.tx.recurringServiceAgreement.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      propertyId: 'property-1', serviceId: 'primary-1', frequency, effectiveDate: new Date('2026-08-20T00:00:00.000Z'),
+      addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] },
+    }) });
+    expect(recurring.tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      customerId: 'customer-1', propertyId: 'property-1', recurringAgreementId: 'agreement-1', frequency,
+      recurrenceDate: new Date('2026-08-20T00:00:00.000Z'),
+      addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] },
+    }) });
+    expect(recurring.tx.quote.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      recurringAgreementId: 'agreement-1', workOrderId: 'work-order-1', acceptedRevisionId: 'revision-1',
+    }) }));
+  });
+
+  it('recovers an identical recurring retry and rejects incompatible linkage', async () => {
+    const identical = harness({ status: QuoteStatus.ACCEPTED, acceptedRevisionId: 'revision-1', recurringAgreementId: 'agreement-1', workOrderId: 'work-order-1' });
+    await identical.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-2');
+    expect(identical.tx.recurringServiceAgreement.create).not.toHaveBeenCalled();
+    expect(identical.tx.quoteActivity.create).not.toHaveBeenCalled();
+    const incompatible = harness({ status: QuoteStatus.ACCEPTED, acceptedRevisionId: 'revision-1', recurringAgreementId: 'agreement-1', workOrderId: 'work-order-1' });
+    incompatible.tx.workOrder.findUnique.mockResolvedValue({ recurringAgreementId: 'other-agreement' });
+    await expect(incompatible.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-2')).rejects.toBeInstanceOf(ConflictException);
   });
 });

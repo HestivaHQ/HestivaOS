@@ -1,5 +1,10 @@
 # Deployment
 
+## 2026-08-16 atomic recurring Quote acceptance migration
+
+Deploy `20260816180000_atomic_recurring_quote_acceptance` with `npm run db:migrate:deploy` before the API revision. No environment variables change. Verify the accepted-shape check, then smoke-check all four supported recurring frequencies, initial-visit linkage, exact add-on quantities, identical retry recovery, ADMIN authorization, and unchanged ONE_TIME acceptance. The migration creates no historical operational records; retain it during application rollback unless reviewed recovery proves otherwise.
+
+
 ## 2026-08-16 atomic ONE_TIME Quote acceptance migration
 
 Deploy `20260816120000_atomic_one_time_quote_acceptance` with `npm run db:migrate:deploy` before serving the Accept endpoint. No environment variables change. Verify the migration, the `quotes_accepted_operational_shape` check, and restricted `quotes_customer_id_fkey` / `quotes_property_id_fkey`; then smoke-check ADMIN acceptance, identical retry recovery, non-ADMIN rejection, and recurring rejection. The migration does not create or convert historical records. Retain its constraints during application rollback unless a reviewed database recovery proves no accepted history depends on them.

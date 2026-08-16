@@ -41,3 +41,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0037: Protect internal Quote review and defer acceptance until atomic conversion](ADR-0037-internal-quote-decision-foundation.md)
 - [ADR-0038: Quote Customer and Property match-or-review](ADR-0038-quote-customer-property-match-resolution.md)
 - [ADR-0039: Convert accepted ONE_TIME Quotes atomically](ADR-0039-atomic-one-time-quote-acceptance.md)
+
+- [ADR-0040: Convert accepted recurring Quotes atomically](ADR-0040-atomic-recurring-quote-acceptance.md)
