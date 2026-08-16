@@ -1,5 +1,9 @@
 # Recovery guide
 
+## Quote match-resolution recovery
+
+If a resolution request returns conflict, reload Quote detail/preflight and compare `currentRevisionNumber`, stored decisions, and selected IDs. Identical retries are safe; a differing stored decision is intentionally not overwritten. Correcting a deliberate decision currently requires a separately reviewed replacement mechanism or database recovery—do not clear fields ad hoc. No Customer, Property, Work Order, or recurring agreement needs rollback because review does not create them.
+
 ## Internal Quote decision foundation recovery
 
 Migration `20260815190000_quote_review_decision_foundation` adds the nullable accepted-revision link and unique restricted foreign keys for future Work Order and Recurring Service Agreement linkage. Deploy it through the normal Prisma migration path before serving the internal Quote review API. Verify `quotes_accepted_revision_id_key`, `quotes_work_order_id_key`, and `quotes_recurring_agreement_id_key` plus their foreign keys. Do not remove accepted revisions or operational records to bypass a restriction.

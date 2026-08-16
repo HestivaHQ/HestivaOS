@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-15 — Quote Customer/Property match-or-review
+
+### Added
+
+- ADMIN Quote Customer/Property match-or-review results and durable `USE_EXISTING`/`CREATE_NEW` decisions.
+- Audited, revision-bound, idempotent resolution persistence and additive database constraints.
+
+### Not included
+
+- Quote acceptance, Customer/Property creation, Work Order or Recurring Service Agreement creation, automatic merge, and Website ingestion changes.
+
 ## 2026-08-15 — Internal Quote review and decision foundation
 
 ### Added

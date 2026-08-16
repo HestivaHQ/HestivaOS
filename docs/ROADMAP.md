@@ -1,5 +1,10 @@
 # Technical roadmap
 
+## Slice 5M match/review status (2026-08-15)
+
+- Completed: Customer + Property match-or-review foundation for accepted-Quote preparation, including ADMIN resolution persistence and preflight visibility.
+- Still planned: atomic accepted-Quote conversion that consumes resolution intent and creates/links operational records; controlled duplicate-Customer merge/reversal and resolution replacement remain separate work.
+
 ## Completed 2026-08-15
 
 - Added the ADMIN-only internal Quote list/detail, non-mutating acceptance-readiness preflight, terminal revision-checked Decline workflow, durable accepted-revision identity, and unique restricted future operational links. Quote Accept remains unavailable until Customer/Property resolution and Work Order/Recurring Service Agreement creation can commit atomically.

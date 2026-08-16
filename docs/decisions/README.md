@@ -39,3 +39,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0035: Recurring financial policy v2](ADR-0035-recurring-financial-policy-v2.md)
 - [ADR-0036: Launch financial controls and payment policy v3](ADR-0036-launch-financial-controls-and-payment-policy-v3.md)
 - [ADR-0037: Protect internal Quote review and defer acceptance until atomic conversion](ADR-0037-internal-quote-decision-foundation.md)
+- [ADR-0038: Quote Customer and Property match-or-review](ADR-0038-quote-customer-property-match-resolution.md)

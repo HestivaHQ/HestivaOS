@@ -718,6 +718,12 @@ enum QuoteActivityType {
   PHOTO_ADDED
   PHOTO_TRANSFER_FAILED
   PHOTO_TRANSFER_RECOVERED
+  MATCH_RESOLUTION_RECORDED
+}
+
+enum QuoteEntityResolution {
+  USE_EXISTING
+  CREATE_NEW
 }
 
 model Quote {
@@ -734,6 +740,9 @@ model Quote {
   declinedByUserId String? @map("declined_by_user_id") @db.Uuid
   customerId String? @map("customer_id") @db.Uuid
   propertyId String? @map("property_id") @db.Uuid
+  customerResolution QuoteEntityResolution? @map("customer_resolution")
+  propertyResolution QuoteEntityResolution? @map("property_resolution")
+  resolutionRevisionNumber Int? @map("resolution_revision_number")
   workOrderId String? @map("work_order_id") @db.Uuid
   recurringAgreementId String? @map("recurring_agreement_id") @db.Uuid
   acceptedRevision QuoteRevision? @relation("AcceptedQuoteRevision", fields: [acceptedRevisionId], references: [id], onDelete: Restrict)

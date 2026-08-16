@@ -1,5 +1,11 @@
 # Production architecture
 
+## Quote Customer and Property match-or-review (Slice 5M, 2026-08-15)
+
+ADMIN Quote detail and preflight now derive fail-safe Customer and Property match results from the immutable current revision. Customer matching uses the submitted canonical E.164 mobile and normalized lower-case email: one consistent identifier result is exact, disagreement is review-required, multiple records are ambiguous, and name alone never selects a Customer. Property matching is limited to the resolved Customer and compares normalized address line, suburb/city, postal code, and country. It never uses access, parking, key, pet, safety, or visit notes and never updates a Property.
+
+`PATCH /api/v1/quotes/:id/resolution` records paired `USE_EXISTING`/`CREATE_NEW` intent, optional selected IDs, and the source revision. The ADMIN-only serializable compare-and-set creates an append-only `MATCH_RESOLUTION_RECORDED` activity, permits an identical retry, and rejects stale, concurrent, conflicting, missing, or cross-Customer selections. It creates no operational entity. Preflight exposes candidates with identifier, display context, and evidence category plus `READY`, `REVIEW_REQUIRED`, or `BLOCKED`; operational conversion remains an unconditional blocker.
+
 ## Internal Quote review and decision foundation (2026-08-15)
 
 The authenticated API exposes ADMIN-only `GET /api/v1/quotes`, `GET /api/v1/quotes/:id`, `GET /api/v1/quotes/:id/preflight?expectedRevisionNumber=...`, and `PATCH /api/v1/quotes/:id/decline`. This internal controller is separate from guarded Website ingestion. Detail resolves the exact `currentRevisionNumber` and returns its immutable structured request, pricing snapshot, line items, Quote photo metadata and append-only activities. Preflight performs no mutation and reports current deterministic blockers together with deferred Customer/Property and atomic operational-conversion work.
