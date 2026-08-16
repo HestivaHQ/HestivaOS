@@ -1,5 +1,9 @@
 # Deployment
 
+## 2026-08-16 atomic ONE_TIME Quote acceptance migration
+
+Deploy `20260816120000_atomic_one_time_quote_acceptance` with `npm run db:migrate:deploy` before serving the Accept endpoint. No environment variables change. Verify the migration, the `quotes_accepted_operational_shape` check, and restricted `quotes_customer_id_fkey` / `quotes_property_id_fkey`; then smoke-check ADMIN acceptance, identical retry recovery, non-ADMIN rejection, and recurring rejection. The migration does not create or convert historical records. Retain its constraints during application rollback unless a reviewed database recovery proves no accepted history depends on them.
+
 ## 2026-08-15 Quote match-resolution migration
 
 Deploy migration `20260815220000_quote_customer_property_resolution` before the matching API revision. It additively creates `QuoteEntityResolution`, adds `MATCH_RESOLUTION_RECORDED`, and adds nullable Quote decision/revision columns with consistency checks. Run the normal `npm run db:migrate:deploy`; no environment variable changes are required.
@@ -8,7 +12,7 @@ Deploy migration `20260815220000_quote_customer_property_resolution` before the 
 
 Deploy additive migration `20260815190000_quote_review_decision_foundation` through the normal Railway `npm run deploy:api` path before the API version that serves internal Quote review. It adds a nullable accepted-revision foreign key and replaces ordinary future operational-link indexes with unique restricted foreign keys. It creates no Customer, Property, Work Order, Recurring Service Agreement or accepted Quote and does not modify Website ingestion data.
 
-After deployment, verify the migration completed and inspect the three unique indexes and foreign keys on `quotes`. Smoke-check that an ADMIN can list/detail/preflight Quotes, non-ADMIN access is forbidden, and no Accept route exists. A prior application can run with the additive schema; retain the constraints during application rollback unless a separately reviewed database rollback is required.
+After deployment, verify the migration completed and inspect the three unique indexes and foreign keys on `quotes`. At this historical foundation checkpoint the smoke check confirmed list/detail/preflight access and that no Accept route yet existed; the later 2026-08-16 deployment section supersedes that route limitation. A prior application can run with the additive schema; retain the constraints during application rollback unless a separately reviewed database rollback is required.
 
 ## Slice 5M-A Quote domain migration
 

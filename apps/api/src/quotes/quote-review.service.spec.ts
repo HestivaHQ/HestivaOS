@@ -30,12 +30,12 @@ describe('QuoteReviewService review reads', () => {
     expect(prisma.quoteRevision.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { quoteId_revisionNumber: { quoteId: 'quote-1', revisionNumber: 2 } } }));
   });
 
-  it('preflight is non-mutating and reports deterministic and deferred blockers', async () => {
+  it('preflight is non-mutating and reports deterministic blockers', async () => {
     const needsAttention = { ...baseQuote, status: QuoteStatus.NEEDS_ATTENTION };
     const prisma = { quote: { findUnique: jest.fn(async () => needsAttention) }, quoteRevision: { findUnique: jest.fn(async () => revision) }, ...matchRepos } as unknown as PrismaService;
     const result = await new QuoteReviewService(prisma).preflight('quote-1', 2);
     expect(result.eligibleForAcceptance).toBe(false);
-    expect(result.blockers.map((item) => item.code)).toEqual(expect.arrayContaining(['NEEDS_ATTENTION', 'OPERATIONAL_CONVERSION_NOT_IMPLEMENTED']));
+    expect(result.blockers.map((item) => item.code)).toEqual(expect.arrayContaining(['NEEDS_ATTENTION', 'CUSTOMER_UNRESOLVED', 'PROPERTY_UNRESOLVED']));
     expect(result.resolution).toEqual({ customer: expect.objectContaining({ state: 'NO_MATCH_NEW_CANDIDATE', readiness: 'READY' }), property: expect.objectContaining({ state: 'NO_MATCH_NEW_CANDIDATE', readiness: 'READY' }) });
     expect(prisma.quote.update).toBeUndefined();
   });
@@ -44,6 +44,20 @@ describe('QuoteReviewService review reads', () => {
     const prisma = { quote: { findUnique: jest.fn(async () => baseQuote) }, quoteRevision: { findUnique: jest.fn(async () => revision) }, ...matchRepos } as unknown as PrismaService;
     const result = await new QuoteReviewService(prisma).preflight('quote-1', 1);
     expect(result.blockers).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'STALE_REVISION' })]));
+  });
+
+  it('reports a resolved supported ONE_TIME Quote ready', async () => {
+    const readyRevision = { ...revision, structuredData: {
+      customer: { fullName: 'Alex', email: 'alex@example.com', mobile: '+27821234567' },
+      property: { propertyType: 'HOUSE', addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa', floorSize: 'FROM_80_TO_99', bedrooms: 'THREE', bathrooms: 'TWO', livingAreas: 'ONE', outdoorArea: 'NONE', estateClassification: 'NONE' },
+      request: { primaryService: { canonicalService: 'Regular Home Cleaning' }, frequency: 'ONE_TIME', homeCondition: 'STANDARD', addOns: [] },
+      visit: { preferredDate: '2098-01-01', preferredTime: 'MORNING' }, household: { hasPets: false }, safety: {}, notes: {},
+    } };
+    const readyQuote = { ...baseQuote, customerResolution: QuoteEntityResolution.CREATE_NEW, propertyResolution: QuoteEntityResolution.CREATE_NEW, resolutionRevisionNumber: 2 };
+    const prisma = { quote: { findUnique: jest.fn(async () => readyQuote) }, quoteRevision: { findUnique: jest.fn(async () => readyRevision) }, ...matchRepos } as unknown as PrismaService;
+    const result = await new QuoteReviewService(prisma).preflight('quote-1', 2, new Date('2026-08-16'));
+    expect(result.eligibleForAcceptance).toBe(true);
+    expect(result.blockers).toEqual([]);
   });
 });
 
@@ -128,5 +142,75 @@ describe('QuoteReviewService durable match resolution', () => {
     await expect(identical.service.recordResolution('quote-1', input, 'admin-1')).resolves.toBe(resolved);
     expect(identical.tx.quoteActivity.create).not.toHaveBeenCalled();
     await expect(harness(resolved).service.recordResolution('quote-1', { ...input, customer: { decision: QuoteEntityResolution.USE_EXISTING, customerId: 'customer-1' } }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('QuoteReviewService atomic ONE_TIME acceptance', () => {
+  const acceptedSubmission: any = {
+    schemaVersion: '2.0', customer: { fullName: 'Alex', email: 'alex@example.com', mobile: '+27821234567' },
+    property: { propertyType: 'HOUSE', addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa', floorSize: 'FROM_80_TO_99', bedrooms: 'THREE', bathrooms: 'TWO', livingAreas: 'ONE', outdoorArea: 'NONE', estateClassification: 'NONE' },
+    request: { primaryService: { canonicalService: 'Regular Home Cleaning' }, frequency: 'ONE_TIME', homeCondition: 'STANDARD', addOns: [], laundry: { facilities: 'WASHER_DRYER', laundryLoads: 3, ironingLoads: 4 } },
+    visit: { preferredDate: '2026-08-20', preferredTime: 'MORNING' }, household: { hasPets: false }, safety: {}, notes: {},
+  };
+  function harness(quoteOverrides: any = {}) {
+    const quote = { ...baseQuote, customerResolution: QuoteEntityResolution.USE_EXISTING, propertyResolution: QuoteEntityResolution.USE_EXISTING, resolutionRevisionNumber: 2, customerId: 'customer-1', propertyId: 'property-1', ...quoteOverrides };
+    const tx: any = {
+      quote: { findUnique: jest.fn(async () => quote), updateMany: jest.fn(async () => ({ count: 1 })), findUniqueOrThrow: jest.fn(async () => ({ ...quote, status: QuoteStatus.ACCEPTED, workOrderId: 'work-order-1' })) },
+      quoteRevision: { findUnique: jest.fn(async () => ({ ...revision, structuredData: acceptedSubmission })) },
+      user: { findUnique: jest.fn(async () => ({ id: 'admin-1' })) }, customer: { findUnique: jest.fn(async () => ({ id: 'customer-1' })), create: jest.fn() },
+      property: { findUnique: jest.fn(async () => ({ id: 'property-1', customerId: 'customer-1' })), create: jest.fn() },
+      businessListOption: { findFirst: jest.fn() },
+      service: { findMany: jest.fn(async () => [
+        { id: 'primary-1', name: 'Regular Home Cleaning', normalizedName: 'regular home cleaning', status: 'ACTIVE', type: 'PRIMARY' },
+        { id: 'laundry-1', name: 'Laundry', normalizedName: 'laundry', status: 'ACTIVE', type: 'ADD_ON' },
+        { id: 'ironing-1', name: 'Ironing', normalizedName: 'ironing', status: 'ACTIVE', type: 'ADD_ON' },
+      ]) },
+      workOrderDailyCounter: { upsert: jest.fn(async () => ({ sequence: 1 })) },
+      workOrder: { create: jest.fn(async ({ data }: any) => ({ id: 'work-order-1', ...data })) },
+      workOrderActivity: { create: jest.fn(async () => ({})) }, quoteActivity: { create: jest.fn(async () => ({})) },
+    };
+    const prisma = { $transaction: jest.fn(async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx)) } as unknown as PrismaService;
+    return { service: new QuoteReviewService(prisma), tx };
+  }
+
+  it('creates and links one WorkOrder with exact accepted revision and load quantities', async () => {
+    const { service, tx } = harness();
+    await service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1');
+    expect(tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: 'customer-1', propertyId: 'property-1', frequency: 'ONE_TIME', addOns: { create: [{ serviceId: 'laundry-1', quantity: 3 }, { serviceId: 'ironing-1', quantity: 4 }] } }) });
+    expect(tx.quote.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: QuoteStatus.ACCEPTED, acceptedRevisionId: 'revision-1', workOrderId: 'work-order-1' }) }));
+    expect(tx.quoteActivity.create).toHaveBeenCalledWith({ data: expect.objectContaining({ previousStatus: QuoteStatus.SUBMITTED, newStatus: QuoteStatus.ACCEPTED, actorUserId: 'admin-1' }) });
+  });
+
+  it('returns an already complete accepted result without creating a duplicate WorkOrder', async () => {
+    const { service, tx } = harness({ status: QuoteStatus.ACCEPTED, acceptedRevisionId: 'revision-1', workOrderId: 'work-order-1' });
+    await service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-2');
+    expect(tx.workOrder.create).not.toHaveBeenCalled();
+    expect(tx.quoteActivity.create).not.toHaveBeenCalled();
+  });
+
+  it('materializes CREATE_NEW Customer and Property inside the acceptance transaction', async () => {
+    const { service, tx } = harness({ customerResolution: QuoteEntityResolution.CREATE_NEW, propertyResolution: QuoteEntityResolution.CREATE_NEW, customerId: null, propertyId: null });
+    tx.customer.create.mockResolvedValue({ id: 'new-customer' });
+    tx.businessListOption.findFirst.mockResolvedValue({ id: 'house-option' });
+    tx.property.create.mockResolvedValue({ id: 'new-property' });
+    await service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1');
+    expect(tx.customer.create).toHaveBeenCalledWith({ data: expect.objectContaining({ ownerId: 'admin-1', contactName: 'Alex', email: 'alex@example.com' }) });
+    expect(tx.property.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: 'new-customer', addressLine1: '1 Main Road', propertyTypeOptionId: 'house-option' }) });
+    expect(tx.workOrder.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customerId: 'new-customer', propertyId: 'new-property' }) });
+  });
+
+  it('fails before operational writes for stale, terminal, recurring, and cross-Customer inputs', async () => {
+    const stale = harness();
+    await expect(stale.service.accept('quote-1', { expectedRevisionNumber: 1 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(stale.tx.workOrder.create).not.toHaveBeenCalled();
+    for (const status of [QuoteStatus.NEEDS_ATTENTION, QuoteStatus.DECLINED, QuoteStatus.EXPIRED]) {
+      await expect(harness({ status }).service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+    }
+    const crossCustomer = harness();
+    crossCustomer.tx.property.findUnique.mockResolvedValue({ id: 'property-1', customerId: 'other-customer' });
+    await expect(crossCustomer.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
+    const recurring = harness();
+    recurring.tx.quoteRevision.findUnique.mockResolvedValue({ ...revision, structuredData: { ...acceptedSubmission, request: { ...acceptedSubmission.request, frequency: 'WEEKLY' } } });
+    await expect(recurring.service.accept('quote-1', { expectedRevisionNumber: 2 }, 'admin-1')).rejects.toBeInstanceOf(ConflictException);
   });
 });

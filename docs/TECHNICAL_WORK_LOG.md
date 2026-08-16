@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-16 — Atomic ONE_TIME Quote acceptance
+
+- Added ADMIN-only revision-checked Accept and truthful preflight for ONE_TIME Quotes.
+- Added one serializable, bounded-retry transaction that consumes durable Customer/Property resolution, creates new records when selected, creates one standard Work Order with exact add-on quantities, links the immutable accepted revision and operational records, and commits Quote/Work Order activities with status metadata.
+- Added database accepted-shape and restricted Customer/Property link constraints, focused acceptance/projection/authorization tests, deployment/recovery guidance, mapping updates, and ADR-0039.
+- Kept recurring conversion, `RecurringServiceAgreement` creation, Website ingestion/authentication/contract/replay/pricing, direct Work Order creation, and recurring generation unchanged. Issue #79 remains historically closed.
+
 ## 2026-08-15 — Slice 5M Customer + Property match-or-review
 
 - Added deterministic current-revision Customer/contact and Customer-scoped Property/address matching.

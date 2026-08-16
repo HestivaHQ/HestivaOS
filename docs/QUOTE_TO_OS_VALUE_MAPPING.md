@@ -1,10 +1,16 @@
 # Current website quote-to-OS value mapping
 
+## Accepted ONE_TIME operational projection (2026-08-16)
+
+An eligible accepted `ONE_TIME` Quote now creates exactly one Work Order atomically. Customer and Property use the current durable Admin resolution. New records use normalized submitted identity/address plus established Property-owned profile, household, and care fields; existing records are never overwritten. The Work Order receives the canonical primary Service, ONE_TIME frequency, home condition, preferred date in Johannesburg date semantics, supported attention/renovation/appliance/additional notes, and canonical add-ons with exact quantities. Structured Laundry loads map to the canonical Laundry add-on quantity and Ironing loads map to Ironing quantity without boolean collapse.
+
+The immutable accepted revision remains authoritative for the ZAR pricing snapshot and source facts without a safe destination. Preferred time window, alternative date, flexibility/urgency, exact floor, building access, complex/security/parking/key/someone-present details, eco preference, existing-damage detail, source-photo linkage, and other source-only facts are not yet projected to unrelated fields. They are non-blocking where the accepted revision safely preserves them. Recurring conversion remains unsupported and creates no recurring agreement.
+
 ## Match/review boundary (2026-08-15)
 
 Customer `email` and E.164 `mobile` participate in identity suggestions; `fullName` is display/review context only. Property identity uses `addressLine1`, `suburb` (mapped to current Property `city` semantics), `postalCode`, and `country`, scoped to the resolved Customer. Exact floor and property-type profile values are not used to overwrite identity during review.
 
-Visit/access fields (`complexAccess`, security instructions, parking, key handover, someone-present), household notes, safety fields, preferred dates/times, and free-form Quote notes remain Quote/visit context. They are deliberately excluded from matching and still require a safe Work Order, recurring-agreement, or reviewed persistent-Property destination in the future acceptance transaction.
+Visit/access fields (`complexAccess`, security instructions, parking, key handover, someone-present), household notes, safety fields, preferred dates/times, and free-form Quote notes remain Quote/visit context and are deliberately excluded from matching. The later ONE_TIME acceptance maps only the authoritative destinations listed above; remaining source-only fields still require a safe Work Order, recurring-agreement, or reviewed persistent-Property destination.
 
 ## Slice 5M-B current contract supersession — 2026-08-11
 

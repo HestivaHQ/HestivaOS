@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-16 — Atomic ONE_TIME Quote acceptance
+
+### Added
+
+- Added protected ADMIN `PATCH /api/v1/quotes/:id/accept` with expected-revision protection, fail-closed readiness validation, exact accepted-revision identity, atomic Customer/Property resolution, one linked Work Order, exact Laundry/Ironing and other add-on quantities, and Quote/Work Order activity.
+- Added serializable conflict retries, identical accepted-result recovery, conditional transition and database linkage/accepted-shape constraints.
+
+### Preserved and deferred
+
+- Recurring Quote conversion and `RecurringServiceAgreement` creation remain unimplemented. Exact floor, access/time-window/photo/commercial snapshot and other non-lossy projections remain on the immutable accepted revision for later work.
+- Website ingestion/authentication/contracts/replay/pricing/profitability and direct Work Order/recurring-service behavior are unchanged. Issue #79 remains historically closed.
+
 ## 2026-08-15 — Quote Customer/Property match-or-review
 
 ### Added

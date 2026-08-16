@@ -1,10 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, QuoteActivityType, QuoteEntityResolution, QuoteStatus } from '@prisma/client';
+import { Prisma, QuoteActivityType, QuoteEntityResolution, QuoteStatus, ServiceStatus, ServiceType, WorkOrderActivityType, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { johannesburgBusinessDate } from '../work-orders/work-orders.service';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
+import { newCustomerData, newPropertyData, projectAcceptedOneTimeSubmission, propertyTypeLabel, type AcceptedSubmission } from './quote-acceptance';
 import { resolveCustomerMatch, resolvePropertyMatch, type MatchResult } from './quote-match-resolution';
 
 export type DeclineQuoteInput = { expectedRevisionNumber: number; reason?: string };
+export type AcceptQuoteInput = { expectedRevisionNumber: number };
 export type RecordQuoteResolutionInput = {
   expectedRevisionNumber: number;
   customer: { decision: QuoteEntityResolution; customerId?: string };
@@ -21,6 +24,11 @@ const declineEligibleStatuses: QuoteStatus[] = [QuoteStatus.SUBMITTED, QuoteStat
 const detailInclude = {
   acceptedRevision: { include: { lineItems: { orderBy: { sortOrder: 'asc' as const } } } },
   photos: { orderBy: { createdAt: 'asc' as const } },
+  activities: { orderBy: { createdAt: 'asc' as const } },
+} as const;
+const acceptedResultInclude = {
+  acceptedRevision: { include: { lineItems: { orderBy: { sortOrder: 'asc' as const } } } },
+  workOrder: { include: { customer: true, property: true, service: true, addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } } } },
   activities: { orderBy: { createdAt: 'asc' as const } },
 } as const;
 
@@ -89,11 +97,91 @@ export class QuoteReviewService {
     if (quote.status === QuoteStatus.DECLINED) blockers.push({ code: 'DECLINED', message: 'Declined Quotes are terminal.', resolvableInCurrentSlice: false });
     if (quote.status === QuoteStatus.ACCEPTED) blockers.push({ code: 'ALREADY_ACCEPTED', message: 'Quote is already accepted.', resolvableInCurrentSlice: false });
     if (quote.status === QuoteStatus.EXPIRED || quote.validUntil.getTime() < now.getTime()) blockers.push({ code: 'EXPIRED', message: 'Expired Quotes cannot be accepted.', resolvableInCurrentSlice: false });
-    if (quote.resolution.customer.readiness !== 'READY') blockers.push({ code: 'CUSTOMER_UNRESOLVED', message: 'Customer match-or-review requires an Admin decision.', resolvableInCurrentSlice: true });
-    if (quote.resolution.property.readiness !== 'READY') blockers.push({ code: 'PROPERTY_UNRESOLVED', message: 'Property match-or-review requires an Admin decision.', resolvableInCurrentSlice: true });
+    if (!quote.customerResolution || quote.resolutionRevisionNumber !== expectedRevisionNumber || quote.resolution.customer.readiness !== 'READY') blockers.push({ code: 'CUSTOMER_UNRESOLVED', message: 'Customer match-or-review requires a current Admin decision.', resolvableInCurrentSlice: true });
+    if (!quote.propertyResolution || quote.resolutionRevisionNumber !== expectedRevisionNumber || quote.resolution.property.readiness !== 'READY') blockers.push({ code: 'PROPERTY_UNRESOLVED', message: 'Property match-or-review requires a current Admin decision.', resolvableInCurrentSlice: true });
     if (quote.photos.some((photo) => photo.status !== 'STORED')) blockers.push({ code: 'QUOTE_EVIDENCE_UNRESOLVED', message: 'One or more persisted Quote photos are not stored.', resolvableInCurrentSlice: false });
-    blockers.push({ code: 'OPERATIONAL_CONVERSION_NOT_IMPLEMENTED', message: 'Atomic accepted-Quote operational conversion is not implemented.', resolvableInCurrentSlice: false });
-    return { quoteId: quote.id, quoteReference: quote.reference, currentRevisionNumber: quote.currentRevisionNumber, expectedRevisionNumber, resolution: quote.resolution, resolutionReady: quote.resolution.customer.readiness === 'READY' && quote.resolution.property.readiness === 'READY', eligibleForAcceptance: false, blockers };
+    try { projectAcceptedOneTimeSubmission(submissionFrom(quote.currentRevision.structuredData) as AcceptedSubmission); }
+    catch (error) { blockers.push({ code: 'OPERATIONAL_MAPPING_BLOCKED', message: error instanceof Error ? error.message : 'Quote cannot be projected safely.', resolvableInCurrentSlice: false }); }
+    return { quoteId: quote.id, quoteReference: quote.reference, currentRevisionNumber: quote.currentRevisionNumber, expectedRevisionNumber, resolution: quote.resolution, resolutionReady: Boolean(quote.customerResolution && quote.propertyResolution && quote.resolutionRevisionNumber === expectedRevisionNumber && quote.resolution.customer.readiness === 'READY' && quote.resolution.property.readiness === 'READY'), eligibleForAcceptance: blockers.length === 0, blockers };
+  }
+
+  async accept(id: string, input: AcceptQuoteInput, actorUserId: string) {
+    this.validateExpectedRevision(input.expectedRevisionNumber);
+    if (!actorUserId) throw new BadRequestException('Accepting user is required.');
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const quote = await tx.quote.findUnique({ where: { id }, include: { photos: true } });
+          if (!quote) throw new NotFoundException('Quote not found.');
+          if (quote.currentRevisionNumber !== input.expectedRevisionNumber) throw new ConflictException(`Quote revision is stale. Current revision is ${quote.currentRevisionNumber}.`);
+          if (quote.status === QuoteStatus.ACCEPTED) {
+            const expectedRevision = await tx.quoteRevision.findUnique({ where: { quoteId_revisionNumber: { quoteId: id, revisionNumber: input.expectedRevisionNumber } }, select: { id: true } });
+            if (expectedRevision?.id === quote.acceptedRevisionId && quote.customerId && quote.propertyId && quote.workOrderId && !quote.recurringAgreementId) return tx.quote.findUniqueOrThrow({ where: { id }, include: acceptedResultInclude });
+            throw new ConflictException('Quote has incompatible accepted state and requires recovery.');
+          }
+          if (quote.status !== QuoteStatus.SUBMITTED) throw new ConflictException(`${quote.status} Quote cannot be accepted.`);
+          if (quote.validUntil.getTime() < Date.now()) throw new ConflictException('Expired Quote cannot be accepted.');
+          if (quote.photos.some((photo) => photo.status !== 'STORED')) throw new ConflictException('Quote evidence must be stored before acceptance.');
+          if (!quote.customerResolution || !quote.propertyResolution || quote.resolutionRevisionNumber !== input.expectedRevisionNumber) throw new ConflictException('A current Customer and Property resolution is required.');
+          const revision = await tx.quoteRevision.findUnique({ where: { quoteId_revisionNumber: { quoteId: id, revisionNumber: input.expectedRevisionNumber } }, include: { lineItems: true } });
+          if (!revision) throw new ConflictException('Quote current revision is missing and requires recovery.');
+          const submission = submissionFrom(revision.structuredData) as AcceptedSubmission;
+          const projection = projectAcceptedOneTimeSubmission(submission);
+          const actor = await tx.user.findUnique({ where: { id: actorUserId }, select: { id: true } });
+          if (!actor) throw new BadRequestException('Accepting user does not exist.');
+
+          let customerId = quote.customerId;
+          if (quote.customerResolution === QuoteEntityResolution.USE_EXISTING) {
+            if (!customerId || !(await tx.customer.findUnique({ where: { id: customerId }, select: { id: true } }))) throw new ConflictException('Selected Customer no longer exists.');
+          } else {
+            const customer = await tx.customer.create({ data: newCustomerData(submission, actorUserId) });
+            customerId = customer.id;
+          }
+
+          let propertyId = quote.propertyId;
+          if (quote.propertyResolution === QuoteEntityResolution.USE_EXISTING) {
+            const property = propertyId ? await tx.property.findUnique({ where: { id: propertyId }, select: { id: true, customerId: true } }) : null;
+            if (!property) throw new ConflictException('Selected Property no longer exists.');
+            if (property.customerId !== customerId) throw new ConflictException('Selected Property does not belong to the resolved Customer.');
+          } else {
+            const label = propertyTypeLabel(submission);
+            const option = label ? await tx.businessListOption.findFirst({ where: { type: 'PROPERTY_TYPE', label, isActive: true }, select: { id: true } }) : null;
+            if (!option) throw new ConflictException('Quote Property type has no active canonical destination.');
+            const property = await tx.property.create({ data: newPropertyData(submission, customerId!, option.id) });
+            propertyId = property.id;
+          }
+
+          const serviceNames = [projection.primaryServiceName, ...projection.addOns.map((item) => item.serviceName)];
+          const services = await tx.service.findMany({ where: { OR: serviceNames.map((name) => ({ normalizedName: name.trim().toLocaleLowerCase('en-ZA') })) }, select: { id: true, name: true, normalizedName: true, status: true, type: true } });
+          const serviceFor = (name: string) => services.find((service) => service.normalizedName === name.trim().toLocaleLowerCase('en-ZA'));
+          const primary = serviceFor(projection.primaryServiceName);
+          if (!primary || primary.status !== ServiceStatus.ACTIVE || (primary.type !== ServiceType.PRIMARY && primary.type !== ServiceType.BOTH)) throw new ConflictException('Canonical primary Service is missing, inactive, or not primary-capable.');
+          const addOns = projection.addOns.map((item) => ({ ...item, service: serviceFor(item.serviceName) }));
+          if (addOns.some((item) => !item.service || item.service.status !== ServiceStatus.ACTIVE || (item.service.type !== ServiceType.ADD_ON && item.service.type !== ServiceType.BOTH))) throw new ConflictException('A canonical add-on Service is missing, inactive, or not add-on-capable.');
+
+          const businessDate = johannesburgBusinessDate();
+          const counter = await tx.workOrderDailyCounter.upsert({ where: { businessDate }, create: { businessDate, sequence: 1 }, update: { sequence: { increment: 1 } } });
+          if (counter.sequence > 9999) throw new ConflictException('The daily work order reference limit has been reached.');
+          const reference = `WO-${businessDate}-${String(counter.sequence).padStart(4, '0')}`;
+          const workOrder = await tx.workOrder.create({ data: {
+            customerId: customerId!, propertyId: propertyId!, createdById: actorUserId, serviceId: primary.id,
+            reference, title: reference, description: projection.description, frequency: projection.frequency,
+            homeCondition: projection.homeCondition, scheduledAt: projection.scheduledAt, status: WorkOrderStatus.NEW,
+            addOns: addOns.length ? { create: addOns.map((item) => ({ serviceId: item.service!.id, quantity: item.quantity })) } : undefined,
+          } });
+          await tx.workOrderActivity.create({ data: { workOrderId: workOrder.id, type: WorkOrderActivityType.WORK_ORDER_CREATED, newStatus: WorkOrderStatus.NEW, actorId: actorUserId } });
+          const acceptedAt = new Date();
+          const transition = await tx.quote.updateMany({ where: { id, status: QuoteStatus.SUBMITTED, currentRevisionNumber: input.expectedRevisionNumber, workOrderId: null, acceptedRevisionId: null }, data: { status: QuoteStatus.ACCEPTED, acceptedAt, acceptedByUserId: actorUserId, acceptedRevisionId: revision.id, customerId, propertyId, workOrderId: workOrder.id } });
+          if (transition.count !== 1) throw new ConflictException('Quote decision changed concurrently. Review the current Quote before retrying.');
+          await tx.quoteActivity.create({ data: { quoteId: id, type: QuoteActivityType.STATUS_CHANGED, previousStatus: quote.status, newStatus: QuoteStatus.ACCEPTED, actorUserId, metadata: { expectedRevisionNumber: input.expectedRevisionNumber, acceptedRevisionId: revision.id, customerResolution: quote.customerResolution, customerId, propertyResolution: quote.propertyResolution, propertyId, workOrderId: workOrder.id } } });
+          return tx.quote.findUniqueOrThrow({ where: { id }, include: acceptedResultInclude });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < 2) continue;
+        throw error;
+      }
+    }
+    throw new ConflictException('Quote acceptance conflicted repeatedly. Review the current Quote before retrying.');
   }
 
   async recordResolution(id: string, input: RecordQuoteResolutionInput, actorUserId: string) {
