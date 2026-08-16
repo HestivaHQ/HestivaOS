@@ -121,6 +121,32 @@ enum PreferredTimeWindow {
   FLEXIBLE
 }
 
+enum BuildingAccessMethod {
+  ELEVATOR
+  STAIRS
+  ELEVATOR_AND_STAIRS
+}
+
+enum ComplexAccessMethod {
+  ACCESS_CODE
+  NOT_APPLICABLE
+  VISITOR_SIGN_IN
+  RESIDENT_ARRANGED
+}
+
+enum KeyHandoverMethod {
+  SOMEONE_WILL_OPEN
+  CONCIERGE_RECEPTION
+  TO_BE_ARRANGED
+}
+
+enum TemporaryAccessCredentialType {
+  CODE
+  QR_IMAGE
+  QR_DOCUMENT
+  OTHER
+}
+
 enum HomeCondition {
   LIGHT_UPKEEP
   STANDARD
@@ -534,6 +560,20 @@ model WorkOrder {
   status WorkOrderStatus @default(NEW)
   priority WorkOrderPriority @default(NORMAL)
   scheduledAt DateTime? @map("scheduled_at")
+  preferredTimeWindow PreferredTimeWindow? @map("preferred_time_window")
+  alternativeDate DateTime? @map("alternative_date") @db.Date
+  dateFlexibility String? @map("date_flexibility")
+  urgency String?
+  exactFloor Int? @map("exact_floor")
+  buildingAccess BuildingAccessMethod? @map("building_access")
+  complexAccess ComplexAccessMethod? @map("complex_access")
+  accessInstructions String? @map("access_instructions")
+  parkingInstructions String? @map("parking_instructions")
+  keyHandover KeyHandoverMethod? @map("key_handover")
+  keyHandoverDetails String? @map("key_handover_details")
+  someonePresent Boolean? @map("someone_present")
+  ecoFriendlyProducts Boolean? @map("eco_friendly_products")
+  customerDeclaredExistingDamage String? @map("customer_declared_existing_damage")
   completedAt DateTime? @map("completed_at")
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
@@ -547,6 +587,8 @@ model WorkOrder {
   activities WorkOrderActivity[]
   checklistItems WorkOrderChecklistItem[]
   photos WorkOrderPhoto[]
+  quoteEvidence WorkOrderQuoteEvidence[]
+  temporaryAccessCredentials WorkOrderTemporaryAccessCredential[]
   customerSignOff WorkOrderCustomerSignOff?
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   createdAt DateTime @default(now()) @map("created_at")
@@ -577,6 +619,7 @@ model RecurringServiceAgreement {
   preferredTimeWindow PreferredTimeWindow? @map("preferred_time_window")
   customFrequencyNote String? @map("custom_frequency_note")
   recurringInstructions String? @map("recurring_instructions")
+  ecoFriendlyProducts Boolean? @map("eco_friendly_products")
   nextServiceDate DateTime? @map("next_service_date") @db.Date
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
@@ -590,6 +633,36 @@ model RecurringServiceAgreement {
   @@index([serviceId])
   @@index([status, nextServiceDate])
   @@map("recurring_service_agreements")
+}
+
+model WorkOrderTemporaryAccessCredential {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  type TemporaryAccessCredentialType
+  secretValue String? @map("secret_value")
+  attachmentStoragePath String? @map("attachment_storage_path")
+  validFrom DateTime? @map("valid_from")
+  expiresAt DateTime? @map("expires_at")
+  singleUse Boolean @default(false) @map("single_use")
+  revokedAt DateTime? @map("revoked_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([workOrderId, expiresAt])
+  @@map("work_order_temporary_access_credentials")
+}
+
+model WorkOrderQuoteEvidence {
+  workOrderId String @map("work_order_id") @db.Uuid
+  quotePhotoId String @map("quote_photo_id") @db.Uuid
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  quotePhoto QuotePhoto @relation(fields: [quotePhotoId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([workOrderId, quotePhotoId])
+  @@index([quotePhotoId])
+  @@map("work_order_quote_evidence")
 }
 
 model RecurringServiceAgreementAddOn {
@@ -826,6 +899,7 @@ model QuotePhoto {
   addedByUserId String? @map("added_by_user_id") @db.Uuid
   quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   quoteRevision QuoteRevision? @relation(fields: [quoteRevisionId], references: [id], onDelete: SetNull)
+  workOrderEvidence WorkOrderQuoteEvidence[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
