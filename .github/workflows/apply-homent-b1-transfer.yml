@@ -1,0 +1,49 @@
+name: Apply Homent Technician B1 transfer
+
+on:
+  push:
+    branches:
+      - feat/homent-technician-b1
+    paths:
+      - '.github/workflows/apply-homent-b1-transfer.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/homent-technician-b1
+          fetch-depth: 0
+
+      - name: Reconstruct and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .homent-b1/part1.b64 .homent-b1/part2.b64 .homent-b1/part3.b64 .homent-b1/part4.b64 | base64 -d | gunzip > /tmp/homent-technician-b1.patch
+          echo 'ed34ef1b5426cf2591b3a9817d3d4e63f4b44c032c2359905ddba7ab4f0bc68b  /tmp/homent-technician-b1.patch' | sha256sum -c -
+          test "$(wc -c < /tmp/homent-technician-b1.patch)" -eq 58923
+          git apply --check /tmp/homent-technician-b1.patch
+
+      - name: Apply exact B1 patch and clean transfer files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/homent-technician-b1.patch
+          rm -rf .homent-b1
+          rm -f .github/workflows/apply-homent-b1-transfer.yml
+          git status --short
+
+      - name: Commit exact transferred implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'HestivaHQ'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: add Homent Technician B1 foundation'
+          git push origin HEAD:feat/homent-technician-b1
