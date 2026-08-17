@@ -5,10 +5,12 @@ import { ROLES_KEY } from '../users/roles.decorator';
 import { CrewsController } from './crews.controller';
 import { CrewsService } from './crews.service';
 
-function harness(technicians = [{ id: 'tech-1', status: 'ACTIVE', crewMembership: null }, { id: 'tech-2', status: 'ACTIVE', crewMembership: null }]) {
+type TechnicianFixture = { id: string; status: string; crewMembership: null };
+
+function harness(technicians: TechnicianFixture[] = [{ id: 'tech-1', status: 'ACTIVE', crewMembership: null }, { id: 'tech-2', status: 'ACTIVE', crewMembership: null }]) {
   const prisma: any = {
     crew: { findFirst: jest.fn(), create: jest.fn(({ data }: any) => ({ id: 'crew-1', ...data })) },
-    technician: { findMany: jest.fn().mockResolvedValue(technicians) },
+    technician: { findMany: jest.fn().mockImplementation(() => Promise.resolve(technicians)) },
   };
   return { service: new CrewsService(prisma), prisma };
 }
