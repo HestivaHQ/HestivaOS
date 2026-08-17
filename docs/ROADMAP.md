@@ -34,11 +34,9 @@ Only currently identified technical follow-up work is listed here.
 
 ## Near-term
 
-- Complete remaining Slice 5M work after atomic ONE_TIME and recurring conversion: review UI, unresolved exact-floor/access/time-window/photo/commercial mapping, and safe non-lossy operational import.
+- Complete only the verified remaining Slice 5M work after atomic ONE_TIME/recurring conversion and non-lossy handoff: controlled resolution replacement/duplicate merge, secure role-filtered temporary-credential APIs/UI, and any residual mapping gap verified against current source. The ADMIN review UI and non-lossy accepted handoff are already complete and must not be reopened as planned work.
 - Map approved website subordinate job-type choices to the existing Cleaning Job Template architecture (or explicitly record why a choice is quote-flow-only) before importing controlled options.
-
 - Controlled-input Slices 5B Phase 1 and 5C Phase 2 are complete. Deliver Phase 3 Work Order/Scheduling selector searchability and Phase 4 remaining evidence-backed fields as separate reviewed slices; do not invent lists.
-
 - Employee Records (Slice 5), User Access Management (Slice 3), and Business Profile (Slice 4) are complete. Deliver the Supervisor experience and broader Employee Record management permissions as focused follow-ups; Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
 - Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.
 - Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
@@ -97,21 +95,28 @@ Only currently identified technical follow-up work is listed here.
 ## Slice 5N Work Order assignment status (2026-08-17)
 
 - Completed: normalized zero/one/many Work Order Technician assignments, duplicate prevention, ADMIN mutation, active Technician/Employee eligibility, assignment audit, unassigned visibility, and active-Crew prepopulation with job-specific snapshot edits.
-- Still planned separately: cleaner job execution, recurring staffing templates, dispatch optimization, and dashboard notification/escalation beyond the existing unassigned counters and filters.
-
+- Still planned separately: recurring staffing templates, dispatch optimization, and dashboard notification/escalation beyond the existing unassigned counters and filters.
 - **2026-08-17 completed:** Canonical Crew Leader and Work Order Job Leader foundations, single-Technician defaults, assignment snapshots, Admin-only management, simplified Crew/assignment presentation, and safe single-assignment migration backfill.
-- **Planned Cleaner Job Execution:** Add explicit Start Job lifecycle, reason-required active-job leadership transfer, and Job Leader authorization for start/final review/completion/sensitive access. These capabilities are not part of the leadership foundation.
+- Historical Cleaner Job Execution planning for Start Job and Job Leader authority has been superseded by the merged Homent Technician B1 and B2/C work recorded below; remaining execution work is listed as focused slices rather than reopening that earlier plan.
 
 ## Homent Technician
 
 - **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
-- **Deferred:** protected credential retrieval, proactive critical-change push delivery, frozen scope/checklists, evidence and incident flows, offline media/completion, Complete Job, and Homent Supervisor.
+- **Completed 2026-08-17 — B2/C frozen scope + compressed checklist:** versioned Service Scope Templates, immutable Work Order Execution Scope revisions, section-level checklist/outcomes, structured Not Completed reasons, Job Leader exception-first Review Job, evidence-policy foundations, and offline checklist operations/reconciliation.
+- **Completed 2026-08-17 — D offline evidence + photo pipeline:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. The legacy generic BEFORE/AFTER photo flow remains separate.
+- **Deferred after D:** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, offline completion, authoritative Complete Job/customer completion correspondence, Homent Supervisor, and approved private evidence-read/privacy hardening.
 
-## Homent Technician next focused slices (verified deferred, 2026-08-17)
+## Homent Technician next focused slices (verified current, 2026-08-17)
 
-- Add local photo capture/compression and acknowledged evidence transport while retaining the device copy until server acknowledgement.
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
-- Add authoritative Complete Job and customer completion correspondence after Review Job readiness policy is complete.
-- Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records now exist.
+- Add authoritative Complete Job and customer completion correspondence now that evidence transport and Review Job readiness foundations exist.
+- Add secure role-filtered temporary-credential retrieval and proactive critical-change notifications as focused security/communication slices.
+- Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records already exist.
+- Plan a separate approved private evidence-read/privacy-hardening migration for execution evidence and the legacy Work Order photo bucket; do not broaden public exposure in the meantime.
 
-- **Completed 2026-08-17 — Homent Technician D:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. Still deferred: Complete Job, incident/damage/scope-mismatch resolution, notifications, protected credentials, Homent Supervisor, and approved private evidence-read/privacy hardening.
+## Cross-system messaging coordination (2026-08-17)
+
+- WhatsApp + Facebook Messenger customer-messaging work is active in a dedicated development chat. No HestivaOS messaging implementation is assumed merely because coordination has started.
+- `docs/CROSS_SYSTEM_COORDINATION.md` is the routing map for cross-system work. Website ↔ HestivaOS Slice 5M remains coordinated through Issue #73; WhatsApp/Messenger ↔ HestivaOS messaging is coordinated through Issue #116.
+- Messaging implementation should reuse canonical HestivaOS Customer, Property, Quote, pricing, Work Order, recurring-service and idempotency boundaries rather than introducing an independent operational source of truth.
+- Material messaging contract decisions, blockers and PR links must be posted to Issue #116 and then encoded permanently in repository docs/ADRs when implemented.
