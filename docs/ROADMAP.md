@@ -3,7 +3,7 @@
 ## Slice 5M accepted conversion status (2026-08-16)
 
 - Completed: atomic ADMIN acceptance of eligible ONE_TIME Quotes into one linked Work Order, including durable resolution consumption/materialization, exact accepted revision, quantity-bearing add-ons, audit, rollback, and retry/concurrency protections.
-- Completed: supported recurring conversion into one agreement plus one initial visit. Still planned: review UI, controlled resolution replacement/duplicate merge, and non-lossy exact-floor/access/time-window/photo/commercial handoff.
+- Completed: supported recurring conversion into one agreement plus one initial visit, the ADMIN review/decision UI, and non-lossy exact-floor/access/time-window/photo/commercial handoff. Still planned: controlled resolution replacement/duplicate merge and secure role-filtered temporary-credential APIs/UI.
 
 ## Slice 5M match/review status (2026-08-15)
 
@@ -73,7 +73,7 @@ Only currently identified technical follow-up work is listed here.
 - **Slice 5L — Recurring agreement architecture (completed 2026-08-11):** owns recurring agreement identity, standard recurrence rules, next service date, lifecycle, and independent generated Work Orders.
 - **Slice 5M-A — Quote domain foundation (completed 2026-08-11):** added authoritative Quote identity, revisions, pricing snapshots/line items, photo provenance/status, activities, and retry identities.
 - **Slice 5M-B plus Laundry v2 contract work (completed):** defines the structured Website Quote contracts, validation semantics, private transport/authentication contract, authoritative pricing response, photo identity/hash contract, structured Laundry/Ironing fields, and cross-repository consumer documentation. Later runtime work exposed the guarded ingestion endpoint rather than changing these contract semantics.
-- **Slice 5M runtime ingestion and decision foundation:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, atomic NEW Quote persistence, ADMIN review APIs, readiness preflight, terminal Decline, and atomic ONE_TIME and supported recurring Accept conversion are implemented. Review UI and remaining non-lossy handoff/recovery work remain separate follow-ups.
+- **Slice 5M runtime ingestion and decision foundation:** guarded Website ingestion, authoritative pricing/profitability calculation, replay handling, OpenRouteService road-distance costing, atomic NEW Quote persistence, ADMIN review APIs and UI, readiness preflight, terminal Decline, and atomic ONE_TIME and supported recurring Accept conversion are implemented. The UI provides revision-safe resolution/decisions, immutable pricing, evidence, activity, recovery reads, and direct accepted-record links.
 
 ## 2026-08-10 status update
 
@@ -92,4 +92,4 @@ Only currently identified technical follow-up work is listed here.
 - Slice 5N remains the one/many Technician and optional Crew assignment redesign; recurring agreement generation uses current Work Order assignment.
 - Slice 5O remains skills and remaining evidence-backed operational fields.
 
-- **Completed 2026-08-16:** non-lossy accepted Quote handoff now projects typed initial-visit context, stable recurring context, accepted-revision photo references, and a visit-scoped temporary-credential boundary. Admin/cleaner presentation and role-filtered credential APIs remain planned UI/security work.
+- **Completed 2026-08-16:** non-lossy accepted Quote handoff now projects typed initial-visit context, stable recurring context, accepted-revision photo references, and a visit-scoped temporary-credential boundary. ADMIN Quote review now presents the safe submitted operational preview and customer evidence. Role-filtered credential APIs/UI and cleaner presentation remain planned security/UI work.

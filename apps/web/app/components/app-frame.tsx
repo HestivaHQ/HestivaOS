@@ -9,6 +9,7 @@ export const APP_NAVIGATION_ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/customers', label: 'Customers' },
   { href: '/properties', label: 'Properties' },
+  { href: '/quotes', label: 'Quotes' },
   { href: '/work-orders', label: 'Work orders' },
   { href: '/recurring-services', label: 'Recurring services' },
   { label: 'Team', children: [
@@ -21,12 +22,15 @@ export const APP_NAVIGATION_ITEMS = [
 
 export async function AppFrame({ active, email, user, children }: { active: string; email: string; user?: AppUser; children: ReactNode }) {
   const authoritativeUser = user ?? await (await createAuthenticatedApi()).syncUser();
+  const navigationItems = authoritativeUser.role === 'ADMIN'
+    ? APP_NAVIGATION_ITEMS
+    : APP_NAVIGATION_ITEMS.filter((item) => !('href' in item) || item.href !== '/quotes');
   return (
     <main className="appShell">
-      <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={APP_NAVIGATION_ITEMS} />
+      <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={navigationItems} />
       <aside className="sidebar desktopSidebar">
         <div><p className="eyebrow">Hestiva OS</p><h1 className="brand">Operations</h1></div>
-        <AppNavigation active={active} items={APP_NAVIGATION_ITEMS} />
+        <AppNavigation active={active} items={navigationItems} />
         <div className="accountBlock"><AccountMenu user={authoritativeUser} email={email} /></div>
       </aside>
       <section className="content">{children}</section>

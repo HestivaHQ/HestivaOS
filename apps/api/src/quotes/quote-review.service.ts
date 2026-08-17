@@ -23,6 +23,10 @@ export type QuoteReadinessBlocker = {
 const declineEligibleStatuses: QuoteStatus[] = [QuoteStatus.SUBMITTED, QuoteStatus.NEEDS_ATTENTION];
 const detailInclude = {
   acceptedRevision: { include: { lineItems: { orderBy: { sortOrder: 'asc' as const } } } },
+  customer: { select: { id: true, name: true, contactName: true, email: true, phone: true } },
+  property: { select: { id: true, name: true, addressLine1: true, city: true, postalCode: true, country: true, customerId: true } },
+  workOrder: { select: { id: true, reference: true, title: true } },
+  recurringAgreement: { select: { id: true } },
   photos: { orderBy: { createdAt: 'asc' as const } },
   activities: { orderBy: { createdAt: 'asc' as const } },
 } as const;
@@ -74,7 +78,23 @@ export class QuoteReviewService {
       }),
       this.prisma.quote.count({ where }),
     ]);
-    return { items, total, page: safePage, pageSize: safePageSize };
+    const revisions = items.length ? await this.prisma.quoteRevision.findMany({
+      where: { OR: items.map((item) => ({ quoteId: item.id, revisionNumber: item.currentRevisionNumber })) },
+      select: { quoteId: true, structuredData: true },
+    }) : [];
+    const revisionByQuote = new Map(revisions.map((revision) => [revision.quoteId, submissionFrom(revision.structuredData)]));
+    return { items: items.map((item) => {
+      const submission = revisionByQuote.get(item.id);
+      return { ...item, summary: submission ? {
+        customerName: submission.customer.fullName,
+        customerEmail: submission.customer.email,
+        customerMobile: submission.customer.mobile,
+        primaryService: submission.request.primaryService.canonicalService ?? submission.request.primaryService.websiteValue,
+        frequency: submission.request.frequency,
+        preferredDate: submission.visit.preferredDate,
+        submittedAt: submission.submittedAt,
+      } : null };
+    }), total, page: safePage, pageSize: safePageSize };
   }
 
   async findOne(id: string) {
@@ -86,7 +106,9 @@ export class QuoteReviewService {
     });
     if (!currentRevision) throw new ConflictException('Quote current revision is missing and requires recovery.');
     const resolution = await this.resolveMatches(quote, submissionFrom(currentRevision.structuredData));
-    return { ...quote, currentRevision, resolution };
+    const actorIds = [...new Set([quote.acceptedByUserId, quote.declinedByUserId, ...quote.activities.map((activity) => activity.actorUserId)].filter((value): value is string => Boolean(value)))];
+    const actors = actorIds.length ? await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, firstName: true, lastName: true, displayName: true, email: true } }) : [];
+    return { ...quote, currentRevision, resolution, actors };
   }
 
   async preflight(id: string, expectedRevisionNumber: number, now = new Date()) {

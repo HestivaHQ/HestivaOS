@@ -255,3 +255,7 @@ A deliberate migration away from ES256 requires a reviewed code change, tests, A
 ### Accepted Quote operational-context verification (2026-08-16)
 
 After migration recovery, verify an accepted Quote links to exactly one initial Work Order, that its accepted-revision stored photos have `work_order_quote_evidence` rows, and that the Work Order retains the structured visit context. For recurring Quotes, verify stable instructions/time/eco preference on the agreement and initial visit. Never reconstruct missing temporary credentials from Property notes or copy them to later visits; recover credential metadata only from an authorized source and revoke unusable records.
+
+### ADMIN Quote decision UI recovery (2026-08-16)
+
+If an Admin sees an acceptance timeout or connection failure, do not repeatedly press Accept or issue the mutation manually. Reload the protected Quote detail and inspect its authoritative status and links. `ACCEPTED` with a Work Order link confirms completion; a recurring Quote must also link its agreement. If it remains `SUBMITTED`, reload preflight and review the same current revision before a deliberate retry. Any changed revision, terminal status, missing link, or incompatible accepted state must be investigated through the Quote activity and database linkage rather than repaired in the browser. Never expose temporary credential secrets, bearer tokens, or raw activity metadata while diagnosing the UI.

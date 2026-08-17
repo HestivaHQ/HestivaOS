@@ -2,7 +2,7 @@ import type { Customer, Property } from '@prisma/client';
 import type { CustomerInput, PropertyInput } from './website-quote-contract';
 
 export type MatchState = 'EXACT_EXISTING_MATCH' | 'LIKELY_MATCH_REVIEW_REQUIRED' | 'NO_MATCH_NEW_CANDIDATE' | 'AMBIGUOUS_MULTIPLE_MATCHES' | 'INVALID_OR_INSUFFICIENT_IDENTITY_DATA';
-export type MatchCandidate = { id: string; displayName: string; evidence: string[] };
+export type MatchCandidate = { id: string; displayName: string; evidence: string[]; context?: string };
 export type MatchResult = { state: MatchState; readiness: 'READY' | 'REVIEW_REQUIRED' | 'BLOCKED'; candidates: MatchCandidate[] };
 
 export const normalizeCustomerEmail = (value?: string | null) => value?.trim().toLowerCase() || null;
@@ -24,7 +24,7 @@ export function resolveCustomerMatch(input: CustomerInput, customers: Array<Pick
     if (phone && normalizeCustomerPhone(customer.phone) === phone) evidence.push('MOBILE');
     return { customer, evidence };
   }).filter(({ evidence }) => evidence.length);
-  const candidates = matches.map(({ customer, evidence }) => ({ id: customer.id, displayName: customer.contactName?.trim() || customer.name, evidence }));
+  const candidates = matches.map(({ customer, evidence }) => ({ id: customer.id, displayName: customer.contactName?.trim() || customer.name, evidence, context: [customer.email, customer.phone].filter(Boolean).join(' · ') }));
   if (!matches.length) return { state: 'NO_MATCH_NEW_CANDIDATE', readiness: 'READY', candidates: [] };
   if (matches.length > 1) return { state: 'AMBIGUOUS_MULTIPLE_MATCHES', readiness: 'REVIEW_REQUIRED', candidates };
   const bothSupplied = Boolean(email && phone);
@@ -36,7 +36,7 @@ export function resolvePropertyMatch(input: PropertyInput, properties: Array<Pic
   if (!input.addressLine1?.trim() || !input.suburb?.trim()) return { state: 'INVALID_OR_INSUFFICIENT_IDENTITY_DATA', readiness: 'BLOCKED', candidates: [] };
   const address = normalizePropertyAddress(input);
   const matches = properties.filter((property) => normalizePropertyAddress(property) === address);
-  const candidates = matches.map((property) => ({ id: property.id, displayName: `${property.name} — ${property.addressLine1}, ${property.city}`, evidence: ['ADDRESS'] }));
+  const candidates = matches.map((property) => ({ id: property.id, displayName: `${property.name} — ${property.addressLine1}, ${property.city}`, evidence: ['ADDRESS'], context: [property.postalCode, property.country].filter(Boolean).join(' · ') }));
   if (!matches.length) return { state: 'NO_MATCH_NEW_CANDIDATE', readiness: 'READY', candidates: [] };
   if (matches.length > 1) return { state: 'AMBIGUOUS_MULTIPLE_MATCHES', readiness: 'REVIEW_REQUIRED', candidates };
   return { state: 'EXACT_EXISTING_MATCH', readiness: 'READY', candidates };
