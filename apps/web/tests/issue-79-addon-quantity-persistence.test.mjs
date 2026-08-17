@@ -32,7 +32,7 @@ test('recurring agreements propagate quantity into generated work orders', () =>
 });
 
 test('web API types expose quantities end to end', () => {
-  assert.match(webApi, /export type AddOnSelectionInput = \{ serviceId: string; quantity: number; capacityApproved\?: boolean \}/);
-  assert.match(webApi, /addOns: Array<\{ serviceId: string; quantity: number; service: Service \}>/);
-  assert.match(webApi, /addOns\?: AddOnSelectionInput\[\]/);
+  assert.match(webApi, /export type AddOnSelectionInput\s*=\s*\{[\s\S]*?serviceId:\s*string;[\s\S]*?quantity:\s*number;[\s\S]*?capacityApproved\?:\s*boolean;[\s\S]*?\};/);
+  assert.match(webApi, /addOns:\s*Array<\{\s*serviceId:\s*string;\s*quantity:\s*number;\s*service:\s*Service\s*\}>/);
+  assert.match(webApi, /addOns\?:\s*AddOnSelectionInput\[\]/);
 });
