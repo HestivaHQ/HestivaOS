@@ -113,3 +113,5 @@ Only currently identified technical follow-up work is listed here.
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
 - Add authoritative Complete Job and customer completion correspondence after Review Job readiness policy is complete.
 - Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records now exist.
+
+- **Completed 2026-08-17 — Homent Technician D:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. Still deferred: Complete Job, incident/damage/scope-mismatch resolution, notifications, protected credentials, Homent Supervisor, and approved private evidence-read/privacy hardening.

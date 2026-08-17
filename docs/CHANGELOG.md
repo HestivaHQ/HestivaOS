@@ -706,3 +706,14 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ### Preserved and deferred
 
 - Existing rows are not given invented historical scope. B1 assignment, leadership, lifecycle, schedule, brief, cache and reconciliation remain in place. Full photo transport, incident/damage resolution, scope mismatch, additional work, customer correspondence, Complete Job, and Homent Supervisor remain deferred.
+
+## 2026-08-17 — Homent Technician D offline evidence
+
+### Added
+
+- Added shared mobile WebP compression, IndexedDB v3 durable evidence Blob storage, sequential retryable upload, deterministic evidence paths, and idempotent backend acknowledgement.
+- Added stable REQUIRED section and exception evidence identities, assignment/scope/section authorization, local-first checklist progression, worker sync wording, and acknowledged-only bounded Blob cleanup.
+
+### Preserved and deferred
+
+- Generic Work Order BEFORE/AFTER photos retain their model and behavior while reusing the compressor; `/technician` remains canonical. Complete Job, full incident/damage/scope-mismatch resolution, notifications, protected credentials, Homent Supervisor, and a broad legacy bucket privacy migration remain deferred.

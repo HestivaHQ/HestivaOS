@@ -128,6 +128,11 @@ enum EvidenceSyncState {
   RETRY_PENDING
 }
 
+enum ExecutionEvidencePurpose {
+  REQUIRED_SECTION_EVIDENCE
+  EXCEPTION_EVIDENCE
+}
+
 enum WorkOrderPriority {
   LOW
   NORMAL
@@ -441,6 +446,7 @@ model Technician {
   ledWorkOrders WorkOrder[] @relation("WorkOrderJobLeader")
   startedWorkOrders WorkOrder[] @relation("WorkOrderStartedBy")
   sectionOutcomeEvents ExecutionSectionOutcomeEvent[]
+  executionEvidence ExecutionSectionEvidence[]
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -696,6 +702,7 @@ model WorkOrder {
   customerSignOff WorkOrderCustomerSignOff?
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
+  executionEvidence ExecutionSectionEvidence[]
   startedScopeRevision WorkOrderExecutionScopeRevision? @relation("WorkOrderStartedScope", fields: [startedScopeRevisionId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -726,6 +733,7 @@ model WorkOrderExecutionScopeRevision {
   startedWorkOrder WorkOrder? @relation("WorkOrderStartedScope")
   templateVersion ServiceScopeTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
   sections WorkOrderExecutionSection[]
+  evidence ExecutionSectionEvidence[]
   createdAt DateTime @default(now()) @map("created_at")
   @@unique([workOrderId, revision])
   @@index([workOrderId, createdAt])
@@ -777,15 +785,24 @@ model ExecutionSectionOutcomeEvent {
 
 model ExecutionSectionEvidence {
   id String @id @default(uuid()) @db.Uuid
-  localEvidenceId String @unique @map("local_evidence_id")
+  localEvidenceId String @unique @map("local_evidence_id") @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  scopeRevisionId String @map("scope_revision_id") @db.Uuid
   sectionId String @map("section_id") @db.Uuid
+  technicianId String @map("technician_id") @db.Uuid
   outcomeEventId String? @map("outcome_event_id") @db.Uuid
+  purpose ExecutionEvidencePurpose
   syncState EvidenceSyncState @default(CAPTURED_LOCAL) @map("sync_state")
+  storagePath String? @map("storage_path")
   capturedAt DateTime @map("captured_at")
   serverAcknowledgedAt DateTime? @map("server_acknowledged_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  scopeRevision WorkOrderExecutionScopeRevision @relation(fields: [scopeRevisionId], references: [id], onDelete: Restrict)
   section WorkOrderExecutionSection @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
   outcomeEvent ExecutionSectionOutcomeEvent? @relation(fields: [outcomeEventId], references: [id], onDelete: Restrict)
   @@index([sectionId, syncState])
+  @@index([workOrderId, scopeRevisionId])
   @@map("execution_section_evidence")
 }
 

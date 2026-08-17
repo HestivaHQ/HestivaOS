@@ -453,3 +453,7 @@ Implemented the `/technician` mobile-first PWA, purpose-built assignment-scoped 
 ## 2026-08-17 — Homent Technician B2/C frozen Execution Scope
 
 Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, evidence/attention foundations, exception-first Job Leader review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.
+
+## 2026-08-17 — Homent Technician D offline evidence pipeline
+
+Implemented shared orientation-aware bounded WebP compression, IndexedDB v3 evidence/Blob persistence, sequential opportunity-driven Supabase upload, deterministic UUID paths, assignment-scoped idempotent backend acknowledgement, safe retained retries and acknowledged-only bounded Blob cleanup. REQUIRED and ON_EXCEPTION checklist flows now progress after durable local capture, and Job Leader review continues to separate missing evidence from authoritative pending/acknowledged evidence. The legacy BEFORE/AFTER page reuses the compressor without becoming execution authority. Complete Job and the broader incident/damage/scope-mismatch, notification, credential, and Supervisor slices remain deferred.

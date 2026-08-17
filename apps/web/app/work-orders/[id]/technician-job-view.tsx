@@ -7,30 +7,12 @@ import { displayCustomerName } from '../../../lib/customer-display';
 import { api, WorkOrder, WorkOrderChecklistItem, WorkOrderPhoto, WorkOrderStatus } from '../../../lib/api';
 import { createClient } from '../../../lib/supabase/client';
 import { CustomerSignOff } from './customer-sign-off';
+import { compressPhoto } from '../../../lib/photo-compression';
 
 const NEXT_ACTION: Partial<Record<WorkOrderStatus, { label: string; status: WorkOrderStatus }>> = {
   ASSIGNED: { label: 'Accept job', status: 'ACCEPTED' }, ACCEPTED: { label: 'Start travelling', status: 'TRAVELLING' }, TRAVELLING: { label: 'Arrived on site', status: 'ON_SITE' }, ON_SITE: { label: 'Complete job', status: 'COMPLETED' }, WAITING_FOR_PARTS: { label: 'Resume on site', status: 'ON_SITE' },
 };
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const MAX_ORIGINAL_SIZE_BYTES = 15 * 1024 * 1024;
-const MAX_PHOTO_DIMENSION = 1920;
-const MAX_COMPRESSED_SIZE_BYTES = 1_500_000;
 function readableStatus(value: string) { return value.replaceAll('_', ' '); }
-async function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> { return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Unable to compress image.')), 'image/webp', quality)); }
-async function compressPhoto(file: File): Promise<File> {
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) throw new Error('Only JPEG, PNG, or WebP pictures are allowed.');
-  if (file.size > MAX_ORIGINAL_SIZE_BYTES) throw new Error('Picture is too large. Maximum original size is 15 MB.');
-  let bitmap: ImageBitmap;
-  try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { throw new Error('The selected file is not a valid picture.'); }
-  const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  const context = canvas.getContext('2d'); if (!context) { bitmap.close(); throw new Error('Picture processing is not supported on this device.'); }
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
-  let quality = 0.82; let blob = await canvasToBlob(canvas, quality);
-  while (blob.size > MAX_COMPRESSED_SIZE_BYTES && quality > 0.58) { quality -= 0.08; blob = await canvasToBlob(canvas, quality); }
-  const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '-') || 'job-photo';
-  return new File([blob], `${baseName}.webp`, { type: 'image/webp', lastModified: Date.now() });
-}
 
 export function TechnicianJobView({ workOrderId }: { workOrderId: string }) {
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
