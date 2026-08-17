@@ -93,3 +93,8 @@ Only currently identified technical follow-up work is listed here.
 - Slice 5O remains skills and remaining evidence-backed operational fields.
 
 - **Completed 2026-08-16:** non-lossy accepted Quote handoff now projects typed initial-visit context, stable recurring context, accepted-revision photo references, and a visit-scoped temporary-credential boundary. ADMIN Quote review now presents the safe submitted operational preview and customer evidence. Role-filtered credential APIs/UI and cleaner presentation remain planned security/UI work.
+
+## Slice 5N Work Order assignment status (2026-08-17)
+
+- Completed: normalized zero/one/many Work Order Technician assignments, duplicate prevention, ADMIN mutation, active Technician/Employee eligibility, assignment audit, unassigned visibility, and active-Crew prepopulation with job-specific snapshot edits.
+- Still planned separately: cleaner job execution, recurring staffing templates, dispatch optimization, and dashboard notification/escalation beyond the existing unassigned counters and filters.

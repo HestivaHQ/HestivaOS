@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-17 — Work Order Technician / Crew assignment
+
+### Added
+
+- Added normalized zero/one/many Technician assignments with database duplicate prevention, legacy assignment backfill, ADMIN-only mutation, eligibility validation, and assignment activity.
+- Added searchable multi-selection, Crew active-member prepopulation, job-specific adjustment, and clear Assigned/Unassigned list and detail presentation.
+
+### Preserved and deferred
+
+- Saved Work Order assignments are snapshots independent of later Crew membership. Quote acceptance, Website ingestion/pricing/idempotency/authentication, recurring generation, and Customer/Property resolution are unchanged. Cleaner job execution, dispatch optimization, recurring staffing templates, and new notification infrastructure remain deferred.
+
 ## 2026-08-16 — ADMIN Quote review UI
 
 ### Added

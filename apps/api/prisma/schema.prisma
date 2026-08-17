@@ -391,6 +391,7 @@ model Technician {
   status TechnicianStatus @default(ACTIVE)
   employeeRecord EmployeeRecord?
   workOrders WorkOrder[]
+  workOrderAssignments WorkOrderTechnician[]
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -579,6 +580,7 @@ model WorkOrder {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  assignedTechnicians WorkOrderTechnician[]
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   recurringAgreement RecurringServiceAgreement? @relation(fields: [recurringAgreementId], references: [id], onDelete: Restrict)
@@ -604,6 +606,18 @@ model WorkOrder {
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderTechnician {
+  workOrderId String @map("work_order_id") @db.Uuid
+  technicianId String @map("technician_id") @db.Uuid
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  @@id([workOrderId, technicianId])
+  @@index([technicianId, workOrderId])
+  @@map("work_order_technicians")
 }
 
 model RecurringServiceAgreement {
