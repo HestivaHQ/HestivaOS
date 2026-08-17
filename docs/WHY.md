@@ -84,3 +84,7 @@ Homent Technician is a focused route/PWA rather than a duplicated project becaus
 ## Why field execution is frozen and section-first
 
 A Quote explains a commercial agreement; it is not a stable, low-friction cleaning checklist. Versioned standards plus visit-specific frozen revisions preserve historical truth, while one confirmation per logical area keeps routine field administration short. Detailed requirements remain visible as reference instead of becoming productivity scoring or dozens of compulsory ticks. Append-only outcomes and explicit offline conflicts are preferred over convenient overwrites because field attribution and the scope actually used must remain truthful.
+
+## Why field evidence is local-first but server-acknowledged
+
+Durable local capture lets the crew continue without making radio coverage a completion dependency, while retaining the Blob until backend acknowledgement prevents an object-storage success or lost HTTP response from becoming silent evidence loss. Stable UUIDs and deterministic paths make both upload and metadata retries convergent. Keeping Execution Evidence separate from generic BEFORE/AFTER photos preserves the frozen checklist's exact section meaning. See ADR-0046.

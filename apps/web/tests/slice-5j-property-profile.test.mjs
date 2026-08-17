@@ -28,5 +28,5 @@ test('Work Order summary and Technician view consume live actionable Property fi
 
 test('generic selector contract is separate from full Property contract', () => {
   assert.match(api, /propertySelectorOptions/);
-  assert.match(api, /Pick<Property, 'id' \| 'customerId' \| 'name' \| 'addressLine1' \| 'city'>/);
+  assert.match(api, /Pick<Property,\s*["']id["']\s*\|\s*["']customerId["']\s*\|\s*["']name["']\s*\|\s*["']addressLine1["']\s*\|\s*["']city["']>/);
 });
