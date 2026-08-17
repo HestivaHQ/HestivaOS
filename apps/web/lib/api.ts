@@ -45,6 +45,17 @@ export type WorkOrderChecklistItem = { id: string; workOrderId: string; descript
 export type WorkOrderPhoto = { id: string; workOrderId: string; category: 'BEFORE' | 'AFTER'; url: string; storagePath: string; uploadedBy: string; createdAt: string };
 export type WorkOrderCustomerSignOff = { id: string; workOrderId: string; customerName: string; signatureDataUrl: string; note: string | null; acceptedAt: string };
 export type WorkOrderActivity = { id: string; type: 'WORK_ORDER_CREATED' | 'STATUS_CHANGED' | 'TECHNICIAN_ASSIGNED' | 'TECHNICIAN_CHANGED' | 'TECHNICIAN_REMOVED' | 'CREW_ASSIGNED' | 'CREW_CHANGED' | 'CREW_REMOVED' | 'WORK_ORDER_CLOSED' | 'WORK_ORDER_CANCELLED'; previousStatus: WorkOrderStatus | null; newStatus: WorkOrderStatus | null; note: string | null; actor: AppUser | null; createdAt: string };
+export type QuoteStatus = 'SUBMITTED' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'NEEDS_ATTENTION';
+export type QuoteResolutionDecision = 'USE_EXISTING' | 'CREATE_NEW';
+export type QuoteSummary = { customerName: string; customerEmail: string; customerMobile: string; primaryService: string; frequency: WorkOrderFrequency; preferredDate: string; submittedAt: string };
+export type QuoteListItem = { id: string; reference: string; status: QuoteStatus; currentRevisionNumber: number; validUntil: string; acceptedAt: string | null; declinedAt: string | null; customerId: string | null; propertyId: string | null; workOrderId: string | null; recurringAgreementId: string | null; createdAt: string; updatedAt: string; summary: QuoteSummary | null };
+export type QuoteLineItem = { id: string; type: 'PRIMARY_SERVICE' | 'ADD_ON' | 'ADJUSTMENT'; code: string | null; label: string; description: string | null; quantity: number; unitAmountMinor: number; lineTotalMinor: number; sortOrder: number };
+export type QuoteRevision = { id: string; revisionNumber: number; origin: 'CUSTOMER_SUBMISSION' | 'ADMIN_REVISION'; structuredData: Record<string, any>; currency: string; subtotalMinor: number; discountMinor: number; discountReason: string | null; taxEnabled: boolean; taxMinor: number; totalMinor: number; lineItems: QuoteLineItem[]; createdAt: string };
+export type QuoteMatch = { state: string; readiness: 'READY' | 'REVIEW_REQUIRED' | 'BLOCKED'; candidates: Array<{ id: string; displayName: string; evidence: string[]; context?: string }> };
+export type QuotePhoto = { id: string; quoteRevisionId: string | null; source: 'CUSTOMER' | 'ADMIN'; status: 'PENDING' | 'STORED' | 'FAILED'; originalFileName: string; mimeType: string; sizeBytes: number | null; url: string | null; createdAt: string };
+export type QuoteActivity = { id: string; type: string; previousStatus: QuoteStatus | null; newStatus: QuoteStatus | null; note: string | null; actorUserId: string | null; createdAt: string };
+export type QuoteDetail = QuoteListItem & { acceptedByUserId: string | null; declinedByUserId: string | null; customerResolution: QuoteResolutionDecision | null; propertyResolution: QuoteResolutionDecision | null; resolutionRevisionNumber: number | null; acceptedRevision: QuoteRevision | null; currentRevision: QuoteRevision; photos: QuotePhoto[]; activities: QuoteActivity[]; resolution: { customer: QuoteMatch; property: QuoteMatch }; customer: Pick<Customer, 'id' | 'name' | 'contactName' | 'email' | 'phone'> | null; property: Pick<Property, 'id' | 'name' | 'addressLine1' | 'city' | 'postalCode' | 'country' | 'customerId'> | null; workOrder: { id: string; reference: string | null; title: string } | null; recurringAgreement: { id: string } | null; actors: Array<{ id: string; firstName: string; lastName: string; displayName: string | null; email: string }> };
+export type QuotePreflight = { quoteId: string; quoteReference: string; currentRevisionNumber: number; expectedRevisionNumber: number; resolution: QuoteDetail['resolution']; resolutionReady: boolean; eligibleForAcceptance: boolean; blockers: Array<{ code: string; message: string; resolvableInCurrentSlice: boolean }> };
 export type DashboardWorkOrderActivity = WorkOrderActivity & { workOrder: Pick<WorkOrder, 'id' | 'reference' | 'title'> };
 export type DashboardOverview = {
   totals: { customers: number; properties: number; openWorkOrders: number; completedWorkOrders: number };
@@ -161,6 +172,12 @@ export const api = {
   createRecurringService: (input: RecurringServiceInput) => apiFetch<RecurringServiceAgreement>('/recurring-services', { method: 'POST', ...json(input) }),
   updateRecurringServiceStatus: (id: string, status: RecurringServiceStatus) => apiFetch<RecurringServiceAgreement>(`/recurring-services/${id}/status`, { method: 'PATCH', ...json({ status }) }),
   generateRecurringService: (id: string) => apiFetch<WorkOrder | null>(`/recurring-services/${id}/generate`, { method: 'POST' }),
+  quotes: (query = '') => apiFetch<PaginatedResponse<QuoteListItem>>(`/quotes${query}`),
+  quote: (id: string) => apiFetch<QuoteDetail>(`/quotes/${id}`),
+  quotePreflight: (id: string, expectedRevisionNumber: number) => apiFetch<QuotePreflight>(`/quotes/${id}/preflight?expectedRevisionNumber=${expectedRevisionNumber}`),
+  resolveQuote: (id: string, input: { expectedRevisionNumber: number; customer: { decision: QuoteResolutionDecision; customerId?: string }; property: { decision: QuoteResolutionDecision; propertyId?: string } }) => apiFetch<QuoteDetail>(`/quotes/${id}/resolution`, { method: 'PATCH', ...json(input) }),
+  acceptQuote: (id: string, expectedRevisionNumber: number) => apiFetch<QuoteDetail>(`/quotes/${id}/accept`, { method: 'PATCH', ...json({ expectedRevisionNumber }) }),
+  declineQuote: (id: string, expectedRevisionNumber: number, reason: string) => apiFetch<QuoteDetail>(`/quotes/${id}/decline`, { method: 'PATCH', ...json({ expectedRevisionNumber, reason }) }),
   workOrders: (query = '') => apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
   workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
   createWorkOrder: (input: WorkOrderInput) => apiFetch<WorkOrder>('/work-orders', { method: 'POST', ...json(input) }),

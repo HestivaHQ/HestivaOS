@@ -1,10 +1,16 @@
 # Production architecture
 
+## ADMIN Quote review UI (2026-08-16)
+
+The Next.js `/quotes` and `/quotes/[id]` routes provide the ADMIN-only operational queue and review workspace over the established Quote controller. The shared shell filters the Quotes navigation item by the synchronized application role, while the server pages redirect non-ADMIN users and the Nest controller remains the authoritative authorization boundary. The queue uses the protected list read model for current-revision customer/service/date summaries and prioritizes actionable statuses without exposing commercial detail outside the review route.
+
+Detail uses backend preflight as the acceptance authority and progressively presents blockers, current request and revision, Customer/Property resolution, operational handoff, immutable revision pricing, customer Quote photos, readable activity, and terminal operational links. Resolution, Accept, and Decline always send the reviewed `expectedRevisionNumber`. Accept refreshes preflight before opening a native confirmation dialog, disables duplicate submission, and re-reads Quote state after an uncertain network result rather than automatically repeating the mutation. Pricing is rendered only from stored revision minor-unit values. Generic Quote reads contain no temporary credential secret model; secure credential management remains separate planned work.
+
 ## Atomic accepted-Quote operational conversion
 
 `PATCH /api/v1/quotes/:id/accept` is ADMIN-only and dispatches the immutable current submission by frequency. ONE_TIME retains its single-Work-Order path. Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` use the same bounded-retry `SERIALIZABLE` transaction to resolve/materialize Customer and Property, create one `RecurringServiceAgreement`, create its initial `NEW` Work Order, link the exact revision and both operational records, and append audit activity. The preferred date becomes the agreement effective date and date-only initial recurrence; standard recurrence derives weekday/day-of-month, while CUSTOM retains its required note and is not bulk-generated.
 
-Agreement and initial visit preserve primary Service, frequency, supported instructions, exact generic/Laundry/Ironing add-on quantities, preferred time and eco-product preference; the initial visit also preserves home condition and all typed visit context. Later generated visits inherit only agreement-owned stable context. Accepted pricing stays on the immutable revision. Review/presentation UI is not implemented. Website ingestion and ordinary recurring CRUD behavior are unchanged.
+Agreement and initial visit preserve primary Service, frequency, supported instructions, exact generic/Laundry/Ironing add-on quantities, preferred time and eco-product preference; the initial visit also preserves home condition and all typed visit context. Later generated visits inherit only agreement-owned stable context. Accepted pricing stays on the immutable revision and is presented in the ADMIN review UI. Website ingestion and ordinary recurring CRUD behavior are unchanged.
 
 
 ## Atomic ONE_TIME Quote acceptance (Slice 5M, 2026-08-16)

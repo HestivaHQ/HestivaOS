@@ -18,7 +18,7 @@ test('shared desktop and mobile navigation has the approved operational order', 
   assert.ok(positions.every((position, index) => position >= 0 && (!index || positions[index - 1] < position)));
   for (const label of ['Technicians', 'Crews', 'Shift Planning']) assert.match(frame, new RegExp(`label: '${label}'`));
   assert.doesNotMatch(frame, /href: '\/employees'|href: '\/services'/);
-  assert.match(frame, /MobileAppNavigation[^>]+items=\{APP_NAVIGATION_ITEMS\}/);
+  assert.match(frame, /MobileAppNavigation[^>]+items=\{navigationItems\}/);
   assert.match(mobile, /<AppNavigation[^>]+items=\{items\}/);
 });
 

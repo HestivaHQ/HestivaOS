@@ -4,7 +4,7 @@ import { QuoteActivityType, QuoteEntityResolution, QuoteStatus } from '@prisma/c
 import type { PrismaService } from '../prisma.service';
 import { QuoteReviewService } from './quote-review.service';
 
-const revision = { id: 'revision-1', quoteId: 'quote-1', revisionNumber: 2, structuredData: { customer: { fullName: 'Alex', email: 'alex@example.com', mobile: '+27821234567' }, property: { addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa' }, request: {} }, lineItems: [{ sortOrder: 0 }] };
+const revision = { id: 'revision-1', quoteId: 'quote-1', revisionNumber: 2, structuredData: { submittedAt: '2026-08-15T10:00:00.000Z', customer: { fullName: 'Alex', email: 'alex@example.com', mobile: '+27821234567' }, property: { addressLine1: '1 Main Road', suburb: 'Durban', country: 'South Africa' }, request: { primaryService: { canonicalService: 'Regular Home Cleaning', websiteValue: 'Regular Home Cleaning' }, frequency: 'ONE_TIME' }, visit: { preferredDate: '2026-08-20' } }, lineItems: [{ sortOrder: 0 }] };
 const baseQuote: any = {
   id: 'quote-1', reference: 'Q-20260815-0001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 2,
   validUntil: new Date('2099-01-01'), acceptedAt: null, acceptedByUserId: null, acceptedRevisionId: null,
@@ -17,13 +17,14 @@ const matchRepos = { customer: { findMany: jest.fn(async () => []) }, property: 
 
 describe('QuoteReviewService review reads', () => {
   it('lists Quotes with repository pagination conventions', async () => {
-    const prisma = { quote: { findMany: jest.fn(), count: jest.fn() }, $transaction: jest.fn(async () => [[baseQuote], 1]) } as unknown as PrismaService;
+    const prisma = { quote: { findMany: jest.fn(), count: jest.fn() }, quoteRevision: { findMany: jest.fn(async () => [{ quoteId: 'quote-1', structuredData: revision.structuredData }]) }, $transaction: jest.fn(async () => [[baseQuote], 1]) } as unknown as PrismaService;
     const result = await new QuoteReviewService(prisma).findAll(1, 20, 'Q-', QuoteStatus.SUBMITTED);
-    expect(result).toEqual({ items: [baseQuote], total: 1, page: 1, pageSize: 20 });
+    expect(result.items[0]).toEqual(expect.objectContaining({ id: 'quote-1', summary: expect.objectContaining({ customerName: 'Alex' }) }));
+    expect(result.total).toBe(1);
   });
 
   it('returns the exact current revision with line items and activities', async () => {
-    const prisma = { quote: { findUnique: jest.fn(async () => baseQuote) }, quoteRevision: { findUnique: jest.fn(async () => revision) }, ...matchRepos } as unknown as PrismaService;
+    const prisma = { quote: { findUnique: jest.fn(async () => baseQuote) }, quoteRevision: { findUnique: jest.fn(async () => revision) }, user: { findMany: jest.fn(async () => []) }, ...matchRepos } as unknown as PrismaService;
     const result = await new QuoteReviewService(prisma).findOne('quote-1');
     expect(result.currentRevision).toBe(revision);
     expect(result.activities).toEqual([]);

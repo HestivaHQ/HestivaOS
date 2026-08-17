@@ -357,3 +357,43 @@ h1, h2, h3, p { margin-top: 0; }
 .propertyFormSection[open] summary { margin-bottom: 14px; }
 .propertyFieldGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 700px) { .propertyFieldGrid { grid-template-columns: 1fr; } .propertyFormSection { padding: 14px; } }
+
+/* Admin Quote review */
+.quoteWorkspace { display: grid; gap: 20px; max-width: 1240px; margin: 0 auto; }
+.quoteWorkspace .pageHeader { margin-bottom: 0; }
+.quoteQueue .panelHeader p, .quoteSection .panelHeader p { margin: 5px 0 0; color: #61727d; }
+.quoteFilters { display: flex; align-items: end; gap: 10px; padding: 18px 0 12px; }
+.quoteFilters label { display: grid; flex: 1; gap: 6px; color: #42545e; font-size: 13px; font-weight: 800; }
+.quoteFilters .searchInput { max-width: none; }
+.quoteFilters button, .quoteFilterTabs button, .errorBanner button { border: 1px solid #cbd7dc; border-radius: 9px; padding: 10px 14px; background: white; font-weight: 800; }
+.quoteFilterTabs { display: flex; flex-wrap: wrap; gap: 7px; padding-bottom: 12px; }
+.quoteFilterTabs button { padding: 7px 10px; color: #42545e; font-size: 13px; }
+.quoteFilterTabs button.active { border-color: #176b87; background: #eaf4f7; color: #176b87; }
+.quoteLoading { padding: 30px 0; color: #61727d; text-align: center; }
+.quoteList { display: grid; }
+.quoteQueueCard { display: grid; grid-template-columns: minmax(130px,.55fr) minmax(210px,1fr) minmax(300px,1.5fr) minmax(150px,.7fr); gap: 18px; align-items: center; border-top: 1px solid #edf1f3; padding: 18px 0; color: inherit; text-decoration: none; }
+.quoteQueueCard:hover, .quoteQueueCard:focus-visible { background: #f8fbfc; }
+.quoteQueueCard p { margin: 5px 0 0; color: #61727d; overflow-wrap: anywhere; font-size: 13px; }
+.quoteQueueIdentity, .quoteQueueMeta { display: grid; justify-items: start; gap: 8px; }
+.quoteQueueCard dl, .quoteFacts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 18px; margin: 0; }
+.quoteQueueCard dt, .quoteFacts dt, .pricingTotals dt, .quoteDialog dt { color: #61727d; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.quoteQueueCard dd, .quoteFacts dd, .pricingTotals dd, .quoteDialog dd { margin: 4px 0 0; overflow-wrap: anywhere; font-weight: 700; }
+.quoteQueueMeta { color: #61727d; font-size: 12px; }
+.quoteQueueMeta strong { color: #42545e; }
+.quoteStatus.accepted { color: #17613d; background: #dff5e9; }.quoteStatus.declined,.quoteStatus.expired { color: #8b2921; background: #fde7e4; }.quoteStatus.needs_attention { color: #7b5200; background: #fff3d5; }
+.backLink { width: fit-content; color: #176b87; font-weight: 800; text-decoration: none; }
+.quoteReadiness { border: 1px solid; border-radius: 14px; padding: 18px 20px; }.quoteReadiness h3 { margin-bottom: 8px; }.quoteReadiness p:last-child { margin-bottom: 0; }.quoteReadiness ul { margin-bottom: 0; padding-left: 22px; }.quoteReadiness.ready { border-color: #acd9be; background: #edf8f1; color: #17613d; }.quoteReadiness.blocked,.quoteWarning { border-color: #efc38d; background: #fff6e8; color: #765019; }
+.quoteWarning { border: 1px solid; border-radius: 12px; padding: 14px 16px; }.quoteWarning p { margin: 5px 0 0; }
+.quoteSection { min-width: 0; }.quoteSection .panelHeader { margin-bottom: 18px; }.quoteFacts { grid-template-columns: repeat(3,minmax(0,1fr)); }.operationalFacts { grid-template-columns: repeat(2,minmax(0,1fr)); }.quoteFacts div { border-left: 3px solid #e0eaee; padding-left: 12px; }.quoteFacts dd { line-height: 1.45; }
+.quoteResolutionGrid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; align-items: start; }.quoteResolutionGrid fieldset { display: grid; gap: 10px; margin: 14px 0; border: 1px solid #dbe3e7; border-radius: 10px; padding: 14px; }.quoteResolutionGrid legend { padding: 0 6px; font-weight: 800; }.quoteResolutionGrid fieldset label { display: flex; gap: 8px; align-items: start; }.quoteResolutionGrid input[type=radio] { width: 18px; height: 18px; margin: 0; accent-color: #176b87; }.quoteSelect { display: grid; gap: 6px; margin-bottom: 14px; color: #42545e; font-size: 13px; font-weight: 800; }.quoteSelect select,.quoteDialog textarea { width: 100%; border: 1px solid #cbd7dc; border-radius: 10px; padding: 10px 12px; background: white; }.resolutionState,.helpText { color: #61727d; }.quoteResolutionGrid .primaryButton { min-height: 42px; }
+.quoteAddOns { margin-top: 20px; border-top: 1px solid #edf1f3; padding-top: 16px; }.quoteAddOns h4 { margin: 0 0 8px; }.quoteAddOns ul { margin: 0; padding-left: 22px; }
+.pricingLines { display: grid; }.pricingLines > div,.pricingTotals > div { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid #edf1f3; padding: 11px 0; }.pricingTotals { width: min(430px,100%); margin: 14px 0 0 auto; }.pricingTotals .total { border-bottom: 0; font-size: 20px; }
+.quoteEvidence { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }.quoteEvidence article { display: grid; gap: 7px; min-width: 0; }.quoteEvidence img,.photoPlaceholder { width: 100%; aspect-ratio: 4/3; border: 1px solid #dbe3e7; border-radius: 10px; object-fit: cover; }.photoPlaceholder { display: grid; place-items: center; background: #f4f7f8; color: #61727d; }.quoteEvidence strong { overflow-wrap: anywhere; font-size: 13px; }.quoteEvidence span { color: #61727d; font-size: 12px; }
+.quoteTimeline { margin: 0; padding: 0 0 0 20px; }.quoteTimeline li { padding: 5px 0 14px 8px; }.quoteTimeline p { margin: 4px 0 0; color: #61727d; font-size: 13px; }
+.quoteAccepted,.quoteDecision { display: flex; align-items: center; justify-content: space-between; gap: 20px; }.quoteAccepted p,.quoteDecision p { margin-bottom: 0; color: #61727d; }.quoteAccepted .rowActions a { border: 1px solid #cbd7dc; border-radius: 9px; padding: 9px 12px; text-decoration: none; font-weight: 800; }.quoteDecisionActions,.dialogActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }.quoteDecisionActions button,.dialogActions button { min-height: 44px; border: 1px solid #cbd7dc; border-radius: 9px; padding: 10px 15px; background: white; font-weight: 800; }
+.quoteDialog { width: min(560px,calc(100% - 28px)); border: 0; border-radius: 16px; padding: 24px; box-shadow: 0 18px 60px rgba(16,35,45,.3); }.quoteDialog::backdrop { background: rgba(7,20,27,.58); }.quoteDialog dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }.quoteDialog form,.quoteDialog label { display: grid; gap: 12px; }.quoteDialog textarea { resize: vertical; }.quoteDialog .dialogActions { margin-top: 20px; }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,dialog:focus-visible { outline: 3px solid rgba(23,107,135,.35); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+@media (max-width: 1050px) { .quoteQueueCard { grid-template-columns: minmax(130px,.6fr) minmax(200px,1fr) minmax(280px,1.4fr); }.quoteQueueMeta { grid-column: 2 / -1; grid-template-columns: auto 1fr; }.quoteEvidence { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 760px) { .quoteQueueCard,.quoteResolutionGrid { grid-template-columns: 1fr; }.quoteQueueMeta { grid-column: auto; grid-template-columns: 1fr; }.quoteFacts,.operationalFacts { grid-template-columns: repeat(2,minmax(0,1fr)); }.quoteEvidence { grid-template-columns: repeat(2,minmax(0,1fr)); }.quoteAccepted,.quoteDecision { align-items: stretch; flex-direction: column; }.quoteDecisionActions { justify-content: flex-start; } }
+@media (max-width: 520px) { .quoteFilters { align-items: stretch; flex-direction: column; }.quoteFilters button { min-height: 44px; }.quoteFacts,.operationalFacts,.quoteDialog dl { grid-template-columns: 1fr; }.quoteEvidence { grid-template-columns: 1fr; }.quoteDecisionActions button,.dialogActions button { flex: 1; }.quoteFilterTabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); } }

@@ -430,3 +430,7 @@ Added role-protected CRUD/lifecycle and explicit generation APIs plus the operat
 ## 2026-08-16 — Non-lossy accepted Quote operational handoff
 
 Audited Website Quote values against Customer, Property, Work Order, recurring agreement, photo and pricing ownership. Added typed visit projection, stable recurring inheritance, accepted-revision photo references, and a non-inherited temporary-access credential boundary inside atomic acceptance. Existing Customer/Property records and Website ingestion/pricing behavior remain unchanged.
+
+## 2026-08-16 — ADMIN Quote review UI
+
+Implemented the role-filtered Quotes navigation, responsive actionable queue, and progressive ADMIN review workspace over the established Quote APIs. Added current-revision queue summaries, authoritative preflight blockers, Customer/Property resolution controls, immutable pricing and quantity display, non-empty operational handoff preview, distinct customer Quote evidence, readable activity, deliberate revision-bound Accept/Decline dialogs, uncertain-result recovery reads, and accepted operational links. No schema, migration, Website ingestion, authentication, contract, pricing, profitability, or replay behavior changed; temporary credential management remains deferred pending secure role-filtered APIs.

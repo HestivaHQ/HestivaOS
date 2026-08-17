@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-16 — ADMIN Quote review UI
+
+### Added
+
+- Added ADMIN-only Quotes navigation, a responsive actionable queue, and progressive Quote detail review with authoritative preflight blockers.
+- Added revision-bound Customer/Property resolution, immutable pricing and add-on quantities, operational handoff preview, distinct customer Quote evidence, readable activity, deliberate Accept/Decline confirmation, uncertain-result recovery reads, and direct accepted Work Order/agreement links.
+- Added focused UI and read-model coverage; commercial calculations continue to come only from immutable Quote revisions.
+
+### Preserved and deferred
+
+- Backend decision authorization and atomic conversion remain authoritative. Website ingestion, authentication, contracts, pricing, profitability, and replay/idempotency are unchanged, and no Prisma schema or migration changed.
+- Temporary credential secret management, cleaner presentation, WhatsApp/extraction workflows, and incident/checklist scope remain deferred.
+
 ## 2026-08-16 — Atomic recurring Quote acceptance
 
 ### Added
