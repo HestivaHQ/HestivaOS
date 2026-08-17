@@ -37,12 +37,12 @@ describe('Work Order technician assignments', () => {
 
   it('persists one or many unique technicians and assigns an unassigned Work Order', async () => {
     const { service, tx } = harness();
-    await service.assignTechnicians('wo-1', ['tech-1', 'tech-1', 'tech-2'], null, undefined, 'admin-1');
+    await service.assignTechnicians('wo-1', ['tech-1', 'tech-1', 'tech-2'], null, 'tech-1', 'admin-1');
     expect(tx.workOrderTechnician.createMany).toHaveBeenCalledWith({ data: [
       { workOrderId: 'wo-1', technicianId: 'tech-1' },
       { workOrderId: 'wo-1', technicianId: 'tech-2' },
     ] });
-    expect(tx.workOrder.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: WorkOrderStatus.ASSIGNED }) }));
+    expect(tx.workOrder.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: WorkOrderStatus.ASSIGNED, jobLeaderId: 'tech-1' }) }));
   });
 
   it('allows removal and replacement while retaining explicit job-specific state', async () => {
