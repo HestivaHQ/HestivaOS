@@ -20,7 +20,7 @@ Do not allow substantive product, business, operational, financial, customer-pol
 - Update documentation sooner when a major architecture, payment, legal/customer-terms, booking, operational, security, deployment, infrastructure, or cross-system decision is approved, or when continuing without synchronization would make implementation unsafe or inconsistent.
 - Minor clarifications that do not create or change policy do not individually trigger a checkpoint.
 - Handovers and chat history are navigation aids only; the repository is the durable source of truth.
-- For decisions affecting both the public website and HestivaOS, synchronize the permanent documentation in both repositories and the active coordination issue/contract before incompatible implementation proceeds.
+- For decisions affecting another repository, provider, or system, synchronize the permanent documentation in every affected repository and the applicable active coordination issue before incompatible implementation proceeds. Use `docs/CROSS_SYSTEM_COORDINATION.md` to route work to the correct issue.
 
 ## Branch and pull-request rule
 
@@ -83,10 +83,11 @@ If a connector/API operation fails, times out, or is blocked:
 Before continuing substantial HestivaOS work in a new or resumed development chat, read at minimum:
 
 1. `AGENTS.md`;
-2. the relevant current-state architecture/business documentation and ADRs for the task; and
-3. any active coordination issue when the task affects another system, especially Website ↔ HestivaOS integration work.
+2. the relevant current-state architecture/business documentation and ADRs for the task;
+3. `docs/CROSS_SYSTEM_COORDINATION.md` when the task affects another repository, provider, or system; and
+4. the applicable active coordination issue identified there.
 
-Prefer verified repository state over remembered conversation details if they conflict.
+Current routes include Website ↔ HestivaOS Slice 5M in Issue #73 and WhatsApp/Messenger ↔ HestivaOS messaging in Issue #116. Prefer verified repository state over remembered conversation details if they conflict.
 
 ## Required update matrix
 
@@ -122,5 +123,8 @@ Every implementation PR body must explicitly include:
 - **Verification performed:** the exact checks and outcomes.
 - **Files changed:** a complete file list or an accurate categorized list.
 - **No stale documentation remains:** an affirmative statement based on review.
+- **Coordination source:** required when the PR materially changes a cross-system contract; link the applicable coordination issue/checkpoint and the permanent repository document/ADR that records the implemented result.
+
+After opening a cross-system PR, post the PR link and a short contract-impact summary back to the applicable coordination issue so other development chats have one predictable discovery point.
 
 Documentation-only typo/formatting changes, README-only formatting, comment-only code changes, and license-only changes do not require historical documentation updates. They must not be used to conceal an implementation change.
