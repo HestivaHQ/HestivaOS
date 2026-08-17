@@ -1,5 +1,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
+import { User, UserRole, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
+import { CurrentUser } from '../users/current-user.decorator';
+import { Roles } from '../users/roles.decorator';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
@@ -7,6 +9,7 @@ export class WorkOrdersController {
   constructor(private readonly workOrders: WorkOrdersService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   create(@Body() input: CreateWorkOrderInput) {
     return this.workOrders.create(input);
   }
@@ -35,7 +38,18 @@ export class WorkOrdersController {
     return this.workOrders.changeStatus(id, input);
   }
 
+  @Patch(':id/assignment')
+  @Roles(UserRole.ADMIN)
+  assignTechnicians(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: { technicianIds: string[]; crewId?: string | null },
+    @CurrentUser() actor: User,
+  ) {
+    return this.workOrders.assignTechnicians(id, input.technicianIds ?? [], input.crewId, actor.id);
+  }
+
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateWorkOrderInput) {
     return this.workOrders.update(id, input);
   }

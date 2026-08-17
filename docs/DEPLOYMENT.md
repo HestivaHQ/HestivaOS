@@ -190,3 +190,7 @@ Migration `20260811190000_recurring_service_agreements` is additive: it creates 
 ### 2026-08-16 non-lossy Quote handoff migration
 
 Migration `20260816170000_non_lossy_quote_handoff` additively creates typed Work Order context columns, the recurring eco-product preference, accepted-Quote evidence links, and visit-scoped temporary-access credentials. Deploy with the normal Prisma migration-before-start sequence. No environment variable changes are required.
+
+## 2026-08-17 Work Order Technician assignment migration
+
+Run the normal `npm run db:migrate:deploy` path for `20260817120000_work_order_technician_assignments` before deploying assignment-aware API/web code. The additive migration creates `work_order_technicians`, its composite uniqueness and Technician lookup index, then copies existing non-null legacy `technician_id` values. It does not alter Crew membership or Quote, recurrence, Customer, or Property data. After deploy, verify the legacy/backfill count, ADMIN assignment mutation, duplicate prevention, inactive eligibility rejection, and stable saved assignments after a Crew membership edit.
