@@ -79,6 +79,7 @@ enum WorkOrderActivityType {
   CREW_CHANGED
   CREW_REMOVED
   JOB_LEADER_CHANGED
+  JOB_STARTED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
 }
@@ -394,6 +395,7 @@ model Technician {
   workOrders WorkOrder[]
   workOrderAssignments WorkOrderTechnician[]
   ledWorkOrders WorkOrder[] @relation("WorkOrderJobLeader")
+  startedWorkOrders WorkOrder[] @relation("WorkOrderStartedBy")
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -578,6 +580,9 @@ model WorkOrder {
   someonePresent Boolean? @map("someone_present")
   ecoFriendlyProducts Boolean? @map("eco_friendly_products")
   customerDeclaredExistingDamage String? @map("customer_declared_existing_damage")
+  startedAt DateTime? @map("started_at")
+  startedByTechnicianId String? @map("started_by_technician_id") @db.Uuid
+  startOperationId String? @unique @map("start_operation_id") @db.Uuid
   completedAt DateTime? @map("completed_at")
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
@@ -585,6 +590,7 @@ model WorkOrder {
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   assignedTechnicians WorkOrderTechnician[]
   jobLeader Technician? @relation("WorkOrderJobLeader", fields: [jobLeaderId], references: [id], onDelete: Restrict)
+  startedByTechnician Technician? @relation("WorkOrderStartedBy", fields: [startedByTechnicianId], references: [id], onDelete: Restrict)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   recurringAgreement RecurringServiceAgreement? @relation(fields: [recurringAgreementId], references: [id], onDelete: Restrict)
@@ -605,6 +611,7 @@ model WorkOrder {
   @@index([technicianId])
   @@index([crewId])
   @@index([jobLeaderId])
+  @@index([startedByTechnicianId])
   @@index([serviceId])
   @@index([recurringAgreementId])
   @@unique([recurringAgreementId, recurrenceDate])

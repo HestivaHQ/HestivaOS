@@ -445,3 +445,7 @@ Added the additive `WorkOrderTechnician` snapshot relationship and historical si
 - Added canonical Work Order Job Leader persistence, Crew-default prepopulation, assignment-bound validation, Admin-only mutation, and auditable leader changes without coupling leadership to `SUPERVISOR`.
 - Added a conservative migration that backfills only historically unambiguous single-Technician Work Orders and preserves multi-person uncertainty for Admin resolution.
 - Simplified Crew and Work Order UI presentation around members, status, Crew Leader, and Job Leader; execution lifecycle features remain deferred.
+
+## 2026-08-17 — Homent Technician B1
+
+Implemented the `/technician` mobile-first PWA, purpose-built assignment-scoped API/DTO, Today/Upcoming/Recent and Job Brief, canonical leader-only `ON_SITE` Start Job with actual start attribution/audit/idempotency, and IndexedDB v1 job-cache/outgoing-queue reconciliation foundation. Added the additive Prisma migration, API/UI/offline tests, operational documentation, and ADR-0044. Protected credentials, checklist/evidence/incidents/completion, push delivery, and Supervisor remain deferred.

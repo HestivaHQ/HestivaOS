@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { workOrderDisplayLabel, workOrderReference } from '../lib/work-order-display';
 import { type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
@@ -49,6 +50,7 @@ function JobRows({ jobs }: { jobs: WorkOrder[] }) {
 export default async function HomePage() {
   const authenticatedApi = await createAuthenticatedApi();
   const appUser = await authenticatedApi.syncUser();
+  if (appUser.role === 'TECHNICIAN') redirect('/technician');
   let dashboard = EMPTY_DASHBOARD;
   let available = false;
   try { dashboard = await authenticatedApi.dashboard(); available = true; } catch { /* render a safe empty operational state */ }

@@ -267,3 +267,7 @@ Deploy `20260817120000_work_order_technician_assignments` before the assignment-
 ## 2026-08-17 Crew and Job Leader recovery
 
 Deploy `20260817160000_crew_and_job_leaders` after `20260817120000_work_order_technician_assignments`. Verify every non-null `job_leader_id` names a Technician present in the same Work Order's normalized assignment set. A null leader is expected for Unassigned Work Orders and may identify a legacy multi-Technician row requiring explicit Admin resolution; never guess historical leadership. Application rollback may retain the additive column, index, foreign key, and activity enum. Do not refresh saved Work Orders from current Crew state.
+
+## Homent Technician Start Job recovery
+
+The 20260817190000 migration is additive: existing rows retain null start fields and no historical start is invented. If deployment must be rolled back before field use, roll back application code first; retain the nullable columns and enum value because PostgreSQL enum removal and dropping audit facts are destructive. For a queued-operation conflict, do not delete the device fact or rewrite server state: verify assignment, Job Leader, Work Order lifecycle, `updatedAt`, operation UUID, `startedAt`, and the single `JOB_STARTED` activity before resolving. Never request access credentials from the generic offline cache.

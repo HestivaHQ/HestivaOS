@@ -198,3 +198,7 @@ Run the normal `npm run db:migrate:deploy` path for `20260817120000_work_order_t
 ## 2026-08-17 Crew and Job Leader rollout
 
 Apply `20260817160000_crew_and_job_leaders` after the normalized Work Order Technician assignment migration, then regenerate Prisma Client. The additive migration adds the Job Leader foreign key/index and activity enum value. It backfills only Work Orders with exactly one normalized Technician assignment; review and explicitly resolve any staffed multi-Technician row with a null Job Leader through ADMIN tooling after deployment.
+
+## Homent Technician B1 deployment
+
+The existing web deployment serves `/technician`, `/technician/manifest.webmanifest`, `/technician-sw.js`, and `/technician-icon.svg`; no second service or environment variables are introduced. Deploy the API migration before exposing Start Job, then verify the manifest, service-worker scope, authenticated assignment feed, and one online Start Job in the target environment.

@@ -48,3 +48,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0042: Make Work Order Technician assignments explicit snapshots](ADR-0042-work-order-technician-assignment-snapshots.md)
 
 - [ADR-0043: Crew and Work Order leadership snapshots](ADR-0043-crew-and-job-leadership-snapshots.md)
+
+- [ADR-0044: Homent Technician role-focused offline foundation](ADR-0044-homent-technician-foundation.md)

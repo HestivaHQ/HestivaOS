@@ -76,3 +76,7 @@ A stable submission UUID and photo identity/hash make retries deterministic rath
 ## 2026-08-17 — Separate operational leadership from authorization
 
 Crew Leader and Job Leader describe responsibility for a reusable team and a specific visit respectively; neither implies the organizational `SUPERVISOR` capability. Persisting Work Order leadership as an assignment-bound snapshot keeps operational history stable when a Crew changes and supports future execution authorization without duplicate identities or a Supervisor launch dependency.
+
+## Why Homent Technician shares the application and backend
+
+Homent Technician is a focused route/PWA rather than a duplicated project because one deployment preserves canonical authentication and Technician identity while purpose-built assignment-scoped APIs prevent the field surface becoming Admin Lite. IndexedDB and idempotent operations are used because volatile UI state and indefinite mobile background execution cannot safely represent field actions on unreliable networks. See ADR-0044.

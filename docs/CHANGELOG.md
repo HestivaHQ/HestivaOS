@@ -689,3 +689,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 ### Migration
 - Single-assignment historical Work Orders receive that Technician as Job Leader; ambiguous multi-Technician history remains unresolved rather than guessed.
+
+## 2026-08-17 — Homent Technician B1
+
+- Added an installable, mobile-first Homent Technician route with Today, Upcoming, Recent, minimized Job Brief, team/Job Leader states, and understandable sync state.
+- Added assignment-enforced Technician APIs and a Job-Leader-only, optimistic/idempotent Start Job transition to `ON_SITE` with `startedAt`, Technician attribution, and one audit activity.
+- Added bounded IndexedDB job caching, durable outgoing Start operations, opportunity-driven reconciliation, and safe known-removal/cancellation behavior without polling or sensitive credential caching.
