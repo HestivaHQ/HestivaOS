@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, TechnicianStatus, WorkOrderStatus } from '@prisma/client';
+import { ExecutionExceptionReason, ExecutionSectionOutcome, Prisma, TechnicianStatus, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
-export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string };
+export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
+export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
 const PRE_START: WorkOrderStatus[] = [WorkOrderStatus.ASSIGNED, WorkOrderStatus.ACCEPTED, WorkOrderStatus.TRAVELLING];
 const DAY = 86_400_000;
 
@@ -20,6 +21,8 @@ const briefSelect = {
     fragileItemNotes: true, productRestrictionNotes: true, allergyNotes: true } },
   accessInstructions: true, parkingInstructions: true, keyHandover: true, keyHandoverDetails: true,
   someonePresent: true, ecoFriendlyProducts: true, customerDeclaredExistingDamage: true,
+  startedScopeRevisionId: true,
+  executionScopeRevisions: { orderBy: { revision: 'desc' as const }, take: 1, select: { id:true, revision:true, additions:true, exclusions:true, createdAt:true, sections:{ orderBy:{sortOrder:'asc' as const}, select:{id:true,stableKey:true,title:true,quantity:true,requirements:true,evidencePolicy:true,currentOutcome:true,currentVersion:true,currentOutcomeEvent:{select:{technicianId:true,reason:true,note:true,attentionLevel:true,fieldRecordedAt:true}},evidence:{select:{localEvidenceId:true,syncState:true,capturedAt:true,serverAcknowledgedAt:true}}} } } },
 } satisfies Prisma.WorkOrderSelect;
 
 @Injectable()
@@ -72,23 +75,49 @@ export class TechnicianJobsService {
     if (fieldStartedAt.getTime() > Date.now() + 5 * 60_000) throw new BadRequestException('Start time cannot be in the future.');
 
     await this.prisma.$transaction(async (tx) => {
-      const job = await tx.workOrder.findFirst({ where: { id, assignedTechnicians: { some: { technicianId } } }, select: { id: true, status: true, updatedAt: true, jobLeaderId: true, startedAt: true, startOperationId: true, assignedTechnicians: { select: { technicianId: true } } } });
+      const job = await tx.workOrder.findFirst({ where: { id, assignedTechnicians: { some: { technicianId } } }, select: { id: true, status: true, updatedAt: true, jobLeaderId: true, startedAt: true, startOperationId: true, startedScopeRevisionId:true, executionScopeRevisions:{orderBy:{revision:'desc'},take:1,select:{id:true}}, assignedTechnicians: { select: { technicianId: true } } } });
       if (!job) throw new NotFoundException('Assigned job was not found.');
       if (job.startOperationId === input.operationId && job.startedAt) return;
       if (job.startedAt || job.startOperationId) throw new ConflictException('This job was already started by another operation.');
       if (job.jobLeaderId !== technicianId) throw new ForbiddenException('Only the assigned Job Leader can start this job.');
       if (!job.assignedTechnicians.some((item) => item.technicianId === job.jobLeaderId)) throw new ConflictException('Job staffing must be corrected before starting.');
       if (!PRE_START.includes(job.status)) throw new ConflictException('This job cannot be started in its current state.');
+      const applicableScopeId=job.executionScopeRevisions[0]?.id;
+      if (!applicableScopeId) throw new ConflictException('This job needs an Execution Scope before it can start.');
+      if (applicableScopeId!==input.expectedScopeRevisionId) throw new ConflictException('The job scope changed. Review the latest checklist before starting.');
       if (job.updatedAt.getTime() !== expectedVersion.getTime()) throw new ConflictException('The cached job changed. Refresh it before starting.');
-      const result = await tx.workOrder.updateMany({ where: { id, startedAt: null, startOperationId: null, updatedAt: job.updatedAt, jobLeaderId: technicianId, status: { in: PRE_START } }, data: { startedAt: fieldStartedAt, startedByTechnicianId: technicianId, startOperationId: input.operationId, status: WorkOrderStatus.ON_SITE } });
+      const result = await tx.workOrder.updateMany({ where: { id, startedAt: null, startOperationId: null, updatedAt: job.updatedAt, jobLeaderId: technicianId, status: { in: PRE_START } }, data: { startedAt: fieldStartedAt, startedByTechnicianId: technicianId, startOperationId: input.operationId, startedScopeRevisionId:applicableScopeId, status: WorkOrderStatus.ON_SITE } });
       if (result.count !== 1) throw new ConflictException('The job changed while it was being started.');
       await tx.workOrderActivity.create({ data: { workOrderId: id, type: 'JOB_STARTED', actorId: userId, previousStatus: job.status, newStatus: WorkOrderStatus.ON_SITE, note: 'Started by the assigned Job Leader in Homent Technician.' } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     return this.brief(userId, id);
   }
 
+  async recordSection(userId:string,workOrderId:string,sectionId:string,input:SectionOutcomeInput){
+    const technicianId=await this.technicianFor(userId); if(!/^[0-9a-f-]{36}$/i.test(input.operationId))throw new BadRequestException('A valid operation ID is required.');
+    if(input.outcome==='NOT_COMPLETED'&&(!input.reason||!input.note?.trim()))throw new BadRequestException('Choose a reason and add a short note.');
+    if(input.outcome==='PENDING'&&input.reason)throw new BadRequestException('Pending sections cannot have an exception reason.');
+    const fieldRecordedAt=new Date(input.fieldRecordedAt); if(!Number.isFinite(fieldRecordedAt.getTime()))throw new BadRequestException('A valid field timestamp is required.');
+    return this.prisma.$transaction(async(tx)=>{
+      const duplicate=await tx.executionSectionOutcomeEvent.findUnique({where:{operationId:input.operationId}}); if(duplicate)return duplicate;
+      const section=await tx.workOrderExecutionSection.findFirst({where:{id:sectionId,scopeRevisionId:input.scopeRevisionId,scopeRevision:{workOrderId,workOrder:{assignedTechnicians:{some:{technicianId}},startedScopeRevisionId:input.scopeRevisionId}}},include:{currentOutcomeEvent:true}});
+      if(!section)throw new NotFoundException('Assigned checklist section was not found.');
+      const job=await tx.workOrder.findUnique({where:{id:workOrderId},select:{jobLeaderId:true}}); const leader=job?.jobLeaderId===technicianId;
+      if(section.currentOutcomeEvent&&section.currentOutcomeEvent.technicianId!==technicianId&&!leader)throw new ForbiddenException('Ask the Job Leader to correct this section.');
+      if(section.currentVersion!==input.expectedSectionVersion)throw new ConflictException('This section changed. Refresh it before recording another outcome.');
+      const evidenceRequired=section.evidencePolicy==='REQUIRED'||(section.evidencePolicy==='ON_EXCEPTION'&&input.outcome==='NOT_COMPLETED');
+      if(evidenceRequired&&!input.evidence?.length)throw new BadRequestException('Required photo missing. Save evidence on this device first.');
+      const attention=input.reason==='SAFETY_CONCERN'?'SAFETY_CRITICAL_STOP':input.outcome==='NOT_COMPLETED'?'JOB_LEADER_ATTENTION':'INFORMATIONAL';
+      const event=await tx.executionSectionOutcomeEvent.create({data:{operationId:input.operationId,sectionId,technicianId,outcome:input.outcome,reason:input.reason,note:input.note?.trim(),attentionLevel:attention,fieldRecordedAt,expectedSectionVersion:input.expectedSectionVersion,evidence:input.evidence?.length?{create:input.evidence.map(e=>({localEvidenceId:e.localEvidenceId,sectionId,capturedAt:new Date(e.capturedAt),syncState:e.syncState??'CAPTURED_LOCAL'}))}:undefined}});
+      const changed=await tx.workOrderExecutionSection.updateMany({where:{id:sectionId,currentVersion:input.expectedSectionVersion},data:{currentOutcome:input.outcome,currentOutcomeEventId:event.id,currentVersion:{increment:1}}}); if(changed.count!==1)throw new ConflictException('This section changed while your update was saved.');
+      await tx.workOrderActivity.create({data:{workOrderId,type:'SECTION_OUTCOME_RECORDED',actorId:userId,note:`Section ${section.stableKey} recorded as ${input.outcome}.`}}); return event;
+    },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+  }
+
+  async review(userId:string,id:string){ const technicianId=await this.technicianFor(userId); const job=await this.prisma.workOrder.findFirst({where:{id,jobLeaderId:technicianId,assignedTechnicians:{some:{technicianId}}},select:{startedScopeRevision:{select:{id:true,sections:{orderBy:{sortOrder:'asc'},include:{currentOutcomeEvent:true,evidence:true}}}}}}); if(!job)throw new ForbiddenException('Only the assigned Job Leader can review this job.'); const sections=job.startedScopeRevision?.sections??[]; const attention:any[]=[]; let syncPending=0; for(const s of sections){if(s.currentOutcome==='PENDING')attention.push({sectionId:s.id,title:s.title,code:'PENDING',message:'Outcome not recorded'}); if(s.currentOutcome==='NOT_COMPLETED'&&(!s.currentOutcomeEvent?.reason||!s.currentOutcomeEvent.note?.trim()))attention.push({sectionId:s.id,title:s.title,code:'INCOMPLETE_EXCEPTION',message:'Reason or note missing'}); const required=s.evidencePolicy==='REQUIRED'||(s.evidencePolicy==='ON_EXCEPTION'&&s.currentOutcome==='NOT_COMPLETED'); if(required&&!s.evidence.length)attention.push({sectionId:s.id,title:s.title,code:'MISSING_EVIDENCE',message:'Required evidence missing'}); syncPending+=s.evidence.filter(e=>e.syncState!=='SERVER_ACKNOWLEDGED').length; if(s.currentOutcomeEvent?.attentionLevel==='SAFETY_CRITICAL_STOP')attention.push({sectionId:s.id,title:s.title,code:'SAFETY_STOP',message:'Stop affected work; safety follow-up is required'}); if(s.currentOutcomeEvent?.reason==='SCOPE_OR_CONDITION_MISMATCH')attention.push({sectionId:s.id,title:s.title,code:'SCOPE_ISSUE',message:'Scope or condition mismatch needs attention'});} return{scopeRevisionId:job.startedScopeRevision?.id??null,accountedFor:sections.filter(s=>s.currentOutcome!=='PENDING').length,totalSections:sections.length,syncPending,attention,ready:sections.length>0&&!attention.length}; }
+
   private dto(job: any, technicianId: string) {
-    return { ...job, isJobLeader: job.jobLeaderId === technicianId,
+    const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null; return { ...job, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
       canStart: job.jobLeaderId === technicianId && !job.startedAt && PRE_START.includes(job.status),
       waitingForJobLeader: job.jobLeaderId !== technicianId && !job.startedAt && PRE_START.includes(job.status),
       cacheable: job.status !== WorkOrderStatus.CANCELLED,

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
-import { StartJobInput, TechnicianJobsService, TechnicianListView } from './technician-jobs.service';
+import { SectionOutcomeInput, StartJobInput, TechnicianJobsService, TechnicianListView } from './technician-jobs.service';
 
 @Controller('technician/jobs')
 export class TechnicianJobsController {
@@ -21,4 +21,6 @@ export class TechnicianJobsController {
   start(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string, @Body() input: StartJobInput) {
     return this.jobs.start(user.id, id, input);
   }
+  @Post(':id/sections/:sectionId/outcomes') outcome(@CurrentUser() user:User,@Param('id',new ParseUUIDPipe()) id:string,@Param('sectionId',new ParseUUIDPipe()) sectionId:string,@Body() input:SectionOutcomeInput){return this.jobs.recordSection(user.id,id,sectionId,input)}
+  @Get(':id/review') review(@CurrentUser() user:User,@Param('id',new ParseUUIDPipe()) id:string){return this.jobs.review(user.id,id)}
 }

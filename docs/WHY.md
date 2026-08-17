@@ -80,3 +80,7 @@ Crew Leader and Job Leader describe responsibility for a reusable team and a spe
 ## Why Homent Technician shares the application and backend
 
 Homent Technician is a focused route/PWA rather than a duplicated project because one deployment preserves canonical authentication and Technician identity while purpose-built assignment-scoped APIs prevent the field surface becoming Admin Lite. IndexedDB and idempotent operations are used because volatile UI state and indefinite mobile background execution cannot safely represent field actions on unreliable networks. See ADR-0044.
+
+## Why field execution is frozen and section-first
+
+A Quote explains a commercial agreement; it is not a stable, low-friction cleaning checklist. Versioned standards plus visit-specific frozen revisions preserve historical truth, while one confirmation per logical area keeps routine field administration short. Detailed requirements remain visible as reference instead of becoming productivity scoring or dozens of compulsory ticks. Append-only outcomes and explicit offline conflicts are preferred over convenient overwrites because field attribution and the scope actually used must remain truthful.

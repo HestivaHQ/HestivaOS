@@ -8,6 +8,7 @@ import { CustomerCleanupModule } from './customer-cleanup/customer-cleanup.modul
 import { CustomersModule } from './customers/customers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { EmployeesModule } from './employees/employees.module';
+import { ExecutionScopesModule } from './execution-scopes/execution-scopes.module';
 import { HealthController } from './health.controller';
 import { RequestLoggingMiddleware } from './monitoring/request-logging.middleware';
 import { PrismaService } from './prisma.service';
@@ -26,7 +27,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { SupabaseAuthGuard } from './users/supabase-auth.guard';
 
 @Module({
-  imports: [BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, EmployeesModule, UsersModule, CustomersModule, PropertiesModule, QuotesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, TechnicianJobsModule, CrewsModule, ShiftsModule],
+  imports: [BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, EmployeesModule, ExecutionScopesModule, UsersModule, CustomersModule, PropertiesModule, QuotesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, TechnicianJobsModule, CrewsModule, ShiftsModule],
   controllers: [HealthController],
   providers: [PrismaService, { provide: APP_GUARD, useClass: SupabaseAuthGuard }],
 })

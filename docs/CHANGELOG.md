@@ -695,3 +695,14 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added an installable, mobile-first Homent Technician route with Today, Upcoming, Recent, minimized Job Brief, team/Job Leader states, and understandable sync state.
 - Added assignment-enforced Technician APIs and a Job-Leader-only, optimistic/idempotent Start Job transition to `ON_SITE` with `startedAt`, Technician attribution, and one audit activity.
 - Added bounded IndexedDB job caching, durable outgoing Start operations, opportunity-driven reconciliation, and safe known-removal/cancellation behavior without polling or sensitive credential caching.
+
+## 2026-08-17 — Homent Technician frozen Execution Scope and compressed checklist
+
+### Added
+
+- Added Draft/Published/Retired Service Scope versions and preserved Work Order scope revisions generated at section-level granularity from confirmed Property quantities.
+- Added Start Job revision binding, append-only/idempotent section outcomes, controlled Not Completed reasons, proportional evidence state, safety-stop foundation, Job Leader exception-first review, and durable offline outcome operations.
+
+### Preserved and deferred
+
+- Existing rows are not given invented historical scope. B1 assignment, leadership, lifecycle, schedule, brief, cache and reconciliation remain in place. Full photo transport, incident/damage resolution, scope mismatch, additional work, customer correspondence, Complete Job, and Homent Supervisor remain deferred.

@@ -50,3 +50,5 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0043: Crew and Work Order leadership snapshots](ADR-0043-crew-and-job-leadership-snapshots.md)
 
 - [ADR-0044: Homent Technician role-focused offline foundation](ADR-0044-homent-technician-foundation.md)
+
+- [ADR-0045: Freeze versioned Execution Scope and record compressed field outcomes](ADR-0045-frozen-execution-scope-and-field-checklist.md)
