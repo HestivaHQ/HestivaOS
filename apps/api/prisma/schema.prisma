@@ -80,8 +80,52 @@ enum WorkOrderActivityType {
   CREW_REMOVED
   JOB_LEADER_CHANGED
   JOB_STARTED
+  EXECUTION_SCOPE_REVISED
+  SECTION_OUTCOME_RECORDED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
+}
+
+enum ServiceScopeTemplateVersionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+enum ExecutionEvidencePolicy {
+  NONE
+  ON_EXCEPTION
+  REQUIRED
+}
+
+enum ExecutionSectionOutcome {
+  PENDING
+  COMPLETED
+  NOT_COMPLETED
+}
+
+enum ExecutionExceptionReason {
+  CUSTOMER_DECLINED
+  INACCESSIBLE
+  SAFETY_CONCERN
+  PRE_EXISTING_CONDITION_OR_DAMAGE
+  REQUIRED_RESOURCE_UNAVAILABLE
+  SCOPE_OR_CONDITION_MISMATCH
+  OTHER
+}
+
+enum ExecutionAttentionLevel {
+  INFORMATIONAL
+  JOB_LEADER_ATTENTION
+  SAFETY_CRITICAL_STOP
+}
+
+enum EvidenceSyncState {
+  CAPTURED_LOCAL
+  QUEUED
+  UPLOADING
+  SERVER_ACKNOWLEDGED
+  RETRY_PENDING
 }
 
 enum WorkOrderPriority {
@@ -396,6 +440,7 @@ model Technician {
   workOrderAssignments WorkOrderTechnician[]
   ledWorkOrders WorkOrder[] @relation("WorkOrderJobLeader")
   startedWorkOrders WorkOrder[] @relation("WorkOrderStartedBy")
+  sectionOutcomeEvents ExecutionSectionOutcomeEvent[]
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -524,12 +569,58 @@ model Service {
   workOrderAddOns WorkOrderAddOn[]
   recurringServiceAgreements RecurringServiceAgreement[]
   recurringServiceAgreementAddOns RecurringServiceAgreementAddOn[]
+  scopeTemplates ServiceScopeTemplate[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([name])
   @@index([status])
   @@index([type])
   @@map("services")
+}
+
+model ServiceScopeTemplate {
+  id String @id @default(uuid()) @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  name String
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  versions ServiceScopeTemplateVersion[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([serviceId, name])
+  @@map("service_scope_templates")
+}
+
+model ServiceScopeTemplateVersion {
+  id String @id @default(uuid()) @db.Uuid
+  templateId String @map("template_id") @db.Uuid
+  version Int
+  status ServiceScopeTemplateVersionStatus @default(DRAFT)
+  publishedAt DateTime? @map("published_at")
+  retiredAt DateTime? @map("retired_at")
+  template ServiceScopeTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  sections ServiceScopeTemplateSection[]
+  scopeRevisions WorkOrderExecutionScopeRevision[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([templateId, version])
+  @@index([templateId, status])
+  @@map("service_scope_template_versions")
+}
+
+model ServiceScopeTemplateSection {
+  id String @id @default(uuid()) @db.Uuid
+  templateVersionId String @map("template_version_id") @db.Uuid
+  stableKey String @map("stable_key")
+  title String
+  requirements String[] @default([])
+  evidencePolicy ExecutionEvidencePolicy @default(NONE) @map("evidence_policy")
+  repeatByPropertyField String? @map("repeat_by_property_field")
+  sortOrder Int @default(0) @map("sort_order")
+  templateVersion ServiceScopeTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  executionSections WorkOrderExecutionSection[]
+  @@unique([templateVersionId, stableKey])
+  @@index([templateVersionId, sortOrder])
+  @@map("service_scope_template_sections")
 }
 
 model CleaningJobTemplate {
@@ -583,6 +674,7 @@ model WorkOrder {
   startedAt DateTime? @map("started_at")
   startedByTechnicianId String? @map("started_by_technician_id") @db.Uuid
   startOperationId String? @unique @map("start_operation_id") @db.Uuid
+  startedScopeRevisionId String? @unique @map("started_scope_revision_id") @db.Uuid
   completedAt DateTime? @map("completed_at")
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
@@ -603,6 +695,8 @@ model WorkOrder {
   temporaryAccessCredentials WorkOrderTemporaryAccessCredential[]
   customerSignOff WorkOrderCustomerSignOff?
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
+  executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
+  startedScopeRevision WorkOrderExecutionScopeRevision? @relation("WorkOrderStartedScope", fields: [startedScopeRevisionId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([customerId])
@@ -618,6 +712,81 @@ model WorkOrder {
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderExecutionScopeRevision {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  templateVersionId String @map("template_version_id") @db.Uuid
+  revision Int
+  additions String[] @default([])
+  exclusions String[] @default([])
+  createdById String? @map("created_by_id") @db.Uuid
+  workOrder WorkOrder @relation("WorkOrderScopeRevisions", fields: [workOrderId], references: [id], onDelete: Cascade)
+  startedWorkOrder WorkOrder? @relation("WorkOrderStartedScope")
+  templateVersion ServiceScopeTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  sections WorkOrderExecutionSection[]
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([workOrderId, revision])
+  @@index([workOrderId, createdAt])
+  @@map("work_order_execution_scope_revisions")
+}
+
+model WorkOrderExecutionSection {
+  id String @id @default(uuid()) @db.Uuid
+  scopeRevisionId String @map("scope_revision_id") @db.Uuid
+  templateSectionId String? @map("template_section_id") @db.Uuid
+  stableKey String @map("stable_key")
+  title String
+  quantity Int?
+  requirements String[] @default([])
+  evidencePolicy ExecutionEvidencePolicy @default(NONE) @map("evidence_policy")
+  sortOrder Int @default(0) @map("sort_order")
+  currentOutcome ExecutionSectionOutcome @default(PENDING) @map("current_outcome")
+  currentOutcomeEventId String? @unique @map("current_outcome_event_id") @db.Uuid
+  currentVersion Int @default(0) @map("current_version")
+  scopeRevision WorkOrderExecutionScopeRevision @relation(fields: [scopeRevisionId], references: [id], onDelete: Cascade)
+  templateSection ServiceScopeTemplateSection? @relation(fields: [templateSectionId], references: [id], onDelete: Restrict)
+  outcomeEvents ExecutionSectionOutcomeEvent[] @relation("SectionOutcomeHistory")
+  currentOutcomeEvent ExecutionSectionOutcomeEvent? @relation("CurrentSectionOutcome", fields: [currentOutcomeEventId], references: [id], onDelete: Restrict)
+  evidence ExecutionSectionEvidence[]
+  @@unique([scopeRevisionId, stableKey])
+  @@index([scopeRevisionId, sortOrder])
+  @@map("work_order_execution_sections")
+}
+
+model ExecutionSectionOutcomeEvent {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  sectionId String @map("section_id") @db.Uuid
+  technicianId String @map("technician_id") @db.Uuid
+  outcome ExecutionSectionOutcome
+  reason ExecutionExceptionReason?
+  note String?
+  attentionLevel ExecutionAttentionLevel @default(INFORMATIONAL) @map("attention_level")
+  fieldRecordedAt DateTime @map("field_recorded_at")
+  expectedSectionVersion Int @map("expected_section_version")
+  serverReceivedAt DateTime @default(now()) @map("server_received_at")
+  section WorkOrderExecutionSection @relation("SectionOutcomeHistory", fields: [sectionId], references: [id], onDelete: Restrict)
+  currentForSection WorkOrderExecutionSection? @relation("CurrentSectionOutcome")
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  evidence ExecutionSectionEvidence[]
+  @@index([sectionId, serverReceivedAt])
+  @@map("execution_section_outcome_events")
+}
+
+model ExecutionSectionEvidence {
+  id String @id @default(uuid()) @db.Uuid
+  localEvidenceId String @unique @map("local_evidence_id")
+  sectionId String @map("section_id") @db.Uuid
+  outcomeEventId String? @map("outcome_event_id") @db.Uuid
+  syncState EvidenceSyncState @default(CAPTURED_LOCAL) @map("sync_state")
+  capturedAt DateTime @map("captured_at")
+  serverAcknowledgedAt DateTime? @map("server_acknowledged_at")
+  section WorkOrderExecutionSection @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  outcomeEvent ExecutionSectionOutcomeEvent? @relation(fields: [outcomeEventId], references: [id], onDelete: Restrict)
+  @@index([sectionId, syncState])
+  @@map("execution_section_evidence")
 }
 
 model WorkOrderTechnician {

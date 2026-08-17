@@ -271,3 +271,7 @@ Deploy `20260817160000_crew_and_job_leaders` after `20260817120000_work_order_te
 ## Homent Technician Start Job recovery
 
 The 20260817190000 migration is additive: existing rows retain null start fields and no historical start is invented. If deployment must be rolled back before field use, roll back application code first; retain the nullable columns and enum value because PostgreSQL enum removal and dropping audit facts are destructive. For a queued-operation conflict, do not delete the device fact or rewrite server state: verify assignment, Job Leader, Work Order lifecycle, `updatedAt`, operation UUID, `startedAt`, and the single `JOB_STARTED` activity before resolving. Never request access credentials from the generic offline cache.
+
+## Execution Scope and offline checklist recovery
+
+Do not repair a stale offline outcome by editing current section columns directly. Retain the queued operation and compare its operation ID, scope revision ID, section ID, expected section version, Technician, and field timestamp with append-only outcome history. Duplicate operation IDs are safe retries; conflicting versions require an explicit field refresh/correction. Never change `started_scope_revision_id` to a newer revision after commencement. Evidence may be removed locally only after authoritative `SERVER_ACKNOWLEDGED`; the full transport is currently deferred.

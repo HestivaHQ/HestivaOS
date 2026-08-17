@@ -449,3 +449,7 @@ Added the additive `WorkOrderTechnician` snapshot relationship and historical si
 ## 2026-08-17 — Homent Technician B1
 
 Implemented the `/technician` mobile-first PWA, purpose-built assignment-scoped API/DTO, Today/Upcoming/Recent and Job Brief, canonical leader-only `ON_SITE` Start Job with actual start attribution/audit/idempotency, and IndexedDB v1 job-cache/outgoing-queue reconciliation foundation. Added the additive Prisma migration, API/UI/offline tests, operational documentation, and ADR-0044. Protected credentials, checklist/evidence/incidents/completion, push delivery, and Supervisor remain deferred.
+
+## 2026-08-17 — Homent Technician B2/C frozen Execution Scope
+
+Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, evidence/attention foundations, exception-first Job Leader review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.

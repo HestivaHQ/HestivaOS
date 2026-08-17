@@ -202,3 +202,7 @@ Apply `20260817160000_crew_and_job_leaders` after the normalized Work Order Tech
 ## Homent Technician B1 deployment
 
 The existing web deployment serves `/technician`, `/technician/manifest.webmanifest`, `/technician-sw.js`, and `/technician-icon.svg`; no second service or environment variables are introduced. Deploy the API migration before exposing Start Job, then verify the manifest, service-worker scope, authenticated assignment feed, and one online Start Job in the target environment.
+
+## 2026-08-17 Execution Scope migration
+
+Deploy migration `20260817193000_homent_execution_scope` before the matching API. It adds only nullable Work Order binding and new normalized tables/enums; it does not fabricate scope for existing rows. After deployment, generate Prisma Client, validate the schema, and verify an old Work Order remains readable with no Execution Scope while a new Published-template revision can be created and bound at Start Job.

@@ -106,3 +106,10 @@ Only currently identified technical follow-up work is listed here.
 
 - **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
 - **Deferred:** protected credential retrieval, proactive critical-change push delivery, frozen scope/checklists, evidence and incident flows, offline media/completion, Complete Job, and Homent Supervisor.
+
+## Homent Technician next focused slices (verified deferred, 2026-08-17)
+
+- Add local photo capture/compression and acknowledged evidence transport while retaining the device copy until server acknowledgement.
+- Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
+- Add authoritative Complete Job and customer completion correspondence after Review Job readiness policy is complete.
+- Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records now exist.

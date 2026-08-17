@@ -207,12 +207,20 @@ export type TechnicianJob = {
   property: Pick<Property, 'name' | 'addressLine1' | 'addressLine2' | 'city' | 'province' | 'postalCode' | 'accessNotes' | 'parkingNotes' | 'bedrooms' | 'bathrooms' | 'livingAreas' | 'storeys' | 'floorSize' | 'outdoorArea' | 'hasPets' | 'petNotes' | 'hasCameras' | 'offLimitsNotes' | 'fragileItemNotes' | 'productRestrictionNotes' | 'allergyNotes'>;
   accessInstructions: string | null; parkingInstructions: string | null; keyHandover: string | null; keyHandoverDetails: string | null;
   someonePresent: boolean | null; ecoFriendlyProducts: boolean | null; customerDeclaredExistingDamage: string | null;
+  startedScopeRevisionId:string|null; executionScope:ExecutionScope|null;
 };
+export type EvidencePolicy='NONE'|'ON_EXCEPTION'|'REQUIRED'; export type SectionOutcome='PENDING'|'COMPLETED'|'NOT_COMPLETED';
+export type ExecutionSection={id:string;stableKey:string;title:string;quantity:number|null;requirements:string[];evidencePolicy:EvidencePolicy;currentOutcome:SectionOutcome;currentVersion:number;currentOutcomeEvent:{technicianId:string;reason:string|null;note:string|null;attentionLevel:string;fieldRecordedAt:string}|null;evidence:Array<{localEvidenceId:string;syncState:string;capturedAt:string;serverAcknowledgedAt:string|null}>};
+export type ExecutionScope={id:string;revision:number;additions:string[];exclusions:string[];createdAt:string;sections:ExecutionSection[]};
 export type TechnicianJobList = { technicianId: string; view: 'today' | 'upcoming' | 'recent' | 'cache'; jobs: TechnicianJob[]; serverTime: string };
-export type StartJobOperation = { operationId: string; startedAt: string; expectedVersion: string };
+export type StartJobOperation = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId:string };
+export type SectionOutcomeOperation={operationId:string;workOrderId:string;sectionId:string;scopeRevisionId:string;outcome:SectionOutcome;reason?:string;note?:string;fieldRecordedAt:string;expectedSectionVersion:number;evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState:'CAPTURED_LOCAL'}>};
+export type JobReview={scopeRevisionId:string|null;accountedFor:number;totalSections:number;syncPending:number;attention:Array<{sectionId:string;title:string;code:string;message:string}>;ready:boolean};
 
 export const technicianApi = {
   jobs: (view: TechnicianJobList['view']) => apiFetch<TechnicianJobList>(`/technician/jobs?view=${view}`),
   job: (id: string) => apiFetch<TechnicianJob>(`/technician/jobs/${id}`),
   start: (id: string, operation: StartJobOperation) => apiFetch<TechnicianJob>(`/technician/jobs/${id}/start`, { method: 'POST', ...json(operation) }),
+  outcome:(operation:SectionOutcomeOperation)=>apiFetch(`/technician/jobs/${operation.workOrderId}/sections/${operation.sectionId}/outcomes`,{method:'POST',...json(operation)}),
+  review:(id:string)=>apiFetch<JobReview>(`/technician/jobs/${id}/review`),
 };
