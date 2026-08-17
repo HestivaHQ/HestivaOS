@@ -42,10 +42,10 @@ export class WorkOrdersController {
   @Roles(UserRole.ADMIN)
   assignTechnicians(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() input: { technicianIds: string[]; crewId?: string | null },
+    @Body() input: { technicianIds: string[]; crewId?: string | null; jobLeaderId?: string | null },
     @CurrentUser() actor: User,
   ) {
-    return this.workOrders.assignTechnicians(id, input.technicianIds ?? [], input.crewId, actor.id);
+    return this.workOrders.assignTechnicians(id, input.technicianIds ?? [], input.crewId, input.jobLeaderId, actor.id);
   }
 
   @Patch(':id')

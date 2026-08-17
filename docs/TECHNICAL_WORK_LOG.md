@@ -438,3 +438,10 @@ Implemented the role-filtered Quotes navigation, responsive actionable queue, an
 ## 2026-08-17 — Slice 5N Work Order Technician / Crew assignment
 
 Added the additive `WorkOrderTechnician` snapshot relationship and historical single-assignment backfill. ADMIN assignment mutation validates active Technician and linked Employee status, de-duplicates inputs, replaces the job-specific set transactionally, maintains the legacy first-Technician projection, and records stable Technician identifiers plus safe Crew display context in the existing activity stream. Active Crew selection prepopulates active members, while saved assignments remain independent of later Crew changes. The responsive Work Order form now searches and reviews one/many selections; list and job detail show every assignee or Unassigned. Existing Quote, recurrence, Customer/Property, and job-lifecycle behavior was not redesigned; Cleaner Job Execution was not implemented.
+
+## 2026-08-17 — Crew and Job Leader refinement
+
+- Tightened active Crews to one or more eligible Technicians with exactly one member leader; one-person Crews appoint the member automatically.
+- Added canonical Work Order Job Leader persistence, Crew-default prepopulation, assignment-bound validation, Admin-only mutation, and auditable leader changes without coupling leadership to `SUPERVISOR`.
+- Added a conservative migration that backfills only historically unambiguous single-Technician Work Orders and preserves multi-person uncertainty for Admin resolution.
+- Simplified Crew and Work Order UI presentation around members, status, Crew Leader, and Job Leader; execution lifecycle features remain deferred.

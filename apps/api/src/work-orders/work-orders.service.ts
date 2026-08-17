@@ -15,6 +15,7 @@ export type CreateWorkOrderInput = {
   technicianId?: string | null;
   technicianIds?: string[];
   crewId?: string | null;
+  jobLeaderId?: string | null;
   serviceId: string;
   /** @deprecated Use addOns so quantity is not lost. */
   addOnIds?: string[];
@@ -43,6 +44,7 @@ const workOrderInclude = {
   createdBy: true,
   technician: true,
   assignedTechnicians: { include: { technician: true }, orderBy: { technician: { lastName: 'asc' as const } } },
+  jobLeader: true,
   crew: { include: { leader: true, members: { include: { technician: true } } } },
   service: true,
   recurringAgreement: true,
@@ -84,7 +86,7 @@ export class WorkOrdersService {
       this.prisma.user.findUnique({ where: { id: input.createdById }, select: { id: true } }),
       this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { id: true, status: true, type: true } }),
       input.technicianId ? this.prisma.technician.findUnique({ where: { id: input.technicianId }, select: { id: true, status: true, firstName: true, lastName: true } }) : Promise.resolve(null),
-      input.crewId ? this.prisma.crew.findUnique({ where: { id: input.crewId }, select: { id: true, name: true, status: true, members: { where: { technician: { status: 'ACTIVE' } }, select: { technicianId: true } } } }) : Promise.resolve(null),
+      input.crewId ? this.prisma.crew.findUnique({ where: { id: input.crewId }, select: { id: true, name: true, leaderId: true, status: true, members: { where: { technician: { status: 'ACTIVE' } }, select: { technicianId: true } } } }) : Promise.resolve(null),
     ]);
 
     if (!customer) throw new NotFoundException('Customer not found.');
@@ -103,6 +105,7 @@ export class WorkOrdersService {
       ? crew.members.map((member) => member.technicianId)
       : requestedTechnicianIds;
     await this.validateTechnicianAssignments(effectiveTechnicianIds);
+    const jobLeaderId = this.resolveJobLeader(input.jobLeaderId, effectiveTechnicianIds, crew?.leaderId);
 
     const assigned = effectiveTechnicianIds.length > 0;
     const initialStatus = assigned ? WorkOrderStatus.ASSIGNED : WorkOrderStatus.NEW;
@@ -125,6 +128,7 @@ export class WorkOrdersService {
           technicianId: effectiveTechnicianIds[0] ?? null,
           assignedTechnicians: effectiveTechnicianIds.length ? { create: effectiveTechnicianIds.map((technicianId) => ({ technicianId })) } : undefined,
           crewId: input.crewId || null,
+          jobLeaderId,
           serviceId: input.serviceId,
           frequency: input.frequency ?? null,
           customFrequencyNote: input.frequency === WorkOrderFrequency.CUSTOM ? input.customFrequencyNote?.trim() || null : null,
@@ -151,7 +155,7 @@ export class WorkOrdersService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  async assignTechnicians(id: string, technicianIds: string[], crewId: string | null | undefined, actorId: string) {
+  async assignTechnicians(id: string, technicianIds: string[], crewId: string | null | undefined, requestedJobLeaderId: string | null | undefined, actorId: string) {
     const existing = await this.findOne(id);
     const uniqueIds = [...new Set(technicianIds.filter(Boolean))];
     await this.validateTechnicianAssignments(uniqueIds, existing.assignedTechnicians.map((item) => item.technicianId));
@@ -166,19 +170,29 @@ export class WorkOrdersService {
     const removed = before.filter((id) => !uniqueIds.includes(id));
     const nextCrewId = crewId === undefined ? existing.crewId : crewId || null;
     const crewChanged = nextCrewId !== existing.crewId;
+    const jobLeaderId = this.resolveJobLeader(requestedJobLeaderId, uniqueIds, crewChanged ? crew?.leaderId : existing.jobLeaderId);
     const nextStatus = uniqueIds.length && existing.status === WorkOrderStatus.NEW ? WorkOrderStatus.ASSIGNED : existing.status;
     return this.prisma.$transaction(async (tx) => {
       await tx.workOrderTechnician.deleteMany({ where: { workOrderId: id } });
       if (uniqueIds.length) await tx.workOrderTechnician.createMany({ data: uniqueIds.map((technicianId) => ({ workOrderId: id, technicianId })) });
-      const workOrder = await tx.workOrder.update({ where: { id }, data: { technicianId: uniqueIds[0] ?? null, crewId: nextCrewId, ...(nextStatus !== existing.status ? { status: nextStatus } : {}) }, include: workOrderInclude });
+      const workOrder = await tx.workOrder.update({ where: { id }, data: { technicianId: uniqueIds[0] ?? null, crewId: nextCrewId, jobLeaderId, ...(nextStatus !== existing.status ? { status: nextStatus } : {}) }, include: workOrderInclude });
       const activities: Prisma.WorkOrderActivityCreateManyInput[] = [];
       if (added.length || removed.length) activities.push({ workOrderId: id, type: before.length ? WorkOrderActivityType.TECHNICIAN_CHANGED : WorkOrderActivityType.TECHNICIAN_ASSIGNED, note: `Added technician IDs: ${added.join(', ') || 'none'}; removed technician IDs: ${removed.join(', ') || 'none'}`, actorId });
       if (!uniqueIds.length && before.length) activities.push({ workOrderId: id, type: WorkOrderActivityType.TECHNICIAN_REMOVED, note: `Removed technician IDs: ${removed.join(', ')}`, actorId });
       if (crewChanged) activities.push({ workOrderId: id, type: nextCrewId ? (existing.crewId ? WorkOrderActivityType.CREW_CHANGED : WorkOrderActivityType.CREW_ASSIGNED) : WorkOrderActivityType.CREW_REMOVED, note: nextCrewId ? `Crew: ${crew?.name}` : `Crew removed: ${existing.crew?.name}`, actorId });
+      if (jobLeaderId !== existing.jobLeaderId) activities.push({ workOrderId: id, type: WorkOrderActivityType.JOB_LEADER_CHANGED, note: `Job Leader changed from ${existing.jobLeaderId ?? 'unassigned'} to ${jobLeaderId ?? 'unassigned'}.`, actorId });
       if (nextStatus !== existing.status) activities.push({ workOrderId: id, type: WorkOrderActivityType.STATUS_CHANGED, previousStatus: existing.status, newStatus: nextStatus, actorId });
       if (activities.length) await tx.workOrderActivity.createMany({ data: activities });
       return workOrder;
     });
+  }
+
+  private resolveJobLeader(requested: string | null | undefined, technicianIds: string[], defaultLeader?: string | null) {
+    if (!technicianIds.length) return null;
+    if (technicianIds.length === 1) return technicianIds[0];
+    const leaderId = requested === undefined ? defaultLeader : requested;
+    if (!leaderId || !technicianIds.includes(leaderId)) throw new BadRequestException('Select one assigned Technician as Job Leader.');
+    return leaderId;
   }
 
   async findAll(page = 1, pageSize = 20, search?: string, status?: WorkOrderStatus, priority?: WorkOrderPriority, customerId?: string, propertyId?: string, technicianId?: string, crewId?: string, alert?: WorkOrderAlert) {

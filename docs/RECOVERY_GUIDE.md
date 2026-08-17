@@ -263,3 +263,7 @@ If an Admin sees an acceptance timeout or connection failure, do not repeatedly 
 ## 2026-08-17 Work Order Technician assignment recovery
 
 Deploy `20260817120000_work_order_technician_assignments` before the assignment-aware API. It creates only the normalized join and index, then copies every non-null historical `work_orders.technician_id` into it without changing the legacy column, Crew membership, Quote, recurrence, Customer, or Property data. Verify migration completion; compare legacy non-null assignments against matching join rows; smoke-test zero, one, and multiple assignments; confirm duplicate insertion fails; confirm ADMIN authorization and inactive-person rejection. During application rollback, retain the additive join and its backfilled history. Do not derive or refresh saved assignments from current Crew membership.
+
+## 2026-08-17 Crew and Job Leader recovery
+
+Deploy `20260817160000_crew_and_job_leaders` after `20260817120000_work_order_technician_assignments`. Verify every non-null `job_leader_id` names a Technician present in the same Work Order's normalized assignment set. A null leader is expected for Unassigned Work Orders and may identify a legacy multi-Technician row requiring explicit Admin resolution; never guess historical leadership. Application rollback may retain the additive column, index, foreign key, and activity enum. Do not refresh saved Work Orders from current Crew state.

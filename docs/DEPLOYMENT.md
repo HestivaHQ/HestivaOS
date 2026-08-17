@@ -194,3 +194,7 @@ Migration `20260816170000_non_lossy_quote_handoff` additively creates typed Work
 ## 2026-08-17 Work Order Technician assignment migration
 
 Run the normal `npm run db:migrate:deploy` path for `20260817120000_work_order_technician_assignments` before deploying assignment-aware API/web code. The additive migration creates `work_order_technicians`, its composite uniqueness and Technician lookup index, then copies existing non-null legacy `technician_id` values. It does not alter Crew membership or Quote, recurrence, Customer, or Property data. After deploy, verify the legacy/backfill count, ADMIN assignment mutation, duplicate prevention, inactive eligibility rejection, and stable saved assignments after a Crew membership edit.
+
+## 2026-08-17 Crew and Job Leader rollout
+
+Apply `20260817160000_crew_and_job_leaders` after the normalized Work Order Technician assignment migration, then regenerate Prisma Client. The additive migration adds the Job Leader foreign key/index and activity enum value. It backfills only Work Orders with exactly one normalized Technician assignment; review and explicitly resolve any staffed multi-Technician row with a null Job Leader through ADMIN tooling after deployment.
