@@ -101,3 +101,8 @@ Only currently identified technical follow-up work is listed here.
 
 - **2026-08-17 completed:** Canonical Crew Leader and Work Order Job Leader foundations, single-Technician defaults, assignment snapshots, Admin-only management, simplified Crew/assignment presentation, and safe single-assignment migration backfill.
 - **Planned Cleaner Job Execution:** Add explicit Start Job lifecycle, reason-required active-job leadership transfer, and Job Leader authorization for start/final review/completion/sensitive access. These capabilities are not part of the leadership foundation.
+
+## Homent Technician
+
+- **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
+- **Deferred:** protected credential retrieval, proactive critical-change push delivery, frozen scope/checklists, evidence and incident flows, offline media/completion, Complete Job, and Homent Supervisor.

@@ -196,3 +196,23 @@ export const api = {
   createWorkOrderCustomerSignOff: (id: string, input: Pick<WorkOrderCustomerSignOff, 'customerName' | 'signatureDataUrl'> & { note?: string }) => apiFetch<WorkOrderCustomerSignOff>(`/work-orders/${id}/customer-sign-off`, { method: 'POST', ...json(input) }),
   deleteWorkOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`, { method: 'DELETE' }),
 };
+
+export type TechnicianJob = {
+  id: string; reference: string | null; title: string; description: string | null; status: WorkOrderStatus;
+  scheduledAt: string | null; preferredTimeWindow: PreferredTimeWindow | null; updatedAt: string; startedAt: string | null;
+  jobLeaderId: string | null; isJobLeader: boolean; canStart: boolean; waitingForJobLeader: boolean; cacheable: boolean;
+  service: { name: string; description: string | null } | null;
+  addOns: Array<{ quantity: number; service: { name: string } }>;
+  assignedTechnicians: Array<{ technicianId: string; technician: Pick<Technician, 'id' | 'firstName' | 'lastName'> }>;
+  property: Pick<Property, 'name' | 'addressLine1' | 'addressLine2' | 'city' | 'province' | 'postalCode' | 'accessNotes' | 'parkingNotes' | 'bedrooms' | 'bathrooms' | 'livingAreas' | 'storeys' | 'floorSize' | 'outdoorArea' | 'hasPets' | 'petNotes' | 'hasCameras' | 'offLimitsNotes' | 'fragileItemNotes' | 'productRestrictionNotes' | 'allergyNotes'>;
+  accessInstructions: string | null; parkingInstructions: string | null; keyHandover: string | null; keyHandoverDetails: string | null;
+  someonePresent: boolean | null; ecoFriendlyProducts: boolean | null; customerDeclaredExistingDamage: string | null;
+};
+export type TechnicianJobList = { technicianId: string; view: 'today' | 'upcoming' | 'recent' | 'cache'; jobs: TechnicianJob[]; serverTime: string };
+export type StartJobOperation = { operationId: string; startedAt: string; expectedVersion: string };
+
+export const technicianApi = {
+  jobs: (view: TechnicianJobList['view']) => apiFetch<TechnicianJobList>(`/technician/jobs?view=${view}`),
+  job: (id: string) => apiFetch<TechnicianJob>(`/technician/jobs/${id}`),
+  start: (id: string, operation: StartJobOperation) => apiFetch<TechnicianJob>(`/technician/jobs/${id}/start`, { method: 'POST', ...json(operation) }),
+};
