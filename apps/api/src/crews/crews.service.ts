@@ -26,16 +26,17 @@ export class CrewsService {
     const name = input.name?.trim();
     if (!name) throw new BadRequestException('Crew name is required.');
     const memberIds = this.uniqueIds(input.memberIds ?? []);
+    const status = input.status ?? CrewStatus.ACTIVE;
     await this.validateName(name);
     await this.validateMembers(memberIds);
-    this.validateLeader(input.leaderId, memberIds);
+    const leaderId = this.resolveLeader(input.leaderId, memberIds, status);
 
     return this.prisma.crew.create({
       data: {
         name,
         description: input.description?.trim() || null,
-        status: input.status ?? CrewStatus.ACTIVE,
-        leaderId: input.leaderId || null,
+        status,
+        leaderId,
         members: { create: memberIds.map((technicianId) => ({ technicianId })) },
       },
       include: crewInclude,
@@ -80,8 +81,8 @@ export class CrewsService {
       ? this.uniqueIds(input.memberIds)
       : existing.members.map((member) => member.technicianId);
     await this.validateMembers(memberIds, id);
-    const leaderId = input.leaderId !== undefined ? input.leaderId : existing.leaderId;
-    this.validateLeader(leaderId, memberIds);
+    const status = input.status ?? existing.status;
+    const leaderId = this.resolveLeader(input.leaderId !== undefined ? input.leaderId : existing.leaderId, memberIds, status);
 
     return this.prisma.$transaction(async (tx) => {
       if (input.memberIds !== undefined) {
@@ -128,8 +129,12 @@ export class CrewsService {
     if (assignedElsewhere) throw new ConflictException('A technician cannot belong to more than one active crew.');
   }
 
-  private validateLeader(leaderId: string | null | undefined, memberIds: string[]) {
+  private resolveLeader(leaderId: string | null | undefined, memberIds: string[], status: CrewStatus) {
+    if (status === CrewStatus.ACTIVE && !memberIds.length) throw new BadRequestException('An active crew requires at least one Technician.');
+    if (memberIds.length === 1) return memberIds[0];
+    if (status === CrewStatus.ACTIVE && !leaderId) throw new BadRequestException('An active crew requires exactly one Crew Leader.');
     if (leaderId && !memberIds.includes(leaderId)) throw new BadRequestException('Crew leader must be included in the crew members.');
+    return leaderId || null;
   }
 
   private uniqueIds(ids: string[]) {

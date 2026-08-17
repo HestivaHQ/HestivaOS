@@ -72,3 +72,7 @@ An ongoing commitment changes over time while a Work Order must preserve one vis
 The public website and the operational OS have different responsibilities. The website should optimize customer capture and presentation, while HestivaOS owns official Quote identity, pricing, history, storage provenance, and eventual operational import. A versioned structured payload prevents email prose, display labels, or duplicated pricing logic from becoming hidden business interfaces that drift independently.
 
 A stable submission UUID and photo identity/hash make retries deterministic rather than depending on whether a browser saw a response. Keeping the private integration server-to-server prevents a long-lived integration credential from becoming a browser secret. Delaying the runtime endpoint until authentication, pricing, storage reconciliation, idempotent replay, and atomic persistence can be delivered together prevents a partially implemented boundary from accepting customer requests that it cannot safely complete.
+
+## 2026-08-17 — Separate operational leadership from authorization
+
+Crew Leader and Job Leader describe responsibility for a reusable team and a specific visit respectively; neither implies the organizational `SUPERVISOR` capability. Persisting Work Order leadership as an assignment-bound snapshot keeps operational history stable when a Crew changes and supports future execution authorization without duplicate identities or a Supervisor launch dependency.

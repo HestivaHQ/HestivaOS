@@ -78,6 +78,7 @@ enum WorkOrderActivityType {
   CREW_ASSIGNED
   CREW_CHANGED
   CREW_REMOVED
+  JOB_LEADER_CHANGED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
 }
@@ -392,6 +393,7 @@ model Technician {
   employeeRecord EmployeeRecord?
   workOrders WorkOrder[]
   workOrderAssignments WorkOrderTechnician[]
+  ledWorkOrders WorkOrder[] @relation("WorkOrderJobLeader")
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -549,6 +551,7 @@ model WorkOrder {
   createdById String @map("created_by_id") @db.Uuid
   technicianId String? @map("technician_id") @db.Uuid
   crewId String? @map("crew_id") @db.Uuid
+  jobLeaderId String? @map("job_leader_id") @db.Uuid
   serviceId String? @map("service_id") @db.Uuid
   recurringAgreementId String? @map("recurring_agreement_id") @db.Uuid
   recurrenceDate DateTime? @map("recurrence_date") @db.Date
@@ -581,6 +584,7 @@ model WorkOrder {
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
   assignedTechnicians WorkOrderTechnician[]
+  jobLeader Technician? @relation("WorkOrderJobLeader", fields: [jobLeaderId], references: [id], onDelete: Restrict)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   recurringAgreement RecurringServiceAgreement? @relation(fields: [recurringAgreementId], references: [id], onDelete: Restrict)
@@ -600,6 +604,7 @@ model WorkOrder {
   @@index([createdById])
   @@index([technicianId])
   @@index([crewId])
+  @@index([jobLeaderId])
   @@index([serviceId])
   @@index([recurringAgreementId])
   @@unique([recurringAgreementId, recurrenceDate])

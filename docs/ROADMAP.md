@@ -98,3 +98,6 @@ Only currently identified technical follow-up work is listed here.
 
 - Completed: normalized zero/one/many Work Order Technician assignments, duplicate prevention, ADMIN mutation, active Technician/Employee eligibility, assignment audit, unassigned visibility, and active-Crew prepopulation with job-specific snapshot edits.
 - Still planned separately: cleaner job execution, recurring staffing templates, dispatch optimization, and dashboard notification/escalation beyond the existing unassigned counters and filters.
+
+- **2026-08-17 completed:** Canonical Crew Leader and Work Order Job Leader foundations, single-Technician defaults, assignment snapshots, Admin-only management, simplified Crew/assignment presentation, and safe single-assignment migration backfill.
+- **Planned Cleaner Job Execution:** Add explicit Start Job lifecycle, reason-required active-job leadership transfer, and Job Leader authorization for start/final review/completion/sensitive access. These capabilities are not part of the leadership foundation.

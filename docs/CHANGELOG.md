@@ -676,3 +676,16 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added stable recurring instruction/time/eco preference inheritance without temporary access propagation.
 - Linked accepted Quote photos without blob duplication and separated customer declarations from cleaner evidence.
 - Added a visit-scoped temporary access credential data boundary with expiry/revocation metadata.
+
+## 2026-08-17 — Crew and Job leadership foundation
+
+### Added
+- Canonical Work Order Job Leader relationship and audited Admin reassignment.
+- Automatic leadership for single-Technician Crews and Work Orders, with Crew Leader defaulting for Crew-based assignment.
+
+### Changed
+- Active Crew validation now requires at least one eligible member and exactly one member leader.
+- Crew and Work Order staffing UI now identifies operational leaders without treating them as Supervisors.
+
+### Migration
+- Single-assignment historical Work Orders receive that Technician as Job Leader; ambiguous multi-Technician history remains unresolved rather than guessed.
