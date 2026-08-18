@@ -46,6 +46,9 @@ const ATTENTION_ROLES: UserRole[] = [
   UserRole.SUPERVISOR,
 ];
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const workOrderAttentionSelect = {
   id: true,
   reference: true,
@@ -156,7 +159,7 @@ export class AttentionService {
         if (
           attempt < 3 &&
           error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2034'
+          (error.code === 'P2034' || error.code === 'P2002')
         ) {
           continue;
         }
@@ -417,6 +420,10 @@ export class AttentionService {
     this.ensureVisible(user, item);
 
     if (ownerId === item.ownerId) return item;
+
+    if (ownerId && !UUID_PATTERN.test(ownerId)) {
+      throw new BadRequestException('ownerId must be a valid UUID.');
+    }
 
     if (ownerId) {
       const owner = await this.prisma.user.findUnique({ where: { id: ownerId } });
