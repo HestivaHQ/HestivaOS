@@ -717,3 +717,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ### Preserved and deferred
 
 - Generic Work Order BEFORE/AFTER photos retain their model and behavior while reusing the compressor; `/technician` remains canonical. Complete Job, full incident/damage/scope-mismatch resolution, notifications, protected credentials, Homent Supervisor, and a broad legacy bucket privacy migration remain deferred.
+
+## 2026-08-18 — Homent Technician Complete Job
+
+- Added Job Leader-only offline completion with durable UUID operations, readiness blockers, read-only local completion, retry and retained conflict states.
+- Added authoritative idempotent completion that rechecks the frozen scope and accepts locally captured evidence while upload remains pending before moving the Work Order to `COMPLETED`.
+- Added audited ADMIN/SUPERVISOR acknowledgement and correspondence eligibility without sending any customer message; removed the legacy competing Complete job status action.

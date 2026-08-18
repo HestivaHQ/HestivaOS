@@ -457,3 +457,7 @@ Implemented normalized versioned Service Scope Templates, append-only pre-start 
 ## 2026-08-17 — Homent Technician D offline evidence pipeline
 
 Implemented shared orientation-aware bounded WebP compression, IndexedDB v3 evidence/Blob persistence, sequential opportunity-driven Supabase upload, deterministic UUID paths, assignment-scoped idempotent backend acknowledgement, safe retained retries and acknowledged-only bounded Blob cleanup. REQUIRED and ON_EXCEPTION checklist flows now progress after durable local capture, and Job Leader review continues to separate missing evidence from authoritative pending/acknowledged evidence. The legacy BEFORE/AFTER page reuses the compressor without becoming execution authority. Complete Job and the broader incident/damage/scope-mismatch, notification, credential, and Supervisor slices remain deferred.
+
+## 2026-08-18 — Homent Technician E offline completion
+
+Implemented Job Leader-only durable `COMPLETE_JOB`, IndexedDB v4 reconciliation/conflict retention, local read-only completion UX, authoritative frozen-scope readiness and idempotent `COMPLETED` transition, plus audited ADMIN/SUPERVISOR acknowledgement and correspondence eligibility. Removed the legacy Work Order page's competing Complete action. No correspondence sender or Technician reopen workflow was added; WhatsApp/Messenger, richer Supervisor, incident/damage/scope resolution, push, and private evidence-read hardening remain deferred.

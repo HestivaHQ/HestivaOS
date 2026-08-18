@@ -403,11 +403,17 @@ export type WorkOrder = {
   priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   scheduledAt: string | null;
   completedAt?: string | null;
+  completionOperationId?: string | null;
+  fieldCompletedAt?: string | null;
+  completionAcceptedAt?: string | null;
+  completionAcknowledgedAt?: string | null;
+  completionCorrespondenceEligibleAt?: string | null;
   createdAt: string;
   customer: Customer;
   property: Property;
   technician: Technician | null;
   crew: Crew | null;
+  startedScopeRevision?: { id:string; sections:Array<{id:string;title:string;currentOutcome:SectionOutcome;evidencePolicy:EvidencePolicy;currentOutcomeEvent:{reason:string|null;note:string|null}|null;evidence:Array<{syncState:string}>}> } | null;
 };
 export type RecurringServiceAgreement = {
   id: string;
@@ -1107,6 +1113,7 @@ export const api = {
       method: "PATCH",
       ...json(input),
     }),
+  acknowledgeWorkOrderCompletion: (id: string) => apiFetch(`/work-orders/${id}/completion/acknowledge`, { method: "POST" }),
   workOrderTimeline: (id: string) =>
     apiFetch<WorkOrderActivity[]>(`/work-orders/${id}/timeline`),
   workOrderChecklist: (id: string) =>
@@ -1223,6 +1230,7 @@ export type TechnicianJob = {
   customerDeclaredExistingDamage: string | null;
   startedScopeRevisionId: string | null;
   executionScope: ExecutionScope | null;
+  localCompletion?: { operationId: string; syncState: "SYNC_PENDING" | "ACKNOWLEDGED" | "NEEDS_REVIEW"; fieldCompletedAt: string; lastError?: string };
 };
 export type EvidencePolicy = "NONE" | "ON_EXCEPTION" | "REQUIRED";
 export type SectionOutcome = "PENDING" | "COMPLETED" | "NOT_COMPLETED";
@@ -1292,6 +1300,7 @@ export type EvidenceAcknowledgement = {
   syncState: "SERVER_ACKNOWLEDGED";
   serverAcknowledgedAt: string;
 };
+export type CompleteJobOperation = { operationId: string; scopeRevisionId: string; fieldCompletedAt: string; expectedVersion: string; expectedStatus: "ON_SITE" | "WAITING_FOR_PARTS" };
 export type JobReview = {
   scopeRevisionId: string | null;
   accountedFor: number;
@@ -1334,4 +1343,5 @@ export const technicianApi = {
       { method: "POST", ...json(evidence) },
     ),
   review: (id: string) => apiFetch<JobReview>(`/technician/jobs/${id}/review`),
+  complete: (id: string, operation: CompleteJobOperation) => apiFetch<{id:string;status:"COMPLETED";completionOperationId:string;fieldCompletedAt:string;completionAcceptedAt:string}>(`/technician/jobs/${id}/complete`, { method: "POST", ...json(operation) }),
 };

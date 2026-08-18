@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CrewStatus, HomeCondition, Prisma, ServiceStatus, ServiceType, WorkOrderActivityType, WorkOrderFrequency, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
@@ -49,6 +49,7 @@ const workOrderInclude = {
   service: true,
   recurringAgreement: true,
   addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } },
+  startedScopeRevision: { include: { sections: { orderBy: { sortOrder: 'asc' as const }, include: { currentOutcomeEvent: true, evidence: true } } } },
 } as const;
 
 export function johannesburgBusinessDate(now = new Date()) {
@@ -71,6 +72,20 @@ const actionableStatuses = Object.values(WorkOrderStatus).filter((status) => !no
 @Injectable()
 export class WorkOrdersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async acknowledgeCompletion(id: string, actorId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.workOrder.findUnique({ where: { id }, select: { status: true, completionOperationId: true, completionAcknowledgedAt: true, completionAcknowledgedById: true } });
+      if (!job) throw new NotFoundException('Work Order not found.');
+      if (job.status !== WorkOrderStatus.COMPLETED || !job.completionOperationId) throw new ConflictException('Only an authoritative Technician completion can be acknowledged.');
+      if (job.completionAcknowledgedAt) return job;
+      const acknowledgedAt = new Date();
+      const changed = await tx.workOrder.updateMany({ where: { id, status: WorkOrderStatus.COMPLETED, completionOperationId: job.completionOperationId, completionAcknowledgedAt: null }, data: { completionAcknowledgedAt: acknowledgedAt, completionAcknowledgedById: actorId, completionCorrespondenceEligibleAt: acknowledgedAt } });
+      if (changed.count !== 1) return tx.workOrder.findUniqueOrThrow({ where: { id }, select: { status: true, completionOperationId: true, completionAcknowledgedAt: true, completionAcknowledgedById: true, completionCorrespondenceEligibleAt: true } });
+      await tx.workOrderActivity.create({ data: { workOrderId: id, type: 'JOB_COMPLETION_ACKNOWLEDGED', actorId, newStatus: WorkOrderStatus.COMPLETED, note: `Completion ${job.completionOperationId} acknowledged; customer correspondence is now eligible but was not sent.` } });
+      return tx.workOrder.findUniqueOrThrow({ where: { id }, select: { status: true, completionOperationId: true, completionAcknowledgedAt: true, completionAcknowledgedById: true, completionCorrespondenceEligibleAt: true } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
 
   async create(input: CreateWorkOrderInput) {
     this.validateQuoteFields(input);
@@ -230,6 +245,7 @@ export class WorkOrdersService {
   }
 
   async changeStatus(id: string, input: ChangeWorkOrderStatusInput) {
+    if (input.status === WorkOrderStatus.COMPLETED) throw new ConflictException('Use the authoritative Homent Technician Complete Job workflow.');
     return this.update(id, { status: input.status }, input.note, input.actorId);
   }
 
@@ -239,6 +255,8 @@ export class WorkOrdersService {
     }
     this.validateQuoteFields(input);
     const existing = await this.findOne(id);
+    if (existing.status === WorkOrderStatus.COMPLETED && input.status && input.status !== WorkOrderStatus.COMPLETED && input.status !== WorkOrderStatus.CLOSED) throw new ConflictException('Completed Technician jobs cannot be reopened.');
+    if (input.status === WorkOrderStatus.COMPLETED && !existing.completionOperationId) throw new ConflictException('Use the authoritative Homent Technician Complete Job workflow.');
     const customerId = input.customerId ?? existing.customerId;
     const propertyId = input.propertyId ?? existing.propertyId;
     if (input.customerId !== undefined || input.propertyId !== undefined) {

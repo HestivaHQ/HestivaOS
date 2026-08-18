@@ -6,6 +6,7 @@ export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
 export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
 export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
 export type EvidenceAcknowledgementInput={scopeRevisionId:string;purpose:'REQUIRED_SECTION_EVIDENCE'|'EXCEPTION_EVIDENCE';capturedAt:string;storagePath:string};
+export type CompleteJobInput={operationId:string;scopeRevisionId:string;fieldCompletedAt:string;expectedVersion:string;expectedStatus:'ON_SITE'|'WAITING_FOR_PARTS'};
 const PRE_START: WorkOrderStatus[] = [WorkOrderStatus.ASSIGNED, WorkOrderStatus.ACCEPTED, WorkOrderStatus.TRAVELLING];
 const DAY = 86_400_000;
 
@@ -128,6 +129,32 @@ export class TechnicianJobsService {
       const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?existing:tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})}
       return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})
     });
+  }
+
+  async complete(userId:string,id:string,input:CompleteJobInput){
+    const technicianId=await this.technicianFor(userId);
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.operationId))throw new BadRequestException('A valid operation ID is required.');
+    const fieldCompletedAt=new Date(input.fieldCompletedAt),expectedVersion=new Date(input.expectedVersion);if(!Number.isFinite(fieldCompletedAt.getTime())||!Number.isFinite(expectedVersion.getTime())||fieldCompletedAt.getTime()>Date.now()+5*60_000)throw new BadRequestException('Valid completion timestamps are required.');
+    return this.prisma.$transaction(async tx=>{
+      const duplicate=await tx.workOrder.findUnique({where:{completionOperationId:input.operationId},select:{id:true,status:true,completionOperationId:true,fieldCompletedAt:true,completionAcceptedAt:true}});
+      if(duplicate){if(duplicate.id!==id)throw new ConflictException('Completion identity is already bound to another job.');return duplicate;}
+      const job=await tx.workOrder.findFirst({where:{id,assignedTechnicians:{some:{technicianId}}},select:{status:true,jobLeaderId:true,startedAt:true,startedScopeRevisionId:true,completionOperationId:true,executionScopeRevisions:{where:{id:input.scopeRevisionId},select:{sections:{include:{currentOutcomeEvent:true,evidence:true}}}}}});
+      if(!job)throw new NotFoundException('Assigned job was not found.');
+      if(job.jobLeaderId!==technicianId)throw new ForbiddenException('Only the assigned Job Leader can complete this job.');
+      if(job.completionOperationId||job.status===WorkOrderStatus.COMPLETED)throw new ConflictException('This job was completed by another operation.');
+      if(!job.startedAt||!([WorkOrderStatus.ON_SITE,WorkOrderStatus.WAITING_FOR_PARTS] as WorkOrderStatus[]).includes(job.status)||job.status!==input.expectedStatus)throw new ConflictException('This job cannot be completed from its current state.');
+      if(job.startedScopeRevisionId!==input.scopeRevisionId)throw new ConflictException('The frozen Execution Scope changed. Completion needs review.');
+      const sections=job.executionScopeRevisions[0]?.sections??[];if(!sections.length)throw new ConflictException('The frozen Execution Scope has no sections.');
+      for(const section of sections){
+        if(section.currentOutcome==='PENDING')throw new ConflictException(`${section.title} still needs an outcome.`);
+        if(section.currentOutcome==='NOT_COMPLETED'&&(!section.currentOutcomeEvent?.reason||!section.currentOutcomeEvent.note?.trim()))throw new ConflictException(`${section.title} needs an exception reason and note.`);
+        const required=section.evidencePolicy==='REQUIRED'||(section.evidencePolicy==='ON_EXCEPTION'&&section.currentOutcome==='NOT_COMPLETED');
+        if(required&&!section.evidence.length)throw new ConflictException(`${section.title} is missing required evidence.`);
+      }
+      const acceptedAt=new Date();const changed=await tx.workOrder.updateMany({where:{id,status:job.status,completionOperationId:null,jobLeaderId:technicianId,startedScopeRevisionId:input.scopeRevisionId},data:{status:WorkOrderStatus.COMPLETED,completedAt:fieldCompletedAt,fieldCompletedAt,completionAcceptedAt:acceptedAt,completionOperationId:input.operationId,completedByTechnicianId:technicianId}});if(changed.count!==1)throw new ConflictException('The job changed while completion was accepted.');
+      await tx.workOrderActivity.create({data:{workOrderId:id,type:'JOB_COMPLETED',actorId:userId,previousStatus:job.status,newStatus:WorkOrderStatus.COMPLETED,note:`Homent Technician completion ${input.operationId} accepted for frozen scope ${input.scopeRevisionId}.`}});
+      return{id,status:WorkOrderStatus.COMPLETED,completionOperationId:input.operationId,fieldCompletedAt,completionAcceptedAt:acceptedAt};
+    },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   }
 
   async review(userId:string,id:string){ const technicianId=await this.technicianFor(userId); const job=await this.prisma.workOrder.findFirst({where:{id,jobLeaderId:technicianId,assignedTechnicians:{some:{technicianId}}},select:{startedScopeRevision:{select:{id:true,sections:{orderBy:{sortOrder:'asc'},include:{currentOutcomeEvent:true,evidence:true}}}}}}); if(!job)throw new ForbiddenException('Only the assigned Job Leader can review this job.'); const sections=job.startedScopeRevision?.sections??[]; const attention:any[]=[]; let syncPending=0; for(const s of sections){if(s.currentOutcome==='PENDING')attention.push({sectionId:s.id,title:s.title,code:'PENDING',message:'Outcome not recorded'}); if(s.currentOutcome==='NOT_COMPLETED'&&(!s.currentOutcomeEvent?.reason||!s.currentOutcomeEvent.note?.trim()))attention.push({sectionId:s.id,title:s.title,code:'INCOMPLETE_EXCEPTION',message:'Reason or note missing'}); const required=s.evidencePolicy==='REQUIRED'||(s.evidencePolicy==='ON_EXCEPTION'&&s.currentOutcome==='NOT_COMPLETED'); if(required&&!s.evidence.length)attention.push({sectionId:s.id,title:s.title,code:'MISSING_EVIDENCE',message:'Required evidence missing'}); syncPending+=s.evidence.filter(e=>e.syncState!=='SERVER_ACKNOWLEDGED').length; if(s.currentOutcomeEvent?.attentionLevel==='SAFETY_CRITICAL_STOP')attention.push({sectionId:s.id,title:s.title,code:'SAFETY_STOP',message:'Stop affected work; safety follow-up is required'}); if(s.currentOutcomeEvent?.reason==='SCOPE_OR_CONDITION_MISMATCH')attention.push({sectionId:s.id,title:s.title,code:'SCOPE_ISSUE',message:'Scope or condition mismatch needs attention'});} return{scopeRevisionId:job.startedScopeRevision?.id??null,accountedFor:sections.filter(s=>s.currentOutcome!=='PENDING').length,totalSections:sections.length,syncPending,attention,ready:sections.length>0&&!attention.length}; }

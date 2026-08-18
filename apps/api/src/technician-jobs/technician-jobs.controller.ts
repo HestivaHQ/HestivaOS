@@ -10,6 +10,7 @@ import {
 import { User } from "@prisma/client";
 import { CurrentUser } from "../users/current-user.decorator";
 import {
+  CompleteJobInput,
   EvidenceAcknowledgementInput,
   SectionOutcomeInput,
   StartJobInput,
@@ -68,6 +69,11 @@ export class TechnicianJobsController {
       input,
     );
   }
+  @Post(":id/complete") complete(
+    @CurrentUser() user: User,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() input: CompleteJobInput,
+  ) { return this.jobs.complete(user.id, id, input); }
   @Get(":id/review") review(
     @CurrentUser() user: User,
     @Param("id", new ParseUUIDPipe()) id: string,

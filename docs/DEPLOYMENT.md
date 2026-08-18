@@ -210,3 +210,7 @@ Deploy migration `20260817193000_homent_execution_scope` before the matching API
 ## Homent Technician D deployment
 
 Deploy additive migration `20260817220000_offline_execution_evidence` before the matching API/web release. It extends the B2/C evidence table with UUID identity typing, Work Order/scope/Technician bindings, purpose, and storage path; existing B2/C placeholder rows derive these values from their section/outcome relationships. No new environment variable or storage provider is introduced: uploads reuse `NEXT_PUBLIC_SUPABASE_WORK_ORDER_PHOTOS_BUCKET`. Verify the bucket's existing authenticated upload policy accepts deterministic nested paths. This slice does not change legacy bucket privacy; do not expose a service-role key to the web application.
+
+## 2026-08-18 Homent Technician completion migration
+
+Deploy additive migration `20260818120000_homent_technician_completion` before the matching API and web release. It adds completion/audit/acknowledgement columns, two activity values, indexes and foreign keys; it neither changes existing Work Order statuses nor sends correspondence. Generate Prisma Client and verify one ready `ON_SITE` scoped job can reconcile to `COMPLETED`, remains awaiting acknowledgement, and becomes correspondence-eligible only after an ADMIN or SUPERVISOR acknowledgement. IndexedDB upgrades from v3 to v4 without deleting the existing jobs, operations or evidence stores.

@@ -1,6 +1,7 @@
 import type {
   SectionOutcomeOperation,
   StartJobOperation,
+  CompleteJobOperation,
   TechnicianJob,
 } from "../../../lib/api";
 export type PendingStart = StartJobOperation & {
@@ -12,6 +13,7 @@ export type PendingOutcome = SectionOutcomeOperation & {
   kind: "SECTION_OUTCOME";
   queuedAt: string;
 };
+export type PendingCompletion = CompleteJobOperation & { workOrderId:string; jobLeaderTechnicianId:string; kind:"COMPLETE_JOB"; queuedAt:string; localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW"; acknowledgedAt?:string; lastError?:string };
 export type EvidenceSyncState =
   | "CAPTURED_LOCAL"
   | "QUEUED"
@@ -34,7 +36,7 @@ export type LocalEvidence = {
   acknowledgedAt?: string;
 };
 const DB = "homent-technician";
-export const VERSION = 3;
+export const VERSION = 4;
 function open() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB, VERSION);
@@ -118,7 +120,7 @@ export const savePendingStart = (operation: PendingStart) =>
   );
 export const pendingStarts = async () =>
   (
-    await transaction<Array<PendingStart | PendingOutcome>>(
+    await transaction<Array<PendingStart | PendingOutcome | PendingCompletion>>(
       "operations",
       "readonly",
       (store) => store.getAll(),
@@ -130,7 +132,7 @@ export const savePendingOutcome = (operation: PendingOutcome) =>
   );
 export const pendingOutcomes = async () =>
   (
-    await transaction<Array<PendingStart | PendingOutcome>>(
+    await transaction<Array<PendingStart | PendingOutcome | PendingCompletion>>(
       "operations",
       "readonly",
       (store) => store.getAll(),
@@ -142,6 +144,10 @@ export const removePendingStart = (id: string) =>
     "readwrite",
     (store) => store.delete(id) as IDBRequest<undefined>,
   );
+export const saveCompletion = (operation: PendingCompletion) => transaction<IDBValidKey>("operations", "readwrite", (store) => store.put(operation));
+export const completions = async () => ((await transaction<Array<PendingStart|PendingOutcome|PendingCompletion>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="COMPLETE_JOB") as PendingCompletion[]);
+export const pendingCompletions = async () => (await completions()).filter(x=>x.localSyncState==="SYNC_PENDING");
+export const completionForJob = async (workOrderId:string) => (await completions()).find(x=>x.workOrderId===workOrderId);
 
 export const removeCachedJob = (id: string) =>
   transaction<undefined>(

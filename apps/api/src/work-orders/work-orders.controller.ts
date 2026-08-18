@@ -33,6 +33,12 @@ export class WorkOrdersController {
   @Get(':id/timeline')
   findTimeline(@Param('id', new ParseUUIDPipe()) id: string) { return this.workOrders.findTimeline(id); }
 
+  @Post(':id/completion/acknowledge')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  acknowledgeCompletion(@Param('id', new ParseUUIDPipe()) id: string, @CurrentUser() actor: User) {
+    return this.workOrders.acknowledgeCompletion(id, actor.id);
+  }
+
   @Patch(':id/status')
   changeStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ChangeWorkOrderStatusInput) {
     return this.workOrders.changeStatus(id, input);

@@ -10,16 +10,19 @@ import {
 } from "../../../lib/api";
 import {
   cleanupAcknowledgedBlobs,
+  completionForJob,
   cachedJob,
   cacheJobs,
   evidenceForJob,
   LocalEvidence,
   pendingEvidence,
+  pendingCompletions,
   pendingOutcomes,
   pendingStarts,
   removeCachedJob,
   removePendingStart,
   saveEvidence,
+  saveCompletion,
   savePendingOutcome,
   savePendingStart,
   updateEvidence,
@@ -35,6 +38,16 @@ const reasons = [
   ["SCOPE_OR_CONDITION_MISMATCH", "Scope or condition mismatch"],
   ["OTHER", "Other"],
 ];
+function localReadiness(job:TechnicianJob,evidence:LocalEvidence[]):JobReview{
+  const sections=job.executionScope?.sections??[],attention:JobReview["attention"]=[];
+  for(const section of sections){
+    if(section.currentOutcome==="PENDING")attention.push({sectionId:section.id,title:section.title,code:"PENDING",message:"Outcome not recorded"});
+    if(section.currentOutcome==="NOT_COMPLETED"&&(!section.currentOutcomeEvent?.reason||!section.currentOutcomeEvent.note?.trim()))attention.push({sectionId:section.id,title:section.title,code:"INCOMPLETE_EXCEPTION",message:"Not completed reason or note missing"});
+    const required=section.evidencePolicy==="REQUIRED"||(section.evidencePolicy==="ON_EXCEPTION"&&section.currentOutcome==="NOT_COMPLETED");
+    if(required&&!evidence.some(item=>item.sectionId===section.id))attention.push({sectionId:section.id,title:section.title,code:"MISSING_EVIDENCE",message:"Required photo missing"});
+  }
+  return{scopeRevisionId:job.executionScope?.id??null,accountedFor:sections.filter(s=>s.currentOutcome!=="PENDING").length,totalSections:sections.length,syncPending:evidence.filter(e=>e.syncState!=="SERVER_ACKNOWLEDGED").length,attention,ready:sections.length>0&&!attention.length};
+}
 export function JobBrief({ id }: { id: string }) {
   const [job, setJob] = useState<TechnicianJob | null>(null),
     [offline, setOffline] = useState(false),
@@ -95,9 +108,19 @@ export function JobBrief({ id }: { id: string }) {
           await removePendingStart(op.operationId);
         } catch {}
       }
+      for (const op of await pendingCompletions()) {
+        try {
+          const acknowledgement = await technicianApi.complete(op.workOrderId, op);
+          await saveCompletion({ ...op, localSyncState: "ACKNOWLEDGED", acknowledgedAt: acknowledgement.completionAcceptedAt, lastError: undefined });
+        } catch (error) {
+          if (error instanceof ApiError && error.status >= 400 && error.status < 500) await saveCompletion({ ...op, localSyncState: "NEEDS_REVIEW", lastError: error.message });
+        }
+      }
       const fresh = await technicianApi.job(id);
-      await cacheJobs([fresh]);
-      setJob(fresh);
+      const completion = await completionForJob(id);
+      const merged = completion ? { ...fresh, localCompletion: { operationId: completion.operationId, syncState: completion.localSyncState, fieldCompletedAt: completion.fieldCompletedAt, lastError: completion.lastError } } : fresh;
+      await cacheJobs([merged]);
+      setJob(merged);
       setOffline(false);
     } catch (error) {
       if (
@@ -117,6 +140,7 @@ export function JobBrief({ id }: { id: string }) {
       setPending(
         (await pendingStarts()).length +
           (await pendingOutcomes()).length +
+          (await pendingCompletions()).length +
           (await pendingEvidence()).length,
       );
     }
@@ -164,7 +188,7 @@ export function JobBrief({ id }: { id: string }) {
     purpose: LocalEvidence["purpose"],
   ) {
     const original = event.target.files?.[0];
-    if (!original || !job?.executionScope) return;
+    if (!original || !job?.executionScope || job.localCompletion) return;
     setBusy(true);
     try {
       const blob = await compressPhoto(original),
@@ -199,7 +223,7 @@ export function JobBrief({ id }: { id: string }) {
     }
   }
   async function outcome(sectionId: string, value: SectionOutcome) {
-    if (!job?.executionScope) return;
+    if (!job?.executionScope || job.localCompletion) return;
     const section = job.executionScope.sections.find((s) => s.id === sectionId);
     if (!section) return;
     const captures = evidence.filter((e) => e.sectionId === sectionId);
@@ -243,6 +267,7 @@ export function JobBrief({ id }: { id: string }) {
                   ...s,
                   currentOutcome: value,
                   currentVersion: s.currentVersion + 1,
+                  currentOutcomeEvent: { technicianId: job.technicianId, reason: value === "NOT_COMPLETED" ? reason : null, note: value === "NOT_COMPLETED" ? note.trim() : null, attentionLevel: value === "NOT_COMPLETED" ? "JOB_LEADER_ATTENTION" : "INFORMATIONAL", fieldRecordedAt: operation.fieldRecordedAt },
                 }
               : s,
           ),
@@ -260,15 +285,20 @@ export function JobBrief({ id }: { id: string }) {
     }
   }
   async function loadReview() {
+    if (!job?.executionScope) return;
+    const local = localReadiness(job, evidence);
     try {
-      setReview(await technicianApi.review(id));
+      const authoritative = await technicianApi.review(id);
+      setReview(local.ready ? authoritative : local);
     } catch {
-      setMessage(
-        offline
-          ? "Review needs a connection for authoritative checks."
-          : "Review is available only to the Job Leader.",
-      );
+      if (offline) setReview(local); else setMessage("Review is available only to the Job Leader.");
     }
+  }
+  async function completeJob() {
+    if (!job?.isJobLeader || !job.executionScope || job.localCompletion) return;
+    const readiness=localReadiness(job,evidence);setReview(readiness);if(!readiness.ready){setMessage("Finish the items shown in Review job before completing.");return;}
+    setBusy(true);const now=new Date().toISOString();const operation={kind:"COMPLETE_JOB" as const,workOrderId:id,operationId:crypto.randomUUID(),scopeRevisionId:job.executionScope.id,jobLeaderTechnicianId:job.technicianId,fieldCompletedAt:now,expectedVersion:job.updatedAt,expectedStatus:job.status as "ON_SITE"|"WAITING_FOR_PARTS",queuedAt:now,localSyncState:"SYNC_PENDING" as const};
+    try{await saveCompletion(operation);const local={...job,localCompletion:{operationId:operation.operationId,syncState:operation.localSyncState,fieldCompletedAt:now}};await cacheJobs([local]);setJob(local);setMessage("✓ Job completed on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save completion. The job is not completed; try again.");}finally{setBusy(false);}
   }
   if (!job)
     return (
@@ -297,6 +327,7 @@ export function JobBrief({ id }: { id: string }) {
         </span>
       </div>
       {message ? <p className="syncNotice">{message}</p> : null}
+      {job.localCompletion ? <p className="syncNotice"><strong>{job.localCompletion.syncState==="ACKNOWLEDGED"?"✓ Job completed":job.localCompletion.syncState==="NEEDS_REVIEW"?"Completion needs review":"✓ Job completed on this device · Sync pending"}</strong>{job.localCompletion.lastError?` — ${job.localCompletion.lastError}`:""}</p>:null}
       <article>
         <h2>Job</h2>
         <p>
@@ -358,7 +389,7 @@ export function JobBrief({ id }: { id: string }) {
                       : "required before completion"}
                 </p>
               </details>
-              {job.startedAt ? (
+              {job.startedAt && !job.localCompletion ? (
                 <div className="sectionActions">
                   {section.evidencePolicy === "REQUIRED" ? (
                     <label>
@@ -452,7 +483,7 @@ export function JobBrief({ id }: { id: string }) {
           Execution Scope has not been prepared. The job cannot start.
         </p>
       )}
-      {job.canStart ? (
+      {!job.localCompletion && job.canStart ? (
         <button
           className="technicianStart"
           disabled={busy || !scope}
@@ -485,8 +516,9 @@ export function JobBrief({ id }: { id: string }) {
                   ))}
                 </ul>
               ) : (
-                <p className="reviewReady">Ready to complete later</p>
+                <p className="reviewReady">Ready to complete</p>
               )}
+              {review.ready && !job.localCompletion ? <button className="technicianStart" disabled={busy} onClick={()=>void completeJob()}>{busy?"Saving…":"Complete Job"}</button>:null}
             </>
           ) : null}
         </article>
