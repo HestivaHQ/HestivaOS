@@ -1,4 +1,5 @@
-import { apiBase } from './api-base';
+const rawApiUrl=process.env.API_URL??process.env.NEXT_PUBLIC_API_URL??'http://localhost:4000';
+const apiBase=`${rawApiUrl.trim().replace(/\/+$/,'').replace(/\/api\/v1$/,'')}/api/v1`;
 export type InterruptionNextAction='REPLACEMENT_VISIT'|'FOLLOW_UP'|'PARTIAL_COMPLETION_REVIEW'|'FINANCIAL_REVIEW'|'CLOSE';
 export type InterruptionDetail={workOrderId:string;reference:string|null;status:string;interruption:null|{id:string;operationId:string;technicianId:string;scopeRevisionId:string;fieldInterruptedAt:string;reason:string;note:string;serverAcceptedAt:string};routes:Array<{id:string;operationId:string;actorId:string;nextAction:InterruptionNextAction;note:string|null;createdAt:string}>;latestRoute:null|{id:string;nextAction:InterruptionNextAction;note:string|null;createdAt:string};boundaries?:Record<string,string>};
 async function request<T>(path:string,token:string,init?:RequestInit){const response=await fetch(`${apiBase}${path}`,{...init,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(init?.headers??{})},cache:'no-store'});const body=await response.json().catch(()=>null);if(!response.ok)throw new Error(body?.message??`Request failed (${response.status})`);return body as T;}
