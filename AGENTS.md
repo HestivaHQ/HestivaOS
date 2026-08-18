@@ -33,6 +33,22 @@ Do not write implementation or documentation changes directly to `main` by defau
 - A direct write to `main` is allowed only when the maintainer explicitly authorizes that exception for the specific change. General approval to make a change does **not** waive the branch/PR rule.
 - If a tool unexpectedly writes directly to `main`, report the deviation immediately and reconcile any affected documentation instead of concealing it.
 
+## Parallel development and multiple active PRs
+
+Treat every active development chat, Codex task, branch, and pull request as an independent work lane. Parallel work is allowed, but no lane may assume that its branch is the repository's final future state.
+
+- One work lane owns one focused branch/PR scope. Do not modify, reset, force-update, reuse, or repurpose a branch owned by another active lane unless the maintainer explicitly coordinates that handoff.
+- `main` is the canonical integrated repository state. Active PR branches are proposed future states and must not be treated as canonical merely because their tests are green.
+- Before starting a new implementation slice, inspect current `main` and all relevant active PRs for overlapping scope and changed files. Pay particular attention to Prisma/schema changes, migrations, ADRs and their index, shared API/domain contracts, enums, authentication/authorization, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, and `docs/TECHNICAL_WORK_LOG.md`.
+- Before allocating a repository-global identifier, check both `main` and relevant active PRs. This includes ADR numbers, migration names/timestamps, important enum/event names, public API routes, and other identifiers whose uniqueness matters across lanes. Do not knowingly create a duplicate reservation.
+- A shared changed filename is not automatically a conflict. Where multiple lanes legitimately modify the same file, preserve and reconcile all valid changes. Never resolve shared schema, migration history, ADR index, architecture, roadmap, changelog, work-log, or contract conflicts by wholesale `ours`/`theirs` selection unless the maintainer explicitly confirms that one side is obsolete.
+- Database migrations are append-only lane-owned artifacts. Do not edit, replace, rename, or delete another active lane's migration merely to avoid a conflict. After another migration merges, rebase/merge against current `main` and validate the remaining migration sequence on top of it.
+- Merge active PRs into `main` one at a time. Immediately before merge, perform a parallel-PR collision check against the other relevant active PRs for overlapping files, schema/model areas, migrations, ADR numbers, enums/events, API/domain contracts, and contradictory documentation.
+- When another PR merges while a lane remains open, that lane must synchronize with the new `main` before it is merge-ready. Deliberately reconcile shared changes, review the complete resulting diff, and rerun all required validation. A previously green result does not authorize merge after the integration base has materially changed.
+- Never silently discard another lane's valid history during synchronization. For append-only/historical files such as changelogs, technical work logs, ADR indexes, and migration history, the integrated result normally retains both lanes' valid entries.
+- If parallel work exposes a substantive cross-lane architecture or product conflict rather than a mechanical Git conflict, stop incompatible implementation and coordinate the decision through the applicable repository documentation and coordination issue before proceeding.
+- Before declaring a PR merge-ready, verify its exact head SHA after synchronization and confirm that the reviewed/tested head is the one being merged.
+
 ## GitHub connector operating procedure
 
 For repository work performed through a GitHub connector or API-backed tool, use the following sequence by default:
