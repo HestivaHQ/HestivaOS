@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 1 adds the shared Dashboard Needs Attention persistence and API/UI foundation through additive migration `20260818190000_needs_attention_foundation`. It creates attention lifecycle/activity enums and tables, ownership/seen/audit relationships, indexes, and the unique `condition_key` identity used to prevent duplicate live occurrences. It does not rewrite Work Orders, create historical attention rows during migration, send correspondence, add credentials, or change Cloudflare/Railway deployment authority.
+Phase 1 adds the shared Dashboard Needs Attention persistence and API/UI foundation through additive migration `20260818210000_needs_attention_foundation`. It creates attention lifecycle/activity enums and tables, ownership/seen/audit relationships, indexes, and the unique `condition_key` identity used to prevent duplicate live occurrences. It does not rewrite Work Orders, create historical attention rows during migration, send correspondence, add credentials, or change Cloudflare/Railway deployment authority.
 
 ## Deployment order
 
