@@ -60,3 +60,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0050: Normalize provider payloads before persistence](ADR-0050-normalize-provider-payloads-before-persistence.md)
 - [ADR-0051: Keep persisted messaging history immutable](ADR-0051-immutable-messaging-history.md)
 - [ADR-0052: Messaging Quote lifecycle and human-review policy](ADR-0052-messaging-quote-lifecycle-and-human-review.md)
+- [ADR-0053: Dashboard Needs Attention foundation](ADR-0053-dashboard-needs-attention-foundation.md)
