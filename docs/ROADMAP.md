@@ -1,8 +1,15 @@
 # Technical roadmap
 
+## Dashboard Needs Attention Foundation v1 status (2026-08-18)
+
+- Implemented in Phase 1 / Issue #125: one persisted Dashboard Needs Attention lifecycle with deterministic priority, queue/owner eligibility, Mine / All, Seen distinct from resolution, automatic condition-driven resolution/reopen, activity history and Work Order deep links.
+- Initial producers are intentionally limited to authoritative current Work Order state: today's unassigned work, overdue unresolved work, and completed Technician jobs awaiting management acknowledgement.
+- The Dashboard hierarchy is now Needs Attention → Today's Work → Shortcuts → Upcoming. Existing transient Work Order counters remain compatibility data, not a competing exception-management system.
+- Still planned as separate focused work: snooze/delegation, active notification delivery, and future Finance/Correspondence/Access/Messaging producers only after their authoritative runtime conditions exist.
+
 ## Messaging Foundation v1 status (2026-08-18)
 
-- Implemented on PR #119 / `feat/messaging-foundation-v1`: provider-neutral WhatsApp/Messenger contracts, adapter boundary, deterministic provider-event idempotency, Quote-draft boundary, focused tests, and ADR-0048 through ADR-0052.
+- Implemented and merged through clean integration PR #124: provider-neutral WhatsApp/Messenger contracts, adapter boundary, deterministic provider-event idempotency, Quote-draft boundary, focused tests, and ADR-0048 through ADR-0052. Historical draft PR #119 was superseded during integration.
 - Foundation v1 deliberately adds no live Meta webhook, credential, API call, Prisma messaging model/migration, AI provider, customer-facing bot, pricing change, or Website integration change.
 - Approved persistence/privacy decisions now require normalized rather than raw provider payload persistence, immutable message history, inherited canonical Quote/retention rules, and explicit human-review handling; durable messaging persistence remains the next implementation slice.
 - The future Quote bridge must reuse/extract an internal HestivaOS Quote application boundary and must not impersonate the Website integration or reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`.
@@ -47,7 +54,8 @@ Only currently identified technical follow-up work is listed here.
 - Employee Records (Slice 5), User Access Management (Slice 3), and Business Profile (Slice 4) are complete. Deliver the Supervisor experience and broader Employee Record management permissions as focused follow-ups; Future management Business Profile view/share groups and reuse by quotations, invoices, emails, and generated documents remain planned follow-ups.
 - Design persistent administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow; current access changes are application-enforced and identifier-only server logged.
 - Design a verified Supabase Auth email-change and confirmation UX; My Profile keeps authenticated email read-only until that flow is approved.
-- Add functional Worker Issue and Job Exception models before presenting those approved alert categories; do not fabricate dashboard records.
+- Add functional Worker Issue and Job Exception models before presenting those approved future attention producers; do not fabricate records.
+- Extend the merged Needs Attention foundation only with authoritative producer contracts. Snooze/delegation and active notification delivery remain separate focused follow-ups.
 - Product Slice 5H completed the additive `WorkOrder` to canonical `Service` relationship, automatic permanent references, structured display labels, and legacy-title fallback. Searchable selector enhancements beyond reference/title/customer/property/service matching remain planned under controlled-input Phase 3.
 - Create the Management navigation gateway and direct-create Work Orders route state, then connect the currently non-destructive Management shortcut and `/work-orders` creation shortcut without brittle query parameters.
 - Perform a separately scoped repository-wide Maintenance Marshall legacy cleanup while retaining required historical compatibility.
@@ -102,7 +110,7 @@ Only currently identified technical follow-up work is listed here.
 ## Slice 5N Work Order assignment status (2026-08-17)
 
 - Completed: normalized zero/one/many Work Order Technician assignments, duplicate prevention, ADMIN mutation, active Technician/Employee eligibility, assignment audit, unassigned visibility, and active-Crew prepopulation with job-specific snapshot edits.
-- Still planned separately: recurring staffing templates, dispatch optimization, and dashboard notification/escalation beyond the existing unassigned counters and filters.
+- Completed in Phase 1 on 2026-08-18: durable Dashboard Needs Attention handling for current authoritative unassigned/overdue/completion-review conditions. Recurring staffing templates, dispatch optimization, snooze/delegation and active notification delivery remain separate work.
 - **2026-08-17 completed:** Canonical Crew Leader and Work Order Job Leader foundations, single-Technician defaults, assignment snapshots, Admin-only management, simplified Crew/assignment presentation, and safe single-assignment migration backfill.
 - Historical Cleaner Job Execution planning for Start Job and Job Leader authority has been superseded by the merged Homent Technician B1 and B2/C work recorded below; remaining execution work is listed as focused slices rather than reopening that earlier plan.
 
@@ -111,7 +119,7 @@ Only currently identified technical follow-up work is listed here.
 - **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
 - **Completed 2026-08-17 — B2/C frozen scope + compressed checklist:** versioned Service Scope Templates, immutable Work Order Execution Scope revisions, section-level checklist/outcomes, structured Not Completed reasons, Job Leader exception-first Review Job, evidence-policy foundations, and offline checklist operations/reconciliation.
 - **Completed 2026-08-17 — D offline evidence + photo pipeline:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. The legacy generic BEFORE/AFTER photo flow remains separate.
-- **Deferred after D:** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, offline completion, authoritative Complete Job/customer completion correspondence, Homent Supervisor, and approved private evidence-read/privacy hardening.
+- **Deferred after D:** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, customer completion delivery/correspondence, richer Homent Supervisor workflows, Technician correction/reopen, and approved private evidence-read/privacy hardening.
 
 ## Homent Technician next focused slices (verified current, 2026-08-17)
 
@@ -123,7 +131,7 @@ Only currently identified technical follow-up work is listed here.
 
 ## Cross-system messaging coordination (2026-08-17)
 
-- WhatsApp + Facebook Messenger customer-messaging work is active in a dedicated development chat. No HestivaOS messaging implementation is assumed merely because coordination has started.
+- WhatsApp + Facebook Messenger customer-messaging work is active in a dedicated development chat. Messaging Foundation v1 is now merged; live provider traffic and durable messaging persistence remain later focused work.
 - `docs/CROSS_SYSTEM_COORDINATION.md` is the routing map for cross-system work. Website ↔ HestivaOS Slice 5M remains coordinated through Issue #73; WhatsApp/Messenger ↔ HestivaOS messaging is coordinated through Issue #116.
 - Messaging implementation should reuse canonical HestivaOS Customer, Property, Quote, pricing, Work Order, recurring-service and idempotency boundaries rather than introducing an independent operational source of truth.
 - Material messaging contract decisions, blockers and PR links must be posted to Issue #116 and then encoded permanently in repository docs/ADRs when implemented.
