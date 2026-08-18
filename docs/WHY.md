@@ -88,3 +88,9 @@ A Quote explains a commercial agreement; it is not a stable, low-friction cleani
 ## Why field evidence is local-first but server-acknowledged
 
 Durable local capture lets the crew continue without making radio coverage a completion dependency, while retaining the Blob until backend acknowledgement prevents an object-storage success or lost HTTP response from becoming silent evidence loss. Stable UUIDs and deterministic paths make both upload and metadata retries convergent. Keeping Execution Evidence separate from generic BEFORE/AFTER photos preserves the frozen checklist's exact section meaning. See ADR-0046.
+
+## Why messaging starts provider-neutral and contract-first
+
+WhatsApp and Messenger are customer interfaces, not independent operational systems. Normalizing provider events before business processing lets one Homent conversation layer serve both channels while HestivaOS keeps Customer, Quote, pricing, booking, payment, and job authority. Provider-scoped identity is therefore kept separate from canonical Customer identity, and provider adapters are limited to authenticity, normalization, and transport rather than business decisions.
+
+Foundation v1 deliberately stops before durable conversation tables. Message retention, raw-payload storage, PII/redaction, media ownership, cross-channel identity linking, and conversation-state concurrency are privacy and operational contracts that should be approved before schema makes them permanent. The Website Quote endpoint also remains website-specific: messaging will later use a shared/internal Quote application boundary rather than impersonating `HESTIVA_WEBSITE` or reusing its credential. See ADR-0047.
