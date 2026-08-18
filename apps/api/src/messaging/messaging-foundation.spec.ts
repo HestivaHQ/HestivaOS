@@ -5,6 +5,10 @@ import {
 } from './messaging-contract';
 import { buildMessagingProviderEventKey } from './messaging-idempotency';
 import type { MessagingProviderAdapter } from './messaging-provider-adapter';
+import {
+  MESSAGING_QUOTE_REQUIRED_FACT_GROUPS,
+  MESSAGING_QUOTE_SECTIONS,
+} from './messaging-quote-draft';
 
 describe('Messaging Foundation v1', () => {
   it('builds stable provider-event keys without customer identity material', () => {
@@ -38,6 +42,30 @@ describe('Messaging Foundation v1', () => {
         providerEventId: '   ',
       }),
     ).toThrow('providerEventId must be non-empty');
+  });
+
+  it('reuses the live Website quote questionnaire shape instead of inventing a messaging flow', () => {
+    expect(MESSAGING_QUOTE_SECTIONS).toEqual([
+      'YOUR_HOME',
+      'CLEANING_REQUIREMENTS',
+      'PERSONALISE_SERVICE',
+      'PREFERRED_VISIT',
+      'ACCESS_AND_HOUSEHOLD',
+      'PHOTOS_AND_NOTES',
+      'YOUR_DETAILS',
+      'REVIEW',
+    ]);
+    expect(MESSAGING_QUOTE_REQUIRED_FACT_GROUPS).toEqual([
+      'property',
+      'request',
+      'visit',
+      'access',
+      'household',
+      'safety',
+      'notes',
+      'customer',
+      'photos',
+    ]);
   });
 
   it('keeps provider adapters on normalized messaging concerns only', async () => {
