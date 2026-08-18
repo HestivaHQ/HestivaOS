@@ -20,6 +20,7 @@ test('local interruption locks the attempted visit instead of reopening it',()=>
 
 test('management routing is controlled and preserves Finance and replacement boundaries',()=>{
   for(const value of ['REPLACEMENT_VISIT','FOLLOW_UP','PARTIAL_COMPLETION_REVIEW','FINANCIAL_REVIEW','CLOSE'])assert.match(management,new RegExp(value));
-  assert.match(management,/Phase 2D will create the linked replacement visit/);
+  assert.match(management,/Create replacement visit/);
+  assert.match(management,/A new unassigned Work Order will be created/);
   assert.match(management,/does not create or change any charge, payment, credit or refund/);
 });

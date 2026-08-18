@@ -1,12 +1,16 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { User, UserRole } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
 import { RouteInterruptionInput, WorkOrderInterruptionService } from './work-order-interruption.service';
+import { CreateReplacementVisitInput, WorkOrderReplacementVisitService } from './work-order-replacement-visit.service';
 
 @Controller('work-orders')
 export class WorkOrderInterruptionsController {
-  constructor(private readonly interruptions: WorkOrderInterruptionService) {}
+  constructor(
+    private readonly interruptions: WorkOrderInterruptionService,
+    private readonly replacements: WorkOrderReplacementVisitService,
+  ) {}
 
   @Get(':id/interruption')
   @Roles(UserRole.ADMIN, UserRole.OPERATIONS_MANAGER, UserRole.SUPERVISOR)
@@ -16,11 +20,28 @@ export class WorkOrderInterruptionsController {
 
   @Post(':id/interruption/route')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
-  route(
+  async route(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: RouteInterruptionInput,
     @CurrentUser() actor: User,
   ) {
+    if (await this.replacements.detail(id)) throw new ConflictException('This interruption already has an authoritative replacement Work Order and can no longer be rerouted.');
     return this.interruptions.route(id, input, actor.id);
+  }
+
+  @Get(':id/interruption/replacement')
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS_MANAGER, UserRole.SUPERVISOR)
+  replacement(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.replacements.detail(id);
+  }
+
+  @Post(':id/interruption/replacement')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  createReplacement(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: CreateReplacementVisitInput,
+    @CurrentUser() actor: User,
+  ) {
+    return this.replacements.create(id, input, actor.id);
   }
 }
