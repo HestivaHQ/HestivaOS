@@ -1160,3 +1160,82 @@ model QuoteDailyCounter {
 
   @@map("quote_daily_counters")
 }
+
+enum AttentionItemType {
+  TODAY_UNASSIGNED_WORK_ORDER
+  OVERDUE_WORK_ORDER
+  COMPLETION_ACKNOWLEDGEMENT_REQUIRED
+}
+
+enum AttentionPriority {
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum AttentionQueue {
+  OPERATIONS
+  MANAGEMENT_REVIEW
+}
+
+enum AttentionState {
+  OPEN
+  RESOLVED
+}
+
+enum AttentionActivityType {
+  OPENED
+  REOPENED
+  SEEN
+  ASSIGNED
+  REASSIGNED
+  AUTO_RESOLVED
+}
+
+model AttentionItem {
+  id String @id @default(uuid()) @db.Uuid
+  conditionKey String @unique @map("condition_key")
+  type AttentionItemType
+  priority AttentionPriority
+  queue AttentionQueue
+  state AttentionState @default(OPEN)
+  subjectType String @map("subject_type")
+  subjectId String @map("subject_id") @db.Uuid
+  subjectReference String? @map("subject_reference")
+  customerLabel String? @map("customer_label")
+  title String
+  summary String
+  actionLabel String @map("action_label")
+  actionHref String @map("action_href")
+  dueAt DateTime? @map("due_at")
+  ownerId String? @map("owner_id") @db.Uuid
+  seenAt DateTime? @map("seen_at")
+  seenById String? @map("seen_by_id") @db.Uuid
+  openedAt DateTime @map("opened_at")
+  lastObservedAt DateTime @map("last_observed_at")
+  resolvedAt DateTime? @map("resolved_at")
+  occurrenceCount Int @default(1) @map("occurrence_count")
+  activities AttentionItemActivity[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([state, priority, dueAt])
+  @@index([ownerId, state])
+  @@index([queue, state])
+  @@index([subjectType, subjectId, state])
+  @@map("attention_items")
+}
+
+model AttentionItemActivity {
+  id String @id @default(uuid()) @db.Uuid
+  attentionItemId String @map("attention_item_id") @db.Uuid
+  type AttentionActivityType
+  actorId String? @map("actor_id") @db.Uuid
+  metadata Json?
+  attentionItem AttentionItem @relation(fields: [attentionItemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([attentionItemId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("attention_item_activities")
+}
