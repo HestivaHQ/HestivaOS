@@ -17,11 +17,11 @@ Never treat an old coordination comment or historical plan as more authoritative
 
 ## Active coordination routes
 
-### Website ↔ HestivaOS quote/booking integration
+### Website ↔ HestivaOS quote/enquiry/booking integration
 
 - Coordination issue: `HestivaHQ/HestivaOS#73` — **Slice 5M — Website ↔ HestivaOS Integration Contract**.
-- Scope: structured Website quote transport, quote/reference identity, accepted-quote handoff, shared field/enumeration contracts, retry/idempotency, Website/HestivaOS integration security and related cross-repository behavior.
-- New chats working on this integration must read Issue #73 plus the current Website Quote contract/ADR and current merged source before changing a shared contract.
+- Scope: structured Website quote transport, quote/reference identity, Website contact-enquiry ingestion and `ENQ` reference authority, accepted-quote handoff, shared field/enumeration contracts, retry/idempotency, Website/HestivaOS integration security and related cross-repository behavior.
+- New chats working on this integration must read Issue #73 plus the current Website Quote contract/ADR, `docs/WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` when enquiry work is involved, and current merged source before changing a shared contract.
 - Do not place unrelated WhatsApp/Messenger messaging work in Issue #73.
 
 ### WhatsApp + Facebook Messenger ↔ HestivaOS messaging integration
