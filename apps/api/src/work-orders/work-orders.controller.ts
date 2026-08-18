@@ -3,6 +3,7 @@ import { User, UserRole, WorkOrderPriority, WorkOrderStatus } from '@prisma/clie
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
 import { MaterialChangeCommitInput, MaterialChangePreviewInput, WorkOrderMaterialChangeService } from './work-order-material-change.service';
+import { ResolveScopeMismatchInput, WorkOrderScopeMismatchService } from './work-order-scope-mismatch.service';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
@@ -10,13 +11,12 @@ export class WorkOrdersController {
   constructor(
     private readonly workOrders: WorkOrdersService,
     private readonly materialChanges: WorkOrderMaterialChangeService,
+    private readonly scopeMismatches: WorkOrderScopeMismatchService,
   ) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
-  create(@Body() input: CreateWorkOrderInput) {
-    return this.workOrders.create(input);
-  }
+  create(@Body() input: CreateWorkOrderInput) { return this.workOrders.create(input); }
 
   @Get()
   findAll(
@@ -30,9 +30,7 @@ export class WorkOrdersController {
     @Query('technicianId', new ParseUUIDPipe({ optional: true })) technicianId?: string,
     @Query('crewId', new ParseUUIDPipe({ optional: true })) crewId?: string,
     @Query('alert') alert?: WorkOrderAlert,
-  ) {
-    return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId, crewId, alert);
-  }
+  ) { return this.workOrders.findAll(page, pageSize, search, status, priority, customerId, propertyId, technicianId, crewId, alert); }
 
   @Get(':id/timeline')
   findTimeline(@Param('id', new ParseUUIDPipe()) id: string) { return this.workOrders.findTimeline(id); }
@@ -43,30 +41,36 @@ export class WorkOrdersController {
     return this.workOrders.acknowledgeCompletion(id, actor.id);
   }
 
+  @Get(':id/scope-mismatches')
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS_MANAGER, UserRole.SUPERVISOR)
+  listScopeMismatches(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.scopeMismatches.list(id);
+  }
+
+  @Post(':id/scope-mismatches/:eventId/resolve')
+  @Roles(UserRole.ADMIN)
+  resolveScopeMismatch(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Body() input: ResolveScopeMismatchInput,
+    @CurrentUser() actor: User,
+  ) { return this.scopeMismatches.resolve(id, eventId, input, actor.id); }
+
   @Post(':id/material-change/preview')
   @Roles(UserRole.ADMIN)
-  previewMaterialChange(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() input: MaterialChangePreviewInput,
-  ) {
+  previewMaterialChange(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: MaterialChangePreviewInput) {
     return this.materialChanges.preview(id, input);
   }
 
   @Post(':id/material-change')
   @Roles(UserRole.ADMIN)
-  commitMaterialChange(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() input: MaterialChangeCommitInput,
-    @CurrentUser() actor: User,
-  ) {
+  commitMaterialChange(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: MaterialChangeCommitInput, @CurrentUser() actor: User) {
     return this.materialChanges.commit(id, input, actor.id);
   }
 
   @Get(':id/material-changes')
   @Roles(UserRole.ADMIN, UserRole.OPERATIONS_MANAGER, UserRole.DISPATCHER, UserRole.SUPERVISOR)
-  listMaterialChanges(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.materialChanges.list(id);
-  }
+  listMaterialChanges(@Param('id', new ParseUUIDPipe()) id: string) { return this.materialChanges.list(id); }
 
   @Patch(':id/status')
   async changeStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ChangeWorkOrderStatusInput) {
@@ -80,9 +84,7 @@ export class WorkOrdersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: { technicianIds: string[]; crewId?: string | null; jobLeaderId?: string | null },
     @CurrentUser() actor: User,
-  ) {
-    return this.workOrders.assignTechnicians(id, input.technicianIds ?? [], input.crewId, input.jobLeaderId, actor.id);
-  }
+  ) { return this.workOrders.assignTechnicians(id, input.technicianIds ?? [], input.crewId, input.jobLeaderId, actor.id); }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
@@ -92,12 +94,8 @@ export class WorkOrdersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.workOrders.findOne(id);
-  }
+  findOne(@Param('id', new ParseUUIDPipe()) id: string) { return this.workOrders.findOne(id); }
 
   @Delete(':id')
-  remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.workOrders.remove(id);
-  }
+  remove(@Param('id', new ParseUUIDPipe()) id: string) { return this.workOrders.remove(id); }
 }
