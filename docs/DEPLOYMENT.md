@@ -214,3 +214,7 @@ Deploy additive migration `20260817220000_offline_execution_evidence` before the
 ## 2026-08-18 Homent Technician completion migration
 
 Deploy additive migration `20260818120000_homent_technician_completion` before the matching API and web release. It adds completion/audit/acknowledgement columns, two activity values, indexes and foreign keys; it neither changes existing Work Order statuses nor sends correspondence. Generate Prisma Client and verify one ready `ON_SITE` scoped job can reconcile to `COMPLETED`, remains awaiting acknowledgement, and becomes correspondence-eligible only after an ADMIN or SUPERVISOR acknowledgement. IndexedDB upgrades from v3 to v4 without deleting the existing jobs, operations or evidence stores.
+
+## Phase 3A access-readiness deployment
+
+Apply `20260818230000_work_order_access_readiness` through the standard Prisma deploy step before serving the corresponding API. It additively creates the readiness enum/current-state column, attention/activity enum members, and append-only readiness-event table. Existing Work Orders default to `NOT_REQUIRED`; no environment variable or credential-store configuration changes. Verify Prisma migration state, an authorized ADMIN/SUPERVISOR state change and history read, and Needs Attention open/self-resolution without inspecting or logging credential data.

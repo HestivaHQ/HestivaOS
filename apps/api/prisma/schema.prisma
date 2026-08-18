@@ -70,6 +70,15 @@ enum WorkOrderStatus {
   CANCELLED
 }
 
+enum WorkOrderAccessReadiness {
+  REQUIRED_MISSING
+  RECEIVED
+  NEEDS_REVIEW
+  EXPIRED
+  ARRANGED_ANOTHER_WAY
+  NOT_REQUIRED
+}
+
 enum WorkOrderActivityType {
   WORK_ORDER_CREATED
   STATUS_CHANGED
@@ -87,6 +96,7 @@ enum WorkOrderActivityType {
   JOB_COMPLETION_ACKNOWLEDGED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
+  ACCESS_READINESS_CHANGED
 }
 
 enum ServiceScopeTemplateVersionStatus {
@@ -252,6 +262,7 @@ model User {
   customers Customer[] @relation("CustomerOwner")
   workOrders WorkOrder[] @relation("WorkOrderCreator")
   workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")
+  workOrderAccessReadinessEvents WorkOrderAccessReadinessEvent[] @relation("WorkOrderAccessReadinessActor")
   acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -680,6 +691,7 @@ model WorkOrder {
   keyHandover KeyHandoverMethod? @map("key_handover")
   keyHandoverDetails String? @map("key_handover_details")
   someonePresent Boolean? @map("someone_present")
+  accessReadiness WorkOrderAccessReadiness @default(NOT_REQUIRED) @map("access_readiness")
   ecoFriendlyProducts Boolean? @map("eco_friendly_products")
   customerDeclaredExistingDamage String? @map("customer_declared_existing_damage")
   startedAt DateTime? @map("started_at")
@@ -713,6 +725,7 @@ model WorkOrder {
   photos WorkOrderPhoto[]
   quoteEvidence WorkOrderQuoteEvidence[]
   temporaryAccessCredentials WorkOrderTemporaryAccessCredential[]
+  accessReadinessHistory WorkOrderAccessReadinessEvent[]
   customerSignOff WorkOrderCustomerSignOff?
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
@@ -735,6 +748,21 @@ model WorkOrder {
   @@index([status])
   @@index([scheduledAt])
   @@map("work_orders")
+}
+
+model WorkOrderAccessReadinessEvent {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  previousState WorkOrderAccessReadiness @map("previous_state")
+  newState WorkOrderAccessReadiness @map("new_state")
+  actorId String @map("actor_id") @db.Uuid
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  actor User @relation("WorkOrderAccessReadinessActor", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([workOrderId, createdAt])
+  @@index([actorId])
+  @@map("work_order_access_readiness_events")
 }
 
 model WorkOrderExecutionScopeRevision {
@@ -1166,6 +1194,7 @@ enum AttentionItemType {
   TODAY_UNASSIGNED_WORK_ORDER
   OVERDUE_WORK_ORDER
   COMPLETION_ACKNOWLEDGEMENT_REQUIRED
+  WORK_ORDER_ACCESS_REQUIRED
   INTERRUPTED_VISIT_REVIEW_REQUIRED
 }
 

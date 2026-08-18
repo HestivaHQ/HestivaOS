@@ -752,3 +752,16 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added Job Leader-only offline completion with durable UUID operations, readiness blockers, read-only local completion, retry and retained conflict states.
 - Added authoritative idempotent completion that rechecks the frozen scope and accepts locally captured evidence while upload remains pending before moving the Work Order to `COMPLETED`.
 - Added audited ADMIN/SUPERVISOR acknowledgement and correspondence eligibility without sending any customer message; removed the legacy competing Complete job status action.
+
+## 2026-08-18 — Phase 3A Access Readiness Foundation
+
+### Added
+
+- Added six controlled visit-specific Work Order readiness states, append-only transition history, and ADMIN/SUPERVISOR management controls.
+- Added a deterministic, self-resolving `WORK_ORDER_ACCESS_REQUIRED` Needs Attention condition for missing, review-required, or expired access.
+- Added focused API/UI tests and deployment/recovery/architecture documentation with ADR-0058.
+
+### Preserved and deferred
+
+- Work Order lifecycle, scheduling, assignment, dispatch, execution, completion, cancellation, customer correspondence, and Finance are unchanged.
+- Temporary credentials are not selected, exposed, copied, stored, or broadened. Protected credential review, appointment-relative escalation, and messaging recovery remain Phase 3B–3D.

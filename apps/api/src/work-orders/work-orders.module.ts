@@ -7,10 +7,11 @@ import { WorkOrderReplacementVisitService } from './work-order-replacement-visit
 import { WorkOrderScopeMismatchService } from './work-order-scope-mismatch.service';
 import { WorkOrdersController } from './work-orders.controller';
 import { WorkOrdersService } from './work-orders.service';
+import { WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
 
 @Module({
   controllers: [WorkOrdersController, WorkOrderInterruptionsController],
-  providers: [WorkOrdersService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, PrismaService],
+  providers: [WorkOrdersService, WorkOrderAccessReadinessService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, PrismaService],
   exports: [WorkOrderInterruptionService, WorkOrderReplacementVisitService],
 })
 export class WorkOrdersModule {}

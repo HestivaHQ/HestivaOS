@@ -15,6 +15,7 @@ import {
   UserRole,
   UserStatus,
   WorkOrderStatus,
+  WorkOrderAccessReadiness,
 } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { getJohannesburgDayBoundaries } from '../dashboard/dashboard.service';
@@ -37,6 +38,7 @@ const MANAGED_ATTENTION_TYPES: AttentionItemType[] = [
   AttentionItemType.TODAY_UNASSIGNED_WORK_ORDER,
   AttentionItemType.OVERDUE_WORK_ORDER,
   AttentionItemType.COMPLETION_ACKNOWLEDGEMENT_REQUIRED,
+  AttentionItemType.WORK_ORDER_ACCESS_REQUIRED,
 ];
 
 const ATTENTION_ROLES: UserRole[] = [
@@ -55,6 +57,7 @@ const workOrderAttentionSelect = {
   title: true,
   scheduledAt: true,
   completionAcceptedAt: true,
+  accessReadiness: true,
   customer: { select: { name: true, contactName: true } },
   service: { select: { name: true } },
 } satisfies Prisma.WorkOrderSelect;
@@ -133,6 +136,19 @@ function candidateFor(
     };
   }
 
+  if (type === AttentionItemType.WORK_ORDER_ACCESS_REQUIRED) {
+    return {
+      ...base,
+      conditionKey: `work-order:${workOrder.id}:access-required`,
+      type,
+      priority: AttentionPriority.HIGH,
+      queue: AttentionQueue.OPERATIONS,
+      title: 'Work Order access is unresolved',
+      summary: `${reference} · ${service} for ${customer} requires access readiness action.`,
+      dueAt: workOrder.scheduledAt,
+    };
+  }
+
   return {
     ...base,
     conditionKey: `work-order:${workOrder.id}:completion-acknowledgement`,
@@ -199,6 +215,14 @@ export class AttentionService {
       select: workOrderAttentionSelect,
     });
 
+    const unresolvedAccess = await tx.workOrder.findMany({
+      where: {
+        status: { in: UNRESOLVED_WORK_ORDER_STATUSES },
+        accessReadiness: { in: [WorkOrderAccessReadiness.REQUIRED_MISSING, WorkOrderAccessReadiness.NEEDS_REVIEW, WorkOrderAccessReadiness.EXPIRED] },
+      },
+      select: workOrderAttentionSelect,
+    });
+
     return [
       ...todayUnassigned.map((item) =>
         candidateFor(item, AttentionItemType.TODAY_UNASSIGNED_WORK_ORDER),
@@ -209,6 +233,7 @@ export class AttentionService {
       ...completionAcknowledgements.map((item) =>
         candidateFor(item, AttentionItemType.COMPLETION_ACKNOWLEDGEMENT_REQUIRED),
       ),
+      ...unresolvedAccess.map((item) => candidateFor(item, AttentionItemType.WORK_ORDER_ACCESS_REQUIRED)),
     ];
   }
 
