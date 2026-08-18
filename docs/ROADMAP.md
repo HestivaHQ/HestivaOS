@@ -103,15 +103,16 @@ Only currently identified technical follow-up work is listed here.
 
 - **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
 - **Completed 2026-08-17 — B2/C frozen scope + compressed checklist:** versioned Service Scope Templates, immutable Work Order Execution Scope revisions, section-level checklist/outcomes, structured Not Completed reasons, Job Leader exception-first Review Job, evidence-policy foundations, and offline checklist operations/reconciliation.
-- **Deferred after B2/C:** protected credential retrieval, proactive critical-change push delivery, full evidence/photo transport, dedicated incident/damage/scope-mismatch resolution, offline completion, authoritative Complete Job/customer completion correspondence, and Homent Supervisor.
+- **Completed 2026-08-17 — D offline evidence + photo pipeline:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. The legacy generic BEFORE/AFTER photo flow remains separate.
+- **Deferred after D:** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, offline completion, authoritative Complete Job/customer completion correspondence, Homent Supervisor, and approved private evidence-read/privacy hardening.
 
 ## Homent Technician next focused slices (verified current, 2026-08-17)
 
-- Implement local-first Technician evidence capture/compression, durable IndexedDB Blob persistence, acknowledged upload/retry transport, and B2/C REQUIRED/ON_EXCEPTION integration while retaining the device copy until authoritative server acknowledgement.
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
-- Add authoritative Complete Job and customer completion correspondence after evidence transport and Review Job readiness policy are complete.
+- Add authoritative Complete Job and customer completion correspondence now that evidence transport and Review Job readiness foundations exist.
 - Add secure role-filtered temporary-credential retrieval and proactive critical-change notifications as focused security/communication slices.
 - Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records already exist.
+- Plan a separate approved private evidence-read/privacy-hardening migration for execution evidence and the legacy Work Order photo bucket; do not broaden public exposure in the meantime.
 
 ## Cross-system messaging coordination (2026-08-17)
 

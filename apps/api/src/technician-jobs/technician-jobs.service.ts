@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
 export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
 export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
+export type EvidenceAcknowledgementInput={scopeRevisionId:string;purpose:'REQUIRED_SECTION_EVIDENCE'|'EXCEPTION_EVIDENCE';capturedAt:string;storagePath:string};
 const PRE_START: WorkOrderStatus[] = [WorkOrderStatus.ASSIGNED, WorkOrderStatus.ACCEPTED, WorkOrderStatus.TRAVELLING];
 const DAY = 86_400_000;
 
@@ -108,16 +109,31 @@ export class TechnicianJobsService {
       const evidenceRequired=section.evidencePolicy==='REQUIRED'||(section.evidencePolicy==='ON_EXCEPTION'&&input.outcome==='NOT_COMPLETED');
       if(evidenceRequired&&!input.evidence?.length)throw new BadRequestException('Required photo missing. Save evidence on this device first.');
       const attention=input.reason==='SAFETY_CONCERN'?'SAFETY_CRITICAL_STOP':input.outcome==='NOT_COMPLETED'?'JOB_LEADER_ATTENTION':'INFORMATIONAL';
-      const event=await tx.executionSectionOutcomeEvent.create({data:{operationId:input.operationId,sectionId,technicianId,outcome:input.outcome,reason:input.reason,note:input.note?.trim(),attentionLevel:attention,fieldRecordedAt,expectedSectionVersion:input.expectedSectionVersion,evidence:input.evidence?.length?{create:input.evidence.map(e=>({localEvidenceId:e.localEvidenceId,sectionId,capturedAt:new Date(e.capturedAt),syncState:e.syncState??'CAPTURED_LOCAL'}))}:undefined}});
+      const event=await tx.executionSectionOutcomeEvent.create({data:{operationId:input.operationId,sectionId,technicianId,outcome:input.outcome,reason:input.reason,note:input.note?.trim(),attentionLevel:attention,fieldRecordedAt,expectedSectionVersion:input.expectedSectionVersion}});
+      for(const evidence of input.evidence??[]) await tx.executionSectionEvidence.upsert({where:{localEvidenceId:evidence.localEvidenceId},create:{localEvidenceId:evidence.localEvidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.outcome==='NOT_COMPLETED'?'EXCEPTION_EVIDENCE':'REQUIRED_SECTION_EVIDENCE',capturedAt:new Date(evidence.capturedAt),syncState:evidence.syncState??'CAPTURED_LOCAL',outcomeEventId:event.id},update:{outcomeEventId:event.id}});
       const changed=await tx.workOrderExecutionSection.updateMany({where:{id:sectionId,currentVersion:input.expectedSectionVersion},data:{currentOutcome:input.outcome,currentOutcomeEventId:event.id,currentVersion:{increment:1}}}); if(changed.count!==1)throw new ConflictException('This section changed while your update was saved.');
       await tx.workOrderActivity.create({data:{workOrderId,type:'SECTION_OUTCOME_RECORDED',actorId:userId,note:`Section ${section.stableKey} recorded as ${input.outcome}.`}}); return event;
     },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   }
 
+  async acknowledgeEvidence(userId:string,workOrderId:string,sectionId:string,evidenceId:string,input:EvidenceAcknowledgementInput){
+    const technicianId=await this.technicianFor(userId);const capturedAt=new Date(input.capturedAt);if(!Number.isFinite(capturedAt.getTime()))throw new BadRequestException('A valid capture timestamp is required.');
+    const expectedPath=`${workOrderId}/${input.scopeRevisionId}/${sectionId}/${evidenceId}.webp`;if(input.storagePath!==expectedPath)throw new BadRequestException('Evidence storage path does not match its stable identity.');
+    return this.prisma.$transaction(async tx=>{
+      const section=await tx.workOrderExecutionSection.findFirst({where:{
+        id:sectionId,
+        scopeRevisionId:input.scopeRevisionId,
+        scopeRevision:{workOrderId,workOrder:{assignedTechnicians:{some:{technicianId}},startedScopeRevisionId:input.scopeRevisionId}},
+      }});if(!section)throw new NotFoundException('Assigned active checklist section was not found.');
+      const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?existing:tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})}
+      return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})
+    });
+  }
+
   async review(userId:string,id:string){ const technicianId=await this.technicianFor(userId); const job=await this.prisma.workOrder.findFirst({where:{id,jobLeaderId:technicianId,assignedTechnicians:{some:{technicianId}}},select:{startedScopeRevision:{select:{id:true,sections:{orderBy:{sortOrder:'asc'},include:{currentOutcomeEvent:true,evidence:true}}}}}}); if(!job)throw new ForbiddenException('Only the assigned Job Leader can review this job.'); const sections=job.startedScopeRevision?.sections??[]; const attention:any[]=[]; let syncPending=0; for(const s of sections){if(s.currentOutcome==='PENDING')attention.push({sectionId:s.id,title:s.title,code:'PENDING',message:'Outcome not recorded'}); if(s.currentOutcome==='NOT_COMPLETED'&&(!s.currentOutcomeEvent?.reason||!s.currentOutcomeEvent.note?.trim()))attention.push({sectionId:s.id,title:s.title,code:'INCOMPLETE_EXCEPTION',message:'Reason or note missing'}); const required=s.evidencePolicy==='REQUIRED'||(s.evidencePolicy==='ON_EXCEPTION'&&s.currentOutcome==='NOT_COMPLETED'); if(required&&!s.evidence.length)attention.push({sectionId:s.id,title:s.title,code:'MISSING_EVIDENCE',message:'Required evidence missing'}); syncPending+=s.evidence.filter(e=>e.syncState!=='SERVER_ACKNOWLEDGED').length; if(s.currentOutcomeEvent?.attentionLevel==='SAFETY_CRITICAL_STOP')attention.push({sectionId:s.id,title:s.title,code:'SAFETY_STOP',message:'Stop affected work; safety follow-up is required'}); if(s.currentOutcomeEvent?.reason==='SCOPE_OR_CONDITION_MISMATCH')attention.push({sectionId:s.id,title:s.title,code:'SCOPE_ISSUE',message:'Scope or condition mismatch needs attention'});} return{scopeRevisionId:job.startedScopeRevision?.id??null,accountedFor:sections.filter(s=>s.currentOutcome!=='PENDING').length,totalSections:sections.length,syncPending,attention,ready:sections.length>0&&!attention.length}; }
 
   private dto(job: any, technicianId: string) {
-    const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null; return { ...job, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
+    const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null; return { ...job, technicianId, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
       canStart: job.jobLeaderId === technicianId && !job.startedAt && PRE_START.includes(job.status),
       waitingForJobLeader: job.jobLeaderId !== technicianId && !job.startedAt && PRE_START.includes(job.status),
       cacheable: job.status !== WorkOrderStatus.CANCELLED,

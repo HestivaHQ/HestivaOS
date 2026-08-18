@@ -206,3 +206,7 @@ The existing web deployment serves `/technician`, `/technician/manifest.webmanif
 ## 2026-08-17 Execution Scope migration
 
 Deploy migration `20260817193000_homent_execution_scope` before the matching API. It adds only nullable Work Order binding and new normalized tables/enums; it does not fabricate scope for existing rows. After deployment, generate Prisma Client, validate the schema, and verify an old Work Order remains readable with no Execution Scope while a new Published-template revision can be created and bound at Start Job.
+
+## Homent Technician D deployment
+
+Deploy additive migration `20260817220000_offline_execution_evidence` before the matching API/web release. It extends the B2/C evidence table with UUID identity typing, Work Order/scope/Technician bindings, purpose, and storage path; existing B2/C placeholder rows derive these values from their section/outcome relationships. No new environment variable or storage provider is introduced: uploads reuse `NEXT_PUBLIC_SUPABASE_WORK_ORDER_PHOTOS_BUCKET`. Verify the bucket's existing authenticated upload policy accepts deterministic nested paths. This slice does not change legacy bucket privacy; do not expose a service-role key to the web application.

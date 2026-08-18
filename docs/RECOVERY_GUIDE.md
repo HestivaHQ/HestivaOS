@@ -275,3 +275,9 @@ The 20260817190000 migration is additive: existing rows retain null start fields
 ## Execution Scope and offline checklist recovery
 
 Do not repair a stale offline outcome by editing current section columns directly. Retain the queued operation and compare its operation ID, scope revision ID, section ID, expected section version, Technician, and field timestamp with append-only outcome history. Duplicate operation IDs are safe retries; conflicting versions require an explicit field refresh/correction. Never change `started_scope_revision_id` to a newer revision after commencement. Evidence may be removed locally only after authoritative `SERVER_ACKNOWLEDGED`; the full transport is currently deferred.
+
+## Offline Execution Evidence recovery
+
+For a photo showing **Upload pending** or **Upload retry pending**, keep the IndexedDB `evidence` row and Blob. Reconnect and retry with the same evidence UUID and deterministic `<work-order>/<scope-revision>/<section>/<evidence-id>.webp` path; do not mint a replacement identity merely because upload or acknowledgement returned an uncertain result. Object upload without backend acknowledgement is not complete. The idempotent acknowledgement endpoint returns the existing authoritative row after a lost response.
+
+If assignment or started-scope authority was removed, do not attach the Blob elsewhere or delete it: preserve it on the device and escalate for support/reconciliation. Quota errors mean capture was not saved and the checklist must remain unsatisfied. Housekeeping may clear only Blob bytes for `SERVER_ACKNOWLEDGED` rows, in bounded batches; metadata remains. Confirm the database row has the expected Work Order, revision, section, Technician, purpose, storage path, and acknowledgement timestamp before manual device cleanup.
