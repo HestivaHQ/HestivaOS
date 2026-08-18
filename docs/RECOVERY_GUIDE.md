@@ -285,3 +285,7 @@ If assignment or started-scope authority was removed, do not attach the Blob els
 ## Homent Technician completion recovery
 
 A device showing **Completed · Sync pending** owns a durable `COMPLETE_JOB` operation; do not reopen the checklist or mint a replacement UUID. Restore connectivity and retry the same operation after queued outcomes. Evidence uploads may continue independently. If the device shows **Completion needs review**, preserve its operation and evidence: assignment, leadership, scope, lifecycle or authoritative readiness changed and management must investigate. The server remains unchanged until acceptance and has no `COMPLETED_OFFLINE` status. Customer correspondence remains blocked until an ADMIN or SUPERVISOR acknowledgement stores its actor/time and eligibility timestamp; acknowledgement itself does not deliver a message.
+
+## Work Order access-readiness recovery
+
+If an access attention item is unexpectedly open, inspect the Work Order controlled readiness and operational status, then use the ADMIN/SUPERVISOR Work Order panel to record the truthful state. Reconciliation will resolve or reopen the stable attention condition and retain occurrence history. Correct mistakes with another readiness transition; never delete readiness events, edit lifecycle status merely to hide attention, or put temporary credentials in notes. Migration failure is handled by fixing the evidenced database condition and rolling the additive migration forward.

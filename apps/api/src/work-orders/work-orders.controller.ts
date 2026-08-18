@@ -5,6 +5,7 @@ import { Roles } from '../users/roles.decorator';
 import { MaterialChangeCommitInput, MaterialChangePreviewInput, WorkOrderMaterialChangeService } from './work-order-material-change.service';
 import { ResolveScopeMismatchInput, WorkOrderScopeMismatchService } from './work-order-scope-mismatch.service';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
+import { UpdateAccessReadinessInput, WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -12,7 +13,18 @@ export class WorkOrdersController {
     private readonly workOrders: WorkOrdersService,
     private readonly materialChanges: WorkOrderMaterialChangeService,
     private readonly scopeMismatches: WorkOrderScopeMismatchService,
+    private readonly accessReadiness: WorkOrderAccessReadinessService,
   ) {}
+
+  @Get(':id/access-readiness/history')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  accessReadinessHistory(@Param('id', new ParseUUIDPipe()) id: string) { return this.accessReadiness.history(id); }
+
+  @Patch(':id/access-readiness')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  updateAccessReadiness(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateAccessReadinessInput, @CurrentUser() actor: User) {
+    return this.accessReadiness.update(id, input, actor.id);
+  }
 
   @Post()
   @Roles(UserRole.ADMIN)

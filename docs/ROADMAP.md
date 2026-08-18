@@ -135,3 +135,8 @@ Only currently identified technical follow-up work is listed here.
 - `docs/CROSS_SYSTEM_COORDINATION.md` is the routing map for cross-system work. Website ↔ HestivaOS Slice 5M remains coordinated through Issue #73; WhatsApp/Messenger ↔ HestivaOS messaging is coordinated through Issue #116.
 - Messaging implementation should reuse canonical HestivaOS Customer, Property, Quote, pricing, Work Order, recurring-service and idempotency boundaries rather than introducing an independent operational source of truth.
 - Material messaging contract decisions, blockers and PR links must be posted to Issue #116 and then encoded permanently in repository docs/ADRs when implemented.
+
+## Phase 3 access readiness status (2026-08-18)
+
+- Phase 3A is implemented: controlled visit-specific Work Order access readiness, append-only transition history, ADMIN/SUPERVISOR management, and deterministic self-resolving Needs Attention integration.
+- Phase 3B protected credential storage/review, Phase 3C appointment-relative escalation, and Phase 3D WhatsApp/Messenger recovery remain planned separate packages. Finance, automatic correspondence, cancellation, dispatch override, and customer commitments are not part of Phase 3A.

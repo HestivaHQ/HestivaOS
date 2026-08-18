@@ -367,6 +367,11 @@ export type WorkOrderFrequency =
   | "EVERY_TWO_WEEKS"
   | "MONTHLY"
   | "CUSTOM";
+export type WorkOrderAccessReadiness = "REQUIRED_MISSING" | "RECEIVED" | "NEEDS_REVIEW" | "EXPIRED" | "ARRANGED_ANOTHER_WAY" | "NOT_REQUIRED";
+export type WorkOrderAccessReadinessEvent = {
+  id: string; previousState: WorkOrderAccessReadiness; newState: WorkOrderAccessReadiness; createdAt: string;
+  actor: { id: string; firstName: string; lastName: string; displayName: string | null };
+};
 export type HomeCondition =
   | "LIGHT_UPKEEP"
   | "STANDARD"
@@ -402,6 +407,7 @@ export type WorkOrder = {
   status: WorkOrderStatus;
   priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   scheduledAt: string | null;
+  accessReadiness: WorkOrderAccessReadiness;
   completedAt?: string | null;
   completionOperationId?: string | null;
   fieldCompletedAt?: string | null;
@@ -1083,6 +1089,8 @@ export const api = {
   workOrders: (query = "") =>
     apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
   workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
+  workOrderAccessReadinessHistory: (id: string) => apiFetch<WorkOrderAccessReadinessEvent[]>(`/work-orders/${id}/access-readiness/history`),
+  updateWorkOrderAccessReadiness: (id: string, state: WorkOrderAccessReadiness) => apiFetch<{id:string;accessReadiness:WorkOrderAccessReadiness}>(`/work-orders/${id}/access-readiness`, { method: "PATCH", ...json({ state }) }),
   createWorkOrder: (input: WorkOrderInput) =>
     apiFetch<WorkOrder>("/work-orders", { method: "POST", ...json(input) }),
   updateWorkOrder: (

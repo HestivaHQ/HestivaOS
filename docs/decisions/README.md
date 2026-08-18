@@ -65,3 +65,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0055: Scope mismatch and additional-work resolution](ADR-0055-scope-mismatch-additional-work-resolution.md)
 - [ADR-0056: Interrupted / unable-to-complete visits](ADR-0056-interrupted-unable-to-complete-visits.md)
 - [ADR-0057: Linked replacement visits preserve attempted-visit history](ADR-0057-linked-replacement-visits.md)
+- [ADR-0058: Separate Work Order access readiness from lifecycle and credentials](ADR-0058-work-order-access-readiness-foundation.md)

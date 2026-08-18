@@ -461,3 +461,10 @@ Implemented shared orientation-aware bounded WebP compression, IndexedDB v3 evid
 ## 2026-08-18 — Homent Technician E offline completion
 
 Implemented Job Leader-only durable `COMPLETE_JOB`, IndexedDB v4 reconciliation/conflict retention, local read-only completion UX, authoritative frozen-scope readiness and idempotent `COMPLETED` transition, plus audited ADMIN/SUPERVISOR acknowledgement and correspondence eligibility. Removed the legacy Work Order page's competing Complete action. No correspondence sender or Technician reopen workflow was added; WhatsApp/Messenger, richer Supervisor, incident/damage/scope resolution, push, and private evidence-read hardening remain deferred.
+
+## 2026-08-18 — Phase 3A Access Readiness Foundation
+
+- Added controlled Work Order visit readiness and append-only actor-attributed transition history without overloading or mutating Work Order lifecycle.
+- Added ADMIN/SUPERVISOR API and focused constrained UI with explicit no-secret guidance.
+- Added one deterministic High-priority Operations Needs Attention producer for missing/review/expired access, with existing automatic resolution/reopen semantics.
+- Added additive migration, backend/frontend regression coverage, deployment/recovery guidance, focused contract documentation, and ADR-0058. Phase 3B–3D, correspondence, Finance, automation, and credential access remain deferred.
