@@ -26,4 +26,4 @@ The Website Quote ingestion boundary remains website-specific. Messaging must no
 
 The approved next implementation slice is durable Conversation/Channel Identity/Message/Attribution/State/Quote Draft persistence with database-enforced provider-event idempotency, retention classification, safe Customer/Quote links and a human-review attention integration point. Live Meta webhooks, provider credentials, AI and customer-facing automation remain out of scope for this persistence slice.
 
-See `docs/MESSAGING_FOUNDATION_V1.md`, ADR-0047 through ADR-0051, and Issue #116.
+See `docs/MESSAGING_FOUNDATION_V1.md`, ADR-0048 through ADR-0052, and Issue #116.
