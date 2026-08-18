@@ -61,3 +61,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0051: Keep persisted messaging history immutable](ADR-0051-immutable-messaging-history.md)
 - [ADR-0052: Messaging Quote lifecycle and human-review policy](ADR-0052-messaging-quote-lifecycle-and-human-review.md)
 - [ADR-0053: Dashboard Needs Attention foundation](ADR-0053-dashboard-needs-attention-foundation.md)
+- [ADR-0054: Controlled Work Order material changes](ADR-0054-controlled-work-order-material-changes.md)
