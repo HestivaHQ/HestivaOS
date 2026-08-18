@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-18 — Dashboard Needs Attention Foundation v1
+
+### Added
+
+- Added durable `AttentionItem` / `AttentionItemActivity` persistence with stable condition identity, deterministic priority, permission-aware queues/owners, Mine / All, Seen state, audited reassignment, automatic resolution and reopen history.
+- Added the protected `/api/v1/attention` read/Seen/assignment boundary and a responsive Dashboard Needs Attention panel with direct Work Order resolution links.
+- Added authoritative initial producers for today-unassigned Work Orders, overdue unresolved Work Orders, and Technician-completed Work Orders awaiting management acknowledgement.
+- Changed the Dashboard hierarchy to Needs Attention → Today’s Work → Shortcuts → Upcoming while retaining the existing Dashboard response as compatibility/current-work context.
+
+### Preserved and deferred
+
+- No Finance, Correspondence, Access, Messaging-human-review, Worker Issue, or Job Exception attention records are fabricated without authoritative runtime state.
+- Snooze/delegation, active notification delivery, automated shift handover, and AI/opaque prioritization remain deferred.
+- No environment variable, hosting, deployment-authority, authentication-identity, pricing, Quote, Customer, Property, or Technician execution contract changed.
+
 ## 2026-08-18 — Provider-neutral Messaging Foundation v1
 
 ### Added
