@@ -1,5 +1,12 @@
 # Technical roadmap
 
+## Messaging Foundation v1 status (2026-08-18)
+
+- In progress on draft PR #119 / `feat/messaging-foundation-v1`: provider-neutral WhatsApp/Messenger contract, adapter boundary, provider-event idempotency primitive, focused tests, durable foundation documentation, and ADR-0047.
+- Foundation v1 deliberately adds no live Meta webhook, credential, API call, Prisma model/migration, AI provider, customer-facing bot, pricing change, or Website integration change.
+- Next approved design work: resolve message retention, raw-payload/PII/media storage, conversation-state concurrency, and canonical Customer/Quote link semantics in Issue #116; then add durable messaging persistence with database-enforced provider-event idempotency before the first live WhatsApp adapter.
+- The future Quote bridge must reuse/extract an internal HestivaOS Quote application boundary and must not impersonate the Website integration or reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`.
+
 ## Slice 5M accepted conversion status (2026-08-16)
 
 - Completed: atomic ADMIN acceptance of eligible ONE_TIME Quotes into one linked Work Order, including durable resolution consumption/materialization, exact accepted revision, quantity-bearing add-ons, audit, rollback, and retry/concurrency protections.
