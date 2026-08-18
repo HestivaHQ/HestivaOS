@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patc
 import { User, UserRole, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
-import { MaterialChangePreviewInput, WorkOrderMaterialChangeService } from './work-order-material-change.service';
+import { MaterialChangeCommitInput, MaterialChangePreviewInput, WorkOrderMaterialChangeService } from './work-order-material-change.service';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
@@ -50,6 +50,22 @@ export class WorkOrdersController {
     @Body() input: MaterialChangePreviewInput,
   ) {
     return this.materialChanges.preview(id, input);
+  }
+
+  @Post(':id/material-change')
+  @Roles(UserRole.ADMIN)
+  commitMaterialChange(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: MaterialChangeCommitInput,
+    @CurrentUser() actor: User,
+  ) {
+    return this.materialChanges.commit(id, input, actor.id);
+  }
+
+  @Get(':id/material-changes')
+  @Roles(UserRole.ADMIN, UserRole.OPERATIONS_MANAGER, UserRole.DISPATCHER, UserRole.SUPERVISOR)
+  listMaterialChanges(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.materialChanges.list(id);
   }
 
   @Patch(':id/status')
