@@ -1,4 +1,5 @@
 import { api } from './api';
+import { attentionOverview, type AttentionView } from './attention-api';
 import { createClient } from './supabase/server';
 import { redirect } from 'next/navigation';
 
@@ -22,5 +23,6 @@ export async function createAuthenticatedApi() {
     businessLists: (includeInactive = false) => api.businessLists(session.access_token, includeInactive),
     adminUsers: (search = '') => api.adminUsers(session.access_token, search),
     dashboard: () => api.dashboard(session.access_token),
+    attention: (view: AttentionView = 'mine') => attentionOverview(session.access_token, view),
   };
 }

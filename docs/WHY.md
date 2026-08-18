@@ -34,6 +34,12 @@ Only one controller should automatically deploy a given service. Multiple contro
 
 The launch Admin dashboard prioritizes today's operating decisions rather than historical analytics: schedule, actionable exceptions, current workflow state, and the next seven calendar days. This keeps the first product slice focused and makes unresolved conditions disappear when their underlying work orders change. Existing broader API fields are retained for compatibility instead of coupling presentation simplification to repository-wide backend deletion. Africa/Johannesburg calendar boundaries represent the business day consistently regardless of server location.
 
+## Why Needs Attention is persisted but condition-driven
+
+A transient counter can tell an operator that something is wrong, but it cannot safely answer who owns the problem, whether somebody has seen it, whether the same condition keeps recurring, or when it was actually resolved. Needs Attention therefore persists one stable occurrence identity plus append-only activity history while continuing to derive live truth from authoritative business records. The item is not a second source of truth: operators fix the Work Order, and reconciliation clears the live exception when that condition is no longer true.
+
+The first priority mapping is intentionally simple and explainable—overdue work is Critical, today's unassigned work is High, and completion acknowledgement is Normal—rather than inventing a hidden score or arbitrary time thresholds. Generic `subjectType`/`subjectId` identity lets later authoritative domains contribute to the same command-centre queue without forcing a parallel alert product, while Phase 1 refuses to create speculative Finance, Correspondence, Access or Messaging items before those domains expose real conditions. See ADR-0053.
+
 
 ## Why the Business Profile is canonical and conservative
 

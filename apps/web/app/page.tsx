@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { workOrderDisplayLabel, workOrderReference } from '../lib/work-order-display';
 import { type AppUser, type DashboardOverview, type WorkOrder, type WorkOrderStatus } from '../lib/api';
+import { type AttentionOverview } from '../lib/attention-api';
 import { createAuthenticatedApi } from '../lib/api-server';
 import { AppFrame } from './components/app-frame';
+import { AttentionPanel } from './components/attention-panel';
 import { DashboardSection } from './components/dashboard-section';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,12 @@ const EMPTY_DASHBOARD: DashboardOverview = {
   technicianWorkload: [], recentWorkOrderActivities: [], todayScheduledWorkOrders: [], upcomingScheduledWorkOrders: [], overdueWorkOrdersList: [],
   statusBreakdown: { NEW: 0, ASSIGNED: 0, ACCEPTED: 0, TRAVELLING: 0, ON_SITE: 0, WAITING_FOR_PARTS: 0, COMPLETED: 0, CLOSED: 0, CANCELLED: 0 },
   operationalDashboard: { operationalDate: '', todayStatusBreakdown: {}, todayUnassignedJobs: 0, actionableOverdueWorkOrders: [], upcomingWorkSummary: [], upcomingJobCount: 0, upcomingUnassignedCount: 0 },
+};
+
+const EMPTY_ATTENTION: AttentionOverview = {
+  view: 'mine',
+  items: [],
+  eligibleOwners: [],
 };
 
 function plural(count: number, singular: string, pluralForm = `${singular}s`) { return `${count} ${count === 1 ? singular : pluralForm}`; }
@@ -51,12 +59,17 @@ export default async function HomePage() {
   const authenticatedApi = await createAuthenticatedApi();
   const appUser = await authenticatedApi.syncUser();
   if (appUser.role === 'TECHNICIAN') redirect('/technician');
+
   let dashboard = EMPTY_DASHBOARD;
-  let available = false;
-  try { dashboard = await authenticatedApi.dashboard(); available = true; } catch { /* render a safe empty operational state */ }
+  let attention = EMPTY_ATTENTION;
+  let dashboardAvailable = false;
+  let attentionAvailable = false;
+  try { dashboard = await authenticatedApi.dashboard(); dashboardAvailable = true; } catch { /* render a safe empty operational state */ }
+  try { attention = await authenticatedApi.attention('mine'); attentionAvailable = true; } catch { /* render a safe empty attention state */ }
+
   const operational = dashboard.operationalDashboard;
   const todayCount = dashboard.todayScheduledWorkOrders.length;
-  const alertCount = operational.todayUnassignedJobs + operational.actionableOverdueWorkOrders.length;
+  const alertCount = attention.items.length;
   const nextJob = dashboard.todayScheduledWorkOrders.find((job) => job.scheduledAt && new Date(job.scheduledAt) > new Date());
   const workloadParts = Object.entries(operational.todayStatusBreakdown).filter(([, count]) => count).map(([status, count]) => `${count} ${readableStatus(status)}`);
   const currentHour = Number(new Intl.DateTimeFormat('en-ZA', { timeZone: 'Africa/Johannesburg', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
@@ -66,9 +79,18 @@ export default async function HomePage() {
   return <AppFrame active="/" email={appUser.email} user={appUser}>
     <div className="dashboard">
       <header className="dashboardHeader">
-        <div><p className="eyebrow">Daily command centre</p><h2>{greeting}, {nameFor(appUser)}</h2><p>{naturalDate}</p><strong>{plural(todayCount, 'job')} scheduled today <span>·</span> {plural(alertCount, 'item')} require attention</strong>{!available ? <small className="dashboardUnavailable">Live operational data is temporarily unavailable.</small> : null}</div>
+        <div><p className="eyebrow">Daily command centre</p><h2>{greeting}, {nameFor(appUser)}</h2><p>{naturalDate}</p><strong>{plural(todayCount, 'job')} scheduled today <span>·</span> {plural(alertCount, 'item')} require attention</strong>{!dashboardAvailable || !attentionAvailable ? <small className="dashboardUnavailable">Some live operational data is temporarily unavailable.</small> : null}</div>
         <Link className="dashboardProfile" href="/profile" aria-label="Open My Profile">{appUser.profilePhotoUrl ? <img src={appUser.profilePhotoUrl} alt="" /> : <span>{initials(appUser)}</span>}</Link>
       </header>
+
+      <DashboardSection title="Needs Attention" summary={`${plural(alertCount, 'item')} require action`} defaultExpanded>
+        <AttentionPanel initial={attention} />
+      </DashboardSection>
+
+      <DashboardSection title="Today’s Work" summary={`${plural(todayCount, 'job')} today${nextJob ? ` · Next: ${formatTime(nextJob.scheduledAt)}` : ''}${workloadParts.length ? ` · ${workloadParts.join(' · ')}` : ''}`} defaultExpanded>
+        <JobRows jobs={dashboard.todayScheduledWorkOrders} />
+        <div className="workloadGrid">{Object.entries(operational.todayStatusBreakdown).map(([status, count]) => <article key={status}><strong>{count}</strong><span>{readableStatus(status)}</span></article>)}</div>
+      </DashboardSection>
 
       <section className="shortcuts" aria-labelledby="shortcuts-title"><h3 id="shortcuts-title">Shortcuts</h3><nav className="shortcutGrid" aria-label="Operational shortcuts">
         <Link className="shortcutCard primary" href="/customers"><ShortcutIcon kind="customers" /><span><strong>Customers</strong><small>Manage customer records</small></span></Link>
@@ -76,20 +98,6 @@ export default async function HomePage() {
         <Link className="shortcutCard" href="/shifts"><ShortcutIcon kind="schedule" /><span><strong>Schedule</strong><small>Plan shifts and assignments</small></span></Link>
         <span className="shortcutCard disabled" aria-disabled="true" title="Management landing page is planned"><ShortcutIcon kind="management" /><span><strong>Management</strong><small>Management gateway coming soon</small></span></span>
       </nav></section>
-
-      <DashboardSection title="Today’s Schedule" summary={`${plural(todayCount, 'job')} today${nextJob ? ` · Next: ${formatTime(nextJob.scheduledAt)}` : ''}`} defaultExpanded><JobRows jobs={dashboard.todayScheduledWorkOrders} /></DashboardSection>
-
-      <DashboardSection title="Alerts / Action Required" summary={`${plural(alertCount, 'item')} require attention`}>
-        <div className="actionList">
-          {operational.todayUnassignedJobs ? <Link href="/work-orders?alert=today-unassigned"><strong>Unassigned Job</strong><span>{plural(operational.todayUnassignedJobs, 'job')} scheduled today need assignment.</span></Link> : null}
-          {operational.actionableOverdueWorkOrders.length ? <Link href="/work-orders?alert=overdue"><strong>Late / Overdue Job</strong><span>{plural(operational.actionableOverdueWorkOrders.length, 'job')} need intervention.</span></Link> : null}
-          {!alertCount ? <div className="dashboardEmpty">No actionable issues right now.</div> : null}
-        </div>
-      </DashboardSection>
-
-      <DashboardSection title="Current Workload" summary={`${plural(todayCount, 'job')}${workloadParts.length ? ` · ${workloadParts.join(' · ')}` : ''}`}>
-        <div className="workloadGrid">{Object.entries(operational.todayStatusBreakdown).map(([status, count]) => <article key={status}><strong>{count}</strong><span>{readableStatus(status)}</span></article>)}</div>
-      </DashboardSection>
 
       <DashboardSection title="Upcoming Work" summary={`${plural(operational.upcomingJobCount, 'job')} over the next 7 days · ${operational.upcomingUnassignedCount} unassigned`}>
         <div className="upcomingDays">{operational.upcomingWorkSummary.length ? operational.upcomingWorkSummary.map((day) => <div key={day.date}><strong>{formatDay(day.date)}</strong><span>{plural(day.jobCount, 'job')} · {day.unassignedCount ? `${plural(day.unassignedCount, 'job')} unassigned` : 'All assigned'}</span></div>) : <div className="dashboardEmpty">No work scheduled over the next 7 days.</div>}</div>
