@@ -2,9 +2,9 @@
 
 ## Messaging Foundation v1 status (2026-08-18)
 
-- In progress on draft PR #119 / `feat/messaging-foundation-v1`: provider-neutral WhatsApp/Messenger contract, adapter boundary, provider-event idempotency primitive, focused tests, durable foundation documentation, and ADR-0048.
-- Foundation v1 deliberately adds no live Meta webhook, credential, API call, Prisma model/migration, AI provider, customer-facing bot, pricing change, or Website integration change.
-- Next approved design work: resolve message retention, raw-payload/PII/media storage, conversation-state concurrency, and canonical Customer/Quote link semantics in Issue #116; then add durable messaging persistence with database-enforced provider-event idempotency before the first live WhatsApp adapter.
+- Implemented on PR #119 / `feat/messaging-foundation-v1`: provider-neutral WhatsApp/Messenger contracts, adapter boundary, deterministic provider-event idempotency, Quote-draft boundary, focused tests, and ADR-0048 through ADR-0052.
+- Foundation v1 deliberately adds no live Meta webhook, credential, API call, Prisma messaging model/migration, AI provider, customer-facing bot, pricing change, or Website integration change.
+- Approved persistence/privacy decisions now require normalized rather than raw provider payload persistence, immutable message history, inherited canonical Quote/retention rules, and explicit human-review handling; durable messaging persistence remains the next implementation slice.
 - The future Quote bridge must reuse/extract an internal HestivaOS Quote application boundary and must not impersonate the Website integration or reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`.
 
 ## Slice 5M accepted conversion status (2026-08-16)
@@ -116,7 +116,7 @@ Only currently identified technical follow-up work is listed here.
 ## Homent Technician next focused slices (verified current, 2026-08-17)
 
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
-- Add authoritative Complete Job and customer completion correspondence now that evidence transport and Review Job readiness foundations exist.
+- **Completed 2026-08-18 — E Complete Job:** Job Leader-only offline completion, authoritative idempotent reconciliation, local read-only/conflict handling, and audited management acknowledgement/correspondence eligibility. Customer delivery, richer Supervisor workflow and Technician correction/reopen remain deferred.
 - Add secure role-filtered temporary-credential retrieval and proactive critical-change notifications as focused security/communication slices.
 - Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records already exist.
 - Plan a separate approved private evidence-read/privacy-hardening migration for execution evidence and the legacy Work Order photo bucket; do not broaden public exposure in the meantime.
