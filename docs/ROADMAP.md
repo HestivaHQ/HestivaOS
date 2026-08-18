@@ -109,7 +109,7 @@ Only currently identified technical follow-up work is listed here.
 ## Homent Technician next focused slices (verified current, 2026-08-17)
 
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
-- Add authoritative Complete Job and customer completion correspondence now that evidence transport and Review Job readiness foundations exist.
+- **Completed 2026-08-18 — E Complete Job:** Job Leader-only offline completion, authoritative idempotent reconciliation, local read-only/conflict handling, and audited management acknowledgement/correspondence eligibility. Customer delivery, richer Supervisor workflow and Technician correction/reopen remain deferred.
 - Add secure role-filtered temporary-credential retrieval and proactive critical-change notifications as focused security/communication slices.
 - Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records already exist.
 - Plan a separate approved private evidence-read/privacy-hardening migration for execution evidence and the legacy Work Order photo bucket; do not broaden public exposure in the meantime.

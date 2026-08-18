@@ -88,3 +88,7 @@ A Quote explains a commercial agreement; it is not a stable, low-friction cleani
 ## Why field evidence is local-first but server-acknowledged
 
 Durable local capture lets the crew continue without making radio coverage a completion dependency, while retaining the Blob until backend acknowledgement prevents an object-storage success or lost HTTP response from becoming silent evidence loss. Stable UUIDs and deterministic paths make both upload and metadata retries convergent. Keeping Execution Evidence separate from generic BEFORE/AFTER photos preserves the frozen checklist's exact section meaning. See ADR-0046.
+
+## Why completion and customer correspondence are separate
+
+A local-first completion lets the field team leave a finished job without waiting for mobile connectivity or evidence object uploads, while authoritative replay protects assignment, frozen scope and readiness. A separate audited ADMIN/SUPERVISOR acknowledgement prevents an offline tap or backend reconciliation from becoming an unreviewed customer claim. Correspondence eligibility is therefore stored only after human acknowledgement; delivery remains owned by the future approved communication layer. See ADR-0047.

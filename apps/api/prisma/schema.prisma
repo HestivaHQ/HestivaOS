@@ -82,6 +82,8 @@ enum WorkOrderActivityType {
   JOB_STARTED
   EXECUTION_SCOPE_REVISED
   SECTION_OUTCOME_RECORDED
+  JOB_COMPLETED
+  JOB_COMPLETION_ACKNOWLEDGED
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
 }
@@ -249,6 +251,7 @@ model User {
   customers Customer[] @relation("CustomerOwner")
   workOrders WorkOrder[] @relation("WorkOrderCreator")
   workOrderActivities WorkOrderActivity[] @relation("WorkOrderActivityActor")
+  acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("users")
@@ -445,6 +448,7 @@ model Technician {
   workOrderAssignments WorkOrderTechnician[]
   ledWorkOrders WorkOrder[] @relation("WorkOrderJobLeader")
   startedWorkOrders WorkOrder[] @relation("WorkOrderStartedBy")
+  completedWorkOrders WorkOrder[] @relation("WorkOrderCompletedBy")
   sectionOutcomeEvents ExecutionSectionOutcomeEvent[]
   executionEvidence ExecutionSectionEvidence[]
   shifts Shift[]
@@ -682,6 +686,13 @@ model WorkOrder {
   startOperationId String? @unique @map("start_operation_id") @db.Uuid
   startedScopeRevisionId String? @unique @map("started_scope_revision_id") @db.Uuid
   completedAt DateTime? @map("completed_at")
+  completionOperationId String? @unique @map("completion_operation_id") @db.Uuid
+  completedByTechnicianId String? @map("completed_by_technician_id") @db.Uuid
+  fieldCompletedAt DateTime? @map("field_completed_at")
+  completionAcceptedAt DateTime? @map("completion_accepted_at")
+  completionAcknowledgedAt DateTime? @map("completion_acknowledged_at")
+  completionAcknowledgedById String? @map("completion_acknowledged_by_id") @db.Uuid
+  completionCorrespondenceEligibleAt DateTime? @map("completion_correspondence_eligible_at")
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
   property Property @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   createdBy User @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
@@ -689,6 +700,8 @@ model WorkOrder {
   assignedTechnicians WorkOrderTechnician[]
   jobLeader Technician? @relation("WorkOrderJobLeader", fields: [jobLeaderId], references: [id], onDelete: Restrict)
   startedByTechnician Technician? @relation("WorkOrderStartedBy", fields: [startedByTechnicianId], references: [id], onDelete: Restrict)
+  completedByTechnician Technician? @relation("WorkOrderCompletedBy", fields: [completedByTechnicianId], references: [id], onDelete: Restrict)
+  completionAcknowledgedBy User? @relation("WorkOrderCompletionAcknowledgedBy", fields: [completionAcknowledgedById], references: [id], onDelete: SetNull)
   crew Crew? @relation(fields: [crewId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   recurringAgreement RecurringServiceAgreement? @relation(fields: [recurringAgreementId], references: [id], onDelete: Restrict)
@@ -713,6 +726,8 @@ model WorkOrder {
   @@index([crewId])
   @@index([jobLeaderId])
   @@index([startedByTechnicianId])
+  @@index([completedByTechnicianId])
+  @@index([completionAcknowledgedById])
   @@index([serviceId])
   @@index([recurringAgreementId])
   @@unique([recurringAgreementId, recurrenceDate])
