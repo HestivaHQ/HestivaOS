@@ -56,3 +56,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0047: Establish a provider-neutral messaging foundation before live Meta integration](ADR-0047-provider-neutral-messaging-foundation.md)
 - [ADR-0048: Reuse canonical Quote capture and privacy retention for messaging](ADR-0048-reuse-canonical-quote-capture-and-retention.md)
 - [ADR-0049: Normalize provider payloads before persistence](ADR-0049-normalize-provider-payloads-before-persistence.md)
+- [ADR-0050: Keep persisted messaging history immutable](ADR-0050-immutable-messaging-history.md)
