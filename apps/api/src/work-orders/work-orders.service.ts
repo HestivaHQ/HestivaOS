@@ -62,11 +62,12 @@ const validTransitions: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   TRAVELLING: [WorkOrderStatus.ON_SITE, WorkOrderStatus.ACCEPTED, WorkOrderStatus.CANCELLED],
   ON_SITE: [WorkOrderStatus.WAITING_FOR_PARTS, WorkOrderStatus.COMPLETED, WorkOrderStatus.CANCELLED],
   WAITING_FOR_PARTS: [WorkOrderStatus.ON_SITE, WorkOrderStatus.COMPLETED, WorkOrderStatus.CANCELLED],
+  INTERRUPTED: [],
   COMPLETED: [WorkOrderStatus.CLOSED, WorkOrderStatus.ON_SITE],
   CLOSED: [],
   CANCELLED: [],
 };
-const nonActionableStatuses: WorkOrderStatus[] = [WorkOrderStatus.COMPLETED, WorkOrderStatus.CLOSED, WorkOrderStatus.CANCELLED];
+const nonActionableStatuses: WorkOrderStatus[] = [WorkOrderStatus.INTERRUPTED, WorkOrderStatus.COMPLETED, WorkOrderStatus.CLOSED, WorkOrderStatus.CANCELLED];
 const actionableStatuses = Object.values(WorkOrderStatus).filter((status) => !nonActionableStatuses.includes(status));
 
 @Injectable()
@@ -246,6 +247,7 @@ export class WorkOrdersService {
 
   async changeStatus(id: string, input: ChangeWorkOrderStatusInput) {
     if (input.status === WorkOrderStatus.COMPLETED) throw new ConflictException('Use the authoritative Homent Technician Complete Job workflow.');
+    if (input.status === WorkOrderStatus.INTERRUPTED) throw new ConflictException('Use the authoritative Homent Technician interrupted-visit workflow.');
     return this.update(id, { status: input.status }, input.note, input.actorId);
   }
 
@@ -256,7 +258,9 @@ export class WorkOrdersService {
     this.validateQuoteFields(input);
     const existing = await this.findOne(id);
     if (existing.status === WorkOrderStatus.COMPLETED && input.status && input.status !== WorkOrderStatus.COMPLETED && input.status !== WorkOrderStatus.CLOSED) throw new ConflictException('Completed Technician jobs cannot be reopened.');
+    if (existing.status === WorkOrderStatus.INTERRUPTED && input.status && input.status !== WorkOrderStatus.INTERRUPTED) throw new ConflictException('Interrupted visits require the controlled interruption follow-up workflow.');
     if (input.status === WorkOrderStatus.COMPLETED && !existing.completionOperationId) throw new ConflictException('Use the authoritative Homent Technician Complete Job workflow.');
+    if (input.status === WorkOrderStatus.INTERRUPTED) throw new ConflictException('Use the authoritative Homent Technician interrupted-visit workflow.');
     const customerId = input.customerId ?? existing.customerId;
     const propertyId = input.propertyId ?? existing.propertyId;
     if (input.customerId !== undefined || input.propertyId !== undefined) {

@@ -1,0 +1,8 @@
+const rawApiUrl=process.env.API_URL??process.env.NEXT_PUBLIC_API_URL??'http://localhost:4000';
+const apiBase=`${rawApiUrl.trim().replace(/\/+$/,'').replace(/\/api\/v1$/,'')}/api/v1`;
+export type InterruptionNextAction='REPLACEMENT_VISIT'|'FOLLOW_UP'|'PARTIAL_COMPLETION_REVIEW'|'FINANCIAL_REVIEW'|'CLOSE';
+export type InterruptionDetail={workOrderId:string;reference:string|null;status:string;interruption:null|{id:string;operationId:string;technicianId:string;scopeRevisionId:string;fieldInterruptedAt:string;reason:string;note:string;serverAcceptedAt:string};routes:Array<{id:string;operationId:string;actorId:string;nextAction:InterruptionNextAction;note:string|null;createdAt:string}>;latestRoute:null|{id:string;nextAction:InterruptionNextAction;note:string|null;createdAt:string};boundaries?:Record<string,string>};
+type ApiErrorBody={message?:string};
+async function request<T>(path:string,token:string,init?:RequestInit){const response=await fetch(`${apiBase}${path}`,{...init,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(init?.headers??{})},cache:'no-store'});const body=(await response.json().catch(()=>null)) as T|ApiErrorBody|null;if(!response.ok){const message=body&&typeof body==='object'&&'message' in body&&typeof body.message==='string'?body.message:`Request failed (${response.status})`;throw new Error(message);}return body as T;}
+export const workOrderInterruption=(id:string,token:string)=>request<InterruptionDetail>(`/work-orders/${id}/interruption`,token);
+export const routeWorkOrderInterruption=(id:string,token:string,input:{operationId:string;nextAction:InterruptionNextAction;note?:string})=>request(`/work-orders/${id}/interruption/route`,token,{method:'POST',body:JSON.stringify(input)});

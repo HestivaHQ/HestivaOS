@@ -63,3 +63,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0053: Dashboard Needs Attention foundation](ADR-0053-dashboard-needs-attention-foundation.md)
 - [ADR-0054: Controlled Work Order material changes](ADR-0054-controlled-work-order-material-changes.md)
 - [ADR-0055: Scope mismatch and additional-work resolution](ADR-0055-scope-mismatch-additional-work-resolution.md)
+- [ADR-0056: Interrupted / unable-to-complete visits](ADR-0056-interrupted-unable-to-complete-visits.md)
