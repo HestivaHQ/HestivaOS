@@ -2,11 +2,15 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, ParseUUIDPipe, Patc
 import { User, UserRole, WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
+import { MaterialChangePreviewInput, WorkOrderMaterialChangeService } from './work-order-material-change.service';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
-  constructor(private readonly workOrders: WorkOrdersService) {}
+  constructor(
+    private readonly workOrders: WorkOrdersService,
+    private readonly materialChanges: WorkOrderMaterialChangeService,
+  ) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -39,8 +43,18 @@ export class WorkOrdersController {
     return this.workOrders.acknowledgeCompletion(id, actor.id);
   }
 
+  @Post(':id/material-change/preview')
+  @Roles(UserRole.ADMIN)
+  previewMaterialChange(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: MaterialChangePreviewInput,
+  ) {
+    return this.materialChanges.preview(id, input);
+  }
+
   @Patch(':id/status')
-  changeStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ChangeWorkOrderStatusInput) {
+  async changeStatus(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ChangeWorkOrderStatusInput) {
+    await this.materialChanges.assertGenericCancellationAllowed(id, input.status);
     return this.workOrders.changeStatus(id, input);
   }
 
@@ -56,7 +70,8 @@ export class WorkOrdersController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateWorkOrderInput) {
+  async update(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateWorkOrderInput) {
+    await this.materialChanges.assertGenericUpdateAllowed(id, input);
     return this.workOrders.update(id, input);
   }
 
