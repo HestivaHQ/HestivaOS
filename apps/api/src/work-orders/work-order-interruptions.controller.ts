@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { User, UserRole } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
@@ -20,11 +20,12 @@ export class WorkOrderInterruptionsController {
 
   @Post(':id/interruption/route')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
-  route(
+  async route(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: RouteInterruptionInput,
     @CurrentUser() actor: User,
   ) {
+    if (await this.replacements.detail(id)) throw new ConflictException('This interruption already has an authoritative replacement Work Order and can no longer be rerouted.');
     return this.interruptions.route(id, input, actor.id);
   }
 
