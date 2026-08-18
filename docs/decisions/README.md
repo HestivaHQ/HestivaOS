@@ -53,8 +53,8 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 
 - [ADR-0045: Freeze versioned Execution Scope and record compressed field outcomes](ADR-0045-frozen-execution-scope-and-field-checklist.md)
 - [ADR-0046: Retain local-first Execution Evidence through authoritative acknowledgement](ADR-0046-local-first-execution-evidence.md)
-- [ADR-0047: Establish a provider-neutral messaging foundation before live Meta integration](ADR-0047-provider-neutral-messaging-foundation.md)
-- [ADR-0048: Reuse canonical Quote capture and privacy retention for messaging](ADR-0048-reuse-canonical-quote-capture-and-retention.md)
-- [ADR-0049: Normalize provider payloads before persistence](ADR-0049-normalize-provider-payloads-before-persistence.md)
-- [ADR-0050: Keep persisted messaging history immutable](ADR-0050-immutable-messaging-history.md)
-- [ADR-0051: Messaging Quote lifecycle and human-review policy](ADR-0051-messaging-quote-lifecycle-and-human-review.md)
+- [ADR-0048: Establish a provider-neutral messaging foundation before live Meta integration](ADR-0048-provider-neutral-messaging-foundation.md)
+- [ADR-0049: Reuse canonical Quote capture and privacy retention for messaging](ADR-0049-reuse-canonical-quote-capture-and-retention.md)
+- [ADR-0050: Normalize provider payloads before persistence](ADR-0050-normalize-provider-payloads-before-persistence.md)
+- [ADR-0051: Keep persisted messaging history immutable](ADR-0051-immutable-messaging-history.md)
+- [ADR-0052: Messaging Quote lifecycle and human-review policy](ADR-0052-messaging-quote-lifecycle-and-human-review.md)
