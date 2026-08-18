@@ -92,3 +92,9 @@ Durable local capture lets the crew continue without making radio coverage a com
 ## Why completion and customer correspondence are separate
 
 A local-first completion lets the field team leave a finished job without waiting for mobile connectivity or evidence object uploads, while authoritative replay protects assignment, frozen scope and readiness. A separate audited ADMIN/SUPERVISOR acknowledgement prevents an offline tap or backend reconciliation from becoming an unreviewed customer claim. Correspondence eligibility is therefore stored only after human acknowledgement; delivery remains owned by the future approved communication layer. See ADR-0047.
+
+## Why messaging starts provider-neutral and contract-first
+
+WhatsApp and Messenger are customer interfaces, not independent operational systems. Normalizing provider events before business processing lets one Homent conversation layer serve both channels while HestivaOS keeps Customer, Quote, pricing, booking, payment, and job authority. Provider-scoped identity is therefore kept separate from canonical Customer identity, and provider adapters are limited to authenticity, normalization, and transport rather than business decisions.
+
+Foundation v1 deliberately stops before durable conversation tables. Message retention, raw-payload storage, PII/redaction, media ownership, cross-channel identity linking, and conversation-state concurrency are privacy and operational contracts that should be approved before schema makes them permanent. The Website Quote endpoint also remains website-specific: messaging will later use a shared/internal Quote application boundary rather than impersonating `HESTIVA_WEBSITE` or reusing its credential. See ADR-0048 through ADR-0052.

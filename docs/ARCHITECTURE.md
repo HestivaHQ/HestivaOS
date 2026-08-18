@@ -8,10 +8,9 @@ Detail uses backend preflight as the acceptance authority and progressively pres
 
 ## Atomic accepted-Quote operational conversion
 
-`PATCH /api/v1/quotes/:id/accept` is ADMIN-only and dispatches the immutable current submission by frequency. ONE_TIME retains its single-Work-Order path. Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` use the same bounded-retry `SERIALIZABLE` transaction to resolve/materialize Customer and Property, create one `RecurringServiceAgreement`, create its initial `NEW` Work Order, link the exact revision and both operational records, and append audit activity. The preferred date becomes the agreement effective date and date-only initial recurrence; standard recurrence derives weekday/day-of-month, while CUSTOM retains its required note and is not bulk-generated.
+`PATCH /api/v1/quotes/:id/accept` is ADMIN-only and dispatches the immutable current submission by frequency. ONE_TIME retains its single-Work-Order path. Canonical `WEEKLY`, `EVERY_TWO_WEEKS`, `MONTHLY`, and `CUSTOM` use the same bounded-retry `SERIALIZABLE` transaction to resolve/materialize Customer and Property, create one `RecurringServiceAgreement`, create its initial `NEW` Work Order, link the exact revision and both operational records, and append audit activity. The preferred date becomes the agreement effective date and initial recurrence date; standard recurrence derives weekday/day-of-month, while CUSTOM retains its required note and is not bulk-generated.
 
 Agreement and initial visit preserve primary Service, frequency, supported instructions, exact generic/Laundry/Ironing add-on quantities, preferred time and eco-product preference; the initial visit also preserves home condition and all typed visit context. Later generated visits inherit only agreement-owned stable context. Accepted pricing stays on the immutable revision and is presented in the ADMIN review UI. Website ingestion and ordinary recurring CRUD behavior are unchanged.
-
 
 ## Atomic ONE_TIME Quote acceptance (Slice 5M, 2026-08-16)
 
@@ -182,7 +181,6 @@ Editable fields follow the classification and verified module matrix in [`CONTRO
 
 Phase 1 implements `BusinessListOption` for `JOB_TITLE` and `DEPARTMENT`; Phase 2 extends it with `PROPERTY_TYPE` options and a nullable Property relationship. Authenticated consumers list active options through `/api/v1/admin/business-lists`; ADMIN-only mutations create, rename, deactivate, and reactivate options; there is deliberately no delete endpoint. Employee records retain legacy `job_title` and `department` labels and add nullable typed foreign keys. An active, correctly typed option is required for a new controlled assignment, while inactive or legacy labels remain readable. Slice 5G bootstraps only the five website-approved Property Types described below; Job Titles, Departments, and custom Property Types remain administrator-managed.
 
-
 ### Customer and Property controlled inputs
 
 Contact name is the required primary human-facing Customer field. The existing non-null `Customer.name` remains compatibility and legacy fallback data: the API derives it from Contact name for new records and explicit Contact name edits, while no historical backfill occurs. Display labels prefer Contact name, then legacy Name, then a safe generic label. Customer status is the existing fixed Prisma enum and is validated at the API boundary; customer-specific strings remain free text. Properties retain their canonical required Customer relation. A lean Customer selector response exposes only ID, customer name, and contact name. Property Type uses the shared managed-list model through a nullable foreign key: active correctly typed options may be assigned and inactive assigned options remain included for reading. The approved bootstrap does not rewrite historical data.
@@ -224,6 +222,7 @@ The authorized full Property resource stores nullable `floorSize`, `outdoorArea`
 Weekly rules select the next controlled weekday. Every-two-weeks rules use the first selected weekday on/after `effectiveDate` as a stable 14-day anchor. Monthly rules use day 1–31, clamped to the final valid day of short months. All business-date boundaries use `Africa/Johannesburg`; CUSTOM is prose-only and manual. An optional end date is inclusive.
 
 Explicit generation creates at most one upcoming visit per ACTIVE standard agreement when no future occurrence already exists. It skips missed dates, uses the normal `WO-YYYYMMDD-####` transaction, and snapshots Service, add-ons, frequency, and instructions. `(recurringAgreementId, recurrenceDate)` is database-unique. Generated Work Orders are independent records: edits, pause, resume, cancel, or natural end do not rewrite/delete them. Assignment remains the existing Work Order concern.
+
 ### Local Supabase JWT verification
 
 As of 2026-08-13 22:24 SAST, the NestJS API authentication boundary verifies Supabase access tokens locally rather than calling Supabase Auth `/auth/v1/user` for every protected API request.
@@ -290,3 +289,11 @@ Execution Evidence is a checklist-specific record bound to Work Order, frozen sc
 The canonical `/technician` completion authority is `POST /technician/jobs/:id/complete`, not the legacy Work Order status control. IndexedDB v4 extends the existing operation store with a UUID-identified `COMPLETE_JOB` record bound to Work Order, frozen scope, Job Leader, field time, expected state and local sync state. Local persistence makes execution read-only and may report **Completed · Sync pending** without changing the authoritative status. Server reconciliation repeats assignment, leadership, lifecycle, frozen-scope, outcome, exception and evidence-metadata checks; safely captured evidence may still be uploading. Acceptance is idempotent, changes `ON_SITE` or `WAITING_FOR_PARTS` to `COMPLETED`, and stores immutable completion attribution/times.
 
 Completion correspondence is separately gated. ADMIN or SUPERVISOR acknowledgement stores actor/time and creates correspondence eligibility, but no delivery occurs in this slice. Technician completion alone never sends customer email, WhatsApp, Messenger or SMS. Conflicting offline operations remain on device for management review, and Technicians have no reopen operation. See ADR-0047.
+
+## Provider-neutral Messaging Foundation v1 (2026-08-18)
+
+HestivaOS owns the provider-neutral business boundary for future WhatsApp and Facebook Messenger integration. The foundation is contract-first: provider adapters may verify authenticity, normalize inbound provider events, preserve provider-scoped identity/referral provenance, and transport outbound messages, but they do not own Customer, Quote, pricing, booking, payment, Work Order, or recurring-service decisions. Provider event replay identity is deterministic and excludes canonical Customer or phone identity.
+
+Messaging does not impersonate the Website integration, does not claim `HESTIVA_WEBSITE` provenance, and never reuses `HESTIVA_WEBSITE_INTEGRATION_SECRET`. Future channel adapters must converge on the existing authoritative Quote domain through a shared/internal Quote application-service boundary. The current foundation includes a channel-neutral Quote-draft contract and human-review lifecycle rules but does not expose a live Meta webhook, add provider credentials/environment variables, make Meta API calls, register a runtime messaging module, or add Prisma messaging persistence.
+
+Persistence/privacy decisions approved through Issue #116 require normalized provider payloads rather than raw payload retention, immutable persisted message history, canonical Quote/retention ownership, and explicit human-review handling. Durable Conversation / Provider Identity / Message / Attribution / State persistence remains a later focused slice and must enforce provider-event idempotency at the database boundary. See ADR-0048 through ADR-0052 and `MESSAGING_FOUNDATION_V1.md`.

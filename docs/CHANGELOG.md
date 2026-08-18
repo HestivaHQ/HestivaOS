@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-18 — Provider-neutral Messaging Foundation v1
+
+### Added
+
+- Added provider-neutral WhatsApp/Messenger contracts, provider adapter boundary, deterministic provider-event idempotency, and a channel-neutral Quote-draft/human-review contract.
+- Added ADR-0048 through ADR-0052 covering provider-neutral ownership, canonical Quote/retention reuse, normalized provider payload persistence, immutable messaging history, and Messaging Quote lifecycle/human review.
+- Added `MESSAGING_FOUNDATION_V1.md` as the focused foundation contract and synchronized architecture/rationale/roadmap documentation.
+
+### Preserved and deferred
+
+- No live Meta webhook, Meta credential/environment variable, provider API call, Prisma messaging model/migration, AI provider, customer-facing chatbot, Website integration change, pricing change, or operational source-of-truth change is introduced.
+- Durable channel-neutral Conversation / Provider Identity / Message / Attribution / State persistence remains the next Messaging slice and must retain database-enforced provider-event idempotency and approved privacy boundaries.
+
 ## 2026-08-17 — Work Order Technician / Crew assignment
 
 ### Added
@@ -34,7 +47,6 @@
 ### Preserved and deferred
 
 - ONE_TIME conversion and Website ingestion/authentication/contracts/replay/pricing are unchanged. Review UI and remaining non-lossy source-field handoff remain planned; Issue #79 remains historically closed.
-
 
 ## 2026-08-16 — Atomic ONE_TIME Quote acceptance
 
@@ -318,6 +330,7 @@
 ### Known issues
 
 - Persistent product audit history and future management view/share permission groups are deferred. Quotations, invoices, email sending, and generated-document integrations are not part of this slice.
+
 ## 2026-08-09 — Product Implementation Slice 3 — User Access Management
 
 ### Added
@@ -655,6 +668,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added Johannesburg-aware weekly, anchored every-two-weeks, and clamped monthly recurrence; CUSTOM remains visibly manual.
 - Added authorized operational APIs and UI for agreement creation, lifecycle changes, and explicit idempotent one-upcoming-visit generation with normal Work Order references and snapshot semantics.
 - Integrated recurring agreements into ADMIN Customer Data Cleanup and preserved Services, historical visits, 5M, 5N, 5O, and unresolved 5K commercial decisions.
+
 ## 2026-08-13 22:16 SAST — Local Supabase JWT verification performance
 
 ### Changed
