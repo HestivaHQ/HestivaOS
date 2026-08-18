@@ -26,10 +26,10 @@ export class WorkOrderReplacementVisitService {
     const note=input.note?.trim()||null;
     if(note&&(note.length<3||note.length>1000))throw new BadRequestException('Replacement note must be between 3 and 1000 characters.');
     const requestHash=createHash('sha256').update(JSON.stringify({originalWorkOrderId,scheduledAt:scheduledAt.toISOString(),note})).digest('hex');
-    const replay=await this.byOperation(input.operationId);if(replay)return this.recover(replay,originalWorkOrderId,requestHash);
+    const replay=await this.byOperation(input.operationId);if(replay)return this.recover(replay,originalWorkOrderId,requestHash,this.prisma);
 
     return this.prisma.$transaction(async tx=>{
-      const duplicate=await this.byOperation(input.operationId,tx);if(duplicate)return this.recover(duplicate,originalWorkOrderId,requestHash);
+      const duplicate=await this.byOperation(input.operationId,tx);if(duplicate)return this.recover(duplicate,originalWorkOrderId,requestHash,tx);
       const interruption=await this.interruptionFor(originalWorkOrderId,tx);if(!interruption)throw new NotFoundException('Interrupted visit record was not found.');
       const existing=await this.byInterruption(interruption.id,tx);if(existing)throw new ConflictException('This interrupted visit already has a linked replacement Work Order.');
       const latestRoute=await this.latestRoute(interruption.id,tx);
@@ -37,7 +37,7 @@ export class WorkOrderReplacementVisitService {
 
       const source=await tx.workOrder.findUnique({where:{id:originalWorkOrderId},select:{
         id:true,status:true,customerId:true,propertyId:true,serviceId:true,recurringAgreementId:true,frequency:true,customFrequencyNote:true,homeCondition:true,description:true,priority:true,
-        preferredTimeWindow:true,alternativeDate:true,dateFlexibility:true,urgency:true,exactFloor:true,buildingAccess:true,complexAccess:true,accessInstructions:true,parkingInstructions:true,keyHandover:true,keyHandoverDetails:true,someonePresent:true,ecoFriendlyProducts:true,customerDeclaredExistingDamage:true,
+        exactFloor:true,buildingAccess:true,complexAccess:true,accessInstructions:true,parkingInstructions:true,keyHandover:true,keyHandoverDetails:true,someonePresent:true,ecoFriendlyProducts:true,customerDeclaredExistingDamage:true,
         addOns:{select:{serviceId:true,quantity:true}}
       }});
       if(!source)throw new NotFoundException('Original Work Order not found.');
@@ -51,8 +51,7 @@ export class WorkOrderReplacementVisitService {
       const replacement=await tx.workOrder.create({data:{
         customerId:source.customerId,propertyId:source.propertyId,createdById:actorId,serviceId:source.serviceId,recurringAgreementId:source.recurringAgreementId,
         frequency:source.frequency,customFrequencyNote:source.customFrequencyNote,homeCondition:source.homeCondition,description:source.description,priority:source.priority,
-        preferredTimeWindow:source.preferredTimeWindow,alternativeDate:source.alternativeDate,dateFlexibility:source.dateFlexibility,urgency:source.urgency,exactFloor:source.exactFloor,
-        buildingAccess:source.buildingAccess,complexAccess:source.complexAccess,accessInstructions:source.accessInstructions,parkingInstructions:source.parkingInstructions,keyHandover:source.keyHandover,keyHandoverDetails:source.keyHandoverDetails,someonePresent:source.someonePresent,ecoFriendlyProducts:source.ecoFriendlyProducts,customerDeclaredExistingDamage:source.customerDeclaredExistingDamage,
+        exactFloor:source.exactFloor,buildingAccess:source.buildingAccess,complexAccess:source.complexAccess,accessInstructions:source.accessInstructions,parkingInstructions:source.parkingInstructions,keyHandover:source.keyHandover,keyHandoverDetails:source.keyHandoverDetails,someonePresent:source.someonePresent,ecoFriendlyProducts:source.ecoFriendlyProducts,customerDeclaredExistingDamage:source.customerDeclaredExistingDamage,
         addOns:source.addOns.length?{create:source.addOns.map(item=>({serviceId:item.serviceId,quantity:item.quantity}))}:undefined,
         reference,title:reference,status:WorkOrderStatus.NEW,scheduledAt
       },select:{id:true,reference:true,status:true,scheduledAt:true}});
@@ -72,7 +71,7 @@ export class WorkOrderReplacementVisitService {
   async detail(originalWorkOrderId:string){
     const interruption=await this.interruptionFor(originalWorkOrderId);if(!interruption)return null;
     const link=await this.byInterruption(interruption.id);if(!link)return null;
-    const replacement=await this.prisma.workOrder.findUnique({where:{id:link.replacement_work_order_id},select:{id:true,reference:true,status:true,scheduledAt:true}});
+    const replacement=await this.replacementSummary(link.replacement_work_order_id,this.prisma);
     return {...this.serialize(link,false),replacement};
   }
 
@@ -80,6 +79,7 @@ export class WorkOrderReplacementVisitService {
   private async latestRoute(interruptionId:string,db:PrismaService|Prisma.TransactionClient=this.prisma){const rows=await db.$queryRaw<RouteRow[]>(Prisma.sql`SELECT "next_action" FROM "work_order_interruption_routes" WHERE "interruption_id"=CAST(${interruptionId} AS UUID) ORDER BY "created_at" DESC,"id" DESC LIMIT 1`);return rows[0]??null;}
   private async byOperation(operationId:string,db:PrismaService|Prisma.TransactionClient=this.prisma){const rows=await db.$queryRaw<ReplacementRow[]>(Prisma.sql`SELECT * FROM "work_order_replacement_visits" WHERE "operation_id"=CAST(${operationId} AS UUID) LIMIT 1`);return rows[0]??null;}
   private async byInterruption(interruptionId:string,db:PrismaService|Prisma.TransactionClient=this.prisma){const rows=await db.$queryRaw<ReplacementRow[]>(Prisma.sql`SELECT * FROM "work_order_replacement_visits" WHERE "interruption_id"=CAST(${interruptionId} AS UUID) LIMIT 1`);return rows[0]??null;}
-  private recover(row:ReplacementRow,originalWorkOrderId:string,hash:string){if(row.original_work_order_id!==originalWorkOrderId||row.request_hash!==hash)throw new ConflictException('Replacement operation ID is already bound to a different request.');return this.serialize(row,true);}
+  private replacementSummary(id:string,db:PrismaService|Prisma.TransactionClient){return db.workOrder.findUnique({where:{id},select:{id:true,reference:true,status:true,scheduledAt:true}});}
+  private async recover(row:ReplacementRow,originalWorkOrderId:string,hash:string,db:PrismaService|Prisma.TransactionClient){if(row.original_work_order_id!==originalWorkOrderId||row.request_hash!==hash)throw new ConflictException('Replacement operation ID is already bound to a different request.');const replacement=await this.replacementSummary(row.replacement_work_order_id,db);return{...this.serialize(row,true),replacement};}
   private serialize(row:ReplacementRow,replayed:boolean){return{id:row.id,operationId:row.operation_id,interruptionId:row.interruption_id,originalWorkOrderId:row.original_work_order_id,replacementWorkOrderId:row.replacement_work_order_id,actorId:row.actor_id,scheduledAt:row.scheduled_at.toISOString(),note:row.note,createdAt:row.created_at.toISOString(),replayed};}
 }
