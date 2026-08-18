@@ -89,11 +89,16 @@ export class WorkOrderInterruptionService {
       if(job.status!==WorkOrderStatus.INTERRUPTED)throw new ConflictException('Only an interrupted visit can be routed through this workflow.');
       const routeId=randomUUID();
       await tx.$executeRaw(Prisma.sql`INSERT INTO "work_order_interruption_routes" ("id","operation_id","interruption_id","actor_id","next_action","note","request_hash") VALUES (CAST(${routeId} AS UUID),CAST(${input.operationId} AS UUID),CAST(${interruption.id} AS UUID),CAST(${actorId} AS UUID),${input.nextAction},${note},${requestHash})`);
-      await tx.workOrderActivity.create({data:{workOrderId,type:WorkOrderActivityType.STATUS_CHANGED,actorId,note:`Interrupted visit routed to ${input.nextAction}.${note?` ${note}`:''}`}});
       if(input.nextAction==='CLOSE'){
         await tx.workOrder.update({where:{id:workOrderId},data:{status:WorkOrderStatus.CLOSED}});
-        await tx.workOrderActivity.create({data:{workOrderId,type:WorkOrderActivityType.WORK_ORDER_CLOSED,actorId,previousStatus:WorkOrderStatus.INTERRUPTED,newStatus:WorkOrderStatus.CLOSED,note:'Interrupted visit closed after management review.'}});
-        await tx.attentionItem.updateMany({where:{conditionKey:`work-order:${workOrderId}:interrupted-visit-review`,state:AttentionState.OPEN},data:{state:AttentionState.RESOLVED,resolvedAt:new Date(),lastObservedAt:new Date()}});
+        await tx.workOrderActivity.createMany({data:[
+          {workOrderId,type:WorkOrderActivityType.STATUS_CHANGED,actorId,previousStatus:WorkOrderStatus.INTERRUPTED,newStatus:WorkOrderStatus.CLOSED,note:'Interrupted visit closed after management review.'},
+          {workOrderId,type:WorkOrderActivityType.WORK_ORDER_CLOSED,actorId,previousStatus:WorkOrderStatus.INTERRUPTED,newStatus:WorkOrderStatus.CLOSED,note:'Interrupted visit closed after management review.'},
+        ]});
+        const attention=await tx.attentionItem.findUnique({where:{conditionKey:`work-order:${workOrderId}:interrupted-visit-review`},select:{id:true,state:true}});
+        if(attention?.state===AttentionState.OPEN){
+          await tx.attentionItem.update({where:{id:attention.id},data:{state:AttentionState.RESOLVED,resolvedAt:new Date(),lastObservedAt:new Date(),activities:{create:{type:AttentionActivityType.AUTO_RESOLVED,actorId,metadata:{reason:'INTERRUPTED_VISIT_CLOSED'}}}}});
+        }
       }else{
         await tx.attentionItem.updateMany({where:{conditionKey:`work-order:${workOrderId}:interrupted-visit-review`,state:AttentionState.OPEN},data:{summary:`Interrupted visit routed to ${input.nextAction.replaceAll('_',' ').toLowerCase()}; follow-up remains required.`,lastObservedAt:new Date()}});
       }
