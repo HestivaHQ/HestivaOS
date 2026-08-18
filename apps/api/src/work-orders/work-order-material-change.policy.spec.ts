@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { WorkOrderStatus } from '@prisma/client';
+import { WorkOrderPriority, WorkOrderStatus } from '@prisma/client';
 import { assessMaterialChange, materialChangeStage, materialFieldsFromUpdate } from './work-order-material-change.policy';
 
 describe('Work Order material change policy', () => {
@@ -16,7 +16,7 @@ describe('Work Order material change policy', () => {
   });
 
   it('classifies booking fields without treating internal description/priority edits as material', () => {
-    expect(materialFieldsFromUpdate({ description: 'Internal clarification', priority: 'HIGH' })).toEqual([]);
+    expect(materialFieldsFromUpdate({ description: 'Internal clarification', priority: WorkOrderPriority.HIGH })).toEqual([]);
     expect(materialFieldsFromUpdate({ scheduledAt: '2026-08-20T08:00:00.000Z', serviceId: 'service-1' })).toEqual([
       'serviceId',
       'scheduledAt',
