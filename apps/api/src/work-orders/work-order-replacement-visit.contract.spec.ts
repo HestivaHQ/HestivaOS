@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const source=readFileSync(join(__dirname,'work-order-replacement-visit.service.ts'),'utf8');
+const controller=readFileSync(join(__dirname,'work-order-interruptions.controller.ts'),'utf8');
 
 describe('replacement visit contract',()=>{
   it('requires an interrupted visit routed to replacement',()=>{
@@ -17,11 +18,18 @@ describe('replacement visit contract',()=>{
     expect(source).not.toContain('completionOperationId');
     expect(source).not.toContain('temporaryAccessCredentials');
     expect(source).not.toContain('executionEvidence');
+    expect(source).not.toContain('preferredTimeWindow:source.preferredTimeWindow');
+    expect(source).not.toContain('alternativeDate:source.alternativeDate');
   });
   it('links exactly one replacement to the interrupted attempt and supports idempotent replay',()=>{
     expect(source).toContain('byInterruption(interruption.id');
     expect(source).toContain('byOperation(input.operationId');
     expect(source).toContain('Replacement operation ID is already bound to a different request.');
+    expect(source).toContain('replacementSummary(row.replacement_work_order_id');
+  });
+  it('locks management rerouting once replacement creation is authoritative',()=>{
+    expect(controller).toContain('await this.replacements.detail(id)');
+    expect(controller).toContain('can no longer be rerouted');
   });
   it('does not invent Finance or customer correspondence behavior',()=>{
     expect(source).not.toContain('payment.create');
