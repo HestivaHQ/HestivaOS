@@ -25,6 +25,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: python3 scripts/validate_documentation.py "$BASE_SHA" "$HEAD_SHA"
 
       - name: Scan tracked files for secrets
