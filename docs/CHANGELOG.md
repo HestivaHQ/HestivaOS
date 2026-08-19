@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-19 — Recurring automatic resume scheduling
+
+### Added
+
+- Added nullable Johannesburg-business-date `autoResumeDate` persistence for paused recurring agreements plus an indexed additive migration.
+- Added a Railway API bootstrap/minute reconciler that activates due paused agreements with database-conditional idempotency and ends agreements whose end date has already passed.
+- Added Admin automatic-resume date controls and focused lifecycle tests covering validation, manual clearing, due activation, end-date handling, and competing runner attempts.
+- Added ADR-0066 plus deployment, recovery, lifecycle-contract, roadmap, and architecture documentation for the durable execution boundary.
+
+### Preserved
+
+- Manual resume still recalculates from the current Johannesburg business date and does not create missed-occurrence backlog.
+- Automatic resume does not generate, mutate, cancel, or delete Work Orders and triggers no correspondence, Messaging, Finance, pricing, staffing, or notification behavior.
+- No new environment variable, credential, external scheduler, queue, or dependency is required.
+
 ## 2026-08-19 — Recurring lifecycle future-visit review
 
 ### Changed
