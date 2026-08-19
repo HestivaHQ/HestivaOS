@@ -506,3 +506,7 @@ Implemented the bounded Phase 3D package on current Phase 3A–3C and messaging 
 - Added the Work Order Incident aggregate, controlled enums, additive migration, assignment-scoped idempotent API, existing-evidence linkage, IndexedDB v5 report operations, Technician field UI, and Work Order management review UI.
 - Added stable incident Needs Attention production with Critical safety priority, High other-incident priority, automatic resolution and occurrence reopen.
 - Added focused contract tests and synchronized architecture, rationale, roadmap, deployment, recovery, Needs Attention, contract, changelog and ADR documentation. Correspondence, notifications, evidence hardening, Supervisor expansion and Finance remain deferred.
+
+## 2026-08-19 — Technician completion correction
+
+Implemented the append-only correction aggregate and migration, management/Technician APIs, existing-surface UI, IndexedDB operation-store reconciliation, corrected outcome linkage, acknowledgement snapshot/invalidation semantics, and focused contract coverage. Updated architecture, rationale, roadmap, Supervisor operations, deployment/recovery, changelog, ADR index, and the permanent correction contract. PR #142 private Execution Evidence behavior was reused unchanged; only the correction contract cross-references its boundary.

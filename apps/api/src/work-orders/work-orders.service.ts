@@ -76,9 +76,10 @@ export class WorkOrdersService {
 
   async acknowledgeCompletion(id: string, actorId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const job = await tx.workOrder.findUnique({ where: { id }, select: { status: true, completionOperationId: true, completionAcknowledgedAt: true, completionAcknowledgedById: true } });
+      const job = await tx.workOrder.findUnique({ where: { id }, select: { status: true, completionOperationId: true, completionAcknowledgedAt: true, completionAcknowledgedById: true, completionCorrections:{where:{status:'IN_PROGRESS'},select:{id:true},take:1} } });
       if (!job) throw new NotFoundException('Work Order not found.');
       if (job.status !== WorkOrderStatus.COMPLETED || !job.completionOperationId) throw new ConflictException('Only an authoritative Technician completion can be acknowledged.');
+      if (job.completionCorrections?.length) throw new ConflictException('The corrected completion must be resubmitted before acknowledgement.');
       if (job.completionAcknowledgedAt) return job;
       const acknowledgedAt = new Date();
       const changed = await tx.workOrder.updateMany({ where: { id, status: WorkOrderStatus.COMPLETED, completionOperationId: job.completionOperationId, completionAcknowledgedAt: null }, data: { completionAcknowledgedAt: acknowledgedAt, completionAcknowledgedById: actorId, completionCorrespondenceEligibleAt: acknowledgedAt } });

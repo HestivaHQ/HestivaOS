@@ -131,3 +131,7 @@ Supervisor operational review projects existing execution truth instead of persi
 ## Why evidence reads are brokered
 
 A deterministic object path is useful for idempotent offline upload but is not an authorization boundary. Keeping paths private and issuing a short-lived URL only after application role/assignment and Work Order linkage checks preserves provenance and least authority without replacing the upload queue or creating a document-management domain. See ADR-0064.
+
+## Why completion correction is append-only rather than a reopen
+
+A factual correction needs a visible authorizer, reason, bounded frozen-section scope, original Technician identity, and preserved before/after history. Keeping the Work Order completed prevents a correction from becoming an accidental scheduling, staffing, scope, financial, or customer-communication action. Invalidating acknowledgement only when a corrected fact is actually accepted avoids making authorization itself customer-significance-bearing while still requiring fresh management review of the resubmission. See ADR-0065.

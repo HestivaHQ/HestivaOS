@@ -335,3 +335,7 @@ The SUPERVISOR-only `GET /api/v1/supervisor/operations` boundary provides a secr
 ## Private Execution Evidence reads (2026-08-19)
 
 Execution Evidence metadata remains append-only and local-first, while object retrieval is now an explicit API authorization boundary. Broad Work Order, incident, scope-mismatch and Supervisor projections expose safe provenance/synchronization metadata or counts without raw Storage paths. ADMIN/SUPERVISOR and currently assigned active Technicians may request one acknowledged artifact; the API verifies its Work Order binding and returns a 60-second signed private-bucket URL. See `EXECUTION_EVIDENCE_SECURITY_V1.md` and ADR-0064.
+
+## Technician completion correction (2026-08-19)
+
+Post-completion factual correction is an append-only aggregate authorized only by ADMIN/SUPERVISOR for exact sections of the frozen Execution Scope and the original completing Technician. The Work Order remains `COMPLETED`; corrected results are newly linked outcome events. Authorization preserves the current completion acknowledgement. The first accepted correction snapshots and makes that acknowledgement non-current, and `RESUBMITTED` requires fresh use of the canonical completion acknowledgement. Existing IndexedDB operations provide offline retry and reviewable conflicts. No scheduling, staffing, scope, Finance, pricing, correspondence, notification, or messaging side effect exists. See `TECHNICIAN_COMPLETION_CORRECTION_V1.md` and ADR-0065.

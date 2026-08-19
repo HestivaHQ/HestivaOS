@@ -808,3 +808,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added constrained, assignment-scoped Technician safety/damage/condition/operational reporting with durable offline UUID operations and existing Execution Evidence linkage.
 - Added append-only ADMIN/SUPERVISOR acknowledgement, neutral resolution and reopen history plus deterministic shared Needs Attention lifecycle.
 - Preserved independent completion, scope-mismatch and interrupted/replacement-visit facts. Added no correspondence, notification delivery, Finance, liability, legal, insurance or HR behavior.
+
+## 2026-08-19 — Technician completion correction
+
+- Added ADMIN/SUPERVISOR authorization and history for exact frozen-scope completion corrections.
+- Added original-Technician-only append-only corrected outcomes, offline/idempotent corrected resubmission, acknowledgement-history preservation, and fresh canonical acknowledgement gating.
+- Kept completed lifecycle, scope, evidence and operational histories intact with no Finance, pricing, correspondence, notification, or messaging side effects.

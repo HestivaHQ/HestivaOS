@@ -8,6 +8,7 @@ import { AccessReadinessPanel } from './access-readiness-panel';
 import { TemporaryAccessCredentialsPanel } from './temporary-access-credentials-panel';
 import { AccessRecoveryPanel } from './access-recovery-panel';
 import { IncidentAdminPanel } from './incident-admin-panel';
+import { CompletionCorrectionPanel } from './completion-correction-panel';
 
 export default async function TechnicianJobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +17,7 @@ export default async function TechnicianJobPage({ params }: { params: Promise<{ 
   const canRouteInterruption = appUser.role === 'ADMIN' || appUser.role === 'SUPERVISOR';
   return <AppFrame active="/work-orders" email={appUser.email} user={appUser}>
     <TechnicianJobView workOrderId={id} canAcknowledgeCompletion={canRouteInterruption} />
+    {canRouteInterruption ? <CompletionCorrectionPanel workOrderId={id} /> : null}
     {canRouteInterruption ? <AccessReadinessPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <AccessRecoveryPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <TemporaryAccessCredentialsPanel workOrderId={id} /> : null}

@@ -10,6 +10,7 @@ import { CreateTemporaryCredentialInput, ReviewTemporaryCredentialInput, WorkOrd
 import { InitiateAccessRecoveryInput, RegisterRecoveryCandidateInput, WorkOrderAccessRecoveryService } from './work-order-access-recovery.service';
 import { ReviewIncidentInput, WorkOrderIncidentService } from './work-order-incident.service';
 import { ExecutionEvidenceAccessService } from '../execution-evidence/execution-evidence-access.service';
+import { AuthorizeCompletionCorrectionInput, WorkOrderCompletionCorrectionService } from './work-order-completion-correction.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -22,7 +23,16 @@ export class WorkOrdersController {
     private readonly accessRecovery: WorkOrderAccessRecoveryService,
     private readonly incidents: WorkOrderIncidentService,
     private readonly evidenceAccess: ExecutionEvidenceAccessService,
+    private readonly completionCorrections: WorkOrderCompletionCorrectionService,
   ) {}
+
+  @Get(':id/completion-corrections')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  completionCorrectionHistory(@Param('id', new ParseUUIDPipe()) id:string){return this.completionCorrections.history(id);}
+
+  @Post(':id/completion-corrections')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  authorizeCompletionCorrection(@Param('id', new ParseUUIDPipe()) id:string,@Body() input:AuthorizeCompletionCorrectionInput,@CurrentUser() actor:User){return this.completionCorrections.authorize(id,input,actor.id);}
 
   @Get(':id/execution-evidence/:evidenceId/access')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)

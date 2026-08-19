@@ -72,3 +72,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0062: Preserve field incidents separately from visit outcomes](ADR-0062-work-order-field-incidents.md)
 - [ADR-0063: Project canonical execution truth for Supervisor operational review](ADR-0063-supervisor-operational-projection.md)
 - [ADR-0064: Broker private Execution Evidence reads through short-lived access](ADR-0064-private-execution-evidence-access.md)
+- [ADR-0065: Use an append-only aggregate for Technician completion corrections](ADR-0065-append-only-technician-completion-corrections.md)
