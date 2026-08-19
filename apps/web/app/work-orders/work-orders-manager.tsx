@@ -21,6 +21,12 @@ const NEXT_STATUSES: Record<WorkOrderStatus, WorkOrderStatus[]> = {
 };
 
 function readableStatus(status: string) { return status.replaceAll('_', ' '); }
+function mergeSelected<T extends { id: string }>(items: T[], selected?: T | null) {
+  return selected && !items.some((item) => item.id === selected.id) ? [selected, ...items] : items;
+}
+function mergeSelectedMany<T extends { id: string }>(items: T[], selected: T[]) {
+  return selected.reduce((current, item) => mergeSelected(current, item), items);
+}
 function activityDescription(activity: WorkOrderActivity) {
   if (activity.type === 'WORK_ORDER_CREATED') return 'Work order created';
   if (activity.type === 'TECHNICIAN_ASSIGNED') return 'Technician assigned';
@@ -51,13 +57,18 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [propertySearch, setPropertySearch] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
+  const [crewSearch, setCrewSearch] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [addOnSearch, setAddOnSearch] = useState('');
   const [timeline, setTimeline] = useState<WorkOrderActivity[]>([]);
   const [checklist, setChecklist] = useState<WorkOrderChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const availableProperties = useMemo(() => properties.filter((p) => !form.customerId || p.customerId === form.customerId), [properties, form.customerId]);
   const selectedCrew = useMemo(() => crews.find((crew) => crew.id === form.crewId), [crews, form.crewId]);
-  const assignableTechnicians = useMemo(() => technicians.filter((technician) => technician.status === 'ACTIVE' && `${technician.firstName} ${technician.lastName}`.toLowerCase().includes(technicianSearch.trim().toLowerCase())), [technicians, technicianSearch]);
+  const assignableTechnicians = useMemo(() => technicians.filter((technician) => technician.status === 'ACTIVE'), [technicians]);
   const selectableAddOns = useMemo(() => { const historical = items.find((item) => item.id === editingId)?.addOns.map((item) => item.service) ?? []; return [...addOnServices, ...historical.filter((service) => !addOnServices.some((active) => active.id === service.id))]; }, [addOnServices, editingId, items]);
 
   function selectedAddOn(serviceId: string) { return form.addOns.find((item) => item.serviceId === serviceId); }
@@ -70,22 +81,21 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
 
   async function loadReferenceData() {
     try {
-      const [customerData, propertyData, technicianData, crewData, primaryData, addOnData] = await Promise.all([
-        api.customers('?page=1&pageSize=100'),
-        api.properties('?page=1&pageSize=100'),
-        api.technicians('?page=1&pageSize=100'),
-        api.crews('?page=1&pageSize=100'),
-        api.services('?page=1&pageSize=100&status=ACTIVE&type=PRIMARY'),
-        api.services('?page=1&pageSize=100&status=ACTIVE&type=ADD_ON'),
-      ]);
+      const customerQuery = preselectedCustomerId
+        ? `?page=1&pageSize=20&search=${encodeURIComponent(preselectedCustomerId)}`
+        : '?page=1&pageSize=20';
+      const customerData = await api.customers(customerQuery);
+      const customer = preselectedCustomerId
+        ? customerData.items.find((item) => item.id === preselectedCustomerId)
+        : customerData.items[0];
+      const propertyData = customer
+        ? await api.properties(`?page=1&pageSize=20&customerId=${encodeURIComponent(customer.id)}${preselectedPropertyId ? `&search=${encodeURIComponent(preselectedPropertyId)}` : ''}`)
+        : { items: [] as Property[], total: 0, page: 1, pageSize: 20 };
+      const property = preselectedPropertyId
+        ? propertyData.items.find((item) => item.id === preselectedPropertyId && item.customerId === customer?.id)
+        : propertyData.items[0];
       setCustomers(customerData.items);
       setProperties(propertyData.items);
-      setTechnicians(technicianData.items);
-      setCrews(crewData.items);
-      setPrimaryServices(primaryData.items);
-      setAddOnServices(addOnData.items);
-      const customer = preselectedCustomerId ? customerData.items.find((item) => item.id === preselectedCustomerId) : customerData.items[0];
-      const property = preselectedPropertyId ? propertyData.items.find((item) => item.id === preselectedPropertyId && item.customerId === customer?.id) : propertyData.items.find((item) => item.customerId === customer?.id);
       setForm((current) => current.customerId || !customer ? current : { ...current, customerId: customer.id, propertyId: property?.id ?? '' });
       setError((preselectedCustomerId && !customer) || (preselectedPropertyId && !property) ? 'Validation failed. The selected customer or property is unavailable or mismatched.' : '');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work-order reference data.'); }
@@ -103,6 +113,55 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     const timer = window.setTimeout(() => { void loadWorkOrders(); }, 300);
     return () => window.clearTimeout(timer);
   }, [alert, search]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.customers(`?page=1&pageSize=20${customerSearch.trim() ? `&search=${encodeURIComponent(customerSearch.trim())}` : ''}`)
+        .then((data) => setCustomers((current) => mergeSelected(data.items, current.find((item) => item.id === form.customerId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search customers.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [customerSearch, form.customerId]);
+  useEffect(() => {
+    if (!form.customerId) { setProperties([]); return; }
+    const timer = window.setTimeout(() => {
+      void api.properties(`?page=1&pageSize=20&customerId=${encodeURIComponent(form.customerId)}${propertySearch.trim() ? `&search=${encodeURIComponent(propertySearch.trim())}` : ''}`)
+        .then((data) => setProperties((current) => mergeSelected(data.items, current.find((item) => item.id === form.propertyId && item.customerId === form.customerId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search properties.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [form.customerId, form.propertyId, propertySearch]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.technicians(`?page=1&pageSize=20&status=ACTIVE${technicianSearch.trim() ? `&search=${encodeURIComponent(technicianSearch.trim())}` : ''}`)
+        .then((data) => setTechnicians((current) => mergeSelectedMany(data.items, current.filter((item) => form.technicianIds.includes(item.id)))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search technicians.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [form.technicianIds, technicianSearch]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.crews(`?page=1&pageSize=20&status=ACTIVE${crewSearch.trim() ? `&search=${encodeURIComponent(crewSearch.trim())}` : ''}`)
+        .then((data) => setCrews((current) => mergeSelected(data.items, current.find((item) => item.id === form.crewId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search crews.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [crewSearch, form.crewId]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.services(`?page=1&pageSize=20&status=ACTIVE&type=PRIMARY${serviceSearch.trim() ? `&search=${encodeURIComponent(serviceSearch.trim())}` : ''}`)
+        .then((data) => setPrimaryServices((current) => mergeSelected(data.items, current.find((item) => item.id === form.serviceId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search primary services.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [form.serviceId, serviceSearch]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.services(`?page=1&pageSize=20&status=ACTIVE&type=ADD_ON${addOnSearch.trim() ? `&search=${encodeURIComponent(addOnSearch.trim())}` : ''}`)
+        .then((data) => setAddOnServices(data.items))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search add-ons.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [addOnSearch]);
   useEffect(() => {
     const workOrder = items.find((item) => item.id === editId);
     if (workOrder && editingId !== workOrder.id) edit(workOrder);
@@ -129,6 +188,11 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
 
   function edit(workOrder: WorkOrder) {
     setEditingId(workOrder.id);
+    setCustomers((current) => mergeSelected(current, workOrder.customer));
+    setProperties((current) => mergeSelected(current, workOrder.property));
+    setTechnicians((current) => mergeSelectedMany(current, workOrder.assignedTechnicians.map((item) => item.technician)));
+    setCrews((current) => mergeSelected(current, workOrder.crew));
+    setPrimaryServices((current) => mergeSelected(current, workOrder.service));
     setForm({ customerId: workOrder.customerId, propertyId: workOrder.propertyId, technicianIds: workOrder.assignedTechnicians.map((item) => item.technicianId), jobLeaderId: workOrder.jobLeaderId ?? '', crewId: workOrder.crewId ?? '', serviceId: workOrder.serviceId ?? '', addOns: workOrder.addOns.map((item) => ({ serviceId: item.serviceId, quantity: item.quantity, capacityApproved: true })), frequency: workOrder.frequency ?? '', customFrequencyNote: workOrder.customFrequencyNote ?? '', homeCondition: workOrder.homeCondition ?? '', description: workOrder.description ?? '', status: workOrder.status, priority: workOrder.priority, scheduledAt: workOrder.scheduledAt?.slice(0, 16) ?? '', completedAt: workOrder.completedAt?.slice(0, 16) ?? '' });
     void Promise.all([api.workOrderTimeline(workOrder.id), api.workOrderChecklist(workOrder.id)]).then(([activities, items]) => { setTimeline(activities); setChecklist(items); }).catch((err) => setError(err instanceof Error ? err.message : 'Unable to load work order details.'));
   }
@@ -162,18 +226,22 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     <div className="resourceGrid">
       <form className="panel resourceForm" onSubmit={submit}>
         <div className="panelHeader"><h3>{editingId ? 'Edit work order' : 'New work order'}</h3></div>
-        <label>Customer<select required value={form.customerId} onChange={(e) => { const customerId = e.target.value; setForm({ ...form, customerId, propertyId: properties.find((p) => p.customerId === customerId)?.id ?? '' }); }}><option value="">Select customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{displayCustomerName(c)}</option>)}</select></label>
+        <label>Search customers<input type="search" value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Name, email or phone" /></label>
+        <label>Customer<select required value={form.customerId} onChange={(e) => { const customerId = e.target.value; setPropertySearch(''); setForm({ ...form, customerId, propertyId: '' }); }}><option value="">Select customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{displayCustomerName(c)}</option>)}</select></label>
+        <label>Search properties<input type="search" disabled={!form.customerId} value={propertySearch} onChange={(event) => setPropertySearch(event.target.value)} placeholder={form.customerId ? 'Name, address or city' : 'Select a customer first'} /></label>
         <label>Property<select required value={form.propertyId} onChange={(e) => setForm({ ...form, propertyId: e.target.value })}><option value="">Select property</option>{availableProperties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <h4>Assignment</h4>
-        <label>Crew<select value={form.crewId} onChange={(e) => { const crewId = e.target.value; const crew = crews.find((item) => item.id === crewId); const eligibleCrewIds = crew?.members.filter((member) => member.technician.status === 'ACTIVE').map((member) => member.technicianId) ?? []; setForm({ ...form, crewId, technicianIds: crewId ? [...new Set(eligibleCrewIds)] : form.technicianIds, jobLeaderId: crewId ? (crew?.leaderId ?? '') : form.jobLeaderId }); }}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}{crew.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
-        <label>Search eligible technicians<input type="search" value={technicianSearch} onChange={(event) => setTechnicianSearch(event.target.value)} placeholder="Search by name" /></label>
-        <fieldset className="assignmentPicker"><legend>Assigned technicians</legend>{assignableTechnicians.slice(0, 12).map((technician) => <label key={technician.id}><input type="checkbox" checked={form.technicianIds.includes(technician.id)} onChange={(event) => setForm((current) => ({ ...current, technicianIds: event.target.checked ? [...new Set([...current.technicianIds, technician.id])] : current.technicianIds.filter((id) => id !== technician.id), jobLeaderId: event.target.checked ? current.jobLeaderId : (current.jobLeaderId === technician.id ? '' : current.jobLeaderId) }))} /> {technician.firstName} {technician.lastName}</label>)}{!assignableTechnicians.length ? <p className="helpText">No eligible technicians match this search.</p> : null}<p className="helpText">{form.technicianIds.length ? `${form.technicianIds.length} technician${form.technicianIds.length === 1 ? '' : 's'} selected. This job-specific set is saved independently of later crew changes.` : 'Unassigned'}</p></fieldset>
+        <label>Search crews<input type="search" value={crewSearch} onChange={(event) => setCrewSearch(event.target.value)} placeholder="Crew or technician name" /></label>
+        <label>Crew<select value={form.crewId} onChange={(e) => { const crewId = e.target.value; const crew = crews.find((item) => item.id === crewId); const eligibleCrew = crew?.members.filter((member) => member.technician.status === 'ACTIVE').map((member) => member.technician) ?? []; const eligibleCrewIds = eligibleCrew.map((technician) => technician.id); setTechnicians((current) => mergeSelectedMany(current, eligibleCrew)); setForm({ ...form, crewId, technicianIds: crewId ? [...new Set(eligibleCrewIds)] : form.technicianIds, jobLeaderId: crewId ? (crew?.leaderId ?? '') : form.jobLeaderId }); }}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}{crew.status === 'INACTIVE' ? ' (inactive)' : ''}</option>)}</select></label>
+        <label>Search eligible technicians<input type="search" value={technicianSearch} onChange={(event) => setTechnicianSearch(event.target.value)} placeholder="Search by name, email or phone" /></label>
+        <fieldset className="assignmentPicker"><legend>Assigned technicians</legend>{assignableTechnicians.slice(0, 20).map((technician) => <label key={technician.id}><input type="checkbox" checked={form.technicianIds.includes(technician.id)} onChange={(event) => setForm((current) => ({ ...current, technicianIds: event.target.checked ? [...new Set([...current.technicianIds, technician.id])] : current.technicianIds.filter((id) => id !== technician.id), jobLeaderId: event.target.checked ? current.jobLeaderId : (current.jobLeaderId === technician.id ? '' : current.jobLeaderId) }))} /> {technician.firstName} {technician.lastName}</label>)}{!assignableTechnicians.length ? <p className="helpText">No eligible technicians match this search.</p> : null}<p className="helpText">{form.technicianIds.length ? `${form.technicianIds.length} technician${form.technicianIds.length === 1 ? '' : 's'} selected. This job-specific set is saved independently of later crew changes.` : 'Unassigned'}</p></fieldset>
         {form.technicianIds.length > 1 ? <label>Job Leader<select required value={form.jobLeaderId} onChange={(e) => setForm({ ...form, jobLeaderId: e.target.value })}><option value="">Select Job Leader</option>{technicians.filter((technician) => form.technicianIds.includes(technician.id)).map((technician) => <option key={technician.id} value={technician.id}>{technician.firstName} {technician.lastName}</option>)}</select></label> : form.technicianIds.length === 1 ? <p className="helpText">Job Leader: {technicians.find((technician) => technician.id === form.technicianIds[0])?.firstName} {technicians.find((technician) => technician.id === form.technicianIds[0])?.lastName} (automatic)</p> : null}
         {selectedCrew ? <p className="helpText">Crew leader: {selectedCrew.leader ? `${selectedCrew.leader.firstName} ${selectedCrew.leader.lastName}` : 'Not assigned'} · Members: {selectedCrew.members.map((member) => `${member.technician.firstName} ${member.technician.lastName}`).join(', ') || 'None'}</p> : null}
         {editingId ? <p><strong>Work Order Reference</strong><br />{workOrderReference(items.find((item) => item.id === editingId)!)}</p> : <p className="helpText"><strong>Work Order Reference</strong><br />Automatically generated when the job is created.</p>}
         <h4>Job</h4>
+        <label>Search primary services<input type="search" value={serviceSearch} onChange={(event) => setServiceSearch(event.target.value)} placeholder="Service name" /></label>
         <label>Primary Service<select required value={form.serviceId} onChange={(e) => setForm({ ...form, serviceId: e.target.value })}><option value="">Select primary service</option>{[...primaryServices, ...(editingId && ['PRIMARY', 'BOTH'].includes(items.find((item) => item.id === editingId)?.service?.type ?? '') && !primaryServices.some((service) => service.id === form.serviceId) ? [items.find((item) => item.id === editingId)!.service!] : [])].map((service) => <option key={service.id} value={service.id}>{service.name}{service.status === 'INACTIVE' ? ' (inactive, historical)' : ''}</option>)}</select></label>
-        <fieldset className="addOnSection"><legend>Add-ons</legend><p className="helpText">Select optional services and the accepted quantity. Laundry and Ironing require an explicit labour/time capacity check.</p>{selectableAddOns.length ? <div className="addOnGrid">{selectableAddOns.map((service) => { const inputId = `work-order-add-on-${service.id}`; const selected = selectedAddOn(service.id); const needsCapacity = CAPACITY_REVIEW_NAMES.has(service.name.trim().toLowerCase()); return <div className={`addOnOption${selected ? ' addOnOptionSelected' : ''}${service.status === 'INACTIVE' ? ' addOnOptionInactive' : ''}`} key={service.id}><label htmlFor={inputId}><input id={inputId} type="checkbox" checked={Boolean(selected)} onChange={(event) => toggleAddOn(service, event.target.checked)} /><span>{service.name}{service.status === 'INACTIVE' ? <small>Inactive · historical selection</small> : null}</span></label>{selected ? <><label>Quantity<input type="number" min={1} step={1} value={selected.quantity} onChange={(event) => updateAddOn(service.id, { quantity: Math.max(1, Number.parseInt(event.target.value || '1', 10)) })} /></label>{needsCapacity ? <label><input type="checkbox" checked={selected.capacityApproved} onChange={(event) => updateAddOn(service.id, { capacityApproved: event.target.checked })} /> Labour/time capacity checked for this job</label> : null}</> : null}</div>; })}</div> : <p className="addOnEmptyState">No add-ons are currently available.</p>}</fieldset>
+        <fieldset className="addOnSection"><legend>Add-ons</legend><p className="helpText">Select optional services and the accepted quantity. Laundry and Ironing require an explicit labour/time capacity check.</p><label>Search add-ons<input type="search" value={addOnSearch} onChange={(event) => setAddOnSearch(event.target.value)} placeholder="Add-on name" /></label>{selectableAddOns.length ? <div className="addOnGrid">{selectableAddOns.map((service) => { const inputId = `work-order-add-on-${service.id}`; const selected = selectedAddOn(service.id); const needsCapacity = CAPACITY_REVIEW_NAMES.has(service.name.trim().toLowerCase()); return <div className={`addOnOption${selected ? ' addOnOptionSelected' : ''}${service.status === 'INACTIVE' ? ' addOnOptionInactive' : ''}`} key={service.id}><label htmlFor={inputId}><input id={inputId} type="checkbox" checked={Boolean(selected)} onChange={(event) => toggleAddOn(service, event.target.checked)} /><span>{service.name}{service.status === 'INACTIVE' ? <small>Inactive · historical selection</small> : null}</span></label>{selected ? <><label>Quantity<input type="number" min={1} step={1} value={selected.quantity} onChange={(event) => updateAddOn(service.id, { quantity: Math.max(1, Number.parseInt(event.target.value || '1', 10)) })} /></label>{needsCapacity ? <label><input type="checkbox" checked={selected.capacityApproved} onChange={(event) => updateAddOn(service.id, { capacityApproved: event.target.checked })} /> Labour/time capacity checked for this job</label> : null}</> : null}</div>; })}</div> : <p className="addOnEmptyState">No add-ons match this search.</p>}</fieldset>
         <label>Frequency<select required value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value as WorkOrderFrequency | '', customFrequencyNote: e.target.value === 'CUSTOM' ? form.customFrequencyNote : '' })}><option value="">Select frequency</option>{Object.entries(frequencyLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
         {form.frequency === 'CUSTOM' ? <label>Custom frequency note<input maxLength={120} placeholder="For example, every 3 weeks" value={form.customFrequencyNote} onChange={(e) => setForm({ ...form, customFrequencyNote: e.target.value })} /></label> : null}
         <label>Home Condition<select required value={form.homeCondition} onChange={(e) => setForm({ ...form, homeCondition: e.target.value as HomeCondition | '' })}><option value="">Select home condition</option>{Object.entries(homeConditionLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
