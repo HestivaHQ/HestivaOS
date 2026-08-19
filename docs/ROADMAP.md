@@ -1,9 +1,14 @@
 # Technical roadmap
 
+## Field Operations Hardening status (2026-08-19)
+
+- Completed private Execution Evidence read hardening: broad projections omit raw paths and explicit Work Order-scoped ADMIN/SUPERVISOR or assignment-scoped Technician reads return only 60-second signed access.
+- Technician post-completion correction/reopen remains blocked: canonical records do not decide authorizing authority or acknowledgement consequences. Finance, correspondence, live providers and lifecycle redesign remain deferred.
+
 ## Supervisor Operational Review v1 status (2026-08-19)
 
 - Phase 4B is implemented as a SUPERVISOR-only exception-first workspace that reuses Needs Attention and projects canonical assignment, access, execution, evidence synchronization, completion, incident, interruption, and scope-mismatch state without new business status.
-- Still deferred: notification delivery, Finance, customer correspondence, Technician correction/reopen, evidence-read hardening, dispatch redesign, and any new Supervisor authority.
+- Still deferred: notification delivery, Finance, customer correspondence, Technician correction/reopen, dispatch redesign, and any new Supervisor authority. Private evidence-read hardening is completed by the Field Operations bundle above.
 
 ## Dashboard Needs Attention Foundation v1 status (2026-08-18)
 

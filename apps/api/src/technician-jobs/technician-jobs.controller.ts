@@ -17,10 +17,11 @@ import {
   TechnicianJobsService,
   TechnicianListView,
 } from "./technician-jobs.service";
+import { ExecutionEvidenceAccessService } from '../execution-evidence/execution-evidence-access.service';
 
 @Controller("technician/jobs")
 export class TechnicianJobsController {
-  constructor(private readonly jobs: TechnicianJobsService) {}
+  constructor(private readonly jobs: TechnicianJobsService, private readonly evidenceAccess: ExecutionEvidenceAccessService) {}
 
   @Get()
   list(
@@ -37,6 +38,9 @@ export class TechnicianJobsController {
   ) {
     return this.jobs.brief(user.id, id);
   }
+
+  @Get(":id/evidence/:evidenceId/access")
+  evidence(@CurrentUser() user: User,@Param("id",new ParseUUIDPipe()) id:string,@Param("evidenceId",new ParseUUIDPipe()) evidenceId:string){return this.evidenceAccess.technicianAccess(user.id,id,evidenceId);}
 
   @Post(":id/start")
   start(

@@ -9,6 +9,7 @@ import { UpdateAccessReadinessInput, WorkOrderAccessReadinessService } from './w
 import { CreateTemporaryCredentialInput, ReviewTemporaryCredentialInput, WorkOrderTemporaryAccessCredentialsService } from './work-order-temporary-access-credentials.service';
 import { InitiateAccessRecoveryInput, RegisterRecoveryCandidateInput, WorkOrderAccessRecoveryService } from './work-order-access-recovery.service';
 import { ReviewIncidentInput, WorkOrderIncidentService } from './work-order-incident.service';
+import { ExecutionEvidenceAccessService } from '../execution-evidence/execution-evidence-access.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -20,7 +21,12 @@ export class WorkOrdersController {
     private readonly temporaryCredentials: WorkOrderTemporaryAccessCredentialsService,
     private readonly accessRecovery: WorkOrderAccessRecoveryService,
     private readonly incidents: WorkOrderIncidentService,
+    private readonly evidenceAccess: ExecutionEvidenceAccessService,
   ) {}
+
+  @Get(':id/execution-evidence/:evidenceId/access')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  executionEvidenceAccess(@Param('id', new ParseUUIDPipe()) id:string,@Param('evidenceId',new ParseUUIDPipe()) evidenceId:string,@CurrentUser() actor:User){return this.evidenceAccess.managementAccess(id,evidenceId,actor.role);}
 
   @Get(':id/incidents')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)

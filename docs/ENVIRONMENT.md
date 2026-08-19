@@ -71,3 +71,10 @@ Use ignored local environment files and placeholder-only tracked examples.
 ## Phase 3B protected temporary access
 
 - `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` — API-only, required when protected text is written or revealed; base64 encoding of exactly 32 random bytes. Acquire and rotate it through the approved deployment secret manager. Never prefix it with `NEXT_PUBLIC_`, log it, or commit a value. Rotation requires a controlled re-encryption procedure because existing ciphertext remains bound to the prior key.
+
+## Private Execution Evidence access (2026-08-19)
+
+- `SUPABASE_SERVICE_ROLE_KEY` — API-only credential used solely after application authorization to sign private Execution Evidence reads; acquire and rotate it in Supabase project API settings and the Railway secret manager. Never log, commit, expose to Cloudflare/Next.js, or prefix with `NEXT_PUBLIC_`.
+- `SUPABASE_WORK_ORDER_PHOTOS_BUCKET` — API-side bucket name for signed Execution Evidence reads; defaults to `work-order-photos` and must identify the same private bucket used by capture uploads.
+
+The bucket must not permit anonymous/public reads. `SUPABASE_URL` remains the project URL used by authentication and signing.
