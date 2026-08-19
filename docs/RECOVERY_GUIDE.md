@@ -289,3 +289,7 @@ A device showing **Completed · Sync pending** owns a durable `COMPLETE_JOB` ope
 ## Work Order access-readiness recovery
 
 If an access attention item is unexpectedly open, inspect the Work Order controlled readiness and operational status, then use the ADMIN/SUPERVISOR Work Order panel to record the truthful state. Reconciliation will resolve or reopen the stable attention condition and retain occurrence history. Correct mistakes with another readiness transition; never delete readiness events, edit lifecycle status merely to hide attention, or put temporary credentials in notes. Migration failure is handled by fixing the evidenced database condition and rolling the additive migration forward.
+
+## Phase 3B protected credential recovery (2026-08-18)
+
+Preserve `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` in the approved deployment secret manager and recovery inventory. Database restoration without the matching key retains history but cannot decrypt protected text; do not replace the key as a troubleshooting step. Restore private attachment objects with their unchanged paths. Correct lifecycle mistakes through review/revocation and Phase 3A compensating readiness transitions, never by deleting credential/event rows. Key rotation requires a separately reviewed re-encryption operation; none is supplied by Phase 3B.

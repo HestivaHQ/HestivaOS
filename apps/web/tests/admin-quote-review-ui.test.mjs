@@ -61,10 +61,11 @@ test('decline is confirmed with a meaningful reason and terminal Quotes hide dec
   assert.match(detail, /const canDecide = quote\.status === 'SUBMITTED' \|\| quote\.status === 'NEEDS_ATTENTION'/);
 });
 
-test('API client sends expected revisions and exposes no credential secret model', () => {
+test('quote API sends expected revisions and the shared client never exposes persisted credential ciphertext', () => {
   assert.match(api, /acceptQuote:[\s\S]*json\(\{ expectedRevisionNumber \}\)/);
   assert.match(api, /declineQuote:[\s\S]*json\(\{ expectedRevisionNumber, reason \}\)/);
-  assert.doesNotMatch(api, /secretValue|TemporaryAccessCredential/);
+  assert.doesNotMatch(api, /secretValue/);
+  assert.match(api, /revealTemporaryAccessCredential:[\s\S]*method:"POST"/);
 });
 
 test('native semantic dialogs and labelled status regions preserve accessibility', () => {

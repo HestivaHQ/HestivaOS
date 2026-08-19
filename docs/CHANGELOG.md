@@ -765,3 +765,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 - Work Order lifecycle, scheduling, assignment, dispatch, execution, completion, cancellation, customer correspondence, and Finance are unchanged.
 - Temporary credentials are not selected, exposed, copied, stored, or broadened. Protected credential review, appointment-relative escalation, and messaging recovery remain Phase 3B–3D.
+
+## 2026-08-18 — Phase 3B protected temporary access credentials
+
+- Extended the existing Work Order credential model with encrypted protected text, private attachment provenance, review status, retry identity, and append-only actor audit events.
+- Added ADMIN-only metadata, create, review, audited reveal, and revoke APIs plus a protected Work Order review panel.
+- Integrated accepted/rejected/expired/revoked outcomes with Phase 3A readiness history without exposing secrets through broad operational projections.
+- Added migration, security/lifecycle tests, ADR-0059, and deployment/recovery/environment guidance. Phase 3C, Phase 3D, correspondence, providers, and Finance remain deferred.

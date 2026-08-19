@@ -66,3 +66,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0056: Interrupted / unable-to-complete visits](ADR-0056-interrupted-unable-to-complete-visits.md)
 - [ADR-0057: Linked replacement visits preserve attempted-visit history](ADR-0057-linked-replacement-visits.md)
 - [ADR-0058: Separate Work Order access readiness from lifecycle and credentials](ADR-0058-work-order-access-readiness-foundation.md)
+- [ADR-0059: Protect and review visit-scoped temporary access credentials](ADR-0059-protected-temporary-access-credentials.md)
