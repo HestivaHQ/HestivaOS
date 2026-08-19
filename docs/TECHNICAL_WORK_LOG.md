@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-19 — Website enquiry ingestion and authoritative ENQ references
+
+- Reconciled current HestivaOS `main`, the Website contact submission implementation, Issue #73, and `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` before implementation. The Website currently submits contact-specific name, phone, email, enquiry type, suburb/address, description and preferred-contact data through its email path, while HestivaOS had no durable enquiry domain or `ENQ` allocator.
+- Added the isolated `EnquiriesModule`, guarded `POST /api/v1/integrations/website/enquiries`, and `website-enquiry.v1` contract. Validation mirrors the current Website contact constraints for enquiry type, preferred-contact values, phone, email and field bounds; the existing Website bearer-secret verifier is reused rather than introducing another credential.
+- Added `WebsiteEnquiry` plus `EnquiryDailyCounter` and migration `20260819210000_website_enquiry_ingestion`. Accepted submissions persist the immutable structured payload and SHA-256 fingerprint and receive `ENQ-YYYYMMDD-NNNN` inside one serializable Johannesburg-business-date transaction.
+- Same-UUID identical retries return the existing reference without consuming another sequence. Same UUID with changed immutable content fails closed. Concurrent uniqueness races re-read the committed row and apply the same fingerprint rule. The 9,999-per-business-day boundary fails without reporting intake success.
+- Added focused validation/fingerprint/ingestion tests and synchronized Architecture, Website enquiry authority, Deployment, Recovery, Roadmap and Changelog documentation. This OS slice creates no Customer, Property, Quote, Work Order, correspondence, Finance, messaging or Needs Attention state; Website contact email cutover remains a separate Issue #73 follow-up after OS merge/deployment.
+
 ## 2026-08-19 — Phase 1B scalable Shift Planning selectors
 
 - Audited Shift Planning reference loading after Phase 1A and verified Crew, Technician and Work Order APIs already provide bounded search; only the Shift UI still loaded fixed 100-record snapshots, so no new search service, API, index or schema was introduced.
@@ -120,7 +128,7 @@
 - Audited the remaining web-navigation hot paths after PR #85 and the local-JWT authentication pass. Protected middleware already verifies Supabase navigation, but several server-rendered pages still performed their own `supabase.auth.getUser()` before separately synchronizing or causing `AppFrame` to synchronize the HestivaOS application User.
 - Removed that duplicate page-level Supabase user verification from Dashboard, Customers, Properties, Work Orders, and Recurring Services. Each changed route now resolves the authoritative HestivaOS application User once through the authenticated API and uses its email/ID for the same shell and page behavior.
 - Removed the login client's immediate `router.refresh()` after `router.replace(nextPath)`, eliminating a redundant post-login render/request cycle while preserving the existing safe next-path handling, duplicate-submit guard, and Supabase sign-in/sign-up flow.
-- Preserved protected-route middleware authentication, Supabase identity ownership, API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior. No database, API contract, business workflow, deployment setting, dependency, or production configuration changed.
+- Preserved protected-route middleware authentication, Supabase identity ownership, API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior. No database, API contract, business workflow, deployment setting, dependency, Supabase integration, or production configuration changed.
 - Verified remaining performance debt rather than broadening this slice: lower-frequency protected pages still contain duplicate page-level Supabase user verification, and the dashboard overview API still computes substantial legacy totals, performance metrics, technician workload, recent activity, full status aggregates, and list data not rendered by the current daily command-centre UI. Dashboard query slimming is the next high-impact target.
 
 ## 2026-08-14 — Reliable GitHub connector operating procedure
@@ -257,7 +265,7 @@
 ## 2026-08-08 — OpenNext monorepo validation path
 
 - Investigated the failed PR quality gate and confirmed that `apps/web/open-next.config.ts` already contains the supported OpenNext Cloudflare 1.20.2 minimal configuration, `defineCloudflareConfig()`. The root cause was execution from the repository root: OpenNext discovers its configuration relative to the current project directory, while Hestiva OS keeps the Next.js project, OpenNext config, Wrangler config, and `.open-next` output under `apps/web`.
-- Set only the OpenNext build steps in the PR and manual migration validation workflows to `working-directory: apps/web`. This uses the existing configuration and produces `apps/web/.open-next/worker.js` and assets where the unchanged `apps/web/wrangler.jsonc` expects them. Wrangler remains a root-invoked dry run with the same Worker name, entry, assets binding, compatibility date, `nodejs_compat`, `keep_vars`, `API_URL`, and observability configuration. No credential or deployment was introduced.
+- Set only the OpenNext build steps in the PR and manual migration validation workflows to `working-directory: apps/web`. This uses the existing configuration and produces `apps/web/.open-next/worker.js` and assets where the unchanged `apps/web/wrangler.jsonc` expects them. Wrangler remains a root-invoked dry run with the same Worker name, entry, assets binding and directory, compatibility date and flag, `keep_vars`, `API_URL`, and observability configuration. No credential or deployment was introduced.
 - Locally confirmed that invoking OpenNext from `apps/web` discovers the existing config, recognizes the monorepo and web app directory, and completes an OpenNext bundle with `.open-next/worker.js`. The available install was still Next.js 15.5.21 under Node.js 20.20.2, so GitHub must perform the authoritative Next.js 16 build on Node.js 24. Local `cf-typegen` and Wrangler dry run stopped before execution because Wrangler 4.120.0 requires Node.js 22 or later; no deployment occurred.
 
 ## 2026-08-08 — Next.js 16 pull-request validation
@@ -298,7 +306,7 @@
 ## 2026-08-08 — Dependency security audit diagnostic
 
 - Added a temporary, manually dispatched Node.js 24 workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
-- Made each diagnostic exit status visible in the job log and step summary, and retained the JSON audit output as a 14-day workflow artifact when npm produces it.
+- Made each diagnostic exit status visible in the job log and step summary, and retained the JSON audit report as a 14-day workflow artifact when npm produces it.
 - Limited the workflow to read-only repository access with no secrets, production credentials, dependency mutation, automatic trigger, or deployment capability. Dependency remediation remains outstanding pending review of the diagnostic results.
 
 ## 2026-08-08 — Cloudflare environment ownership hardening
