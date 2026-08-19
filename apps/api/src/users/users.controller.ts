@@ -15,6 +15,9 @@ export class UsersController {
   @Get('admin')
   @Roles(UserRole.ADMIN)
   findAdminUsers(@Query('search') search?: string) { return this.users.findAdminUsers(search); }
+  @Get(':id/access-history')
+  @Roles(UserRole.ADMIN)
+  findAccessHistory(@Param('id', new ParseUUIDPipe()) id: string) { return this.users.findAccessHistory(id); }
   @Patch(':id/role')
   @Roles(UserRole.ADMIN)
   updateRole(@CurrentUser() actor: User, @Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateRoleInput) { return this.users.updateRole(actor, id, input); }
