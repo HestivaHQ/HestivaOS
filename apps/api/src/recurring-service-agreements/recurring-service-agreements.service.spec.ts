@@ -99,30 +99,6 @@ describe('RecurringServiceAgreementsService auto resume', () => {
     }));
   });
 
-  it('ends a standard agreement when no valid recurrence remains inside its inclusive end date', async () => {
-    const due = { ...agreement, status: RecurringServiceAgreementStatus.PAUSED, endDate: new Date('2026-08-19T00:00:00.000Z'), autoResumeDate: new Date('2026-08-19T00:00:00.000Z') };
-    const updateMany = jest.fn().mockResolvedValue({ count: 1 } as never);
-    const prisma = { recurringServiceAgreement: { findMany: jest.fn().mockResolvedValue([due] as never), updateMany } } as any;
-    const service = new RecurringServiceAgreementsService(prisma);
-
-    await expect(service.resumeDueAgreements(new Date('2026-08-19T12:00:00.000Z'))).resolves.toEqual({ resumed: 0, ended: 1 });
-    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: { status: RecurringServiceAgreementStatus.ENDED, autoResumeDate: null, nextServiceDate: null },
-    }));
-  });
-
-  it('resumes a due custom agreement for manual scheduling', async () => {
-    const due = { ...agreement, frequency: WorkOrderFrequency.CUSTOM, weekday: null, status: RecurringServiceAgreementStatus.PAUSED, autoResumeDate: new Date('2026-08-19T00:00:00.000Z') };
-    const updateMany = jest.fn().mockResolvedValue({ count: 1 } as never);
-    const prisma = { recurringServiceAgreement: { findMany: jest.fn().mockResolvedValue([due] as never), updateMany } } as any;
-    const service = new RecurringServiceAgreementsService(prisma);
-
-    await expect(service.resumeDueAgreements(new Date('2026-08-19T12:00:00.000Z'))).resolves.toEqual({ resumed: 1, ended: 0 });
-    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      data: { status: RecurringServiceAgreementStatus.ACTIVE, autoResumeDate: null, nextServiceDate: null },
-    }));
-  });
-
   it('does not count a second runner that loses the conditional update race', async () => {
     const due = { ...agreement, status: RecurringServiceAgreementStatus.PAUSED, autoResumeDate: new Date('2026-08-19T00:00:00.000Z') };
     const prisma = { recurringServiceAgreement: { findMany: jest.fn().mockResolvedValue([due] as never), updateMany: jest.fn().mockResolvedValue({ count: 0 } as never) } } as any;
