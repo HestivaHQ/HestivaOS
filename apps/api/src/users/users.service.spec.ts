@@ -140,7 +140,7 @@ describe('UsersService administrator access management', () => {
     expect(transaction.userAccessChange.create).not.toHaveBeenCalled();
   });
 
-  it('returns access history newest-first for an existing target', async () => {
+  it('returns the latest 100 access-history entries newest-first for an existing target', async () => {
     const target = { id: 'user-2', email: 'tech@example.com', firstName: 'Tech', lastName: 'Two', displayName: null, role: 'TECHNICIAN', status: 'ACTIVE' };
     const history = [{ id: 'audit-2' }, { id: 'audit-1' }];
     const { service, transaction } = adminHarness(target, 1, history);
@@ -148,6 +148,7 @@ describe('UsersService administrator access management', () => {
     expect(transaction.userAccessChange.findMany).toHaveBeenCalledWith({
       where: { targetUserId: target.id },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
     });
   });
 
