@@ -1,5 +1,13 @@
 # Production architecture
 
+## Three-stage development validation and PR gate topology (2026-08-19)
+
+HestivaOS development uses the three-stage validation model in `AGENTS.md` and ADR-0067. Active implementation uses proportional affected-area checks while material durable decisions are synchronized immediately; completion documentation and the complete diff are reconciled before the exact PR head is frozen for authoritative GitHub validation. Final merge still requires the strict current-main, parallel-PR, append-only-history, canonical-documentation, mergeability and exact-tested-head review.
+
+`.github/workflows/pr-quality-gates.yml` is the authoritative full integration gate and runs four independent required jobs in parallel: policy/security/diff validation, API validation, web/Cloudflare validation, and clean/staged PostgreSQL migration replay. The policy job needs repository history but no dependency install. API and web jobs each perform their own locked install/Prisma bootstrap and validate their workspace independently. The web job uses OpenNext as the production Next.js/Cloudflare build and then runs Wrangler `--dry-run`; the old sequence of root build followed by repeated API/web builds has been removed because it compiled the same workspaces redundantly before the authoritative downstream checks.
+
+Final gates are not skipped by changed-file paths. This preserves repository-wide integration confidence while reducing wall-clock latency through safe parallelism and removal of duplicated compilation. The documentation validator now mechanically requires both `docs/CHANGELOG.md` and `docs/TECHNICAL_WORK_LOG.md` for meaningful implementation diffs as a minimum gate; `AGENTS.md` remains authoritative for the complete change-to-document matrix.
+
 ## Recurring automatic resume scheduling (2026-08-19)
 
 `RecurringServiceAgreement.autoResumeDate` is the durable optional automatic-resume intent for a paused recurring agreement. It is a calendar business date interpreted in `Africa/Johannesburg`. Pausing may store a future date; manual resume, cancel, and natural/end-state handling clear it. The existing recurrence rules remain authoritative, and any successful resume recalculates `nextServiceDate` from the current Johannesburg business date so missed occurrences are not backfilled.
