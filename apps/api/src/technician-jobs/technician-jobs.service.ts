@@ -26,6 +26,7 @@ const briefSelect = {
   accessInstructions: true, parkingInstructions: true, keyHandover: true, keyHandoverDetails: true,
   someonePresent: true, ecoFriendlyProducts: true, customerDeclaredExistingDamage: true,
   startedScopeRevisionId: true,
+  completionCorrections: { where: { status: { in: ['AUTHORIZED' as const, 'IN_PROGRESS' as const] } }, take: 1, orderBy: { createdAt: 'desc' as const }, select: { id:true,status:true,reason:true,affectedSectionIds:true,firstCorrectedAt:true,createdAt:true } },
   executionScopeRevisions: { orderBy: { revision: 'desc' as const }, take: 1, select: { id:true, revision:true, additions:true, exclusions:true, createdAt:true, sections:{ orderBy:{sortOrder:'asc' as const}, select:{id:true,stableKey:true,title:true,quantity:true,requirements:true,evidencePolicy:true,currentOutcome:true,currentVersion:true,currentOutcomeEvent:{select:{technicianId:true,reason:true,note:true,attentionLevel:true,fieldRecordedAt:true}},evidence:{select:{localEvidenceId:true,syncState:true,capturedAt:true,serverAcknowledgedAt:true}}} } } },
 } satisfies Prisma.WorkOrderSelect;
 
@@ -166,7 +167,7 @@ export class TechnicianJobsService {
     const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null;
     const accessOperationallyResolved = isAccessOperationallyResolved(job.accessReadiness, job.temporaryAccessCredentials ?? [], new Date());
     const { temporaryAccessCredentials: _protectedCredentialMetadata, ...safeJob } = job;
-    return { ...safeJob, technicianId, accessOperationallyResolved, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
+    return { ...safeJob, technicianId, activeCompletionCorrection:job.completionCorrections?.[0]??null, completionCorrections:undefined, accessOperationallyResolved, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
       canStart: job.jobLeaderId === technicianId && !job.startedAt && PRE_START.includes(job.status),
       waitingForJobLeader: job.jobLeaderId !== technicianId && !job.startedAt && PRE_START.includes(job.status),
       cacheable: job.status !== WorkOrderStatus.CANCELLED,

@@ -16,6 +16,7 @@ export type PendingOutcome = SectionOutcomeOperation & {
 };
 export type PendingCompletion = CompleteJobOperation & { workOrderId:string; jobLeaderTechnicianId:string; kind:"COMPLETE_JOB"; queuedAt:string; localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW"; acknowledgedAt?:string; lastError?:string };
 export type PendingIncident = IncidentOperation & {kind:"REPORT_INCIDENT";queuedAt:string;localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW";lastError?:string};
+export type PendingCorrectionResubmission = {kind:"CORRECTION_RESUBMIT";operationId:string;workOrderId:string;correctionId:string;fieldResubmittedAt:string;queuedAt:string;localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW";lastError?:string};
 export type EvidenceSyncState =
   | "CAPTURED_LOCAL"
   | "QUEUED"
@@ -206,3 +207,7 @@ export const removeLocalEvidence = (id: string) =>
     "readwrite",
     (store) => store.delete(id) as IDBRequest<undefined>,
   );
+
+export const saveCorrectionResubmission=(operation:PendingCorrectionResubmission)=>transaction<IDBValidKey>("operations","readwrite",store=>store.put(operation));
+export const correctionResubmissions=async()=>((await transaction<Array<PendingCorrectionResubmission>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="CORRECTION_RESUBMIT") as PendingCorrectionResubmission[]);
+export const pendingCorrectionResubmissions=async()=>(await correctionResubmissions()).filter(x=>x.localSyncState==="SYNC_PENDING");

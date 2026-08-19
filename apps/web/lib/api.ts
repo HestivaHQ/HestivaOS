@@ -1139,6 +1139,8 @@ export const api = {
       ...json(input),
     }),
   acknowledgeWorkOrderCompletion: (id: string) => apiFetch(`/work-orders/${id}/completion/acknowledge`, { method: "POST" }),
+  completionCorrections: (id:string) => apiFetch<CompletionCorrection[]>(`/work-orders/${id}/completion-corrections`),
+  authorizeCompletionCorrection: (id:string,input:{operationId:string;reason:string;sectionIds:string[]}) => apiFetch<CompletionCorrection>(`/work-orders/${id}/completion-corrections`,{method:"POST",...json(input)}),
   workOrderTimeline: (id: string) =>
     apiFetch<WorkOrderActivity[]>(`/work-orders/${id}/timeline`),
   workOrderChecklist: (id: string) =>
@@ -1200,6 +1202,8 @@ export const api = {
     apiFetch<WorkOrder>(`/work-orders/${id}`, { method: "DELETE" }),
 };
 
+export type CompletionCorrection={id:string;status:"AUTHORIZED"|"IN_PROGRESS"|"RESUBMITTED";reason:string;affectedSectionIds:string[];createdAt:string;firstCorrectedAt:string|null;resubmittedAt:string|null;fieldResubmittedAt:string|null;originalCompletionOperationId:string;originalFieldCompletedAt:string;originalCompletionAcceptedAt:string;priorAcknowledgedAt:string|null;priorCorrespondenceEligibleAt:string|null;authorizedBy:{id:string;firstName:string;lastName:string};technician:{id:string;firstName:string;lastName:string};correctedOutcomes:Array<{id:string;outcome:string;reason:string|null;note:string|null;fieldRecordedAt:string;serverReceivedAt:string;section:{id:string;stableKey:string;title:string}}>};
+
 export type TechnicianJob = {
   technicianId: string;
   id: string;
@@ -1258,6 +1262,7 @@ export type TechnicianJob = {
   startedScopeRevisionId: string | null;
   executionScope: ExecutionScope | null;
   localCompletion?: { operationId: string; syncState: "SYNC_PENDING" | "ACKNOWLEDGED" | "NEEDS_REVIEW"; fieldCompletedAt: string; lastError?: string };
+  activeCompletionCorrection?: { id:string;status:"AUTHORIZED"|"IN_PROGRESS";reason:string;affectedSectionIds:string[];firstCorrectedAt:string|null;createdAt:string } | null;
 };
 export type EvidencePolicy = "NONE" | "ON_EXCEPTION" | "REQUIRED";
 export type SectionOutcome = "PENDING" | "COMPLETED" | "NOT_COMPLETED";
@@ -1314,6 +1319,7 @@ export type SectionOutcomeOperation = {
   note?: string;
   fieldRecordedAt: string;
   expectedSectionVersion: number;
+  correctionId?: string;
   evidence?: Array<{
     localEvidenceId: string;
     capturedAt: string;
@@ -1354,7 +1360,7 @@ export const technicianApi = {
     }),
   outcome: (operation: SectionOutcomeOperation) =>
     apiFetch(
-      `/technician/jobs/${operation.workOrderId}/sections/${operation.sectionId}/outcomes`,
+      operation.correctionId ? `/technician/jobs/${operation.workOrderId}/completion-corrections/${operation.correctionId}/sections/${operation.sectionId}/outcomes` : `/technician/jobs/${operation.workOrderId}/sections/${operation.sectionId}/outcomes`,
       { method: "POST", ...json(operation) },
     ),
   acknowledgeEvidence: (evidence: {
@@ -1372,5 +1378,6 @@ export const technicianApi = {
     ),
   review: (id: string) => apiFetch<JobReview>(`/technician/jobs/${id}/review`),
   complete: (id: string, operation: CompleteJobOperation) => apiFetch<{id:string;status:"COMPLETED";completionOperationId:string;fieldCompletedAt:string;completionAcceptedAt:string}>(`/technician/jobs/${id}/complete`, { method: "POST", ...json(operation) }),
+  resubmitCorrection: (workOrderId:string,correctionId:string,operation:{operationId:string;fieldResubmittedAt:string}) => apiFetch(`/technician/jobs/${workOrderId}/completion-corrections/${correctionId}/resubmit`,{method:"POST",...json(operation)}),
   reportIncident: (operation:IncidentOperation) => apiFetch(`/technician/jobs/${operation.workOrderId}/incidents`,{method:"POST",...json(operation)}),
 };

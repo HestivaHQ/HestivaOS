@@ -8,4 +8,4 @@ An authenticated ADMIN or SUPERVISOR may request one acknowledged artifact throu
 
 The existing local-first capture, deterministic object path, upload and acknowledgement pipeline is unchanged. Capture time, Technician, Work Order, scope, section, outcome/incident linkage, client evidence UUID, synchronization state and acknowledgement remain authoritative. Signing neither copies nor mutates an artifact. The Storage bucket must remain private, and `SUPABASE_SERVICE_ROLE_KEY` is API-only and must never be logged, sent to the browser or prefixed with `NEXT_PUBLIC_`.
 
-Post-completion correction/reopen remains blocked pending an explicit authority and acknowledgement-consequence decision. No evidence or completion history may be overwritten in the meantime.
+Post-completion correction is governed by `TECHNICIAN_COMPLETION_CORRECTION_V1.md`; it appends corrected outcome events and does not overwrite evidence or completion history. Evidence retrieval remains governed solely by this security contract.

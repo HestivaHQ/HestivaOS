@@ -18,6 +18,7 @@ import {
   pendingEvidence,
   pendingIncidents,
   pendingCompletions,
+  pendingCorrectionResubmissions,
   pendingOutcomes,
   pendingStarts,
   removeCachedJob,
@@ -25,6 +26,7 @@ import {
   saveEvidence,
   saveIncident,
   saveCompletion,
+  saveCorrectionResubmission,
   savePendingOutcome,
   savePendingStart,
   updateEvidence,
@@ -119,6 +121,7 @@ export function JobBrief({ id }: { id: string }) {
           if (error instanceof ApiError && error.status >= 400 && error.status < 500) await saveCompletion({ ...op, localSyncState: "NEEDS_REVIEW", lastError: error.message });
         }
       }
+      for(const op of await pendingCorrectionResubmissions()){try{await technicianApi.resubmitCorrection(op.workOrderId,op.correctionId,op);await saveCorrectionResubmission({...op,localSyncState:"ACKNOWLEDGED",lastError:undefined});}catch(error){if(error instanceof ApiError&&error.status>=400&&error.status<500)await saveCorrectionResubmission({...op,localSyncState:"NEEDS_REVIEW",lastError:error.message});}}
       for(const op of await pendingIncidents()){try{await technicianApi.reportIncident(op);await saveIncident({...op,localSyncState:"ACKNOWLEDGED",lastError:undefined});}catch(error){if(error instanceof ApiError&&error.status>=400&&error.status<500)await saveIncident({...op,localSyncState:"NEEDS_REVIEW",lastError:error.message});}}
       const fresh = await technicianApi.job(id);
       const completion = await completionForJob(id);
@@ -193,7 +196,7 @@ export function JobBrief({ id }: { id: string }) {
     purpose: LocalEvidence["purpose"],
   ) {
     const original = event.target.files?.[0];
-    if (!original || !job?.executionScope || job.localCompletion) return;
+    if (!original || !job?.executionScope || (job.localCompletion&&!job.activeCompletionCorrection)) return;
     setBusy(true);
     try {
       const blob = await compressPhoto(original),
@@ -228,7 +231,7 @@ export function JobBrief({ id }: { id: string }) {
     }
   }
   async function outcome(sectionId: string, value: SectionOutcome) {
-    if (!job?.executionScope || job.localCompletion) return;
+    if (!job?.executionScope || (job.localCompletion&&!job.activeCompletionCorrection)|| (job.activeCompletionCorrection&&!job.activeCompletionCorrection.affectedSectionIds.includes(sectionId))) return;
     const section = job.executionScope.sections.find((s) => s.id === sectionId);
     if (!section) return;
     const captures = evidence.filter((e) => e.sectionId === sectionId);
@@ -251,6 +254,7 @@ export function JobBrief({ id }: { id: string }) {
       note: value === "NOT_COMPLETED" ? note : undefined,
       fieldRecordedAt: new Date().toISOString(),
       expectedSectionVersion: section.currentVersion,
+      correctionId: job.activeCompletionCorrection?.id,
       evidence: captures.map((item) => ({
         localEvidenceId: item.evidenceId,
         capturedAt: item.capturedAt,
@@ -305,6 +309,7 @@ export function JobBrief({ id }: { id: string }) {
     setBusy(true);const now=new Date().toISOString();const operation={kind:"COMPLETE_JOB" as const,workOrderId:id,operationId:crypto.randomUUID(),scopeRevisionId:job.executionScope.id,jobLeaderTechnicianId:job.technicianId,fieldCompletedAt:now,expectedVersion:job.updatedAt,expectedStatus:job.status as "ON_SITE"|"WAITING_FOR_PARTS",queuedAt:now,localSyncState:"SYNC_PENDING" as const};
     try{await saveCompletion(operation);const local={...job,localCompletion:{operationId:operation.operationId,syncState:operation.localSyncState,fieldCompletedAt:now}};await cacheJobs([local]);setJob(local);setMessage("✓ Job completed on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save completion. The job is not completed; try again.");}finally{setBusy(false);}
   }
+  async function resubmitCorrection(){const correction=job?.activeCompletionCorrection;if(!correction||correction.status!=="IN_PROGRESS")return;const now=new Date().toISOString();const operation={kind:"CORRECTION_RESUBMIT" as const,operationId:crypto.randomUUID(),workOrderId:id,correctionId:correction.id,fieldResubmittedAt:now,queuedAt:now,localSyncState:"SYNC_PENDING" as const};try{await saveCorrectionResubmission(operation);setMessage("Corrected completion saved on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save the corrected resubmission. Try again.");}}
   async function reportIncident(){if(!job||!incidentNote.trim())return;const now=new Date().toISOString();const linked=evidence.filter(e=>e.sectionId===incidentSection&&e.purpose==="INCIDENT_EVIDENCE");const operation={kind:"REPORT_INCIDENT" as const,operationId:crypto.randomUUID(),workOrderId:id,category:incidentCategory as "SAFETY_CRITICAL_STOP"|"PROPERTY_OR_ITEM_DAMAGE"|"CUSTOMER_OR_PROPERTY_CONDITION"|"OPERATIONAL_INCIDENT",fieldReportedAt:now,sectionId:incidentSection||undefined,note:incidentNote.trim(),evidence:linked.map(e=>({localEvidenceId:e.evidenceId,capturedAt:e.capturedAt,syncState:e.syncState==="RETRY_PENDING"?"RETRY_PENDING" as const:"QUEUED" as const})),queuedAt:now,localSyncState:"SYNC_PENDING" as const};try{await saveIncident(operation);setIncidentNote("");setMessage("Incident saved on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save the incident. Try again.");}}
   if (!job)
     return (
@@ -318,6 +323,7 @@ export function JobBrief({ id }: { id: string }) {
       </section>
     );
   const scope = job.executionScope;
+  const normalExecutionEditable = job.startedAt && !job.localCompletion;
   return (
     <section className="technicianPage jobBrief">
       <Link href="/technician">← Assigned jobs</Link>
@@ -332,6 +338,7 @@ export function JobBrief({ id }: { id: string }) {
               : "Synced"}
         </span>
       </div>
+      {job.activeCompletionCorrection?<div className="syncNotice"><strong>Management-authorized completion correction</strong><p>{job.activeCompletionCorrection.reason}</p><p>Only the highlighted authorized sections may be changed. The original completion remains preserved.</p></div>:null}
       {message ? <p className="syncNotice">{message}</p> : null}
       {job.localCompletion ? <p className="syncNotice"><strong>{job.localCompletion.syncState==="ACKNOWLEDGED"?"✓ Job completed":job.localCompletion.syncState==="NEEDS_REVIEW"?"Completion needs review":"✓ Job completed on this device · Sync pending"}</strong>{job.localCompletion.lastError?` — ${job.localCompletion.lastError}`:""}</p>:null}
       <article>
@@ -403,7 +410,7 @@ export function JobBrief({ id }: { id: string }) {
                       : "required before completion"}
                 </p>
               </details>
-              {job.startedAt && !job.localCompletion ? (
+              {(normalExecutionEditable||Boolean(job.activeCompletionCorrection)) && (!job.activeCompletionCorrection||job.activeCompletionCorrection.affectedSectionIds.includes(section.id)) ? (
                 <div className="sectionActions">
                   {section.evidencePolicy === "REQUIRED" ? (
                     <label>
@@ -537,6 +544,7 @@ export function JobBrief({ id }: { id: string }) {
           ) : null}
         </article>
       ) : null}
+      {job.activeCompletionCorrection?.status==="IN_PROGRESS"?<button className="technicianStart" disabled={busy} onClick={()=>void resubmitCorrection()}>Resubmit corrected completion</button>:null}
     </section>
   );
 }

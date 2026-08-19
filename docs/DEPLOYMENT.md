@@ -238,3 +238,7 @@ Deploy migration `20260819120000_work_order_incidents` before the matching API/w
 ## Private Execution Evidence read deployment (2026-08-19)
 
 No migration or new bucket is introduced. Keep the existing Work Order photo bucket private, configure API-only `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_WORK_ORDER_PHOTOS_BUCKET` in Railway, and deploy the API before relying on private evidence links. Verify an ADMIN/SUPERVISOR and an assigned Technician can obtain a 60-second URL for acknowledged evidence; verify an unassigned Technician, unrelated role, wrong Work Order and pending evidence are denied; inspect broad API responses for absence of `storagePath`. Never place the service-role key in Cloudflare or browser variables.
+
+## Technician completion correction migration (2026-08-19)
+
+Deploy migration `20260819190000_technician_completion_corrections` before the API/web release. It adds the append-only correction aggregate, corrected-outcome linkage, idempotency uniqueness, and a partial unique index allowing one active correction per Work Order. No environment variable, storage, Finance, correspondence, or provider configuration changes.

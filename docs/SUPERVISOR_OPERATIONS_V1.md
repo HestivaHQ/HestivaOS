@@ -23,4 +23,8 @@ No Prisma model or migration is introduced. Needs Attention retains stable condi
 
 ## Deferred
 
-Notification delivery, Finance, customer correspondence, Technician correction/reopen, scheduling/dispatch redesign, HR/legal/liability outcomes, and any broader SUPERVISOR authority remain separate work. Private Execution Evidence reads were subsequently completed through the existing Work Order review surface; the broad Supervisor projection remains path-free.
+Notification delivery, Finance, customer correspondence, scheduling/dispatch redesign, HR/legal/liability outcomes, and any broader SUPERVISOR authority remain separate work. Private Execution Evidence reads were subsequently completed through the existing Work Order review surface; the broad Supervisor projection remains path-free.
+
+## Completion correction authority (2026-08-19)
+
+SUPERVISOR and ADMIN may now authorize a factual post-completion correction for exact frozen-scope sections. Only the original completing, currently assigned Technician executes it. History is visible on the existing Work Order surface; the Work Order remains `COMPLETED`, and a fresh canonical acknowledgement is required only after an actual correction is accepted and resubmitted. This authority does not extend to scheduling, staffing, frozen scope, Finance, pricing, correspondence, notifications, or messaging. See `TECHNICIAN_COMPLETION_CORRECTION_V1.md`.

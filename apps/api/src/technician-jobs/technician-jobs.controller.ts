@@ -18,10 +18,11 @@ import {
   TechnicianListView,
 } from "./technician-jobs.service";
 import { ExecutionEvidenceAccessService } from '../execution-evidence/execution-evidence-access.service';
+import { CorrectedOutcomeInput, ResubmitCompletionCorrectionInput, WorkOrderCompletionCorrectionService } from '../work-orders/work-order-completion-correction.service';
 
 @Controller("technician/jobs")
 export class TechnicianJobsController {
-  constructor(private readonly jobs: TechnicianJobsService, private readonly evidenceAccess: ExecutionEvidenceAccessService) {}
+  constructor(private readonly jobs: TechnicianJobsService, private readonly evidenceAccess: ExecutionEvidenceAccessService, private readonly corrections:WorkOrderCompletionCorrectionService) {}
 
   @Get()
   list(
@@ -58,6 +59,8 @@ export class TechnicianJobsController {
   ) {
     return this.jobs.recordSection(user.id, id, sectionId, input);
   }
+  @Post(":id/completion-corrections/:correctionId/sections/:sectionId/outcomes") correctedOutcome(@CurrentUser() user:User,@Param("id",new ParseUUIDPipe()) id:string,@Param("correctionId",new ParseUUIDPipe()) correctionId:string,@Param("sectionId",new ParseUUIDPipe()) sectionId:string,@Body() input:CorrectedOutcomeInput){return this.corrections.record(user.id,id,sectionId,{...input,correctionId});}
+  @Post(":id/completion-corrections/:correctionId/resubmit") correctedResubmit(@CurrentUser() user:User,@Param("id",new ParseUUIDPipe()) id:string,@Param("correctionId",new ParseUUIDPipe()) correctionId:string,@Body() input:ResubmitCompletionCorrectionInput){return this.corrections.resubmit(user.id,id,{...input,correctionId});}
   @Post(":id/sections/:sectionId/evidence/:evidenceId/acknowledge") acknowledge(
     @CurrentUser() user: User,
     @Param("id", new ParseUUIDPipe()) id: string,

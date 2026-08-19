@@ -309,3 +309,7 @@ Preserve queued `REPORT_INCIDENT` operations and `INCIDENT_EVIDENCE` Blobs with 
 ## Private Execution Evidence read recovery (2026-08-19)
 
 If authorized evidence access is unavailable, confirm the API has the correct Supabase project URL, protected service-role credential and private bucket name, then verify the evidence is server-acknowledged and bound to the requested Work Order. Do not make the bucket public, copy a raw path into notes, or weaken role/assignment checks. Rotate a suspected exposed service-role key in Supabase and Railway, restart the API, and verify broad projections and logs contain neither the key, object paths nor signed URLs. A restored database and bucket must retain matching evidence rows/objects and provenance.
+
+## Technician completion correction verification (2026-08-19)
+
+After migration recovery, verify correction rows and linked outcome events remain present, the partial active-correction uniqueness index exists, completed Work Orders remain `COMPLETED`, and original completion/acknowledgement snapshots are intact. Do not delete correction/outcome history or restore acknowledgement fields from a correction snapshot automatically; use the canonical management acknowledgement after corrected resubmission.
