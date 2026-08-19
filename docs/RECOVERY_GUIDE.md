@@ -1,5 +1,15 @@
 # Recovery guide
 
+## Recurring automatic resume recovery (2026-08-19)
+
+Treat `auto_resume_date` as durable recurring-agreement lifecycle intent. If a paused agreement passes its automatic-resume date while Railway or the API is unavailable, restoring or restarting the corrected API is sufficient for normal recovery: the runner reconciles once during application bootstrap and then every minute, and any persisted date on or before the current Africa/Johannesburg business date is due. Do not cause lifecycle mutation through a GET/read path, create a replacement Work Order, or rewrite recurrence history to compensate for downtime.
+
+If an agreement remains `PAUSED` after its automatic-resume date, first verify migration `20260819223000_recurring_auto_resume` is finished and that `auto_resume_date` plus the `(status, auto_resume_date)` index exist. Verify Railway liveness/readiness, then inspect the affected agreement read-only: status, automatic-resume date, end date, frequency, effective date, weekday/day-of-month, and next service date. Review safe `recurring_auto_resume_failed` event markers without adding Customer, Property, credential, or raw database-error content to incident records. Restart or redeploy the corrected API when necessary; bootstrap reconciliation provides an immediate retry opportunity.
+
+If multiple Railway API instances are running, do not manually deduplicate or edit the same agreement. Each runner may observe a due row, but the database-conditional `PAUSED` + due update is the concurrency authority and only one transition may succeed. An agreement whose end date has already passed must reconcile to `ENDED`, not `ACTIVE`.
+
+If application rollback occurs after automatic-resume dates have been scheduled, retain the additive nullable column and index and identify PAUSED agreements with non-null `auto_resume_date`. A prior application revision will not execute those dates. Prefer fixing forward or redeploying the corrected runner; otherwise explicitly review the affected agreements operationally. Never drop or null the column wholesale merely to remove the symptom, because that destroys persisted lifecycle intent. Existing generated Work Orders remain independent records and must not be mutated, cancelled, regenerated, or deleted as part of automatic-resume recovery.
+
 ## Website enquiry ingestion recovery (2026-08-19)
 
 Treat `submissionId` and the returned `ENQ-...` reference as durable recovery identities. If the Website receives a timeout or uncertain response after submitting an enquiry, retry the exact immutable payload with the same submission UUID; HestivaOS will return the existing authoritative reference if the first transaction committed. Never mint a new submission UUID merely to bypass uncertainty or a uniqueness conflict. A conflict for the same UUID with different content is intentional fail-closed behavior and requires investigation rather than overwrite.
