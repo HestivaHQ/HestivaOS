@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-19 — Phase 1A scalable Work Order selectors
+
+- Audited Work Order reference loading against the Customer, Property, Technician, Crew and Service APIs. The backend already provided bounded search for Customers, Crews, Services and Properties; the Work Order manager still loaded fixed 100-record reference snapshots, so no new search service, index or schema was introduced.
+- Changed Work Order create/edit to 300 ms debounced, bounded server queries for Customer, customer-scoped Property, eligible Technician, active Crew, primary Service and add-on Service. Selected/historical records are merged back into current result pages so editing does not lose inactive or out-of-page canonical relationships.
+- Extended Customer and Property search with exact UUID matching to keep canonical `/work-orders/new` Customer/Property preselection reliable beyond the first normal result page. Property selector-options remain identifying-only and now accept customer-scoped name/address/city or exact-ID search.
+- Added focused API and web contract coverage, `WORK_ORDER_SELECTOR_SEARCH_V1.md`, controlled-input audit reconciliation and roadmap/changelog updates. No migration, Finance, Correspondence, Messaging, notification, Quote, lifecycle, assignment-policy or deployment change was required. Shift Planning selector search remains a separate residual.
+
 ## 2026-08-19 — Admin and Operations UX hardening bundle
 
 - Audited the older Cleaning Job Template and normalized Service Scope Template domains and implemented only missing normalized-scope management reads/UI; no completed domain was rebuilt.
