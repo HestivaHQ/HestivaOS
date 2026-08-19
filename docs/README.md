@@ -8,7 +8,7 @@ Documentation is part of the Definition of Done. The repository-wide rules and e
 
 Repository work performed through the GitHub connector follows the operating sequence defined in `AGENTS.md`: **READ → VERIFY → WRITE → VERIFY → PR**. Existing files must be fetched from the exact target branch before replacement, dependent writes are serialized, important mutations are verified from GitHub before further work depends on them, and a failed connector response is followed by a state re-read before any corrected retry. Routine decision synchronization may batch up to approximately 15 substantive approved decisions, while architecture, security, legal/compliance, infrastructure and cross-system changes are still documented sooner when required.
 
-For work that crosses repositories, chats, or external providers, read [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) before making shared-contract changes. It routes Website ↔ HestivaOS work to Issue #73 and WhatsApp/Messenger ↔ HestivaOS work to Issue #116, and defines how cross-system PRs point back to the live coordination record.
+For work that crosses repositories, chats, or external providers, read [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) before making shared-contract changes. It routes Website ↔ HestivaOS work to Issue #73 and WhatsApp/Messenger ↔ HestivaOS work to Issue #116, and defines how cross-system PRs point back to the live coordination record. For backlog selection after the 2026-08-19 reconciliation, also read [`CANONICAL_BACKLOG_FREEZE_2026-08-19.md`](CANONICAL_BACKLOG_FREEZE_2026-08-19.md) so historical plans do not reopen merged foundations.
 
 Pull requests targeting `main` run `.github/workflows/pr-quality-gates.yml`, which includes `scripts/validate_documentation.py` against the PR base and head alongside the repository's other verification gates. After the independent web build, the gate also generates Cloudflare types, builds the OpenNext Worker, and validates the Wrangler bundle with `--dry-run`; it receives no Cloudflare credentials and does not deploy. The documentation validator rejects meaningful implementation changes when nothing under `docs/` changed and prints relevant document guidance. It intentionally ignores Markdown-only edits, README formatting, comment-only code edits, and license changes. Passing automation is only a minimum gate: authors must still apply the complete matrix, verify every statement, and confirm no stale documentation remains.
 
@@ -26,6 +26,7 @@ The temporary `Next.js 16 migration validation` workflow is also manual-only. It
 | --- | --- | --- |
 | [Architecture](ARCHITECTURE.md) | Architectural | Production components, ownership, and data flow. |
 | [Cross-system coordination](CROSS_SYSTEM_COORDINATION.md) | Coordination | Routes active shared work to the correct live issue and defines cross-chat/PR synchronization. |
+| [Canonical backlog freeze — 2026-08-19](CANONICAL_BACKLOG_FREEZE_2026-08-19.md) | Planning/current-state | Reconciled merged-state inventory, backlog guardrails and dependency-ordered remaining implementation phases. |
 | [Financial architecture](FINANCIAL_ARCHITECTURE.md) | Architectural | Financial-domain ownership, recurrence separation, cash-flow planning, and cross-system boundary. |
 | [Month-end billing policy](financial/MONTH_END_BILLING_POLICY.md) | Product/financial | Eligibility, billing-date fallback, transition, live statement, and Upcoming Payments requirements. |
 | [Collections, refunds and price changes](financial/COLLECTIONS_REFUNDS_AND_PRICE_CHANGES.md) | Product/financial | Expected cash out, overdue state, month-end privilege, and recurring price-change rules. |
@@ -37,7 +38,7 @@ The temporary `Next.js 16 migration validation` workflow is also manual-only. It
 | [Work Order access operations](WORK_ORDER_ACCESS_OPERATIONS_V1.md) | Product/operational | Phase 3C escalation, safe usability, authorization, and lifecycle boundaries. |
 | [Work Order access recovery](WORK_ORDER_ACCESS_RECOVERY_V1.md) | Product/security | Phase 3D human-triggered messaging recovery, inbound provenance, and protected review boundary. |
 | [Technical work log](TECHNICAL_WORK_LOG.md) | Historical | Detailed migration and recovery record. |
-| [Roadmap](ROADMAP.md) | Planning | Identified technical follow-up work only. |
+| [Roadmap](ROADMAP.md) | Planning | Verified current implementation queue only. |
 | [Changelog](CHANGELOG.md) | Historical | Manually maintained, dated engineering changes. |
 | [Why](WHY.md) | Architectural | Current platform and process rationale. |
 | [Decision records](decisions/README.md) | Architectural/historical | Index of accepted ADRs and their review triggers. |
