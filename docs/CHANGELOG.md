@@ -289,7 +289,7 @@
 
 ### Preserved
 
-- Existing Quote persistence, Customer/Property/Work Orderr/Recurring Agreement behavior, production website submission, pricing calculation, storage, and deployment configuration remain unchanged in this contract-only sub-slice. Exact-floor persistence, photo-hash persistence/storage reconciliation, authoritative pricing calculation, authenticated ingestion, and accepted-Quote operational handoff remain later 5M implementation work.
+- Existing Quote persistence, Customer/Property/Work Order/Recurring Agreement behavior, production website submission, pricing calculation, storage, and deployment configuration remain unchanged in this contract-only sub-slice. Exact-floor persistence, photo-hash persistence/storage reconciliation, authoritative pricing calculation, authenticated ingestion, and accepted-Quote operational handoff remain later 5M implementation work.
 
 ## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
 
