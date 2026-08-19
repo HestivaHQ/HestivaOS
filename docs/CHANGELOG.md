@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-19 — Website enquiry ingestion and authoritative ENQ references
+
+### Added
+
+- Added guarded `POST /api/v1/integrations/website/enquiries` using the existing server-only Website integration authorization boundary.
+- Added versioned `website-enquiry.v1` validation aligned with the current Website contact form, durable `WebsiteEnquiry` persistence, and Johannesburg-business-date `ENQ-YYYYMMDD-NNNN` allocation.
+- Added immutable SHA-256 submission fingerprinting, database-unique submission identity, safe identical replay, changed-content conflict handling, and concurrent duplicate reconciliation.
+- Added the additive `20260819210000_website_enquiry_ingestion` migration plus contract/ingestion tests and deployment/recovery documentation.
+
+### Preserved
+
+- Contact enquiries create no Customer, Property, Quote, Work Order, correspondence, Finance, messaging, or Needs Attention state. The Website remains on its existing contact-email flow until the separately coordinated Issue #73 consumer cutover after OS merge/deployment.
+- No new environment variable or provider credential is introduced; the Website integration secret remains API/server-only.
+
 ## 2026-08-19 — Phase 1B scalable Shift Planning selectors
 
 ### Changed
