@@ -75,3 +75,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0065: Use an append-only aggregate for Technician completion corrections](ADR-0065-append-only-technician-completion-corrections.md)
 - [ADR-0066: Run recurring automatic resume in the persistent API with database-guarded reconciliation](ADR-0066-recurring-auto-resume-runner.md)
 - [ADR-0067: Three-stage development validation](ADR-0067-three-stage-development-validation.md)
+- [ADR-0068: Persist administrative access changes as append-only identity snapshots](ADR-0068-admin-access-audit-history.md)
