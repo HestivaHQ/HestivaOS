@@ -111,7 +111,7 @@ Use `GET /api/v1/ready` when an operational check must include dependencies. It 
 }
 ```
 
-API logs are one JSON object per line. Completed-request records contain timestamp, request ID, HTTP method, path without its query string, response status, and duration in milliseconds. The API accepts a syntactically safe `X-Request-ID` or generates a UUID, echoes it in the response header, and uses it in request and error records. Error records also contain endpoint, stack trace, HTTP status, and environment. Startup success records contain application version, environment, startup duration, listening port, and confirmation status. These records intentionally omit request headers, request/response bodies, query strings, credentials, and environment-variable values.
+API logs are one JSON object per line. Completed-request records contain timestamp, request ID, HTTP method, path without its query string, response status, and duration in milliseconds. The API accepts a syntactically safe `X-Request-ID` or generates a UUID, echoes it in the response header, and uses it in request and error records. Error records also contain endpoint, stack trace, HTTP status, and environment. Startup success records contain application version, environment, duration, port, and `status: "started"`; startup failure records contain the error and environment. These records intentionally omit request headers, request/response bodies, query strings, credentials, and environment-variable values.
 
 ### Business Profile migration
 
@@ -149,7 +149,7 @@ This GitHub Actions workflow verifies only. It does not deploy or replace either
 
 ## Manual dependency security diagnostic (non-deploying)
 
-Maintainers can manually dispatch `.github/workflows/dependency-security-audit.yml` when registry-backed dependency findings are required. On Node.js 24 it runs the root `npm ci` bootstrap, verifies the existing Prisma bootstrap, records npm security and outdated-package results, and retains the JSON audit report for 14 days when produced. It has read-only repository permission, receives no production credentials, does not mutate dependencies, and cannot deploy.
+Maintainers can manually dispatch `.github/workflows/dependency-security-audit.yml` when registry-backed dependency findings are required. On Node.js 24 it runs the root `npm ci` bootstrap, verifies the generated Prisma Client export, then records full, production-only, and JSON npm audits plus `npm outdated --all`. Expected non-zero diagnostic statuses are reported without preventing later collection, and the JSON output is retained as a downloadable artifact for 14 days when produced. The workflow never changes dependencies or deploys, has read-only repository permission, and uses no Railway, Cloudflare, Supabase, or other production credentials. Its results require maintainer assessment before any remediation change.
 
 ## Employee Records migration
 
