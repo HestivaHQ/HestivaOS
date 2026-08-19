@@ -23,52 +23,62 @@ The following foundations are implemented and must not be reopened as generic ba
 - Provider-neutral WhatsApp/Messenger contracts plus durable conversation/message/status persistence used by access recovery.
 - Work Order and Shift Planning relationship selectors use bounded/debounced server-backed search rather than fixed 100-record snapshots.
 - Recurring-service lifecycle preserves generated Work Orders, surfaces future visits for review, skips paused backlog on resume, and supports persisted Johannesburg automatic-resume dates through a database-guarded Railway API reconciler.
+- Repository development now uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
 
 Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Finance runtime are **not** implied by those completed foundations.
 
+## Execution strategy
+
+Use one focused implementation lane at a time for schema-heavy, authentication/security, or shared-domain work. Parallel lanes are appropriate only when current-main and active-PR inspection prove they do not compete for migrations, Prisma models, ADR/global identifiers, shared API contracts or the same canonical history/current-state documents.
+
+For each slice, use the three-stage workflow in `AGENTS.md` and ADR-0067: fast proportional development checks while the branch is fluid; final documentation/current-main/complete-diff reconciliation once implementation stabilizes; then one frozen exact head through all required GitHub jobs and strict pre-merge review. Do not use chat memory as backlog authority.
+
 ## Phase 1 — safe Admin/Operations completion
 
-- **Phase 1A merged:** Work Order Customer, Property, Technician, Crew, primary Service and add-on Service selectors use bounded/debounced server-backed search instead of fixed 100-record reference snapshots. Direct-create Customer/Property canonical-ID preselection remains resolvable beyond the first result page, selected historical records remain visible while searches refresh, and the existing domain APIs remain authoritative. See `docs/WORK_ORDER_SELECTOR_SEARCH_V1.md`.
-- **Phase 1B merged:** Shift Planning Crew, Technician and linked Work Order selectors use the same bounded/debounced existing domain APIs rather than fixed 100-record snapshots. Existing selected/historical relationships remain available while search results refresh; no scheduling or staffing policy changed.
-- **Website enquiry ingestion and consumer cutover merged:** HestivaOS owns guarded durable Website contact-enquiry intake, immutable-submission replay/conflict handling and `ENQ-YYYYMMDD-NNNN` allocation, and the Website contact flow now requires that authoritative acknowledgement before reporting successful intake. Issue #73 remains the coordination/history source for any genuine residual Website ↔ HestivaOS work.
-- **Recurring lifecycle implemented:** pause/cancel preserve generated Work Orders, already-created future visits are surfaced for separate review, manual resume skips missed backlog, and paused agreements may persist an optional automatic-resume date. The Railway API reconciles due dates at startup and every minute using database-conditional transitions, so multiple processes cannot successfully resume the same agreement twice. See `docs/RECURRING_LIFECYCLE_REVIEW_V1.md` and ADR-0066.
-- Add durable administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow.
-- Design and implement the approved Supabase Auth email-change/confirmation UX; authenticated email remains read-only until this exists.
-- Implement Customer duplicate-resolution/merge-reversal or archival only after exact product authority and reversal rules are approved.
-- Reconcile remaining evidence-backed controlled fields and subordinate job-type mappings against existing Service / Cleaning Job Template architecture; do not invent lists.
+The scalable selector, Website enquiry and recurring-lifecycle residuals are merged. Remaining Phase 1 work should proceed in this order:
+
+1. **Durable administrative access-change audit history.** Add append-only application-owned audit history for Admin role/status/access changes using existing HestivaOS User authority. Keep this focused and provider-neutral.
+2. **Supabase Admin invitation/provider-session revocation.** Implement the separately reviewed provider-admin workflow after the application-side audit boundary is durable. Protect service-role/admin credentials from browser exposure and document recovery/revocation behavior explicitly.
+3. **Supabase Auth email-change/confirmation UX.** Authenticated email remains read-only until this verified flow exists; preserve application-user identity and existing fail-closed reconciliation semantics.
+4. **Remaining evidence-backed controlled fields / subordinate job-type mappings.** Audit current source and existing Service / Cleaning Job Template architecture first; implement only verified missing controlled vocabularies/search behavior and do not invent lists.
+5. **Customer duplicate resolution / merge reversal / archival.** Product-decision-blocked until exact merge authority, reversal semantics, history retention and archival behavior are approved. Do not implement destructive merge behavior speculatively.
+
+Keep items 1–4 as separate focused PRs unless source inspection proves an unavoidable shared transactional/security boundary. Item 5 remains blocked until product authority is explicit.
 
 ## Phase 2 — Customer Correspondence runtime
 
-Build an HestivaOS-owned correspondence domain before broad automated delivery:
+Build an HestivaOS-owned correspondence domain before broad automated delivery, in this dependency order:
 
-- durable template/version ownership;
-- rendered-message history and provenance;
-- delivery-attempt/retry/failure state;
-- explicit human-approval boundaries where required;
-- integration with already-approved booking, completion, reschedule/cancellation and related customer events only after authoritative runtime state exists.
+1. durable template/version ownership;
+2. rendered-message history and provenance;
+3. delivery-attempt/retry/failure state;
+4. explicit human-approval boundaries where required;
+5. event-driven integration with already-approved booking, completion, reschedule/cancellation and related customer events only after authoritative runtime state exists.
 
-Transport providers must consume HestivaOS business/correspondence state rather than own business decisions.
+Transport providers must consume HestivaOS business/correspondence state rather than own business decisions. Establish the correspondence domain and history model before provider-specific delivery so Messaging and Finance can share one authoritative outbound-history boundary.
 
 ## Phase 3 — live WhatsApp + Facebook Messenger
 
 Continue from the merged provider-neutral messaging contracts and persistence:
 
-- verify current Meta API versions, webhook verification/signature requirements, permissions, onboarding assets, policy and South African pricing before provider-specific production commitment;
-- implement WhatsApp Cloud API webhook/adapter connectivity with verified authenticity, normalization, idempotency, outbound delivery and status handling;
-- implement Messenger against the same shared conversation engine and persistence;
-- add deliberate provider-identity ↔ canonical Customer linking without fuzzy automatic merges;
-- add deterministic Quote/service conversation flows that call HestivaOS authoritative pricing/business boundaries;
-- add human takeover/operator handling;
-- select/integrate an AI provider only after deterministic flows exist and keep the AI boundary replaceable.
+1. verify current Meta API versions, webhook verification/signature requirements, permissions, onboarding assets, policy and South African pricing before provider-specific production commitment;
+2. implement WhatsApp Cloud API webhook/adapter connectivity with verified authenticity, normalization, idempotency, outbound delivery and status handling;
+3. implement Messenger against the same shared conversation engine and persistence;
+4. add deliberate provider-identity ↔ canonical Customer linking without fuzzy automatic merges;
+5. add deterministic Quote/service conversation flows that call HestivaOS authoritative pricing/business boundaries;
+6. add human takeover/operator handling;
+7. select/integrate an AI provider only after deterministic flows exist and keep the AI boundary replaceable.
 
 Messaging coordination remains Issue #116. The Website integration remains a separate boundary and `HESTIVA_WEBSITE_INTEGRATION_SECRET` must not be reused for messaging.
 
+WhatsApp and Messenger provider adapters may be separate PRs once the shared provider contract is stable; do not parallelize them while both are still changing the same normalization/idempotency contracts.
+
 ## Phase 4 — Needs Attention and notifications
 
-- Add snooze/delegation only as an extension of the existing Needs Attention lifecycle.
-- Add active notification delivery with explicit event/priority rules.
-- Add Finance, Correspondence and Messaging producers only after their authoritative runtime conditions exist.
-- Do not fabricate Worker Issue / Job Exception records before those models are approved and implemented.
+1. add snooze/delegation only as an extension of the existing Needs Attention lifecycle;
+2. add active notification delivery with explicit event/priority rules;
+3. add Finance, Correspondence and Messaging producers only after their authoritative runtime conditions exist;
+4. do not fabricate Worker Issue / Job Exception records before those models are approved and implemented.
 
 ## Phase 5 — Finance runtime
 
@@ -87,9 +97,11 @@ Implement in bounded slices:
 
 Still unresolved and not to be invented: payment/collection provider, weekend/public-holiday handling for month-end dates, and any future delegation beyond current launch authority.
 
+Correspondence integration belongs after the Phase 2 correspondence runtime exists so Finance does not create a competing invoice/receipt delivery history model.
+
 ## Phase 6 — platform and production hardening
 
-### Urgent
+### High priority
 
 - Run the authoritative dependency-security diagnostic/remediation pass for the current Next.js stack.
 - Migrate deprecated Next.js `middleware.ts` convention to `proxy` in a separately verified authentication/route-protection change.
@@ -108,6 +120,8 @@ Still unresolved and not to be invented: payment/collection provider, weekend/pu
 - Mature monitoring with actionable alert thresholds and incident-runbook links.
 - Periodically test recovery and audit deployment-controller ownership.
 
+Independent hardening work may run in parallel with product work only when it does not collide with the active schema/security/CI lane.
+
 ## Phase 7 — final system reconciliation
 
 Before declaring HestivaOS launch-complete:
@@ -124,4 +138,4 @@ Before declaring HestivaOS launch-complete:
 
 ## Backlog guardrail
 
-Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow” or “Evidence security”. Those foundations are merged. Any future work in those areas must identify a specific verified residual requirement, defect or approved extension.
+Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors” or “recurring auto-resume”. Those foundations are merged. Any future work in those areas must identify a specific verified residual requirement, defect or approved extension.
