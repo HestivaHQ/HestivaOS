@@ -17,6 +17,11 @@ export type AgreementInput = {
   preferredTimeWindow?: PreferredTimeWindow | null; customFrequencyNote?: string | null; recurringInstructions?: string | null;
 };
 
+export type AgreementStatusInput = {
+  status: RecurringServiceAgreementStatus;
+  autoResumeDate?: string | null;
+};
+
 function agreementInclude(today = johannesburgDate()) {
   return {
     property: { include: { customer: true } },
@@ -51,13 +56,48 @@ export class RecurringServiceAgreementsService {
     const normalized = await this.validate(merged, existing.serviceId, existing.addOns.map((a) => a.serviceId), requestedAddOns);
     return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { ...normalized, ...(addOnsChanged ? { addOns: { deleteMany: {}, create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } } : {}) }, include: agreementInclude() });
   }
-  async changeStatus(id: string, status: RecurringServiceAgreementStatus) {
+  async changeStatus(id: string, input: AgreementStatusInput) {
     const agreement = await this.findOne(id);
+    const { status } = input;
     if (!Object.values(RecurringServiceAgreementStatus).includes(status)) throw new BadRequestException('Invalid recurring service status.');
     if (agreement.status === RecurringServiceAgreementStatus.CANCELLED && status !== agreement.status) throw new BadRequestException('A cancelled recurring service cannot be resumed.');
-    const nextServiceDate = status === RecurringServiceAgreementStatus.ACTIVE ? nextOccurrence(agreement, johannesburgDate()) : agreement.nextServiceDate;
-    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { status, nextServiceDate }, include: agreementInclude() });
+    if (status !== RecurringServiceAgreementStatus.PAUSED && input.autoResumeDate !== undefined && input.autoResumeDate !== null) throw new BadRequestException('Automatic resume date is only valid when pausing a recurring service.');
+
+    const today = johannesburgDate();
+    let autoResumeDate: Date | null = null;
+    if (status === RecurringServiceAgreementStatus.PAUSED && input.autoResumeDate) {
+      try { autoResumeDate = dateOnly(input.autoResumeDate); } catch { throw new BadRequestException('Automatic resume date must be a valid YYYY-MM-DD calendar date.'); }
+      if (autoResumeDate <= today) throw new BadRequestException('Automatic resume date must be after today.');
+      if (agreement.endDate && autoResumeDate > agreement.endDate) throw new BadRequestException('Automatic resume date cannot be after the agreement end date.');
+    }
+
+    const nextServiceDate = status === RecurringServiceAgreementStatus.ACTIVE ? nextOccurrence(agreement, today) : status === RecurringServiceAgreementStatus.ENDED ? null : agreement.nextServiceDate;
+    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { status, nextServiceDate, autoResumeDate: status === RecurringServiceAgreementStatus.PAUSED ? autoResumeDate : null }, include: agreementInclude() });
   }
+
+  async resumeDueAgreements(now = new Date()) {
+    const today = johannesburgDate(now);
+    const due = await this.prisma.recurringServiceAgreement.findMany({
+      where: { status: RecurringServiceAgreementStatus.PAUSED, autoResumeDate: { lte: today } },
+      select: { id: true, frequency: true, effectiveDate: true, endDate: true, weekday: true, dayOfMonth: true },
+      orderBy: { autoResumeDate: 'asc' },
+      take: 100,
+    });
+    let resumed = 0;
+    let ended = 0;
+    for (const agreement of due) {
+      const isEnded = Boolean(agreement.endDate && agreement.endDate < today);
+      const result = await this.prisma.recurringServiceAgreement.updateMany({
+        where: { id: agreement.id, status: RecurringServiceAgreementStatus.PAUSED, autoResumeDate: { lte: today } },
+        data: isEnded
+          ? { status: RecurringServiceAgreementStatus.ENDED, autoResumeDate: null, nextServiceDate: null }
+          : { status: RecurringServiceAgreementStatus.ACTIVE, autoResumeDate: null, nextServiceDate: nextOccurrence(agreement, today) },
+      });
+      if (result.count === 1) isEnded ? ended++ : resumed++;
+    }
+    return { resumed, ended };
+  }
+
   async generateNext(id: string, createdById: string, now = new Date()) {
     const today = johannesburgDate(now);
     try {
@@ -65,7 +105,7 @@ export class RecurringServiceAgreementsService {
         const agreement = await tx.recurringServiceAgreement.findUnique({ where: { id }, include: { property: true, service: true, addOns: true, workOrders: { where: { recurrenceDate: { gte: today } }, take: 1 } } });
         if (!agreement) throw new NotFoundException('Recurring service not found.');
         if (agreement.status !== RecurringServiceAgreementStatus.ACTIVE || agreement.frequency === WorkOrderFrequency.CUSTOM) return null;
-        if (agreement.endDate && agreement.endDate < today) { await tx.recurringServiceAgreement.update({ where: { id }, data: { status: RecurringServiceAgreementStatus.ENDED, nextServiceDate: null } }); return null; }
+        if (agreement.endDate && agreement.endDate < today) { await tx.recurringServiceAgreement.update({ where: { id }, data: { status: RecurringServiceAgreementStatus.ENDED, nextServiceDate: null, autoResumeDate: null } }); return null; }
         if (agreement.workOrders.length) return agreement.workOrders[0];
         const occurrence = nextOccurrence(agreement, today);
         if (!occurrence) return null;
