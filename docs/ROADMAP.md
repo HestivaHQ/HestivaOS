@@ -9,6 +9,7 @@ The canonical reconciliation checkpoint for the current backlog is `docs/CANONIC
 The following foundations are implemented and must not be reopened as generic backlog items:
 
 - Website → HestivaOS structured Quote ingestion, integration authentication, idempotency/replay handling, HestivaOS-owned pricing/profitability and Quote persistence.
+- Website contact-enquiry ingestion with durable HestivaOS-owned `ENQ-YYYYMMDD-NNNN` references and idempotent immutable-submission replay; Website consumer cutover remains coordinated after OS deployment.
 - Customer/Property Quote match-or-review, Admin Quote review, atomic ONE_TIME acceptance, supported recurring acceptance and non-lossy accepted-Quote operational handoff.
 - Work Order add-on quantities and Laundry/Ironing capacity controls.
 - Zero/one/many Technician assignment, Crew/Job Leader snapshots and unassigned Needs Attention.
@@ -20,15 +21,15 @@ The following foundations are implemented and must not be reopened as generic ba
 - Private Execution Evidence signed-read hardening and append-only authorized post-completion Technician corrections.
 - Admin Service Scope Template management, pre-start revision comparison/adoption, Management gateway and canonical direct Work Order creation.
 - Provider-neutral WhatsApp/Messenger contracts plus durable conversation/message/status persistence used by access recovery.
-- Work Order relationship selectors use bounded/debounced server-backed search rather than fixed 100-record snapshots.
+- Work Order and Shift Planning relationship selectors use bounded/debounced server-backed search rather than fixed 100-record snapshots.
 
 Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Finance runtime are **not** implied by those completed foundations.
 
 ## Phase 1 — safe Admin/Operations completion
 
 - **Phase 1A merged:** Work Order Customer, Property, Technician, Crew, primary Service and add-on Service selectors use bounded/debounced server-backed search instead of fixed 100-record reference snapshots. Direct-create Customer/Property canonical-ID preselection remains resolvable beyond the first result page, selected historical records remain visible while searches refresh, and the existing domain APIs remain authoritative. See `docs/WORK_ORDER_SELECTOR_SEARCH_V1.md`.
-- **Phase 1B completed pending merge:** Shift Planning Crew, Technician and linked Work Order selectors use the same bounded/debounced existing domain APIs rather than fixed 100-record snapshots. Existing selected/historical relationships remain available while search results refresh; no scheduling or staffing policy changed.
-- Implement the documented HestivaOS-owned Website contact-enquiry ingestion and authoritative `ENQ-...` reference boundary; current documentation records authority, not a live enquiry-ingestion domain/endpoint.
+- **Phase 1B merged:** Shift Planning Crew, Technician and linked Work Order selectors use the same bounded/debounced existing domain APIs rather than fixed 100-record snapshots. Existing selected/historical relationships remain available while search results refresh; no scheduling or staffing policy changed.
+- **Website enquiry runtime completed pending merge/deploy:** HestivaOS now owns guarded durable Website contact-enquiry intake, immutable-submission replay/conflict handling and `ENQ-YYYYMMDD-NNNN` allocation. The Website repository must switch its contact flow only after this OS runtime is merged/deployed and coordinated through Issue #73.
 - Audit recurring-service pause/resume/cancel/auto-resume and already-created-future-visit review behavior against current source, then implement only verified residual gaps.
 - Add durable administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow.
 - Design and implement the approved Supabase Auth email-change/confirmation UX; authenticated email remains read-only until this exists.
