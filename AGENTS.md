@@ -87,6 +87,20 @@ If a connector/API operation fails, times out, or is blocked:
 5. Do not immediately switch to low-level Git object/ref APIs merely to bypass a blocked normal contents/PR action. Use an alternate route only when it is justified by the repository task itself and current state has been verified.
 6. If the connector continues to block a legitimate operation, preserve the safe repository state and ask the maintainer for the smallest manual action required rather than broad manual editing.
 
+### Frozen-head verification workflow
+
+Use a frozen-head verification cycle as the default completion workflow for implementation and substantive documentation PRs. This is an efficiency rule that preserves every existing safety gate; it does not authorize skipping tests, documentation, diff review, exact-head verification, migration replay, security checks, or required approvals.
+
+1. **Complete the slice before final CI.** Finish the scoped implementation, focused tests, mandatory documentation, coordination updates, and PR-body reconciliation first. Resolve all known review findings and current `main`/parallel-PR integration issues before treating the branch as ready for final validation.
+2. **Run one complete pre-freeze audit.** Review the entire changed-file set and complete diff, verify append-only/historical files have no unintended rewrites, confirm no stale or contradictory documentation remains, and run any cheap/local validation available before final required CI.
+3. **Freeze the exact head.** Record the exact head SHA and stop discretionary edits while the required quality gates run. Do not make speculative refactors, wording polish, unrelated cleanup, or “while CI runs” improvements that would create a new head without new evidence.
+4. **Use exact-head results only.** A green result authorizes only the exact tested head and the materially unchanged merge base. If the head changes, or `main` changes in a way that requires synchronization, the previous green result is no longer sufficient.
+5. **A failure reopens the head.** If CI, review, a security finding, a merge-base change, or maintainer feedback produces new evidence of a defect, inspect the actual evidence and make the smallest justified correction on the same scoped branch. Update documentation only when the correction changes what the documentation must say.
+6. **Re-audit after an evidence-driven fix.** Recheck the affected area plus complete-diff integrity, freeze the new exact head, and rerun the full required gates. Do not bundle unrelated improvements into the correction merely because another CI run is now required.
+7. **Merge only after the final frozen head is green.** Immediately before merge, verify the exact head SHA, required gate conclusions, mergeability, relevant parallel-PR collision state, and any required synchronization with current `main`.
+
+The target shape is therefore: **implementation → tests → required docs → full diff audit → freeze head → final CI → merge**. If final CI fails: **diagnose evidenced failure → minimal correction → targeted + full-diff re-audit → freeze new head → full required CI**.
+
 ### CI and PR correction
 
 - A failed quality gate stays on the existing PR branch unless the branch itself is irreparably wrong.
@@ -132,6 +146,7 @@ Before declaring an implementation complete:
 2. Update current-state documents and append the historical work-log and changelog entries.
 3. Run repository validation, Markdown validation, `git diff --check`, and a secret scan appropriate to the repository.
 4. Review the complete diff and confirm no stale, contradictory, speculative, or duplicated documentation remains.
+5. Freeze the exact head and run the required final quality gates; after freeze, change the head only for an evidenced failure/review/integration correction, then re-audit and rerun the full required gates on the new exact head.
 
 Every implementation PR body must explicitly include:
 
