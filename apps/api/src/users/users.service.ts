@@ -125,6 +125,18 @@ export class UsersService {
     });
   }
 
+  async findAccessHistory(targetId: string) {
+    const target = await this.prisma.user.findUnique({ where: { id: targetId }, select: { id: true } });
+    if (!target) throw new NotFoundException('User account not found.');
+    return this.prisma.userAccessChange.findMany({
+      where: { targetUserId: targetId },
+      include: {
+        actorUser: { select: { id: true, email: true, firstName: true, lastName: true, displayName: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
   async updateRole(actor: { id: string }, targetId: string, input: UpdateRoleInput) {
     if (!input.role || !Object.values(UserRole).includes(input.role)) throw new BadRequestException('A valid application role is required.');
     return this.mutateAccess(actor.id, targetId, { role: input.role });
@@ -149,6 +161,18 @@ export class UsersService {
           if (activeAdmins <= 1) throw new ConflictException('The last active administrator cannot be demoted or have OS access disabled.');
         }
         const updated = await transaction.user.update({ where: { id: targetId }, data: change, select: USER_ACCESS_SELECT });
+        if (target.role !== updated.role || target.status !== updated.status) {
+          await transaction.userAccessChange.create({
+            data: {
+              targetUserId: targetId,
+              actorUserId: actorId,
+              oldRole: target.role,
+              newRole: updated.role,
+              oldStatus: target.status,
+              newStatus: updated.status,
+            },
+          });
+        }
         this.logger.log(`admin_user_access_changed actorUserId=${actorId} targetUserId=${targetId} oldRole=${target.role} newRole=${updated.role} oldStatus=${target.status} newStatus=${updated.status}`);
         return updated;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
