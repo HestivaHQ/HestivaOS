@@ -167,3 +167,7 @@ It should add:
 This slice must **not** add live Meta credentials, production webhooks, AI, Messenger runtime integration, customer-facing automation, a full operator inbox, marketing automation, or a second Quote/pricing system.
 
 After this persistence slice is verified, the next provider-runtime slice can add the first authenticated WhatsApp Cloud API webhook adapter without AI.
+
+## 2026-08-19 Phase 3D access-recovery extension
+
+Canonical conversations and immutable inbound/outbound message records now support the bounded `WORK_ORDER_ACCESS_RECOVERY` purpose and visit-scoped correlation described in `WORK_ORDER_ACCESS_RECOVERY_V1.md`. An ADMIN explicitly selects an available configured Customer-linked conversation; provider identity is not Customer identity. Stable database/provider idempotency identities protect retries. Normalized inbound responses remain original messaging records and are only surfaced for review; no message is interpreted or accepted automatically. Provider adapters still own authenticity, normalization, private media securing, and transport only. This is not a general inbox or autonomous correspondence system.

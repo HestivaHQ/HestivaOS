@@ -226,3 +226,7 @@ Deploy migration `20260819000000_protected_temporary_access_credentials` before 
 ## Phase 3C access appointment escalation (2026-08-19)
 
 Deploy additive migration `20260819120000_access_appointment_escalation` before the API. It adds `PRIORITY_CHANGED` to `AttentionActivityType`; there are no new tables, environment variables, storage objects, background workers, timers, provider integrations, or Finance configuration. After deployment, an authorized Needs Attention read deterministically reconciles current priorities from persisted Work Order schedules and safe access usability metadata.
+
+## Phase 3D access recovery deployment (2026-08-19)
+
+Deploy additive migration `20260819160000_work_order_access_recovery` before the matching API/web release. It creates provider-neutral conversation/message and visit-recovery correlation tables and adds optional source-message provenance to protected credentials. There are no new environment variables, provider secrets, workers, schedules, storage buckets, or Finance configuration. Existing provider integrations must register their adapter in the canonical registry and deliberately link a conversation to a Customer before recovery becomes available. Verify ADMIN-only summary/send/candidate routes, same-key delivery retry, webhook replay preservation, private attachment policy, and non-exposure in broad Work Order/Needs Attention/Technician responses.

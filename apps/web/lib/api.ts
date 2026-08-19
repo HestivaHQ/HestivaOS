@@ -422,6 +422,12 @@ export type WorkOrder = {
   crew: Crew | null;
   startedScopeRevision?: { id:string; sections:Array<{id:string;title:string;currentOutcome:SectionOutcome;evidencePolicy:EvidencePolicy;currentOutcomeEvent:{reason:string|null;note:string|null}|null;evidence:Array<{syncState:string}>}> } | null;
 };
+export type AccessRecoverySummary = {
+  eligible:boolean;
+  accessReadiness:WorkOrderAccessReadiness;
+  availableChannels:Array<{id:string;channel:"WHATSAPP"|"MESSENGER"}>;
+  attempts:Array<{id:string;status:"PENDING_SEND"|"SENT"|"SEND_FAILED"|"RESPONSE_REQUIRES_REVIEW"|"CLOSED";sentAt:string|null;createdAt:string;channel:"WHATSAPP"|"MESSENGER";responseRequiresReview:boolean;responseMessageId:string|null;responseHasAttachment:boolean}>;
+};
 export type RecurringServiceAgreement = {
   id: string;
   propertyId: string;
@@ -1097,6 +1103,9 @@ export const api = {
   reviewTemporaryAccessCredential: (workOrderId:string,id:string,decision:"ACCEPT"|"REJECT",reason?:string) => apiFetch<TemporaryAccessCredential>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/review`,{method:"POST",...json({decision,reason})}),
   revokeTemporaryAccessCredential: (workOrderId:string,id:string,reason?:string) => apiFetch<TemporaryAccessCredential>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/revoke`,{method:"POST",...json({reason})}),
   revealTemporaryAccessCredential: (workOrderId:string,id:string) => apiFetch<{id:string;protectedText:string|null;attachmentStoragePath:string|null}>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/reveal`,{method:"POST"}),
+  accessRecovery: (id:string) => apiFetch<AccessRecoverySummary>(`/work-orders/${id}/access-recovery`),
+  initiateAccessRecovery: (id:string,input:{requestId:string;conversationId:string}) => apiFetch<unknown>(`/work-orders/${id}/access-recovery`,{method:"POST",...json(input)}),
+  registerAccessRecoveryCandidate: (workOrderId:string,recoveryId:string,type:TemporaryAccessCredential["type"]) => apiFetch<TemporaryAccessCredential>(`/work-orders/${workOrderId}/access-recovery/${recoveryId}/credential-candidate`,{method:"POST",...json({type})}),
   createWorkOrder: (input: WorkOrderInput) =>
     apiFetch<WorkOrder>("/work-orders", { method: "POST", ...json(input) }),
   updateWorkOrder: (

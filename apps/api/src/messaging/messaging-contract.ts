@@ -61,6 +61,8 @@ export interface NormalizedInboundMessagingEvent {
     providerMediaId?: string;
     mimeType?: string;
     fileName?: string;
+    /** Private object path populated only after provider media is secured. Never expose in broad projections. */
+    privateStoragePath?: string;
   }>;
   attribution?: MessagingAttribution;
 }

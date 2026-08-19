@@ -79,6 +79,44 @@ enum WorkOrderAccessReadiness {
   NOT_REQUIRED
 }
 
+enum MessagingChannel {
+  WHATSAPP
+  MESSENGER
+}
+
+enum MessagingDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessagingMessageKind {
+  TEXT
+  INTERACTIVE
+  MEDIA
+  SYSTEM
+  UNSUPPORTED
+}
+
+enum MessagingDeliveryStatus {
+  RECEIVED
+  PENDING
+  ACCEPTED
+  FAILED
+}
+
+enum MessagingMessagePurpose {
+  GENERAL
+  WORK_ORDER_ACCESS_RECOVERY
+}
+
+enum WorkOrderAccessRecoveryStatus {
+  PENDING_SEND
+  SENT
+  SEND_FAILED
+  RESPONSE_REQUIRES_REVIEW
+  CLOSED
+}
+
 enum WorkOrderActivityType {
   WORK_ORDER_CREATED
   STATUS_CHANGED
@@ -281,6 +319,7 @@ model User {
   workOrderAccessReadinessEvents WorkOrderAccessReadinessEvent[] @relation("WorkOrderAccessReadinessActor")
   temporaryAccessCredentialsCreated WorkOrderTemporaryAccessCredential[] @relation("TemporaryAccessCredentialCreator")
   temporaryAccessCredentialEvents WorkOrderTemporaryAccessCredentialEvent[] @relation("TemporaryAccessCredentialEventActor")
+  accessRecoveriesInitiated WorkOrderAccessRecovery[] @relation("AccessRecoveryInitiator")
   acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -340,6 +379,7 @@ model Customer {
   properties Property[]
   workOrders WorkOrder[]
   quotes Quote[]
+  messagingConversations MessagingConversation[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@index([ownerId])
@@ -744,6 +784,7 @@ model WorkOrder {
   quoteEvidence WorkOrderQuoteEvidence[]
   temporaryAccessCredentials WorkOrderTemporaryAccessCredential[]
   accessReadinessHistory WorkOrderAccessReadinessEvent[]
+  accessRecoveries WorkOrderAccessRecovery[]
   customerSignOff WorkOrderCustomerSignOff?
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
@@ -925,14 +966,94 @@ model WorkOrderTemporaryAccessCredential {
   reviewStatus TemporaryAccessCredentialReviewStatus @default(PENDING_REVIEW) @map("review_status")
   createdById String? @map("created_by_id") @db.Uuid
   requestId String? @unique @map("request_id") @db.Uuid
+  sourceMessageId String? @unique @map("source_message_id") @db.Uuid
   workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
   createdBy User? @relation("TemporaryAccessCredentialCreator", fields: [createdById], references: [id], onDelete: Restrict)
   events WorkOrderTemporaryAccessCredentialEvent[]
+  sourceMessage MessagingMessage? @relation("CredentialSourceMessage", fields: [sourceMessageId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([workOrderId, expiresAt])
   @@map("work_order_temporary_access_credentials")
+}
+
+model MessagingConversation {
+  id String @id @default(uuid()) @db.Uuid
+  channel MessagingChannel
+  provider String
+  providerConversationId String? @map("provider_conversation_id")
+  providerIdentityId String @map("provider_identity_id")
+  customerId String? @map("customer_id") @db.Uuid
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  messages MessagingMessage[]
+  accessRecoveries WorkOrderAccessRecovery[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([channel, provider, providerIdentityId])
+  @@index([customerId, channel])
+  @@map("messaging_conversations")
+}
+
+model MessagingMessage {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @map("conversation_id") @db.Uuid
+  direction MessagingDirection
+  kind MessagingMessageKind
+  purpose MessagingMessagePurpose @default(GENERAL)
+  providerEventKey String? @unique @map("provider_event_key")
+  idempotencyKey String? @unique @map("idempotency_key")
+  contentText String? @map("content_text")
+  attachmentMetadata Json? @map("attachment_metadata")
+  occurredAt DateTime @map("occurred_at")
+  conversation MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  outboundRecovery WorkOrderAccessRecovery? @relation("RecoveryOutboundMessage")
+  responseRecovery WorkOrderAccessRecovery? @relation("RecoveryResponseMessage")
+  sourcedCredentials WorkOrderTemporaryAccessCredential[] @relation("CredentialSourceMessage")
+  statusEvents MessagingMessageStatusEvent[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([conversationId, occurredAt])
+  @@map("messaging_messages")
+}
+
+model MessagingMessageStatusEvent {
+  id String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+  status MessagingDeliveryStatus
+  providerMessageId String? @map("provider_message_id")
+  message MessagingMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([messageId, createdAt])
+  @@map("messaging_message_status_events")
+}
+
+model WorkOrderAccessRecovery {
+  id String @id @default(uuid()) @db.Uuid
+  workOrderId String @map("work_order_id") @db.Uuid
+  conversationId String @map("conversation_id") @db.Uuid
+  outboundMessageId String @unique @map("outbound_message_id") @db.Uuid
+  responseMessageId String? @unique @map("response_message_id") @db.Uuid
+  initiatedById String @map("initiated_by_id") @db.Uuid
+  requestId String @unique @map("request_id") @db.Uuid
+  accessReadinessAtRequest WorkOrderAccessReadiness @map("access_readiness_at_request")
+  workOrderUpdatedAtAtRequest DateTime @map("work_order_updated_at_at_request")
+  status WorkOrderAccessRecoveryStatus @default(PENDING_SEND)
+  sentAt DateTime? @map("sent_at")
+  closedAt DateTime? @map("closed_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  conversation MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  outboundMessage MessagingMessage @relation("RecoveryOutboundMessage", fields: [outboundMessageId], references: [id], onDelete: Restrict)
+  responseMessage MessagingMessage? @relation("RecoveryResponseMessage", fields: [responseMessageId], references: [id], onDelete: Restrict)
+  initiatedBy User @relation("AccessRecoveryInitiator", fields: [initiatedById], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([workOrderId, createdAt])
+  @@index([conversationId, status])
+  @@map("work_order_access_recoveries")
 }
 
 model WorkOrderTemporaryAccessCredentialEvent {
