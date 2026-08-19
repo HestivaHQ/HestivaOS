@@ -28,6 +28,11 @@ describe('website enquiry contract', () => {
     expect(errors.map((error) => error.code)).toEqual(expect.arrayContaining(['UNKNOWN_FIELD', 'INVALID_ENQUIRY_TYPE']));
   });
 
+  it('requires an ISO date-time with an explicit timezone', () => {
+    const errors = validateWebsiteEnquirySubmissionV1({ ...valid, submittedAt: 'August 19, 2026 08:00' });
+    expect(errors.map((error) => error.code)).toContain('INVALID_DATETIME');
+  });
+
   it('fingerprints object keys deterministically', () => {
     const reordered = {
       preferredContact: valid.preferredContact,
