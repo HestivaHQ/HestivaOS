@@ -87,3 +87,7 @@ If attention data becomes inconsistent, investigate the source Work Order first.
 - manual resolution of deterministic source conditions;
 - automated shift handover;
 - AI prioritization.
+
+## Phase 3C access producer extension (2026-08-19)
+
+`WORK_ORDER_ACCESS_REQUIRED` now uses the existing Operations queue and stable condition lifecycle. Priority is Normal beyond 24 hours, High from 24 hours through exactly 4 hours, and Critical below 4 hours or at/after authoritative `scheduledAt`. Effective priority changes append `PRIORITY_CHANGED`; no timer state is stored. Safe credential usability may resolve or reopen this condition, but Needs Attention never returns credential contents or private paths. See `WORK_ORDER_ACCESS_OPERATIONS_V1.md` and ADR-0060.

@@ -1197,6 +1197,8 @@ export type TechnicianJob = {
   description: string | null;
   status: WorkOrderStatus;
   scheduledAt: string | null;
+  accessReadiness: WorkOrderAccessReadiness;
+  accessOperationallyResolved: boolean;
   preferredTimeWindow: PreferredTimeWindow | null;
   updatedAt: string;
   startedAt: string | null;

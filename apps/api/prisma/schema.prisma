@@ -1262,6 +1262,7 @@ enum AttentionActivityType {
   ASSIGNED
   REASSIGNED
   AUTO_RESOLVED
+  PRIORITY_CHANGED
 }
 
 model AttentionItem {

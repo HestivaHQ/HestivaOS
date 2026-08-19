@@ -280,3 +280,6 @@ Do not invent details that Issue #73 intentionally leaves open or that a later A
 - speculative enterprise capabilities such as automated shift handover.
 
 When implementation reaches one of these boundaries, resolve it through the applicable ADR/product decision process rather than embedding an unreviewed assumption into code.
+## 2026-08-19 Phase 3C escalation-policy synchronization
+
+The approved Phase 3C implementation policy makes appointment time the sole urgency input for unresolved access: more than 24 hours is Normal, 24 hours through exactly 4 hours is High, and less than 4 hours or at/after the appointment is Critical. No separate early-morning rule is implemented. This concrete policy synchronizes Decisions 48–70 without changing their stable-condition, self-resolution, human-authority, security, messaging-deferral, lifecycle-isolation, or Finance boundaries. See ADR-0060 and `WORK_ORDER_ACCESS_OPERATIONS_V1.md`.

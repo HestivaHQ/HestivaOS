@@ -772,3 +772,11 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added ADMIN-only metadata, create, review, audited reveal, and revoke APIs plus a protected Work Order review panel.
 - Integrated accepted/rejected/expired/revoked outcomes with Phase 3A readiness history without exposing secrets through broad operational projections.
 - Added migration, security/lifecycle tests, ADR-0059, and deployment/recovery/environment guidance. Phase 3C, Phase 3D, correspondence, providers, and Finance remain deferred.
+
+## 2026-08-19 — Phase 3C access operations and appointment escalation
+
+- Derived the stable Work Order access Needs Attention priority from the authoritative appointment using approved 24-hour and 4-hour boundaries, without timers or an early-morning rule.
+- Added auditable `PRIORITY_CHANGED` attention activity while retaining idempotent resolution/reopen and duplicate prevention.
+- Ensured only currently usable accepted credentials can resolve `RECEIVED`, while `ARRANGED_ANOTHER_WAY` remains credential-free.
+- Added assignment-scoped Technician access readiness guidance without credential metadata, protected contents, or reveal authority.
+- Kept Work Order lifecycle, correspondence, Phase 3D messaging recovery, and Finance unchanged.

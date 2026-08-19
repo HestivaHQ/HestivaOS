@@ -339,6 +339,13 @@ export function JobBrief({ id }: { id: string }) {
         </p>
       </article>
       <article>
+        <h2>Access</h2>
+        <p><strong>{job.accessOperationallyResolved ? "Access arranged" : "Access needs management action"}</strong></p>
+        <p>{job.accessOperationallyResolved
+          ? "Use the approved visit instructions below. Contact management if they do not work."
+          : "Do not rely on an expired, revoked, rejected, or unreviewed credential. Contact management before the visit."}</p>
+      </article>
+      <article>
         <h2>Team</h2>
         {job.assignedTechnicians.map((x) => (
           <p key={x.technicianId}>

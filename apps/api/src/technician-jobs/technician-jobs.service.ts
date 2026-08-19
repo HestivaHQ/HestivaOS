@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ExecutionExceptionReason, ExecutionSectionOutcome, Prisma, TechnicianStatus, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { isAccessOperationallyResolved } from '../work-orders/access-operations-policy';
 
 export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
 export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
@@ -13,7 +14,8 @@ const DAY = 86_400_000;
 const technicianSelect = { id: true, firstName: true, lastName: true } as const;
 const briefSelect = {
   id: true, reference: true, title: true, description: true, status: true, scheduledAt: true,
-  preferredTimeWindow: true, updatedAt: true, startedAt: true, jobLeaderId: true,
+  preferredTimeWindow: true, updatedAt: true, startedAt: true, jobLeaderId: true, accessReadiness: true,
+  temporaryAccessCredentials: { select: { reviewStatus: true, validFrom: true, expiresAt: true, revokedAt: true } },
   service: { select: { name: true, description: true } },
   addOns: { select: { quantity: true, service: { select: { name: true } } } },
   assignedTechnicians: { select: { technicianId: true, technician: { select: technicianSelect } } },
@@ -160,7 +162,10 @@ export class TechnicianJobsService {
   async review(userId:string,id:string){ const technicianId=await this.technicianFor(userId); const job=await this.prisma.workOrder.findFirst({where:{id,jobLeaderId:technicianId,assignedTechnicians:{some:{technicianId}}},select:{startedScopeRevision:{select:{id:true,sections:{orderBy:{sortOrder:'asc'},include:{currentOutcomeEvent:true,evidence:true}}}}}}); if(!job)throw new ForbiddenException('Only the assigned Job Leader can review this job.'); const sections=job.startedScopeRevision?.sections??[]; const attention:any[]=[]; let syncPending=0; for(const s of sections){if(s.currentOutcome==='PENDING')attention.push({sectionId:s.id,title:s.title,code:'PENDING',message:'Outcome not recorded'}); if(s.currentOutcome==='NOT_COMPLETED'&&(!s.currentOutcomeEvent?.reason||!s.currentOutcomeEvent.note?.trim()))attention.push({sectionId:s.id,title:s.title,code:'INCOMPLETE_EXCEPTION',message:'Reason or note missing'}); const required=s.evidencePolicy==='REQUIRED'||(s.evidencePolicy==='ON_EXCEPTION'&&s.currentOutcome==='NOT_COMPLETED'); if(required&&!s.evidence.length)attention.push({sectionId:s.id,title:s.title,code:'MISSING_EVIDENCE',message:'Required evidence missing'}); syncPending+=s.evidence.filter(e=>e.syncState!=='SERVER_ACKNOWLEDGED').length; if(s.currentOutcomeEvent?.attentionLevel==='SAFETY_CRITICAL_STOP')attention.push({sectionId:s.id,title:s.title,code:'SAFETY_STOP',message:'Stop affected work; safety follow-up is required'}); if(s.currentOutcomeEvent?.reason==='SCOPE_OR_CONDITION_MISMATCH')attention.push({sectionId:s.id,title:s.title,code:'SCOPE_ISSUE',message:'Scope or condition mismatch needs attention'});} return{scopeRevisionId:job.startedScopeRevision?.id??null,accountedFor:sections.filter(s=>s.currentOutcome!=='PENDING').length,totalSections:sections.length,syncPending,attention,ready:sections.length>0&&!attention.length}; }
 
   private dto(job: any, technicianId: string) {
-    const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null; return { ...job, technicianId, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
+    const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null;
+    const accessOperationallyResolved = isAccessOperationallyResolved(job.accessReadiness, job.temporaryAccessCredentials ?? [], new Date());
+    const { temporaryAccessCredentials: _protectedCredentialMetadata, ...safeJob } = job;
+    return { ...safeJob, technicianId, accessOperationallyResolved, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
       canStart: job.jobLeaderId === technicianId && !job.startedAt && PRE_START.includes(job.status),
       waitingForJobLeader: job.jobLeaderId !== technicianId && !job.startedAt && PRE_START.includes(job.status),
       cacheable: job.status !== WorkOrderStatus.CANCELLED,

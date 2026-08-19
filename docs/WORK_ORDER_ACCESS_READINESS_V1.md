@@ -1,6 +1,6 @@
 # Work Order Access Readiness v1
 
-Status: implemented Phase 3A foundation on 2026-08-18 and integrated with Phase 3B protected credential handling later that day. Phase 3C appointment-relative escalation, Phase 3D messaging recovery, and Finance are not implemented here.
+Status: implemented Phase 3A foundation on 2026-08-18 and integrated with Phase 3B protected credential handling later that day. Phase 3C appointment-relative escalation is implemented through `WORK_ORDER_ACCESS_OPERATIONS_V1.md`; Phase 3D messaging recovery and Finance remain deferred.
 
 ## Canonical model
 
@@ -10,7 +10,7 @@ Every effective readiness change appends a `WorkOrderAccessReadinessEvent` with 
 
 ## Needs Attention
 
-An unresolved active Work Order in `REQUIRED_MISSING`, `NEEDS_REVIEW`, or `EXPIRED` deterministically produces the stable `WORK_ORDER_ACCESS_REQUIRED` condition in the Operations queue at High priority. Changing readiness to `RECEIVED`, `ARRANGED_ANOTHER_WAY`, or `NOT_REQUIRED`, or moving the Work Order out of an operationally unresolved lifecycle state, self-resolves the item through the existing reconciliation history. Reappearance reopens the same condition. Readiness never changes scheduling, assignment, dispatch, interruption, completion, cancellation, or any other lifecycle state.
+An unresolved active Work Order in `REQUIRED_MISSING`, `NEEDS_REVIEW`, or `EXPIRED` deterministically produces the stable `WORK_ORDER_ACCESS_REQUIRED` condition in the Operations queue. Phase 3C derives its priority from appointment time: more than 24 hours is Normal, 24 hours through exactly 4 hours is High, and less than 4 hours or at/after the appointment is Critical. Changing readiness to `RECEIVED`, `ARRANGED_ANOTHER_WAY`, or `NOT_REQUIRED`, or moving the Work Order out of an operationally unresolved lifecycle state, self-resolves the item through the existing reconciliation history. Reappearance reopens the same condition. Readiness never changes scheduling, assignment, dispatch, interruption, completion, cancellation, or any other lifecycle state.
 
 ## Security boundary
 

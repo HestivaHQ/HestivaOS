@@ -112,3 +112,7 @@ Stable Property facts, one-visit operational readiness, and protected temporary 
 ## Why temporary access uses a narrow visit credential boundary
 
 A temporary code or access pass has a shorter lifetime and stricter disclosure boundary than Property access facts. Keeping it on one Work Order, encrypting text, retaining private originals, requiring human acceptance, and auditing each explicit reveal provides operational access without turning Work Order visibility into secret authority or allowing recurrence/replacement flows to spread credentials. Phase 3A readiness remains the operational state; the protected evidence is not a second readiness system. See ADR-0059.
+
+## 2026-08-19 — Why access urgency is derived rather than scheduled
+
+Appointment-relative access urgency is calculated from authoritative Work Order scheduling on each Needs Attention reconciliation because mutable countdowns or timers would duplicate truth and create restart/recovery drift. The stable condition preserves one operational thread while deterministic priority changes make deadline proximity visible. Technician access remains a safe assignment-scoped readiness signal because field need-to-know does not justify broader credential access. Phase 3D messaging recovery and Finance remain separate, deferred domains.
