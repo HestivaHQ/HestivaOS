@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-19 — Frozen-head verification workflow
+
+- Reviewed the recent PR cycle and identified the main avoidable latency source as discretionary head changes after final CI had already started. Because every head mutation correctly invalidates exact-head evidence, small speculative/documentation edits were forcing full repository and PostgreSQL replay reruns.
+- Added a repository-default completion sequence to `AGENTS.md`: finish scoped implementation, focused tests, mandatory documentation/coordination, and a complete diff/history audit before recording and freezing the exact head for final required CI. Once frozen, no speculative refactor, wording polish, unrelated cleanup, or other discretionary edit may create a new head while gates run.
+- Defined the failure path explicitly so efficiency does not weaken safety: a failed CI gate, review/security finding, materially changed merge base, or maintainer correction is new evidence that reopens the existing scoped branch for the smallest justified correction. The affected area and complete-diff integrity are re-audited, the new head is frozen, and all required exact-head gates rerun.
+- Kept all existing repository protections unchanged, including documentation policy, secret scanning, typecheck/build/tests, clean and staged PostgreSQL migration replay, Cloudflare/OpenNext/Wrangler validation, whitespace checks, mergeability, parallel-PR collision checks, and exact tested-head verification. `docs/README.md` now makes this workflow discoverable to future development chats.
+
 ## 2026-08-19 — Recurring automatic resume scheduling
 
 - Re-audited the recurring-service lifecycle after PR #150 and confirmed the remaining verified gap was durable automatic resume scheduling; pause/cancel already preserve generated Work Orders and manual resume already recalculates from the current Africa/Johannesburg business date without creating missed-occurrence backlog.
