@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-19 — Recurring automatic resume scheduling
+
+- Re-audited the recurring-service lifecycle after PR #150 and confirmed the remaining verified gap was durable automatic resume scheduling; pause/cancel already preserve generated Work Orders and manual resume already recalculates from the current Africa/Johannesburg business date without creating missed-occurrence backlog.
+- Added nullable `RecurringServiceAgreement.autoResumeDate` persistence and migration `20260819223000_recurring_auto_resume`, with an index over lifecycle status and automatic-resume date for bounded due-row lookup. Pause accepts an optional future Johannesburg business date; manual resume, cancel, and end clear it.
+- Added an API-process reconciler that runs once at bootstrap and every minute. It finds due paused agreements and uses conditional database updates as the concurrency authority so competing Railway API instances cannot resume the same agreement twice. Agreements whose end date has already passed transition to `ENDED`; otherwise the next occurrence is recalculated from the current Johannesburg date and the agreement becomes `ACTIVE`.
+- Kept reads side-effect-free and introduced no external scheduler, queue, credential, environment variable, or dependency. Automatic resume does not create, mutate, cancel, or delete Work Orders and does not trigger correspondence, Messaging, Finance, pricing, staffing, or notification behavior.
+- Added Admin automatic-resume date controls, focused lifecycle tests for date validation, manual clearing, due activation, end-date handling, and competing-runner behavior, plus ADR-0066 and synchronized lifecycle, Roadmap, Deployment, Recovery, Architecture, Changelog, and work-log documentation. CI exposed one test-only Jest timer cleanup return-type issue; the callback was corrected to return `void` before final verification.
+
 ## 2026-08-19 — Recurring lifecycle future-visit review
 
 - Audited the existing recurring-service lifecycle against current source and ADR-0026 before implementation. Pause/cancel already preserved generated Work Orders, and manual resume already recalculated from the current Africa/Johannesburg business date without creating missed-occurrence backlog.
@@ -158,7 +166,7 @@
 
 ## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
 
-- Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
+- Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation rather than deriving a new contract from the current website email text. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
 - Added `apps/api/src/quotes/website-integration-auth.ts` with fail-closed `Authorization: Bearer ...` verification against `HESTIVA_WEBSITE_INTEGRATION_SECRET`. Missing/malformed authorization, missing configuration, and non-exact values are rejected. The implementation hashes both candidate and configured values to fixed-length SHA-256 digests before Node's `timingSafeEqual`, avoiding early length-based secret comparison while preserving exact equality semantics.
 - Added `apps/api/src/quotes/website-quote-idempotency.ts` to produce a deterministic SHA-256 fingerprint of the complete structured submission. Canonicalization recursively sorts object keys and preserves array order; identical material with different object-key serialization yields the same fingerprint, while changed nested data or reordered arrays yields a different fingerprint.
 - Added focused Jest coverage for exact and case-insensitive Bearer scheme parsing, missing/malformed credentials, missing configuration, prefix/suffix rejection, object-key-order stability, array-order preservation, nested material changes, and case-insensitive stored fingerprint comparison.
@@ -313,7 +321,7 @@
 
 ## 2026-08-08 — Dependency security audit diagnostic
 
-- Added a temporary, manually dispatched Node.js 24 workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
+- Added a temporary, manually dispatched Node.js 24 diagnostic workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
 - Made each diagnostic exit status visible in the job log and step summary, and retained the JSON audit output as a 14-day workflow artifact when npm produces it.
 - Limited the workflow to read-only repository access with no secrets, production credentials, dependency mutation, automatic trigger, or deployment capability. Dependency remediation remains outstanding pending review of the diagnostic results.
 
@@ -505,7 +513,7 @@ Implemented the `/technician` mobile-first PWA, purpose-built assignment-scoped 
 
 ## 2026-08-17 — Homent Technician B2/C frozen Execution Scope
 
-Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, evidence/attention foundations, exception-first Job Leader review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.
+Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, controlled Not Completed reasons, proportional evidence state, safety-stop foundation, Job Leader exception-first review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.
 
 ## 2026-08-17 — Homent Technician D offline evidence pipeline
 
