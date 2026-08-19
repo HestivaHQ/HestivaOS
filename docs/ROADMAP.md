@@ -1,5 +1,10 @@
 # Technical roadmap
 
+## Supervisor Operational Review v1 status (2026-08-19)
+
+- Phase 4B is implemented as a SUPERVISOR-only exception-first workspace that reuses Needs Attention and projects canonical assignment, access, execution, evidence synchronization, completion, incident, interruption, and scope-mismatch state without new business status.
+- Still deferred: notification delivery, Finance, customer correspondence, Technician correction/reopen, evidence-read hardening, dispatch redesign, and any new Supervisor authority.
+
 ## Dashboard Needs Attention Foundation v1 status (2026-08-18)
 
 - Implemented in Phase 1 / Issue #125: one persisted Dashboard Needs Attention lifecycle with deterministic priority, queue/owner eligibility, Mine / All, Seen distinct from resolution, automatic condition-driven resolution/reopen, activity history and Work Order deep links.

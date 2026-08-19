@@ -3,12 +3,15 @@ import { PrismaService } from '../prisma.service';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 import { OperationalDashboardService } from './operational-dashboard.service';
+import { SupervisorOperationsController } from './supervisor-operations.controller';
+import { SupervisorOperationsService } from './supervisor-operations.service';
 
 @Module({
-  controllers: [DashboardController],
+  controllers: [DashboardController, SupervisorOperationsController],
   providers: [
     PrismaService,
     OperationalDashboardService,
+    SupervisorOperationsService,
     { provide: DashboardService, useExisting: OperationalDashboardService },
   ],
 })

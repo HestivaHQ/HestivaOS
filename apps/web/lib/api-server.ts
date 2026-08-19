@@ -24,5 +24,6 @@ export async function createAuthenticatedApi() {
     adminUsers: (search = '') => api.adminUsers(session.access_token, search),
     dashboard: () => api.dashboard(session.access_token),
     attention: (view: AttentionView = 'mine') => attentionOverview(session.access_token, view),
+    supervisorOperations: () => api.supervisorOperations(session.access_token),
   };
 }
