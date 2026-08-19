@@ -166,7 +166,7 @@
 
 ## 2026-08-11 — Slice 5M runtime security and idempotency prerequisites
 
-- Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation rather than deriving a new contract from the current website email text. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
+- Re-read the merged Slice 5M-B contract and Issue #73 security/idempotency decisions before implementation. This sub-slice adds only reusable runtime primitives and intentionally does not expose the private website ingestion controller, create/configure the integration secret, persist fingerprints, calculate pricing, transfer photos, or create any Quote/Customer/Property/Work Order/Recurring Service Agreement record.
 - Added `apps/api/src/quotes/website-integration-auth.ts` with fail-closed `Authorization: Bearer ...` verification against `HESTIVA_WEBSITE_INTEGRATION_SECRET`. Missing/malformed authorization, missing configuration, and non-exact values are rejected. The implementation hashes both candidate and configured values to fixed-length SHA-256 digests before Node's `timingSafeEqual`, avoiding early length-based secret comparison while preserving exact equality semantics.
 - Added `apps/api/src/quotes/website-quote-idempotency.ts` to produce a deterministic SHA-256 fingerprint of the complete structured submission. Canonicalization recursively sorts object keys and preserves array order; identical material with different object-key serialization yields the same fingerprint, while changed nested data or reordered arrays yields a different fingerprint.
 - Added focused Jest coverage for exact and case-insensitive Bearer scheme parsing, missing/malformed credentials, missing configuration, prefix/suffix rejection, object-key-order stability, array-order preservation, nested material changes, and case-insensitive stored fingerprint comparison.
@@ -321,7 +321,7 @@
 
 ## 2026-08-08 — Dependency security audit diagnostic
 
-- Added a temporary, manually dispatched Node.js 24 diagnostic workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
+- Added a temporary, manually dispatched Node.js 24 workflow to install the committed dependency graph, verify Prisma Client generation through the root bootstrap, and collect full, production-only, JSON, and outdated-package npm diagnostics without stopping at expected vulnerability exit codes.
 - Made each diagnostic exit status visible in the job log and step summary, and retained the JSON audit output as a 14-day workflow artifact when npm produces it.
 - Limited the workflow to read-only repository access with no secrets, production credentials, dependency mutation, automatic trigger, or deployment capability. Dependency remediation remains outstanding pending review of the diagnostic results.
 
@@ -349,7 +349,7 @@
 
 ## 2026-08-07 — Phase 1 API monitoring and operational hardening
 
-- Split API monitoring into lightweight `GET /api/v1/health` liveness metadata and `GET /api/v1/ready` process, database, and configured Supabase Auth connectivity checks. Readiness returns HTTP 503 when a required dependency check fails without returning configuration values.
+- Split API monitoring into lightweight `GET /api/v1/health` liveness metadata and dependency-aware readiness endpoints. Readiness returns HTTP 503 when a required dependency check fails without returning configuration values.
 - Added safe request-ID propagation/generation, response correlation headers, structured JSON request completion and error records, and structured startup success/failure records. Logs exclude query strings, headers, bodies, credentials, and environment-variable values.
 - Preserved Railway's `/api/v1/health` health-check path, deployment topology, authentication behavior, business logic, Prisma schema, migrations, and environment-variable inventory.
 - Updated architecture, deployment, recovery, planning, and historical documentation with endpoint contracts and operational diagnosis workflows.
@@ -513,7 +513,7 @@ Implemented the `/technician` mobile-first PWA, purpose-built assignment-scoped 
 
 ## 2026-08-17 — Homent Technician B2/C frozen Execution Scope
 
-Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, controlled Not Completed reasons, proportional evidence state, safety-stop foundation, Job Leader exception-first review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.
+Implemented normalized versioned Service Scope Templates, append-only pre-start Work Order Execution Scope revisions, atomic Start Job scope binding, stable compressed sections, append-only idempotent Technician outcome events, evidence/attention foundations, exception-first Job Leader review, and IndexedDB v2 outcome queuing. The assignment-scoped B1 API and opportunity-based reconciliation remain authoritative. Historical Work Orders receive no fabricated scope. Full evidence transport, incident/scope resolution, additional work, and Complete Job remain deferred.
 
 ## 2026-08-17 — Homent Technician D offline evidence pipeline
 
