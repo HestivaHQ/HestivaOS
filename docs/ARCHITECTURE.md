@@ -1,5 +1,13 @@
 # Production architecture
 
+## Website enquiry ingestion and authoritative ENQ references (2026-08-19)
+
+HestivaOS owns the durable Website contact-enquiry intake boundary. `POST /api/v1/integrations/website/enquiries` is a public transport route protected by the same dedicated server-side Website bearer-secret verifier used by Website Quote ingestion; the browser never receives that credential. The versioned `website-enquiry.v1` payload preserves the current Website contact fields plus a stable Website-generated UUID `submissionId` and ISO `submittedAt` transport metadata. Unknown fields and unsupported enquiry types fail closed.
+
+`WebsiteEnquiry` persists the immutable structured submission, searchable contact/enquiry fields, and a SHA-256 payload fingerprint. `EnquiryDailyCounter` allocates `ENQ-YYYYMMDD-NNNN` references using the Africa/Johannesburg business date inside the same PostgreSQL `SERIALIZABLE` transaction that creates the enquiry. The submission key is database-unique. An identical retry returns the already-created enquiry/reference without consuming another sequence; reuse of the same submission key with changed content is a conflict, and concurrent uniqueness races are re-read and reconciled against the stored fingerprint. Daily allocation is capped at 9,999 accepted enquiries and exhaustion fails closed.
+
+This slice creates no Customer, Property, Quote, Work Order, correspondence, Finance, messaging, or Needs Attention records from a contact enquiry. The Website remains responsible for its existing public-form anti-abuse controls and must not report successful intake until HestivaOS returns the authoritative `ENQ-...` acknowledgement. Website email cutover is a coordinated follow-up after this OS runtime is merged and deployed. See `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` and Issue #73.
+
 ## Admin and Operations UX hardening (2026-08-19)
 
 The normalized Service Scope models now have an ADMIN surface at `/admin/settings/service-scopes`. Versions remain append-only definitions: create a draft, publish it, and retire a published version without deleting prior Work Order references. An ADMIN-only comparison endpoint reports stable-key additions, removals and title/requirements/evidence-policy changes between the latest planned Work Order revision and a published version for the same canonical Service. Explicit adoption reuses the existing pre-start Execution Scope revision transaction; Start Job continues to freeze one revision.

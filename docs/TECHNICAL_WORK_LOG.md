@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-19 — Website enquiry ingestion and authoritative ENQ references
+
+- Reconciled current HestivaOS `main`, the Website contact submission implementation, Issue #73, and `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` before implementation. The Website currently submits contact-specific name, phone, email, enquiry type, suburb/address, description and preferred-contact data through its email path, while HestivaOS had no durable enquiry domain or `ENQ` allocator.
+- Added the isolated `EnquiriesModule`, guarded `POST /api/v1/integrations/website/enquiries`, and `website-enquiry.v1` contract. Validation mirrors the current Website contact constraints for enquiry type, preferred-contact values, phone, email and field bounds; the existing Website bearer-secret verifier is reused rather than introducing another credential.
+- Added `WebsiteEnquiry` plus `EnquiryDailyCounter` and migration `20260819210000_website_enquiry_ingestion`. Accepted submissions persist the immutable structured payload and SHA-256 fingerprint and receive `ENQ-YYYYMMDD-NNNN` inside one serializable Johannesburg-business-date transaction.
+- Same-UUID identical retries return the existing reference without consuming another sequence. Same UUID with changed immutable content fails closed. Concurrent uniqueness races re-read the committed row and apply the same fingerprint rule. The 9,999-per-business-day boundary fails without reporting intake success.
+- Added focused validation/fingerprint/ingestion tests and synchronized Architecture, Website enquiry authority, Deployment, Recovery, Roadmap and Changelog documentation. This OS slice creates no Customer, Property, Quote, Work Order, correspondence, Finance, messaging or Needs Attention state; Website contact email cutover remains a separate Issue #73 follow-up after OS merge/deployment.
+
 ## 2026-08-19 — Phase 1B scalable Shift Planning selectors
 
 - Audited Shift Planning reference loading after Phase 1A and verified Crew, Technician and Work Order APIs already provide bounded search; only the Shift UI still loaded fixed 100-record snapshots, so no new search service, API, index or schema was introduced.

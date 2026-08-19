@@ -1,5 +1,11 @@
 # Deployment
 
+## 2026-08-19 Website enquiry ingestion migration
+
+Deploy additive migration `20260819210000_website_enquiry_ingestion` through the normal Railway `npm run deploy:api` path before the API revision that serves `POST /api/v1/integrations/website/enquiries`. It creates only the `website_enquiries` and `enquiry_daily_counters` tables, uniqueness/index boundaries, and no Customer, Property, Quote, Work Order, messaging, correspondence, Finance, or Needs Attention records. No new environment variable is introduced: the endpoint deliberately reuses the existing API-only Website integration bearer secret and must not expose that secret to Cloudflare/browser code.
+
+After migration and API deployment, verify `/api/v1/ready`, reject missing/invalid Website authorization, accept one `website-enquiry.v1` request, confirm its returned `ENQ-YYYYMMDD-NNNN` reference is persisted, then repeat the exact immutable submission and require the same reference with replay semantics. Reusing the submission UUID with changed content must return a conflict. Do not cut the Website contact form over merely because the database migration exists; the Website consumer change is a separately coordinated Issue #73 follow-up after this OS runtime is deployed and verified. Application rollback should retain the additive enquiry tables and accepted intake history; deploy the prior API while assessing database compatibility rather than dropping authoritative references.
+
 ## 2026-08-16 atomic recurring Quote acceptance migration
 
 Deploy `20260816180000_atomic_recurring_quote_acceptance` with `npm run db:migrate:deploy` before the API revision. No environment variables change. Verify the accepted-shape check, then smoke-check all four supported recurring frequencies, initial-visit linkage, exact add-on quantities, identical retry recovery, ADMIN authorization, and unchanged ONE_TIME acceptance. The migration creates no historical operational records; retain it during application rollback unless reviewed recovery proves otherwise.
