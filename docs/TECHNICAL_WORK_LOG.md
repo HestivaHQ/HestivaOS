@@ -1,5 +1,20 @@
 # Technical work log
 
+## 2026-08-19 — Completed-execution correction package
+
+- Added the correction authorization aggregate, migration, management/Technician APIs, IndexedDB resubmission operation, management history/authorization UI and Technician scoped correction UI.
+- Added focused authority, ownership, idempotency, acknowledgement and history-isolation coverage.
+
+## 2026-08-19 — PR #142 test correction
+
+- Added explicit typed Jest imports/mocks to the private evidence specs and corrected the existing acknowledgement replay test to assert the intentionally path-free response contract.
+
+## 2026-08-19 — Field Operations evidence hardening
+
+- Audited completion/correction authority and deferred correction because no canonical authorizer or acknowledgement consequence is established.
+- Added a private evidence signing service, explicit role/assignment-scoped routes, safe DTO selections and focused authorization/non-exposure tests.
+- Added no schema, migration, upload queue, Finance, correspondence, messaging-provider or lifecycle behavior.
+
 ## 2026-08-19 — Phase 4B Supervisor Operational Review
 
 - Added a role-guarded aggregation over active/today, access, assignments, Job Leader, checklist/evidence counts, completion review, incidents, interruptions and scope mismatches.

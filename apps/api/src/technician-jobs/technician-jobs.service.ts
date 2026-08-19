@@ -5,7 +5,7 @@ import { isAccessOperationallyResolved } from '../work-orders/access-operations-
 
 export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
 export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
-export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
+export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; correctionId?:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
 export type EvidenceAcknowledgementInput={scopeRevisionId:string;purpose:'REQUIRED_SECTION_EVIDENCE'|'EXCEPTION_EVIDENCE'|'INCIDENT_EVIDENCE';capturedAt:string;storagePath:string};
 export type CompleteJobInput={operationId:string;scopeRevisionId:string;fieldCompletedAt:string;expectedVersion:string;expectedStatus:'ON_SITE'|'WAITING_FOR_PARTS'};
 const PRE_START: WorkOrderStatus[] = [WorkOrderStatus.ASSIGNED, WorkOrderStatus.ACCEPTED, WorkOrderStatus.TRAVELLING];
@@ -27,6 +27,7 @@ const briefSelect = {
   someonePresent: true, ecoFriendlyProducts: true, customerDeclaredExistingDamage: true,
   startedScopeRevisionId: true,
   executionScopeRevisions: { orderBy: { revision: 'desc' as const }, take: 1, select: { id:true, revision:true, additions:true, exclusions:true, createdAt:true, sections:{ orderBy:{sortOrder:'asc' as const}, select:{id:true,stableKey:true,title:true,quantity:true,requirements:true,evidencePolicy:true,currentOutcome:true,currentVersion:true,currentOutcomeEvent:{select:{technicianId:true,reason:true,note:true,attentionLevel:true,fieldRecordedAt:true}},evidence:{select:{localEvidenceId:true,syncState:true,capturedAt:true,serverAcknowledgedAt:true}}} } } },
+  completionCorrections:{where:{status:{in:['AUTHORIZED','IN_PROGRESS'] as const}},take:1,orderBy:{createdAt:'desc' as const},select:{id:true,reason:true,sectionIds:true,status:true,authorizedBy:{select:{firstName:true,lastName:true}},createdAt:true}},
 } satisfies Prisma.WorkOrderSelect;
 
 @Injectable()
@@ -106,16 +107,20 @@ export class TechnicianJobsService {
       const duplicate=await tx.executionSectionOutcomeEvent.findUnique({where:{operationId:input.operationId}}); if(duplicate)return duplicate;
       const section=await tx.workOrderExecutionSection.findFirst({where:{id:sectionId,scopeRevisionId:input.scopeRevisionId,scopeRevision:{workOrderId,workOrder:{assignedTechnicians:{some:{technicianId}},startedScopeRevisionId:input.scopeRevisionId}}},include:{currentOutcomeEvent:true}});
       if(!section)throw new NotFoundException('Assigned checklist section was not found.');
-      const job=await tx.workOrder.findUnique({where:{id:workOrderId},select:{jobLeaderId:true}}); const leader=job?.jobLeaderId===technicianId;
+      const job=await tx.workOrder.findUnique({where:{id:workOrderId},select:{jobLeaderId:true,status:true}}); const leader=job?.jobLeaderId===technicianId;
+      let correctionId:string|undefined;
+      if(job?.status===WorkOrderStatus.COMPLETED){if(!input.correctionId)throw new ForbiddenException('Completed execution is immutable without management correction authorization.');const correction=await tx.workOrderCompletionCorrection.findFirst({where:{id:input.correctionId,workOrderId,technicianId,status:{in:['AUTHORIZED','IN_PROGRESS']},sectionIds:{has:sectionId}}});if(!correction)throw new ForbiddenException('This correction is not authorized for the assigned Technician and section.');if(section.currentOutcomeEvent?.technicianId!==technicianId)throw new ForbiddenException('A Technician may correct only their own submitted execution record.');correctionId=correction.id;}
+      else if(input.correctionId)throw new ConflictException('Correction authorization applies only to completed execution.');
       if(section.currentOutcomeEvent&&section.currentOutcomeEvent.technicianId!==technicianId&&!leader)throw new ForbiddenException('Ask the Job Leader to correct this section.');
       if(section.currentVersion!==input.expectedSectionVersion)throw new ConflictException('This section changed. Refresh it before recording another outcome.');
       const evidenceRequired=section.evidencePolicy==='REQUIRED'||(section.evidencePolicy==='ON_EXCEPTION'&&input.outcome==='NOT_COMPLETED');
       if(evidenceRequired&&!input.evidence?.length)throw new BadRequestException('Required photo missing. Save evidence on this device first.');
       const attention=input.reason==='SAFETY_CONCERN'?'SAFETY_CRITICAL_STOP':input.outcome==='NOT_COMPLETED'?'JOB_LEADER_ATTENTION':'INFORMATIONAL';
-      const event=await tx.executionSectionOutcomeEvent.create({data:{operationId:input.operationId,sectionId,technicianId,outcome:input.outcome,reason:input.reason,note:input.note?.trim(),attentionLevel:attention,fieldRecordedAt,expectedSectionVersion:input.expectedSectionVersion}});
-      for(const evidence of input.evidence??[]) await tx.executionSectionEvidence.upsert({where:{localEvidenceId:evidence.localEvidenceId},create:{localEvidenceId:evidence.localEvidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.outcome==='NOT_COMPLETED'?'EXCEPTION_EVIDENCE':'REQUIRED_SECTION_EVIDENCE',capturedAt:new Date(evidence.capturedAt),syncState:evidence.syncState??'CAPTURED_LOCAL',outcomeEventId:event.id},update:{outcomeEventId:event.id}});
+      const event=await tx.executionSectionOutcomeEvent.create({data:{operationId:input.operationId,sectionId,technicianId,outcome:input.outcome,reason:input.reason,note:input.note?.trim(),attentionLevel:attention,fieldRecordedAt,expectedSectionVersion:input.expectedSectionVersion,correctionId}});
+      for(const evidence of input.evidence??[]){const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidence.localEvidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity belongs to another execution record.');continue;}await tx.executionSectionEvidence.create({data:{localEvidenceId:evidence.localEvidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.outcome==='NOT_COMPLETED'?'EXCEPTION_EVIDENCE':'REQUIRED_SECTION_EVIDENCE',capturedAt:new Date(evidence.capturedAt),syncState:evidence.syncState??'CAPTURED_LOCAL',outcomeEventId:event.id}});}
       const changed=await tx.workOrderExecutionSection.updateMany({where:{id:sectionId,currentVersion:input.expectedSectionVersion},data:{currentOutcome:input.outcome,currentOutcomeEventId:event.id,currentVersion:{increment:1}}}); if(changed.count!==1)throw new ConflictException('This section changed while your update was saved.');
-      await tx.workOrderActivity.create({data:{workOrderId,type:'SECTION_OUTCOME_RECORDED',actorId:userId,note:`Section ${section.stableKey} recorded as ${input.outcome}.`}}); return event;
+      if(correctionId){const correction=await tx.workOrderCompletionCorrection.findUniqueOrThrow({where:{id:correctionId},select:{status:true}});if(correction.status==='AUTHORIZED'){await tx.workOrderCompletionCorrection.update({where:{id:correctionId},data:{status:'IN_PROGRESS',firstCorrectionAt:new Date()}});await tx.workOrder.update({where:{id:workOrderId},data:{completionAcknowledgedAt:null,completionAcknowledgedById:null,completionCorrespondenceEligibleAt:null}});await tx.workOrderActivity.create({data:{workOrderId,type:'COMPLETION_CORRECTION_STARTED',actorId:userId,newStatus:WorkOrderStatus.COMPLETED,note:`Authorized correction ${correctionId} changed section ${section.stableKey}; prior acknowledgement remains in correction history and is no longer current.`}});}}
+      await tx.workOrderActivity.create({data:{workOrderId,type:'SECTION_OUTCOME_RECORDED',actorId:userId,note:`Section ${section.stableKey} recorded as ${input.outcome}${correctionId?' under authorized completion correction':''}.`}}); return event;
     },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   }
 
@@ -128,8 +133,9 @@ export class TechnicianJobsService {
         scopeRevisionId:input.scopeRevisionId,
         scopeRevision:{workOrderId,workOrder:{assignedTechnicians:{some:{technicianId}},startedScopeRevisionId:input.scopeRevisionId}},
       }});if(!section)throw new NotFoundException('Assigned active checklist section was not found.');
-      const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?existing:tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})}
-      return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})
+      const select={id:true,localEvidenceId:true,purpose:true,syncState:true,capturedAt:true,serverAcknowledgedAt:true} as const;
+      const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?{id:existing.id,localEvidenceId:existing.localEvidenceId,purpose:existing.purpose,syncState:existing.syncState,capturedAt:existing.capturedAt,serverAcknowledgedAt:existing.serverAcknowledgedAt}:tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()},select})}
+      return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()},select})
     });
   }
 
@@ -164,8 +170,8 @@ export class TechnicianJobsService {
   private dto(job: any, technicianId: string) {
     const scope=job.startedScopeRevisionId?job.executionScopeRevisions.find((r:any)=>r.id===job.startedScopeRevisionId)??job.executionScopeRevisions[0]:job.executionScopeRevisions[0]??null;
     const accessOperationallyResolved = isAccessOperationallyResolved(job.accessReadiness, job.temporaryAccessCredentials ?? [], new Date());
-    const { temporaryAccessCredentials: _protectedCredentialMetadata, ...safeJob } = job;
-    return { ...safeJob, technicianId, accessOperationallyResolved, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
+    const { temporaryAccessCredentials: _protectedCredentialMetadata, completionCorrections, ...safeJob } = job;
+    return { ...safeJob, technicianId, activeCorrection:completionCorrections?.[0]??null, accessOperationallyResolved, executionScope:scope, executionScopeRevisions:undefined, isJobLeader: job.jobLeaderId === technicianId,
       canStart: job.jobLeaderId === technicianId && !job.startedAt && PRE_START.includes(job.status),
       waitingForJobLeader: job.jobLeaderId !== technicianId && !job.startedAt && PRE_START.includes(job.status),
       cacheable: job.status !== WorkOrderStatus.CANCELLED,

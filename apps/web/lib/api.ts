@@ -1098,6 +1098,8 @@ export const api = {
   workOrders: (query = "") =>
     apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
   workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
+  completionCorrections:(id:string)=>apiFetch<Array<{id:string;reason:string;status:"AUTHORIZED"|"IN_PROGRESS"|"RESUBMITTED";sectionIds:string[];createdAt:string;firstCorrectionAt:string|null;resubmittedAt:string|null;originalCompletionOperationId:string;originalAcknowledgedAt:string|null;authorizedBy:{firstName:string;lastName:string};technician:{firstName:string;lastName:string};outcomeEvents:Array<{id:string;sectionId:string;outcome:string;fieldRecordedAt:string}>;affectedSections:Array<{id:string;title:string;outcomeEvents:Array<{id:string;outcome:string;reason:string|null;note:string|null;fieldRecordedAt:string;correctionId:string|null}>}>}>>(`/work-orders/${id}/completion-corrections`),
+  authorizeCompletionCorrection:(id:string,input:{operationId:string;reason:string;sectionIds:string[]})=>apiFetch(`/work-orders/${id}/completion-corrections`,{method:"POST",...json(input)}),
   workOrderAccessReadinessHistory: (id: string) => apiFetch<WorkOrderAccessReadinessEvent[]>(`/work-orders/${id}/access-readiness/history`),
   updateWorkOrderAccessReadiness: (id: string, state: WorkOrderAccessReadiness) => apiFetch<{id:string;accessReadiness:WorkOrderAccessReadiness}>(`/work-orders/${id}/access-readiness`, { method: "PATCH", ...json({ state }) }),
   temporaryAccessCredentials: (id:string) => apiFetch<TemporaryAccessCredential[]>(`/work-orders/${id}/temporary-access-credentials`),
@@ -1218,6 +1220,7 @@ export type TechnicianJob = {
   canStart: boolean;
   waitingForJobLeader: boolean;
   cacheable: boolean;
+  activeCorrection:{id:string;reason:string;sectionIds:string[];status:"AUTHORIZED"|"IN_PROGRESS";authorizedBy:{firstName:string;lastName:string};createdAt:string}|null;
   service: { name: string; description: string | null } | null;
   addOns: Array<{ quantity: number; service: { name: string } }>;
   assignedTechnicians: Array<{
@@ -1309,6 +1312,7 @@ export type SectionOutcomeOperation = {
   workOrderId: string;
   sectionId: string;
   scopeRevisionId: string;
+  correctionId?: string;
   outcome: SectionOutcome;
   reason?: string;
   note?: string;
@@ -1328,6 +1332,7 @@ export type EvidenceAcknowledgement = {
   serverAcknowledgedAt: string;
 };
 export type CompleteJobOperation = { operationId: string; scopeRevisionId: string; fieldCompletedAt: string; expectedVersion: string; expectedStatus: "ON_SITE" | "WAITING_FOR_PARTS" };
+export type CorrectionResubmissionOperation={operationId:string;fieldCompletedAt:string};
 export type IncidentOperation = { operationId:string; workOrderId:string; category:"SAFETY_CRITICAL_STOP"|"PROPERTY_OR_ITEM_DAMAGE"|"CUSTOMER_OR_PROPERTY_CONDITION"|"OPERATIONAL_INCIDENT"; fieldReportedAt:string; sectionId?:string; note:string; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState:"CAPTURED_LOCAL"|"QUEUED"|"RETRY_PENDING"}> };
 export type JobReview = {
   scopeRevisionId: string | null;
@@ -1372,5 +1377,6 @@ export const technicianApi = {
     ),
   review: (id: string) => apiFetch<JobReview>(`/technician/jobs/${id}/review`),
   complete: (id: string, operation: CompleteJobOperation) => apiFetch<{id:string;status:"COMPLETED";completionOperationId:string;fieldCompletedAt:string;completionAcceptedAt:string}>(`/technician/jobs/${id}/complete`, { method: "POST", ...json(operation) }),
+  resubmitCorrection:(workOrderId:string,correctionId:string,operation:CorrectionResubmissionOperation)=>apiFetch(`/technician/jobs/${workOrderId}/completion-corrections/${correctionId}/resubmit`,{method:"POST",...json(operation)}),
   reportIncident: (operation:IncidentOperation) => apiFetch(`/technician/jobs/${operation.workOrderId}/incidents`,{method:"POST",...json(operation)}),
 };

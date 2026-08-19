@@ -305,3 +305,11 @@ For an uncertain outbound result, retry with the original recovery request UUID;
 ## Phase 4A Work Order incident recovery (2026-08-19)
 
 Preserve queued `REPORT_INCIDENT` operations and `INCIDENT_EVIDENCE` Blobs with their original UUIDs. Retry rather than minting replacements; conflicting operations remain `NEEDS_REVIEW`. Never repair an incident by editing its original row/evidence, Work Order status, checklist outcome, interruption, scope mismatch, or Needs Attention row. Correct management lifecycle with an append-only review/reopen action. Restore incident, review, and evidence rows together; application rollback may retain the additive schema.
+
+## Private Execution Evidence read recovery (2026-08-19)
+
+If authorized evidence access is unavailable, confirm the API has the correct Supabase project URL, protected service-role credential and private bucket name, then verify the evidence is server-acknowledged and bound to the requested Work Order. Do not make the bucket public, copy a raw path into notes, or weaken role/assignment checks. Rotate a suspected exposed service-role key in Supabase and Railway, restart the API, and verify broad projections and logs contain neither the key, object paths nor signed URLs. A restored database and bucket must retain matching evidence rows/objects and provenance.
+
+## Completion correction recovery (2026-08-19)
+
+Preserve the authorization UUID, corrected outcome UUIDs and resubmission UUID on retry. Do not mint replacements after an uncertain response. If correction is rejected, verify current assignment, submitting Technician ownership, selected section, frozen scope and authorization status; retain the device operation as needing review. Never repair by deleting original outcomes, evidence, incidents, interruption/mismatch history or acknowledgement snapshots, or by changing lifecycle/Finance/correspondence state. A resubmitted correction remains awaiting the existing management acknowledgement until explicitly acknowledged.

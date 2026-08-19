@@ -135,6 +135,15 @@ enum WorkOrderActivityType {
   WORK_ORDER_CLOSED
   WORK_ORDER_CANCELLED
   ACCESS_READINESS_CHANGED
+  COMPLETION_CORRECTION_AUTHORIZED
+  COMPLETION_CORRECTION_STARTED
+  COMPLETION_CORRECTION_RESUBMITTED
+}
+
+enum CompletionCorrectionStatus {
+  AUTHORIZED
+  IN_PROGRESS
+  RESUBMITTED
 }
 
 enum ServiceScopeTemplateVersionStatus {
@@ -348,6 +357,7 @@ model User {
   accessRecoveriesInitiated WorkOrderAccessRecovery[] @relation("AccessRecoveryInitiator")
   incidentReviews WorkOrderIncidentReview[] @relation("WorkOrderIncidentReviewActor")
   acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
+  completionCorrectionsAuthorized WorkOrderCompletionCorrection[] @relation("CompletionCorrectionAuthorizer")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   @@map("users")
@@ -549,6 +559,7 @@ model Technician {
   sectionOutcomeEvents ExecutionSectionOutcomeEvent[]
   executionEvidence ExecutionSectionEvidence[]
   reportedIncidents WorkOrderIncident[]
+  completionCorrections WorkOrderCompletionCorrection[]
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -818,6 +829,7 @@ model WorkOrder {
   executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
   executionEvidence ExecutionSectionEvidence[]
   incidents WorkOrderIncident[]
+  completionCorrections WorkOrderCompletionCorrection[]
   startedScopeRevision WorkOrderExecutionScopeRevision? @relation("WorkOrderStartedScope", fields: [startedScopeRevisionId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -912,8 +924,42 @@ model ExecutionSectionOutcomeEvent {
   currentForSection WorkOrderExecutionSection? @relation("CurrentSectionOutcome")
   technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
   evidence ExecutionSectionEvidence[]
+  correction WorkOrderCompletionCorrection? @relation(fields: [correctionId], references: [id], onDelete: Restrict)
+  correctionId String? @map("correction_id") @db.Uuid
   @@index([sectionId, serverReceivedAt])
+  @@index([correctionId])
   @@map("execution_section_outcome_events")
+}
+
+model WorkOrderCompletionCorrection {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  requestHash String @map("request_hash")
+  workOrderId String @map("work_order_id") @db.Uuid
+  technicianId String @map("technician_id") @db.Uuid
+  authorizedById String @map("authorized_by_id") @db.Uuid
+  reason String
+  sectionIds String[] @map("section_ids") @db.Uuid
+  status CompletionCorrectionStatus @default(AUTHORIZED)
+  originalCompletionOperationId String @map("original_completion_operation_id") @db.Uuid
+  originalCompletedByTechnicianId String @map("original_completed_by_technician_id") @db.Uuid
+  originalFieldCompletedAt DateTime @map("original_field_completed_at")
+  originalCompletionAcceptedAt DateTime @map("original_completion_accepted_at")
+  originalAcknowledgedAt DateTime? @map("original_acknowledged_at")
+  originalAcknowledgedById String? @map("original_acknowledged_by_id") @db.Uuid
+  originalCorrespondenceEligibleAt DateTime? @map("original_correspondence_eligible_at")
+  firstCorrectionAt DateTime? @map("first_correction_at")
+  resubmissionOperationId String? @unique @map("resubmission_operation_id") @db.Uuid
+  fieldResubmittedAt DateTime? @map("field_resubmitted_at")
+  resubmittedAt DateTime? @map("resubmitted_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  authorizedBy User @relation("CompletionCorrectionAuthorizer", fields: [authorizedById], references: [id], onDelete: Restrict)
+  outcomeEvents ExecutionSectionOutcomeEvent[]
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([workOrderId, createdAt])
+  @@index([technicianId, status])
+  @@map("work_order_completion_corrections")
 }
 
 model ExecutionSectionEvidence {

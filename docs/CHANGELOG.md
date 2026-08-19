@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-19 — Technician completion corrections
+
+- Added scoped ADMIN/SUPERVISOR correction authorization and assigned-Technician offline resubmission over append-only outcome history.
+- Prior completion and acknowledgement facts remain recorded; an actual correction makes acknowledgement non-current and requires fresh management acknowledgement. No Finance or correspondence delivery was added.
+
+## 2026-08-19 — Execution Evidence CI correction
+
+- Aligned the new Execution Evidence specs with the repository's explicit `@jest/globals` TypeScript convention and preserved the safe acknowledgement projection during idempotent replay without requiring an extra database query.
+
+## 2026-08-19 — Private Execution Evidence read hardening
+
+- Removed raw Execution Evidence storage paths from broad Work Order, incident and scope-mismatch responses.
+- Added explicit Work Order-bound ADMIN/SUPERVISOR and current-assignment Technician access with 60-second signed private Storage URLs. The upload pipeline and provenance are unchanged.
+- Recorded Technician correction/reopen as decision-blocked rather than expanding authority.
+
 ## 2026-08-19 — Supervisor Operational Review v1
 
 - Added a SUPERVISOR-only, secret-free operational projection and responsive exception-first workspace reusing Needs Attention and authoritative Work Order execution domains.

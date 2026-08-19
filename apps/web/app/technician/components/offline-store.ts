@@ -3,6 +3,7 @@ import type {
   StartJobOperation,
   CompleteJobOperation,
   IncidentOperation,
+  CorrectionResubmissionOperation,
   TechnicianJob,
 } from "../../../lib/api";
 export type PendingStart = StartJobOperation & {
@@ -16,6 +17,7 @@ export type PendingOutcome = SectionOutcomeOperation & {
 };
 export type PendingCompletion = CompleteJobOperation & { workOrderId:string; jobLeaderTechnicianId:string; kind:"COMPLETE_JOB"; queuedAt:string; localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW"; acknowledgedAt?:string; lastError?:string };
 export type PendingIncident = IncidentOperation & {kind:"REPORT_INCIDENT";queuedAt:string;localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW";lastError?:string};
+export type PendingCorrectionResubmission=CorrectionResubmissionOperation&{kind:"RESUBMIT_CORRECTION";workOrderId:string;correctionId:string;queuedAt:string;localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW";lastError?:string};
 export type EvidenceSyncState =
   | "CAPTURED_LOCAL"
   | "QUEUED"
@@ -153,6 +155,9 @@ export const completionForJob = async (workOrderId:string) => (await completions
 export const saveIncident = (operation:PendingIncident)=>transaction<IDBValidKey>("operations","readwrite",store=>store.put(operation));
 export const incidents = async()=>((await transaction<Array<PendingStart|PendingOutcome|PendingCompletion|PendingIncident>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="REPORT_INCIDENT") as PendingIncident[]);
 export const pendingIncidents=async()=>(await incidents()).filter(x=>x.localSyncState==="SYNC_PENDING");
+export const saveCorrectionResubmission=(operation:PendingCorrectionResubmission)=>transaction<IDBValidKey>("operations","readwrite",store=>store.put(operation));
+export const correctionResubmissions=async()=>((await transaction<Array<PendingStart|PendingOutcome|PendingCompletion|PendingIncident|PendingCorrectionResubmission>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="RESUBMIT_CORRECTION") as PendingCorrectionResubmission[]);
+export const pendingCorrectionResubmissions=async()=>(await correctionResubmissions()).filter(x=>x.localSyncState==="SYNC_PENDING");
 
 export const removeCachedJob = (id: string) =>
   transaction<undefined>(

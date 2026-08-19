@@ -17,10 +17,12 @@ import {
   TechnicianJobsService,
   TechnicianListView,
 } from "./technician-jobs.service";
+import { ExecutionEvidenceAccessService } from '../execution-evidence/execution-evidence-access.service';
+import { ResubmitCompletionCorrectionInput, WorkOrderCompletionCorrectionService } from '../work-orders/work-order-completion-correction.service';
 
 @Controller("technician/jobs")
 export class TechnicianJobsController {
-  constructor(private readonly jobs: TechnicianJobsService) {}
+  constructor(private readonly jobs: TechnicianJobsService, private readonly evidenceAccess: ExecutionEvidenceAccessService, private readonly completionCorrections: WorkOrderCompletionCorrectionService) {}
 
   @Get()
   list(
@@ -37,6 +39,9 @@ export class TechnicianJobsController {
   ) {
     return this.jobs.brief(user.id, id);
   }
+
+  @Get(":id/evidence/:evidenceId/access")
+  evidence(@CurrentUser() user: User,@Param("id",new ParseUUIDPipe()) id:string,@Param("evidenceId",new ParseUUIDPipe()) evidenceId:string){return this.evidenceAccess.technicianAccess(user.id,id,evidenceId);}
 
   @Post(":id/start")
   start(
@@ -74,6 +79,7 @@ export class TechnicianJobsController {
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() input: CompleteJobInput,
   ) { return this.jobs.complete(user.id, id, input); }
+  @Post(":id/completion-corrections/:correctionId/resubmit") resubmitCorrection(@CurrentUser() user:User,@Param("id",new ParseUUIDPipe()) id:string,@Param("correctionId",new ParseUUIDPipe()) correctionId:string,@Body() input:ResubmitCompletionCorrectionInput){return this.completionCorrections.resubmit(user.id,id,correctionId,input);}
   @Get(":id/review") review(
     @CurrentUser() user: User,
     @Param("id", new ParseUUIDPipe()) id: string,

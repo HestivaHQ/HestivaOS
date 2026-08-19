@@ -49,7 +49,7 @@ export class WorkOrderScopeMismatchService {
         serverReceivedAt: true,
         technician: { select: { id: true, firstName: true, lastName: true } },
         section: { select: { id: true, stableKey: true, title: true, scopeRevisionId: true } },
-        evidence: { select: { id: true, localEvidenceId: true, syncState: true, storagePath: true, capturedAt: true, serverAcknowledgedAt: true } },
+        evidence: { select: { id: true, localEvidenceId: true, purpose: true, syncState: true, capturedAt: true, serverAcknowledgedAt: true } },
       },
     });
 

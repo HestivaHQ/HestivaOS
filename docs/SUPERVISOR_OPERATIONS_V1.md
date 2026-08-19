@@ -23,4 +23,4 @@ No Prisma model or migration is introduced. Needs Attention retains stable condi
 
 ## Deferred
 
-Notification delivery, Finance, customer correspondence, Technician correction/reopen, private evidence-read hardening, scheduling/dispatch redesign, HR/legal/liability outcomes, and any broader SUPERVISOR authority remain separate work.
+Notification delivery, Finance, customer correspondence, scheduling/dispatch redesign, HR/legal/liability outcomes, and any broader SUPERVISOR authority remain separate work. Private Execution Evidence reads and the explicitly approved ADMIN/SUPERVISOR correction authorization were subsequently completed through existing Work Order surfaces; the broad Supervisor projection remains path-free.

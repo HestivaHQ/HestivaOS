@@ -1,9 +1,19 @@
 # Technical roadmap
 
+## Technician completion correction status (2026-08-19)
+
+- Completed controlled ADMIN/SUPERVISOR authorization, assigned submitting-Technician append-only section corrections, durable resubmission, prior acknowledgement preservation and mandatory fresh acknowledgement.
+- Frozen scope, evidence, incidents, interruptions, scope mismatch, Finance, pricing, correspondence delivery and unrelated lifecycle remain unchanged.
+
+## Field Operations Hardening status (2026-08-19)
+
+- Completed private Execution Evidence read hardening: broad projections omit raw paths and explicit Work Order-scoped ADMIN/SUPERVISOR or assignment-scoped Technician reads return only 60-second signed access.
+- Technician post-completion correction/reopen was subsequently completed under the scoped policy recorded above. Finance, correspondence, live providers and lifecycle redesign remain deferred.
+
 ## Supervisor Operational Review v1 status (2026-08-19)
 
 - Phase 4B is implemented as a SUPERVISOR-only exception-first workspace that reuses Needs Attention and projects canonical assignment, access, execution, evidence synchronization, completion, incident, interruption, and scope-mismatch state without new business status.
-- Still deferred: notification delivery, Finance, customer correspondence, Technician correction/reopen, evidence-read hardening, dispatch redesign, and any new Supervisor authority.
+- Still deferred: notification delivery, Finance, customer correspondence, dispatch redesign, and any new Supervisor authority. Private evidence reads and scoped Technician completion correction are completed by the Field Operations packages above.
 
 ## Dashboard Needs Attention Foundation v1 status (2026-08-18)
 
@@ -124,12 +134,12 @@ Only currently identified technical follow-up work is listed here.
 - **Completed 2026-08-17 — B1 foundation:** assignment-scoped Today/Upcoming/Recent, minimized Job Brief, leader-only idempotent Start Job, installable route-focused PWA, IndexedDB cache/queue, and opportunity-driven reconciliation.
 - **Completed 2026-08-17 — B2/C frozen scope + compressed checklist:** versioned Service Scope Templates, immutable Work Order Execution Scope revisions, section-level checklist/outcomes, structured Not Completed reasons, Job Leader exception-first Review Job, evidence-policy foundations, and offline checklist operations/reconciliation.
 - **Completed 2026-08-17 — D offline evidence + photo pipeline:** local-first compressed section evidence, IndexedDB Blob retention, deterministic retry upload, authoritative acknowledgement, REQUIRED/ON_EXCEPTION integration, and pending-aware review. The legacy generic BEFORE/AFTER photo flow remains separate.
-- **Deferred after D:** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, customer completion delivery/correspondence, richer Homent Supervisor workflows, Technician correction/reopen, and approved private evidence-read/privacy hardening.
+- **Deferred after D (historical):** protected credential retrieval, proactive critical-change push delivery, dedicated incident/damage/scope-mismatch resolution, customer completion delivery/correspondence, richer Homent Supervisor workflows, Technician correction/reopen, and approved private evidence-read/privacy hardening. Private evidence reads and scoped correction/reopen were subsequently completed.
 
 ## Homent Technician next focused slices (verified current, 2026-08-17)
 
 - Add dedicated safety/incident, condition/damage, scope-mismatch and approved additional-work resolution linked to existing exception events.
-- **Completed 2026-08-18 — E Complete Job:** Job Leader-only offline completion, authoritative idempotent reconciliation, local read-only/conflict handling, and audited management acknowledgement/correspondence eligibility. Customer delivery, richer Supervisor workflow and Technician correction/reopen remain deferred.
+- **Completed 2026-08-18 — E Complete Job:** Job Leader-only offline completion, authoritative idempotent reconciliation, local read-only/conflict handling, and audited management acknowledgement/correspondence eligibility. Customer delivery and richer Supervisor workflow remained deferred at that checkpoint; scoped Technician correction/reopen was subsequently completed.
 - Add secure role-filtered temporary-credential retrieval and proactive critical-change notifications as focused security/communication slices.
 - Add a full Admin editor for Service Scope Templates and pre-start revision comparison; APIs and normalized records already exist.
 - Plan a separate approved private evidence-read/privacy-hardening migration for execution evidence and the legacy Work Order photo bucket; do not broaden public exposure in the meantime.
