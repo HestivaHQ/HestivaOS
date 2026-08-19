@@ -58,8 +58,21 @@ export class PropertiesService {
     return { items, total, page: safePage, pageSize: safePageSize };
   }
 
-  selectorOptions(customerId?: string) {
-    return this.prisma.property.findMany({ where: { customerId }, select: { id: true, customerId: true, name: true, addressLine1: true, city: true }, orderBy: { name: 'asc' }, take: 100 });
+  selectorOptions(customerId?: string, search?: string) {
+    const term = search?.trim();
+    return this.prisma.property.findMany({
+      where: {
+        customerId,
+        ...(term ? { OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { addressLine1: { contains: term, mode: 'insensitive' } },
+          { city: { contains: term, mode: 'insensitive' } },
+        ] } : {}),
+      },
+      select: { id: true, customerId: true, name: true, addressLine1: true, city: true },
+      orderBy: { name: 'asc' },
+      take: 100,
+    });
   }
 
   async findOne(id: string) {
