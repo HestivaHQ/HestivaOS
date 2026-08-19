@@ -1,5 +1,15 @@
 # Recovery guide
 
+## Three-stage PR validation recovery (2026-08-19)
+
+Treat each final PR job as an independent diagnostic boundary. **Validate policy, secrets and diff** failures are repository/documentation/security/whitespace problems and do not justify rerunning application builds locally. **Validate API** failures should be reproduced with the smallest relevant API test/typecheck/build command. **Validate web and Cloudflare bundle** failures should be isolated to web tests/typecheck, Cloudflare type generation, OpenNext, or Wrangler as indicated by the failing step. **Replay PostgreSQL migrations** remains the database-history authority: never bypass a clean/staged replay failure, edit another lane's migration, mark an unverified migration applied, or weaken the replay harness merely to make CI green.
+
+During Stage 1, use proportional checks while the branch is fluid. Once Stage 2 begins, finish all documentation/coordination and full-diff reconciliation before freezing the exact head. If a required final job fails because of a real code/configuration/documentation defect, inspect that exact job/step, fix only the evidenced cause on the same branch, run proportional affected-area checks, re-audit the affected area plus complete-diff integrity, freeze the new head and let the complete required PR workflow run again. Do not rerun or merge a stale prior green result after the head changes.
+
+If a job appears to have failed only because of transient GitHub runner/service infrastructure and the PR head/base are unchanged, an authorized operator may rerun the failed job rather than changing repository content. Do not use a rerun to hide deterministic failures. If the workflow YAML/topology itself is broken, repair or revert the workflow files on the same reviewed branch; this validation architecture is non-deploying and requires no Cloudflare, Railway, Supabase, credential, schema or production-data recovery action.
+
+Immediately before merge, verify all four required jobs are green for the exact reviewed head, the integration base is still acceptable, and the parallel-PR/canonical-documentation/append-only-history checks remain clean. A cancelled, running, superseded, stale or red job is not merge evidence. This section supersedes the older single-job `PR quality gates / Verify repository` recovery wording later in this guide where it describes the pre-ADR-0067 CI topology.
+
 ## Recurring automatic resume recovery (2026-08-19)
 
 Treat `auto_resume_date` as durable recurring-agreement lifecycle intent. If a paused agreement passes its automatic-resume date while Railway or the API is unavailable, restoring or restarting the corrected API is sufficient for normal recovery: the runner reconciles once during application bootstrap and then every minute, and any persisted date on or before the current Africa/Johannesburg business date is due. Do not cause lifecycle mutation through a GET/read path, create a replacement Work Order, or rewrite recurrence history to compensate for downtime.
