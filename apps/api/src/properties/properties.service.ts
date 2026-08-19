@@ -19,6 +19,7 @@ const allowedFields = new Set<keyof CreatePropertyInput>([
   'hasCameras', 'offLimitsNotes', 'fragileItemNotes', 'productRestrictionNotes', 'allergyNotes',
 ]);
 const textFields = ['addressLine2', 'province', 'postalCode', 'accessNotes', 'parkingNotes', 'petNotes', 'offLimitsNotes', 'fragileItemNotes', 'productRestrictionNotes', 'allergyNotes'] as const;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class PropertiesService {
@@ -47,7 +48,15 @@ export class PropertiesService {
 
   async findAll(page = 1, pageSize = 20, search?: string, customerId?: string) {
     const safePage = Math.max(1, page), safePageSize = Math.min(100, Math.max(1, pageSize)), term = search?.trim();
-    const where: Prisma.PropertyWhereInput = { customerId, ...(term ? { OR: [{ name: { contains: term, mode: 'insensitive' } }, { addressLine1: { contains: term, mode: 'insensitive' } }, { city: { contains: term, mode: 'insensitive' } }] } : {}) };
+    const where: Prisma.PropertyWhereInput = {
+      customerId,
+      ...(term ? { OR: [
+        ...(uuidPattern.test(term) ? [{ id: term }] : []),
+        { name: { contains: term, mode: 'insensitive' } },
+        { addressLine1: { contains: term, mode: 'insensitive' } },
+        { city: { contains: term, mode: 'insensitive' } },
+      ] } : {}),
+    };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.property.findMany({
         where, orderBy: { createdAt: 'desc' }, skip: (safePage - 1) * safePageSize, take: safePageSize,
@@ -64,6 +73,7 @@ export class PropertiesService {
       where: {
         customerId,
         ...(term ? { OR: [
+          ...(uuidPattern.test(term) ? [{ id: term }] : []),
           { name: { contains: term, mode: 'insensitive' } },
           { addressLine1: { contains: term, mode: 'insensitive' } },
           { city: { contains: term, mode: 'insensitive' } },
