@@ -301,3 +301,7 @@ If access priority or resolution appears wrong, verify the authoritative Work Or
 ## Phase 3D access recovery (2026-08-19)
 
 For an uncertain outbound result, retry with the original recovery request UUID; never create a replacement merely because the response was lost. The canonical adapter receives the same idempotency key. For duplicated webhooks, preserve the existing provider-event record. Do not manually relink a response across conversations or Work Orders. If access facts changed after sending, the candidate command intentionally stops: review current readiness and initiate a new human-authorized request only if still eligible. Never repair recovery by editing message bodies, source provenance, Needs Attention rows, Work Order lifecycle, or Finance. Restore private messaging/temporary-access objects without making paths public.
+
+## Phase 4A Work Order incident recovery (2026-08-19)
+
+Preserve queued `REPORT_INCIDENT` operations and `INCIDENT_EVIDENCE` Blobs with their original UUIDs. Retry rather than minting replacements; conflicting operations remain `NEEDS_REVIEW`. Never repair an incident by editing its original row/evidence, Work Order status, checklist outcome, interruption, scope mismatch, or Needs Attention row. Correct management lifecycle with an append-only review/reopen action. Restore incident, review, and evidence rows together; application rollback may retain the additive schema.

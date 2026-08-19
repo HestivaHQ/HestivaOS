@@ -120,3 +120,7 @@ Appointment-relative access urgency is calculated from authoritative Work Order 
 ## Why access recovery is a correlated human action
 
 A missing-access alert is not customer-contact authority, and a provider identity is not a Customer identity. Requiring an ADMIN to select an already linked canonical conversation prevents urgency from silently becoming autonomous correspondence. Keeping the inbound response immutable in messaging while registering only an explicitly reviewed, visit-scoped Phase 3B candidate preserves provenance and least authority without creating another access state or credential store. See ADR-0061.
+
+## Why field incidents are separate from execution and interruption
+
+A section outcome says what work happened, and an interruption says whether the visit could continue; neither safely represents durable damage or serious operational follow-up. A separate immutable incident fact preserves provenance through later completion while explicit user action retains scope-mismatch and interruption truth. Neutral management resolution avoids turning operational review into liability, compensation, Finance, legal or HR policy. See ADR-0062.

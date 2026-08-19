@@ -484,3 +484,9 @@ Implemented the bounded Phase 3B package on top of canonical Phase 3A. The exist
 ## 2026-08-19 — Phase 3D WhatsApp/Messenger access recovery
 
 Implemented the bounded Phase 3D package on current Phase 3A–3C and messaging foundations. Added provider-neutral persisted conversations/messages, adapter registration, inbound replay identity, a visit-scoped access-recovery correlation, ADMIN-only eligibility/send/candidate APIs, constrained Work Order UI, stable outbound retry keys, same-conversation inbound review association, and Phase 3B source-message provenance with stale/cross-visit guards. Protected content stays out of summaries, Needs Attention, Dashboard, Technician, activity, and analytics projections; candidate registration remains separate from acceptance. Added migration, policy/security/UI coverage, ADR-0061, and synchronized current/historical/operational documentation. No live provider adapter, autonomous correspondence, lifecycle action, or Finance change was made.
+
+## 2026-08-19 — Phase 4A Technician Safety, Incident & Damage
+
+- Added the Work Order Incident aggregate, controlled enums, additive migration, assignment-scoped idempotent API, existing-evidence linkage, IndexedDB v5 report operations, Technician field UI, and Work Order management review UI.
+- Added stable incident Needs Attention production with Critical safety priority, High other-incident priority, automatic resolution and occurrence reopen.
+- Added focused contract tests and synchronized architecture, rationale, roadmap, deployment, recovery, Needs Attention, contract, changelog and ADR documentation. Correspondence, notifications, evidence hardening, Supervisor expansion and Finance remain deferred.

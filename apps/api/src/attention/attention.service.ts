@@ -40,6 +40,7 @@ const MANAGED_ATTENTION_TYPES: AttentionItemType[] = [
   AttentionItemType.OVERDUE_WORK_ORDER,
   AttentionItemType.COMPLETION_ACKNOWLEDGEMENT_REQUIRED,
   AttentionItemType.WORK_ORDER_ACCESS_REQUIRED,
+  AttentionItemType.WORK_ORDER_INCIDENT_REVIEW_REQUIRED,
 ];
 
 const ATTENTION_ROLES: UserRole[] = [
@@ -228,6 +229,11 @@ export class AttentionService {
       select: workOrderAttentionSelect,
     });
 
+    const unresolvedIncidents = await tx.workOrderIncident.findMany({
+      where: { status: { not: 'RESOLVED' } },
+      select: { id:true, category:true, fieldReportedAt:true, workOrder:{select:workOrderAttentionSelect} },
+    });
+
     return [
       ...todayUnassigned.map((item) =>
         candidateFor(item, AttentionItemType.TODAY_UNASSIGNED_WORK_ORDER, now),
@@ -241,6 +247,15 @@ export class AttentionService {
       ...unresolvedAccess
         .filter((item) => !isAccessOperationallyResolved(item.accessReadiness, item.temporaryAccessCredentials, now))
         .map((item) => candidateFor(item, AttentionItemType.WORK_ORDER_ACCESS_REQUIRED, now)),
+      ...unresolvedIncidents.map(({id,category,fieldReportedAt,workOrder}) => ({
+        conditionKey:`work-order-incident:${id}:review`, type:AttentionItemType.WORK_ORDER_INCIDENT_REVIEW_REQUIRED,
+        priority:category==='SAFETY_CRITICAL_STOP'?AttentionPriority.CRITICAL:AttentionPriority.HIGH,
+        queue:AttentionQueue.MANAGEMENT_REVIEW, subjectType:'WORK_ORDER' as const, subjectId:workOrder.id,
+        subjectReference:displayReference(workOrder), customerLabel:customerLabel(workOrder),
+        title:category==='SAFETY_CRITICAL_STOP'?'Safety-critical incident needs review':'Field incident needs review',
+        summary:`${displayReference(workOrder)} · ${category.replaceAll('_',' ').toLowerCase()} reported by the field team.`,
+        actionLabel:'Review incident', actionHref:`/work-orders/${workOrder.id}#incidents`, dueAt:fieldReportedAt,
+      })),
     ];
   }
 

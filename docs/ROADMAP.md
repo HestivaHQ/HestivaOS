@@ -156,3 +156,8 @@ Only currently identified technical follow-up work is listed here.
 
 - Completed ADMIN-triggered, provider-neutral WhatsApp/Messenger access recovery through configured Customer-linked conversations, durable retry identity, inbound provenance correlation, and explicit Phase 3B candidate registration/review.
 - No provider adapter, autonomous correspondence, general inbox, Work Order lifecycle action, or Finance behavior was added. Live provider configuration and broader messaging workflows remain separate coordinated work under Issue #116.
+
+## 2026-08-19 Phase 4A checkpoint
+
+- Completed: dedicated Work Order safety/damage/condition/operational incident reporting, offline idempotency, Execution Evidence linkage, controlled ADMIN/SUPERVISOR review, and shared Needs Attention reconciliation.
+- Still deferred: Supervisor product package, active notifications, broader private evidence-read hardening, customer correspondence/messaging, and all Finance/legal/HR outcomes.

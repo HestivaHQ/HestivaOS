@@ -6,7 +6,7 @@ import { isAccessOperationallyResolved } from '../work-orders/access-operations-
 export type TechnicianListView = 'today' | 'upcoming' | 'recent' | 'cache';
 export type StartJobInput = { operationId: string; startedAt: string; expectedVersion: string; expectedScopeRevisionId: string };
 export type SectionOutcomeInput = { operationId:string; scopeRevisionId:string; outcome:ExecutionSectionOutcome; reason?:ExecutionExceptionReason; note?:string; fieldRecordedAt:string; expectedSectionVersion:number; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState?:'CAPTURED_LOCAL'|'QUEUED'|'RETRY_PENDING'}> };
-export type EvidenceAcknowledgementInput={scopeRevisionId:string;purpose:'REQUIRED_SECTION_EVIDENCE'|'EXCEPTION_EVIDENCE';capturedAt:string;storagePath:string};
+export type EvidenceAcknowledgementInput={scopeRevisionId:string;purpose:'REQUIRED_SECTION_EVIDENCE'|'EXCEPTION_EVIDENCE'|'INCIDENT_EVIDENCE';capturedAt:string;storagePath:string};
 export type CompleteJobInput={operationId:string;scopeRevisionId:string;fieldCompletedAt:string;expectedVersion:string;expectedStatus:'ON_SITE'|'WAITING_FOR_PARTS'};
 const PRE_START: WorkOrderStatus[] = [WorkOrderStatus.ASSIGNED, WorkOrderStatus.ACCEPTED, WorkOrderStatus.TRAVELLING];
 const DAY = 86_400_000;

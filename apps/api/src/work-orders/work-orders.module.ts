@@ -10,10 +10,11 @@ import { WorkOrdersService } from './work-orders.service';
 import { WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
 import { WorkOrderTemporaryAccessCredentialsService } from './work-order-temporary-access-credentials.service';
 import { WorkOrderAccessRecoveryService } from './work-order-access-recovery.service';
+import { WorkOrderIncidentService } from './work-order-incident.service';
 
 @Module({
   controllers: [WorkOrdersController, WorkOrderInterruptionsController],
-  providers: [WorkOrderAccessRecoveryService, WorkOrdersService, WorkOrderAccessReadinessService, WorkOrderTemporaryAccessCredentialsService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, PrismaService],
-  exports: [WorkOrderInterruptionService, WorkOrderReplacementVisitService],
+  providers: [WorkOrderIncidentService, WorkOrderAccessRecoveryService, WorkOrdersService, WorkOrderAccessReadinessService, WorkOrderTemporaryAccessCredentialsService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, PrismaService],
+  exports: [WorkOrderInterruptionService, WorkOrderReplacementVisitService, WorkOrderIncidentService],
 })
 export class WorkOrdersModule {}

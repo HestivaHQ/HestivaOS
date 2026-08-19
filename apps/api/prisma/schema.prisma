@@ -182,6 +182,32 @@ enum EvidenceSyncState {
 enum ExecutionEvidencePurpose {
   REQUIRED_SECTION_EVIDENCE
   EXCEPTION_EVIDENCE
+  INCIDENT_EVIDENCE
+}
+
+enum WorkOrderIncidentCategory {
+  SAFETY_CRITICAL_STOP
+  PROPERTY_OR_ITEM_DAMAGE
+  CUSTOMER_OR_PROPERTY_CONDITION
+  OPERATIONAL_INCIDENT
+}
+
+enum WorkOrderIncidentStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum WorkOrderIncidentResolution {
+  NO_FURTHER_OPERATIONAL_ACTION
+  FOLLOW_UP_COMPLETED
+  ESCALATED_OUTSIDE_WORKFLOW
+}
+
+enum WorkOrderIncidentReviewAction {
+  ACKNOWLEDGE
+  RESOLVE
+  REOPEN
 }
 
 enum WorkOrderPriority {
@@ -320,6 +346,7 @@ model User {
   temporaryAccessCredentialsCreated WorkOrderTemporaryAccessCredential[] @relation("TemporaryAccessCredentialCreator")
   temporaryAccessCredentialEvents WorkOrderTemporaryAccessCredentialEvent[] @relation("TemporaryAccessCredentialEventActor")
   accessRecoveriesInitiated WorkOrderAccessRecovery[] @relation("AccessRecoveryInitiator")
+  incidentReviews WorkOrderIncidentReview[] @relation("WorkOrderIncidentReviewActor")
   acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -521,6 +548,7 @@ model Technician {
   completedWorkOrders WorkOrder[] @relation("WorkOrderCompletedBy")
   sectionOutcomeEvents ExecutionSectionOutcomeEvent[]
   executionEvidence ExecutionSectionEvidence[]
+  reportedIncidents WorkOrderIncident[]
   shifts Shift[]
   crewMembership CrewMember?
   ledCrews Crew[] @relation("CrewLeader")
@@ -789,6 +817,7 @@ model WorkOrder {
   sourceQuote Quote? @relation("AcceptedQuoteWorkOrder")
   executionScopeRevisions WorkOrderExecutionScopeRevision[] @relation("WorkOrderScopeRevisions")
   executionEvidence ExecutionSectionEvidence[]
+  incidents WorkOrderIncident[]
   startedScopeRevision WorkOrderExecutionScopeRevision? @relation("WorkOrderStartedScope", fields: [startedScopeRevisionId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -861,6 +890,7 @@ model WorkOrderExecutionSection {
   outcomeEvents ExecutionSectionOutcomeEvent[] @relation("SectionOutcomeHistory")
   currentOutcomeEvent ExecutionSectionOutcomeEvent? @relation("CurrentSectionOutcome", fields: [currentOutcomeEventId], references: [id], onDelete: Restrict)
   evidence ExecutionSectionEvidence[]
+  incidents WorkOrderIncident[]
   @@unique([scopeRevisionId, stableKey])
   @@index([scopeRevisionId, sortOrder])
   @@map("work_order_execution_sections")
@@ -894,6 +924,7 @@ model ExecutionSectionEvidence {
   sectionId String @map("section_id") @db.Uuid
   technicianId String @map("technician_id") @db.Uuid
   outcomeEventId String? @map("outcome_event_id") @db.Uuid
+  incidentId String? @map("incident_id") @db.Uuid
   purpose ExecutionEvidencePurpose
   syncState EvidenceSyncState @default(CAPTURED_LOCAL) @map("sync_state")
   storagePath String? @map("storage_path")
@@ -904,9 +935,50 @@ model ExecutionSectionEvidence {
   section WorkOrderExecutionSection @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
   outcomeEvent ExecutionSectionOutcomeEvent? @relation(fields: [outcomeEventId], references: [id], onDelete: Restrict)
+  incident WorkOrderIncident? @relation(fields: [incidentId], references: [id], onDelete: Restrict)
   @@index([sectionId, syncState])
   @@index([workOrderId, scopeRevisionId])
   @@map("execution_section_evidence")
+}
+
+model WorkOrderIncident {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  requestHash String @map("request_hash")
+  workOrderId String @map("work_order_id") @db.Uuid
+  technicianId String @map("technician_id") @db.Uuid
+  jobLeaderId String? @map("job_leader_id") @db.Uuid
+  sectionId String? @map("section_id") @db.Uuid
+  category WorkOrderIncidentCategory
+  note String
+  fieldReportedAt DateTime @map("field_reported_at")
+  status WorkOrderIncidentStatus @default(OPEN)
+  resolvedAt DateTime? @map("resolved_at")
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Restrict)
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  section WorkOrderExecutionSection? @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  evidence ExecutionSectionEvidence[]
+  reviews WorkOrderIncidentReview[]
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([workOrderId, status, createdAt])
+  @@index([technicianId, createdAt])
+  @@map("work_order_incidents")
+}
+
+model WorkOrderIncidentReview {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  requestHash String @map("request_hash")
+  incidentId String @map("incident_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  action WorkOrderIncidentReviewAction
+  resolution WorkOrderIncidentResolution?
+  note String?
+  incident WorkOrderIncident @relation(fields: [incidentId], references: [id], onDelete: Restrict)
+  actor User @relation("WorkOrderIncidentReviewActor", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([incidentId, createdAt])
+  @@map("work_order_incident_reviews")
 }
 
 model WorkOrderTechnician {
@@ -1358,6 +1430,7 @@ enum AttentionItemType {
   COMPLETION_ACKNOWLEDGEMENT_REQUIRED
   WORK_ORDER_ACCESS_REQUIRED
   INTERRUPTED_VISIT_REVIEW_REQUIRED
+  WORK_ORDER_INCIDENT_REVIEW_REQUIRED
 }
 
 enum AttentionPriority {

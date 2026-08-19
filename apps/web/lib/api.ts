@@ -1326,6 +1326,7 @@ export type EvidenceAcknowledgement = {
   serverAcknowledgedAt: string;
 };
 export type CompleteJobOperation = { operationId: string; scopeRevisionId: string; fieldCompletedAt: string; expectedVersion: string; expectedStatus: "ON_SITE" | "WAITING_FOR_PARTS" };
+export type IncidentOperation = { operationId:string; workOrderId:string; category:"SAFETY_CRITICAL_STOP"|"PROPERTY_OR_ITEM_DAMAGE"|"CUSTOMER_OR_PROPERTY_CONDITION"|"OPERATIONAL_INCIDENT"; fieldReportedAt:string; sectionId?:string; note:string; evidence?:Array<{localEvidenceId:string;capturedAt:string;syncState:"CAPTURED_LOCAL"|"QUEUED"|"RETRY_PENDING"}> };
 export type JobReview = {
   scopeRevisionId: string | null;
   accountedFor: number;
@@ -1369,4 +1370,5 @@ export const technicianApi = {
     ),
   review: (id: string) => apiFetch<JobReview>(`/technician/jobs/${id}/review`),
   complete: (id: string, operation: CompleteJobOperation) => apiFetch<{id:string;status:"COMPLETED";completionOperationId:string;fieldCompletedAt:string;completionAcceptedAt:string}>(`/technician/jobs/${id}/complete`, { method: "POST", ...json(operation) }),
+  reportIncident: (operation:IncidentOperation) => apiFetch(`/technician/jobs/${operation.workOrderId}/incidents`,{method:"POST",...json(operation)}),
 };

@@ -7,6 +7,7 @@ import { TechnicianJobView } from './technician-job-view';
 import { AccessReadinessPanel } from './access-readiness-panel';
 import { TemporaryAccessCredentialsPanel } from './temporary-access-credentials-panel';
 import { AccessRecoveryPanel } from './access-recovery-panel';
+import { IncidentAdminPanel } from './incident-admin-panel';
 
 export default async function TechnicianJobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,6 +20,7 @@ export default async function TechnicianJobPage({ params }: { params: Promise<{ 
     {appUser.role === 'ADMIN' ? <AccessRecoveryPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <TemporaryAccessCredentialsPanel workOrderId={id} /> : null}
     {canReadInterruption ? <InterruptedVisitAdminPanel workOrderId={id} canRoute={canRouteInterruption} /> : null}
+    {canRouteInterruption ? <IncidentAdminPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <ScopeMismatchAdminPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <MaterialChangeAdminPanel workOrderId={id} /> : null}
   </AppFrame>;
