@@ -17,7 +17,7 @@ The existing Railway API process hosts a small `RecurringServiceAutoResumeRunner
 
 The database is the concurrency authority. Each transition uses a conditional update that requires the row to remain PAUSED and due. Multiple processes may observe the same agreement, but only one conditional update may transition it. There is no distributed in-memory lock and no new scheduler provider.
 
-A successful automatic transition clears the stored resume date and preserves the existing no-backlog rule. Standard cadence agreements recalculate `nextServiceDate` from the current Johannesburg business date; if the agreement end date has already passed or no valid standard occurrence remains within the inclusive end date, reconciliation moves it to ENDED instead. CUSTOM agreements remain manually scheduled and resume ACTIVE with no calculated next date unless their end date has already passed. Manual resume, cancel and end also clear the automatic-resume date.
+A successful automatic resume clears the stored resume date and recalculates `nextServiceDate` from the current Johannesburg business date, preserving the existing no-backlog rule. If the agreement end date has already passed, reconciliation moves it to ENDED instead. Manual resume, cancel and end also clear the automatic-resume date.
 
 Automatic resume changes only agreement lifecycle state. It does not generate, mutate or delete Work Orders and does not trigger correspondence, messaging, pricing, staffing or Finance behavior.
 
