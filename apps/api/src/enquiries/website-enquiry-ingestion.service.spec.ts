@@ -23,6 +23,20 @@ type MockTransaction = {
   websiteEnquiry: { create: ReturnType<typeof jest.fn> };
 };
 
+function createEnquiryMock() {
+  return jest.fn(async (...args: unknown[]) => {
+    const [{ data }] = args as [{ data: Record<string, unknown> }];
+    return { id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data };
+  });
+}
+
+function transactionMock(tx: MockTransaction) {
+  return jest.fn(async (...args: unknown[]) => {
+    const [callback] = args as [(transaction: MockTransaction) => unknown];
+    return callback(tx);
+  });
+}
+
 describe('WebsiteEnquiryIngestionService', () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -68,13 +82,11 @@ describe('WebsiteEnquiryIngestionService', () => {
       enquiryDailyCounter: {
         upsert: jest.fn().mockResolvedValue({ businessDate: '20260819', sequence: 7 } as never),
       },
-      websiteEnquiry: {
-        create: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data }) as never),
-      },
+      websiteEnquiry: { create: createEnquiryMock() },
     };
     const prisma = {
       websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null as never) },
-      $transaction: jest.fn().mockImplementation((callback: (transaction: MockTransaction) => unknown) => callback(tx) as never),
+      $transaction: transactionMock(tx),
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
 
@@ -94,13 +106,11 @@ describe('WebsiteEnquiryIngestionService', () => {
       enquiryDailyCounter: {
         upsert: jest.fn().mockResolvedValue({ businessDate: '20260820', sequence: 1 } as never),
       },
-      websiteEnquiry: {
-        create: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data }) as never),
-      },
+      websiteEnquiry: { create: createEnquiryMock() },
     };
     const prisma = {
       websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null as never) },
-      $transaction: jest.fn().mockImplementation((callback: (transaction: MockTransaction) => unknown) => callback(tx) as never),
+      $transaction: transactionMock(tx),
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
 
