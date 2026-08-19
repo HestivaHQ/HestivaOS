@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-19 — Supervisor Operational Review v1
+
+- Added a SUPERVISOR-only, secret-free operational projection and responsive exception-first workspace reusing Needs Attention and authoritative Work Order execution domains.
+- Preserved ADMIN-only staffing, scope-mismatch/additional-work, credential, access-recovery, canonical-record, user-access and configuration mutations. Added no schema, Finance, correspondence, notification, reopen, or evidence-hardening behavior.
+
 ## 2026-08-18 — Dashboard Needs Attention Foundation v1
 
 ### Added

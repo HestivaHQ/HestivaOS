@@ -33,6 +33,7 @@ export type AppUser = {
   role: UserRole;
   status: "ACTIVE" | "INACTIVE";
 };
+export type SupervisorOperations = { generatedAt:string; workOrders:Array<{id:string;reference:string;status:string;scheduledAt:string|null;customerLabel:string;propertyLabel:string;serviceName:string;crewName:string|null;technicians:Array<{id:string;firstName:string;lastName:string}>;jobLeader:{id:string;firstName:string;lastName:string}|null;accessReadiness:string;execution:{started:boolean;completedSections:number;totalSections:number;evidenceCount:number;evidencePendingCount:number};completion:{acceptedAt:string|null;acknowledgedAt:string|null;acknowledgementRequired:boolean};incidents:Array<{id:string;category:string;status:string;fieldReportedAt:string}>;interruption:{interrupted:boolean};scopeMismatch:{count:number;requiresAdminResolution:boolean}}> };
 export type AdminUser = Pick<
   AppUser,
   "id" | "email" | "firstName" | "lastName" | "displayName" | "role" | "status"
@@ -899,6 +900,7 @@ export const api = {
         ? { headers: { Authorization: `Bearer ${accessToken}` } }
         : undefined,
     ),
+  supervisorOperations: (accessToken: string) => apiFetch<SupervisorOperations>('/supervisor/operations', { headers: { Authorization: `Bearer ${accessToken}` } }),
   activeBusinessLists: (type: BusinessListType) =>
     apiFetch<BusinessListOption[]>(
       `/admin/business-lists?type=${encodeURIComponent(type)}`,

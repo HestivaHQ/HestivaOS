@@ -328,3 +328,6 @@ The canonical provider-neutral messaging boundary now persists provider-scoped c
 ## 2026-08-19 — Work Order field incidents v1
 
 Phase 4A adds assignment-scoped, offline-idempotent Work Order Incident reports and append-only ADMIN/SUPERVISOR reviews. Incident evidence extends the existing Execution Evidence metadata/pipeline; unresolved reports are authoritative producers in the shared Needs Attention Management Review queue. Work Order completion, frozen scope, scope mismatch, interruption and replacement visits remain independent authoritative aggregates. See `WORK_ORDER_INCIDENTS_V1.md` and ADR-0062.
+## Supervisor operational projection (Phase 4B)
+
+The SUPERVISOR-only `GET /api/v1/supervisor/operations` boundary provides a secret-minimized read projection over existing Work Order execution relations; it creates no new operational state. `/supervisor/operations` combines that projection with the canonical Needs Attention API and deep-links to existing domain review surfaces. Evidence is summarized as counts/synchronization state, and temporary credentials, raw storage paths, recovery context, Finance, and unrelated private data are excluded. Mutation authority remains on the existing role-guarded domain endpoints. See `SUPERVISOR_OPERATIONS_V1.md` and ADR-0063.

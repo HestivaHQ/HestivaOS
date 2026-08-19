@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-19 — Phase 4B Supervisor Operational Review
+
+- Added a role-guarded aggregation over active/today, access, assignments, Job Leader, checklist/evidence counts, completion review, incidents, interruptions and scope mismatches.
+- Added the Supervisor navigation entry and exception-first disclosure workspace, reusing the canonical Needs Attention Mine/All component and existing Work Order deep links.
+- Added focused projection, authorization/non-exposure and role-based UI coverage; no database or runtime configuration changed.
+
 ## 2026-08-16 — Atomic recurring Quote acceptance
 
 - Reused the ONE_TIME endpoint and serializable transaction to convert supported recurring Quotes into one agreement plus one initial `NEW` visit, materializing Customer/Property decisions in the same transaction.

@@ -22,9 +22,10 @@ export const APP_NAVIGATION_ITEMS = [
 
 export async function AppFrame({ active, email, user, children }: { active: string; email: string; user?: AppUser; children: ReactNode }) {
   const authoritativeUser = user ?? await (await createAuthenticatedApi()).syncUser();
-  const navigationItems = authoritativeUser.role === 'ADMIN'
-    ? APP_NAVIGATION_ITEMS
-    : APP_NAVIGATION_ITEMS.filter((item) => !('href' in item) || item.href !== '/quotes');
+  const roleItems = authoritativeUser.role === 'SUPERVISOR'
+    ? [APP_NAVIGATION_ITEMS[0], { href: '/supervisor/operations', label: 'Operational review' }, ...APP_NAVIGATION_ITEMS.slice(1)]
+    : APP_NAVIGATION_ITEMS;
+  const navigationItems = authoritativeUser.role === 'ADMIN' ? roleItems : roleItems.filter((item) => !('href' in item) || item.href !== '/quotes');
   return (
     <main className="appShell">
       <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={navigationItems} />

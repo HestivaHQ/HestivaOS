@@ -124,3 +124,6 @@ A missing-access alert is not customer-contact authority, and a provider identit
 ## Why field incidents are separate from execution and interruption
 
 A section outcome says what work happened, and an interruption says whether the visit could continue; neither safely represents durable damage or serious operational follow-up. A separate immutable incident fact preserves provenance through later completion while explicit user action retains scope-mismatch and interruption truth. Neutral management resolution avoids turning operational review into liability, compensation, Finance, legal or HR policy. See ADR-0062.
+## 2026-08-19 — Supervisor review rationale
+
+Supervisor operational review projects existing execution truth instead of persisting a second review domain. This keeps exceptions actionable through Needs Attention, preserves each Work Order domain as authoritative, and minimizes sensitive broad-query data while allowing detail on existing permission-aware surfaces.

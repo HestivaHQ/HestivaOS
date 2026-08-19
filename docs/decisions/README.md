@@ -70,3 +70,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0060: Derive access escalation from appointment time and safe usability](ADR-0060-appointment-relative-access-operations.md)
 - [ADR-0061: Correlate human-triggered access recovery through canonical messaging](ADR-0061-human-triggered-work-order-access-recovery.md)
 - [ADR-0062: Preserve field incidents separately from visit outcomes](ADR-0062-work-order-field-incidents.md)
+- [ADR-0063: Project canonical execution truth for Supervisor operational review](ADR-0063-supervisor-operational-projection.md)
