@@ -484,7 +484,7 @@ Implemented the controlled values verified from `HestivaHQ/hestiva/src/routes/qu
 
 ## 2026-08-10 — PR #71 staged PostgreSQL harness repair
 
-- CI proved the repaired clean PostgreSQL 17 replay passes. Staged mode then stopped before Prisma execution because the script attempted to copy `apps/api/prisma/migrations/migration_lock.toml`; filesystem inspection confirmed the repository contains no `migration_lock.toml`. The path came from an unsupported assumption in the first harness implementation, not from Prisma or runner-specific layout.
+- CI proved the repaired clean PostgreSQL 17 replay passes. Staged mode then stopped before contacting PostgreSQL because the script attempted to copy `apps/api/prisma/migrations/migration_lock.toml`; filesystem inspection confirmed the repository contains no `migration_lock.toml`. The path came from an unsupported assumption in the first harness implementation, not from Prisma or runner-specific layout.
 - Removed that copy and replaced the fragile exclusion list with lexical selection of every checked-in migration directory strictly before `20260810233000_service_availability_and_addon_reconciliation`. The temporary workspace contains the real `schema.prisma` and those real directories in Prisma's expected sibling `migrations/` layout.
 - Added staged-phase assertions for the exact finished migration count and absence of any migration at or beyond the 5K boundary before deploying the full repository chain. Existing final assertions still require no unresolved history, all Property enums/columns, `ServiceType.BOTH`, both dual-context Services, and all six canonical add-ons.
 
@@ -517,7 +517,7 @@ Added the additive `WorkOrderTechnician` snapshot relationship and historical si
 
 ## 2026-08-17 — Crew and Job Leader refinement
 
-- Tightened active Crews to one or more eligible Technicians with exactly one member leader; one-person Crews appoint its member automatically.
+- Tightened active Crews to one or more eligible Technicians with exactly one member leader; one-person Crews appoint the member automatically.
 - Added canonical Work Order Job Leader persistence, Crew-default prepopulation, assignment-bound validation, Admin-only mutation, and auditable leader changes without coupling leadership to `SUPERVISOR`.
 - Added a conservative migration that backfills only historically unambiguous single-Technician Work Orders and preserves multi-person uncertainty for Admin resolution.
 - Simplified Crew and Work Order UI presentation around members, status, Crew Leader, and Job Leader; execution lifecycle features remain deferred.
