@@ -16,17 +16,30 @@ export type AgreementInput = {
   effectiveDate: string; endDate?: string | null; weekday?: RecurrenceWeekday | null; dayOfMonth?: number | null;
   preferredTimeWindow?: PreferredTimeWindow | null; customFrequencyNote?: string | null; recurringInstructions?: string | null;
 };
-const include = { property: { include: { customer: true } }, service: true, addOns: { include: { service: true } }, _count: { select: { workOrders: true } } } as const;
+
+function agreementInclude(today = johannesburgDate()) {
+  return {
+    property: { include: { customer: true } },
+    service: true,
+    addOns: { include: { service: true } },
+    workOrders: {
+      where: { recurrenceDate: { gte: today } },
+      select: { id: true, reference: true, status: true, recurrenceDate: true, scheduledAt: true },
+      orderBy: { recurrenceDate: 'asc' as const },
+    },
+    _count: { select: { workOrders: true } },
+  };
+}
 
 @Injectable()
 export class RecurringServiceAgreementsService {
   constructor(private readonly prisma: PrismaService) {}
-  findAll() { return this.prisma.recurringServiceAgreement.findMany({ include, orderBy: [{ nextServiceDate: 'asc' }, { createdAt: 'desc' }] }); }
-  async findOne(id: string) { const value = await this.prisma.recurringServiceAgreement.findUnique({ where: { id }, include }); if (!value) throw new NotFoundException('Recurring service not found.'); return value; }
+  findAll() { return this.prisma.recurringServiceAgreement.findMany({ include: agreementInclude(), orderBy: [{ nextServiceDate: 'asc' }, { createdAt: 'desc' }] }); }
+  async findOne(id: string) { const value = await this.prisma.recurringServiceAgreement.findUnique({ where: { id }, include: agreementInclude() }); if (!value) throw new NotFoundException('Recurring service not found.'); return value; }
   async create(input: AgreementInput) {
     const requestedAddOns = this.normalizeAddOns(input);
     const normalized = await this.validate(input, undefined, [], requestedAddOns);
-    return this.prisma.recurringServiceAgreement.create({ data: { ...normalized, addOns: requestedAddOns.length ? { create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } : undefined }, include });
+    return this.prisma.recurringServiceAgreement.create({ data: { ...normalized, addOns: requestedAddOns.length ? { create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } : undefined }, include: agreementInclude() });
   }
   async update(id: string, input: Partial<AgreementInput>) {
     const existing = await this.findOne(id);
@@ -36,14 +49,14 @@ export class RecurringServiceAgreementsService {
     const requestedAddOns = addOnsChanged ? this.normalizeAddOns(input) : existingSelections.map((a) => ({ serviceId: a.serviceId, quantity: a.quantity ?? 1, capacityApproved: true }));
     const merged: AgreementInput = { propertyId: input.propertyId ?? existing.propertyId, serviceId: input.serviceId ?? existing.serviceId, frequency: input.frequency ?? existing.frequency, effectiveDate: input.effectiveDate ?? existing.effectiveDate.toISOString().slice(0, 10), endDate: input.endDate === undefined ? existing.endDate?.toISOString().slice(0, 10) : input.endDate, weekday: input.weekday === undefined ? existing.weekday : input.weekday, dayOfMonth: input.dayOfMonth === undefined ? existing.dayOfMonth : input.dayOfMonth, preferredTimeWindow: input.preferredTimeWindow === undefined ? existing.preferredTimeWindow : input.preferredTimeWindow, customFrequencyNote: input.customFrequencyNote === undefined ? existing.customFrequencyNote : input.customFrequencyNote, recurringInstructions: input.recurringInstructions === undefined ? existing.recurringInstructions : input.recurringInstructions, addOns: requestedAddOns };
     const normalized = await this.validate(merged, existing.serviceId, existing.addOns.map((a) => a.serviceId), requestedAddOns);
-    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { ...normalized, ...(addOnsChanged ? { addOns: { deleteMany: {}, create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } } : {}) }, include });
+    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { ...normalized, ...(addOnsChanged ? { addOns: { deleteMany: {}, create: requestedAddOns.map(({ serviceId, quantity }) => ({ serviceId, quantity })) } } : {}) }, include: agreementInclude() });
   }
   async changeStatus(id: string, status: RecurringServiceAgreementStatus) {
     const agreement = await this.findOne(id);
     if (!Object.values(RecurringServiceAgreementStatus).includes(status)) throw new BadRequestException('Invalid recurring service status.');
     if (agreement.status === RecurringServiceAgreementStatus.CANCELLED && status !== agreement.status) throw new BadRequestException('A cancelled recurring service cannot be resumed.');
     const nextServiceDate = status === RecurringServiceAgreementStatus.ACTIVE ? nextOccurrence(agreement, johannesburgDate()) : agreement.nextServiceDate;
-    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { status, nextServiceDate }, include });
+    return this.prisma.recurringServiceAgreement.update({ where: { id }, data: { status, nextServiceDate }, include: agreementInclude() });
   }
   async generateNext(id: string, createdById: string, now = new Date()) {
     const today = johannesburgDate(now);
