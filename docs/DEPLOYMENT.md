@@ -1,5 +1,15 @@
 # Deployment
 
+## 2026-08-19 recurring automatic resume migration and runner
+
+Deploy additive migration `20260819223000_recurring_auto_resume` through the normal Railway `npm run deploy:api` path before the API/web revision that exposes automatic resume. The migration adds only nullable `recurring_service_agreements.auto_resume_date` plus the `(status, auto_resume_date)` index. Existing agreements retain null and their current lifecycle state; no Work Order, recurrence, Customer, Property, Quote, correspondence, Messaging, Finance, or Needs Attention data is rewritten. No new environment variable, credential, scheduler provider, queue, or dependency is required.
+
+The deployed NestJS API process starts `RecurringServiceAutoResumeRunner` after application bootstrap and then runs it every minute. The runner reconciles at most 100 PAUSED agreements whose persisted Johannesburg business-date resume date is due. Each transition is protected by a conditional database update that still requires PAUSED + due state, so multiple Railway API processes may observe a row but cannot both successfully resume it. Successful resume clears the date and recalculates `nextServiceDate` from the current Johannesburg date; an already-ended agreement moves to ENDED. Existing generated Work Orders are never generated, mutated, cancelled, or deleted by this runner.
+
+After deployment, require `/api/v1/ready` to be healthy, pause a disposable test agreement with a near-future automatic-resume date, verify the date is persisted and shown in Admin, and verify a manual resume clears it. For a controlled database fixture whose date is due, verify exactly one ACTIVE transition and a recalculated non-backlog next date; if multiple API instances are running, confirm only one successful transition is counted. Railway restart is also a reconciliation opportunity because the runner executes on bootstrap. A failed runner pass emits only the safe event marker `recurring_auto_resume_failed` and retries on the next minute.
+
+Application rollback should normally retain the additive nullable column/index. A prior API ignores them. If rolling back from a release while paused agreements contain future automatic-resume dates, understand that the prior application will not execute those dates; operators must either keep the corrected API running until reconciliation or manually review affected agreements. Do not drop the column as an application rollback step because that would erase persisted lifecycle intent.
+
 ## 2026-08-19 Website enquiry ingestion migration
 
 Deploy additive migration `20260819210000_website_enquiry_ingestion` through the normal Railway `npm run deploy:api` path before the API revision that serves `POST /api/v1/integrations/website/enquiries`. It creates only the `website_enquiries` and `enquiry_daily_counters` tables, uniqueness/index boundaries, and no Customer, Property, Quote, Work Order, messaging, correspondence, Finance, or Needs Attention records. No new environment variable is introduced: the endpoint deliberately reuses the existing API-only Website integration bearer secret and must not expose that secret to Cloudflare/browser code.
@@ -173,7 +183,7 @@ Apply additive migration `20260811010000_add_work_order_references` before the u
 
 ## Slice 5I accepted-quote Work Order migration
 
-Deploy additive migration `20260811150000_accepted_quote_work_order_structure` before the updated API. It adds nullable frequency, custom-frequency-note, and home-condition columns plus the `work_order_add_ons` relationship table. It does not backfill historical rows or rename/remove `service_id`. After deployment, verify an authorized create with one active PRIMARY, zero and multiple active ADD_ON Services, each controlled frequency/condition, and then confirm existing inactive/null service relationships remain readable. Roll back application code before considering database rollback; retain the additive columns/table while investigating to avoid discarding accepted-quote relationships.
+Deploy additive migration `20260811150000_accepted_quote_work_order_structure` before the updated API. It adds nullable frequency, custom-frequency-note, and home-condition columns plus the `work_order_add_ons` relationship table. It does not backfill historical rows or rename/remove `service_id`. After deployment, verify an authorized create with one active PRIMARY, zero and multiple active ADD_ON Services, each controlled frequency/condition, and then confirm existing inactive/null service relationships remain readable. Roll back application code before considering database rollback; retaining the additive columns/table avoids discarding accepted-quote relationships.
 
 ## Slice 5J Property operational profile migration
 
