@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-19 — Recurring lifecycle future-visit review
+
+- Audited the existing recurring-service lifecycle against current source and ADR-0026 before implementation. Pause/cancel already preserved generated Work Orders, and manual resume already recalculated from the current Africa/Johannesburg business date without creating missed-occurrence backlog.
+- Identified one verified operational gap in the current Admin flow: already-created future recurring visits were not visible from the recurring-service manager, so lifecycle changes could be made without an explicit review cue for those independent Work Orders.
+- Extended recurring-service reads with a bounded future-Work-Order projection from the current Johannesburg business date and updated the recurring-service manager to show each future visit with reference, recurrence date, status and direct Work Order link.
+- Added a confirmation warning before pause/cancel when future visits exist. The warning explicitly preserves those Work Orders and directs Admin/Operations users to review them separately; no Work Order lifecycle/status or generated-visit data is mutated by the agreement lifecycle action.
+- Recorded the remaining verified residual instead of fabricating it: persisted automatic resume-date scheduling is not present in the current schema/runtime and requires a separate migration plus a safe due-resume execution boundary. Added focused lifecycle documentation and roadmap/changelog reconciliation. No schema, migration, recurrence formula, Finance, Correspondence, Messaging, notification, or deployment behavior changed in this slice.
+
 ## 2026-08-19 — Website enquiry ingestion and authoritative ENQ references
 
 - Reconciled current HestivaOS `main`, the Website contact submission implementation, Issue #73, and `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` before implementation. The Website currently submits contact-specific name, phone, email, enquiry type, suburb/address, description and preferred-contact data through its email path, while HestivaOS had no durable enquiry domain or `ENQ` allocator.
