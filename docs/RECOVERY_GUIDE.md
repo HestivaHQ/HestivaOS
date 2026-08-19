@@ -1,5 +1,13 @@
 # Recovery guide
 
+## Website enquiry ingestion recovery (2026-08-19)
+
+Treat `submissionId` and the returned `ENQ-...` reference as durable recovery identities. If the Website receives a timeout or uncertain response after submitting an enquiry, retry the exact immutable payload with the same submission UUID; HestivaOS will return the existing authoritative reference if the first transaction committed. Never mint a new submission UUID merely to bypass uncertainty or a uniqueness conflict. A conflict for the same UUID with different content is intentional fail-closed behavior and requires investigation rather than overwrite.
+
+If deployment fails after migration `20260819210000_website_enquiry_ingestion`, verify Prisma migration state and inspect `website_enquiries` / `enquiry_daily_counters` read-only. Do not reset a daily counter, delete an accepted enquiry, regenerate a human reference, or edit `_prisma_migrations` directly. Application rollback may retain the additive tables and accepted intake history. If the daily sequence reaches 9,999, intake intentionally fails; investigate volume rather than reusing or resetting references. If authentication fails, verify only that the existing server-side Website integration secret is correctly configured in Railway and the Website server; never expose or copy its value into logs/browser code.
+
+Do not repair a Website email/reference mismatch by editing HestivaOS enquiry history. Before Website cutover, email delivery remains the existing Website behavior. After coordinated cutover, customer/Admin success correspondence must use only the `enquiryReference` acknowledged by HestivaOS; an OS ingestion failure must remain a failed public intake rather than falling back to a locally invented reference.
+
 ## Atomic recurring Quote acceptance recovery
 
 Deploy `20260816180000_atomic_recurring_quote_acceptance` before the recurring Accept revision. It strengthens accepted shape so every accepted Quote has an initial Work Order; a recurring accepted result must additionally have an agreement and a Work Order linked to that same agreement. After a timeout or serialization conflict, reload and retry with the same revision. A complete matching result is returned without duplicate writes; incompatible linkage fails closed. Never create a replacement agreement/visit or manually mark the Quote accepted. Any reported partial Customer, Property, agreement, visit, or activity indicates abnormal transaction/database behavior and requires investigation.
