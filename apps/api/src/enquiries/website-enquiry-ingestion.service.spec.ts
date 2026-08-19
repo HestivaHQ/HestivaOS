@@ -13,10 +13,14 @@ const submission = {
   enquiryType: 'General Enquiry' as const,
   propertyAddress: 'Centurion',
   description: 'Please contact me about your services.',
-  preferredContact: 'WhatsApp',
+  preferredContact: 'WhatsApp' as const,
 };
 
 describe('WebsiteEnquiryIngestionService', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('returns the existing authoritative reference for an identical retry', async () => {
     const prisma = {
       websiteEnquiry: {
@@ -52,6 +56,7 @@ describe('WebsiteEnquiryIngestionService', () => {
   });
 
   it('allocates an ENQ reference and persists the accepted enquiry atomically', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-19T06:00:00.000Z'));
     const tx = {
       enquiryDailyCounter: {
         upsert: jest.fn().mockResolvedValue({ businessDate: '20260819', sequence: 7 }),
