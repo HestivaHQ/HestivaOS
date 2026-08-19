@@ -14,6 +14,7 @@ export type UpdateAccessInput = { status?: UserStatus };
 
 const ACCOUNT_CONFLICT_MESSAGE = 'This authenticated account cannot be linked automatically. Contact an administrator for account recovery.';
 const USER_ACCESS_SELECT = { id: true, email: true, firstName: true, lastName: true, displayName: true, role: true, status: true, createdAt: true, updatedAt: true } satisfies Prisma.UserSelect;
+const auditDisplayName = (user: { firstName: string; lastName: string; displayName: string | null }) => user.displayName?.trim() || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null;
 
 @Injectable()
 export class UsersService {
@@ -125,6 +126,16 @@ export class UsersService {
     });
   }
 
+  async findAccessHistory(targetId: string) {
+    const target = await this.prisma.user.findUnique({ where: { id: targetId }, select: { id: true } });
+    if (!target) throw new NotFoundException('User account not found.');
+    return this.prisma.userAccessChange.findMany({
+      where: { targetUserId: targetId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+  }
+
   async updateRole(actor: { id: string }, targetId: string, input: UpdateRoleInput) {
     if (!input.role || !Object.values(UserRole).includes(input.role)) throw new BadRequestException('A valid application role is required.');
     return this.mutateAccess(actor.id, targetId, { role: input.role });
@@ -139,8 +150,12 @@ export class UsersService {
     try {
       return await this.prisma.$transaction(async (transaction) => {
         await transaction.$executeRaw`SELECT pg_advisory_xact_lock(48378623)`;
-        const target = await transaction.user.findUnique({ where: { id: targetId } });
+        const [target, actor] = await Promise.all([
+          transaction.user.findUnique({ where: { id: targetId } }),
+          transaction.user.findUnique({ where: { id: actorId } }),
+        ]);
         if (!target) throw new NotFoundException('User account not found.');
+        if (!actor) throw new ForbiddenException('Administrator account is unavailable.');
         const removesAdminAccess = target.role === UserRole.ADMIN && target.status === UserStatus.ACTIVE
           && (change.role !== undefined && change.role !== UserRole.ADMIN || change.status === UserStatus.INACTIVE);
         if (actorId === targetId && removesAdminAccess) throw new ForbiddenException('You cannot demote or disable your own administrator account.');
@@ -149,6 +164,22 @@ export class UsersService {
           if (activeAdmins <= 1) throw new ConflictException('The last active administrator cannot be demoted or have OS access disabled.');
         }
         const updated = await transaction.user.update({ where: { id: targetId }, data: change, select: USER_ACCESS_SELECT });
+        if (target.role !== updated.role || target.status !== updated.status) {
+          await transaction.userAccessChange.create({
+            data: {
+              targetUserId: target.id,
+              targetEmail: target.email,
+              targetDisplayName: auditDisplayName(target),
+              actorUserId: actor.id,
+              actorEmail: actor.email,
+              actorDisplayName: auditDisplayName(actor),
+              oldRole: target.role,
+              newRole: updated.role,
+              oldStatus: target.status,
+              newStatus: updated.status,
+            },
+          });
+        }
         this.logger.log(`admin_user_access_changed actorUserId=${actorId} targetUserId=${targetId} oldRole=${target.role} newRole=${updated.role} oldStatus=${target.status} newStatus=${updated.status}`);
         return updated;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

@@ -1,5 +1,13 @@
 # Production architecture
 
+## Administrative access-change audit history (2026-08-19)
+
+HestivaOS `User.role` and `User.status` remain the authoritative application access state. ADMIN role/status mutations continue through the existing transaction-scoped PostgreSQL advisory lock and `SERIALIZABLE` transaction, including self-demotion/self-disable and last-active-ADMIN protections.
+
+`UserAccessChange` is append-only evidence for effective access changes. The same transaction that updates the User inserts one audit row containing actor/target application User UUIDs, email/display-name snapshots, old/new role and old/new status. No-op mutations create no row. The identity fields are historical snapshots rather than live User relations so later profile edits cannot rewrite the event and future User lifecycle does not force historical access evidence to be deleted or reinterpreted.
+
+`GET /api/v1/users/:id/access-history` is ADMIN-only, verifies the target exists, and returns at most the latest 100 rows newest-first. The audit aggregate does not restore or calculate permissions. This slice introduces no Supabase Admin/service-role credential, invitation, provider-session revocation, email-change workflow or provider authority. See `ADMIN_ACCESS_AUDIT_HISTORY_V1.md` and ADR-0068.
+
 ## Three-stage development validation and PR gate topology (2026-08-19)
 
 HestivaOS development uses the three-stage validation model in `AGENTS.md` and ADR-0067. Active implementation uses proportional affected-area checks while material durable decisions are synchronized immediately; completion documentation and the complete diff are reconciled before the exact PR head is frozen for authoritative GitHub validation. Final merge still requires the strict current-main, parallel-PR, append-only-history, canonical-documentation, mergeability and exact-tested-head review.

@@ -1,5 +1,11 @@
 # Deployment
 
+## 2026-08-19 administrative access-audit migration
+
+Deploy additive migration `20260819230000_admin_access_audit_history` through the normal Railway `npm run deploy:api` path before the API revision that writes or reads administrative access-audit history. The migration creates only the `user_access_changes` table and its indexes. It does not rewrite existing User records or require any new runtime configuration.
+
+After deployment, verify Prisma reports the migration finished, the API readiness endpoint remains healthy, and the audit table/indexes exist. Application rollback should retain the additive table and previously recorded audit evidence; an older API can ignore the table. See `ADMIN_ACCESS_AUDIT_HISTORY_V1.md` and `RECOVERY_GUIDE.md` for behavioral verification and incident handling.
+
 ## 2026-08-19 three-stage validation and PR CI topology
 
 Pull requests targeting `main` use the non-deploying four-job topology recorded in ADR-0067: **Validate policy, secrets and diff**, **Validate API**, **Validate web and Cloudflare bundle**, and **Replay PostgreSQL migrations**. The jobs are independent and run in parallel. Policy validation needs full Git history but no dependency install; API and web each perform a locked root `npm ci`/Prisma bootstrap before their workspace checks; PostgreSQL replay retains its isolated clean and staged databases. Every final job remains required and there is no changed-file path shortcut for merge validation.

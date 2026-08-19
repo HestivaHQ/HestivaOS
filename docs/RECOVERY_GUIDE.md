@@ -1,5 +1,13 @@
 # Recovery guide
 
+## Administrative access-audit recovery (2026-08-19)
+
+Treat `User.role` and `User.status` as the live access authority and `UserAccessChange` as immutable evidence. The authoritative access mutation and audit insert share one PostgreSQL `SERIALIZABLE` transaction, so a normal failed mutation must leave both unchanged. Do not create, delete, or rewrite an audit row manually to make history match an expected result.
+
+If a live User change is observed without corresponding audit evidence after migration `20260819230000_admin_access_audit_history` and the audited API revision are deployed, stop further administrative access mutations, verify Prisma migration state and API/database health, and preserve both User state and existing history while investigating. If an audit event exists without the matching User mutation, treat that as abnormal transaction/database behavior rather than cleaning either side independently. Application rollback should retain the additive audit table and recorded evidence.
+
+The history endpoint remains ADMIN-only and bounded. A history-read failure does not justify weakening authorization, exposing broad User data, or changing Supabase identity state. Provider invitation/session-revocation recovery remains a separate later boundary.
+
 ## Three-stage PR validation recovery (2026-08-19)
 
 Treat each final PR job as an independent diagnostic boundary. **Validate policy, secrets and diff** failures are repository/documentation/security/whitespace problems and do not justify rerunning application builds locally. **Validate API** failures should be reproduced with the smallest relevant API test/typecheck/build command. **Validate web and Cloudflare bundle** failures should be isolated to web tests/typecheck, Cloudflare type generation, OpenNext, or Wrangler as indicated by the failing step. **Replay PostgreSQL migrations** remains the database-history authority: never bypass a clean/staged replay failure, edit another lane's migration, mark an unverified migration applied, or weaken the replay harness merely to make CI green.

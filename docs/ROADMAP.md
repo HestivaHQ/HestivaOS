@@ -23,6 +23,7 @@ The following foundations are implemented and must not be reopened as generic ba
 - Provider-neutral WhatsApp/Messenger contracts plus durable conversation/message/status persistence used by access recovery.
 - Work Order and Shift Planning relationship selectors use bounded/debounced server-backed search rather than fixed 100-record snapshots.
 - Recurring-service lifecycle preserves generated Work Orders, surfaces future visits for review, skips paused backlog on resume, and supports persisted Johannesburg automatic-resume dates through a database-guarded Railway API reconciler.
+- Administrative role/status changes have append-only application-owned audit history with actor/target identity snapshots and old/new role/status values, written atomically with effective access mutations and exposed through a bounded ADMIN-only history read.
 - Repository development now uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
 
 Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Finance runtime are **not** implied by those completed foundations.
@@ -35,15 +36,14 @@ For each slice, use the three-stage workflow in `AGENTS.md` and ADR-0067: fast p
 
 ## Phase 1 — safe Admin/Operations completion
 
-The scalable selector, Website enquiry and recurring-lifecycle residuals are merged. Remaining Phase 1 work should proceed in this order:
+The scalable selector, Website enquiry, recurring-lifecycle and application-owned administrative access-audit residuals are implemented. Remaining Phase 1 work should proceed in this order:
 
-1. **Durable administrative access-change audit history.** Add append-only application-owned audit history for Admin role/status/access changes using existing HestivaOS User authority. Keep this focused and provider-neutral.
-2. **Supabase Admin invitation/provider-session revocation.** Implement the separately reviewed provider-admin workflow after the application-side audit boundary is durable. Protect service-role/admin credentials from browser exposure and document recovery/revocation behavior explicitly.
-3. **Supabase Auth email-change/confirmation UX.** Authenticated email remains read-only until this verified flow exists; preserve application-user identity and existing fail-closed reconciliation semantics.
-4. **Remaining evidence-backed controlled fields / subordinate job-type mappings.** Audit current source and existing Service / Cleaning Job Template architecture first; implement only verified missing controlled vocabularies/search behavior and do not invent lists.
-5. **Customer duplicate resolution / merge reversal / archival.** Product-decision-blocked until exact merge authority, reversal semantics, history retention and archival behavior are approved. Do not implement destructive merge behavior speculatively.
+1. **Supabase Admin invitation/provider-session revocation.** Implement the separately reviewed provider-admin workflow on top of the durable application-side audit boundary. Protect service-role/admin credentials from browser exposure and document recovery/revocation behavior explicitly. Provider actions must not replace HestivaOS `User.role` / `User.status` authority.
+2. **Supabase Auth email-change/confirmation UX.** Authenticated email remains read-only until this verified flow exists; preserve application-user identity and existing fail-closed reconciliation semantics.
+3. **Remaining evidence-backed controlled fields / subordinate job-type mappings.** Audit current source and existing Service / Cleaning Job Template architecture first; implement only verified missing controlled vocabularies/search behavior and do not invent lists.
+4. **Customer duplicate resolution / merge reversal / archival.** Product-decision-blocked until exact merge authority, reversal semantics, history retention and archival behavior are approved. Do not implement destructive merge behavior speculatively.
 
-Keep items 1–4 as separate focused PRs unless source inspection proves an unavoidable shared transactional/security boundary. Item 5 remains blocked until product authority is explicit.
+Keep items 1–3 as separate focused PRs unless source inspection proves an unavoidable shared transactional/security boundary. Item 4 remains blocked until product authority is explicit.
 
 ## Phase 2 — Customer Correspondence runtime
 
@@ -138,4 +138,4 @@ Before declaring HestivaOS launch-complete:
 
 ## Backlog guardrail
 
-Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors” or “recurring auto-resume”. Those foundations are merged. Any future work in those areas must identify a specific verified residual requirement, defect or approved extension.
+Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors”, “recurring auto-resume” or “admin access audit history”. Those foundations are merged or become current-state foundations with this roadmap revision. Any future work in those areas must identify a specific verified residual requirement, defect or approved extension.

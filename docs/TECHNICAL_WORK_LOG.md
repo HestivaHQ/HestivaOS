@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-19 — Administrative access-change audit history
+
+- Re-audited existing User Access Management and confirmed role/status mutations already use serialized PostgreSQL authority with self-lockout and last-active-ADMIN protection, while successful changes existed only in runtime logs.
+- Added additive `UserAccessChange` persistence and migration `20260819230000_admin_access_audit_history`. Each effective ADMIN role/status change stores actor/target User UUIDs plus email/display-name snapshots and old/new role/status in the same `SERIALIZABLE` transaction as the User mutation; no-op changes create no row.
+- Added ADMIN-only `GET /api/v1/users/:id/access-history`, bounded to the latest 100 records newest-first. Current `User.role` / `User.status` remain authority; history is evidence.
+- Stored actor/target identity as historical value snapshots rather than live relations so later profile edits cannot rewrite evidence and future account lifecycle does not require deleting privileged-access history.
+- Added focused service tests, ADR-0068, `ADMIN_ACCESS_AUDIT_HISTORY_V1.md`, Roadmap, Architecture, Deployment, Recovery, Changelog and work-log reconciliation. No Supabase Admin invitation/session revocation, provider credential, email-change, environment, Finance, Messaging, notification or deployment-authority change is included.
+
 ## 2026-08-19 — Frozen-head verification workflow
 
 - Reviewed the recent PR cycle and identified the main avoidable latency source as discretionary head changes after final CI had already started. Because every head mutation correctly invalidates exact-head evidence, small speculative/documentation edits were forcing full repository and PostgreSQL replay reruns.
