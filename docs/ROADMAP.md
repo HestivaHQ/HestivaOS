@@ -9,7 +9,7 @@ The canonical reconciliation checkpoint for the current backlog is `docs/CANONIC
 The following foundations are implemented and must not be reopened as generic backlog items:
 
 - Website → HestivaOS structured Quote ingestion, integration authentication, idempotency/replay handling, HestivaOS-owned pricing/profitability and Quote persistence.
-- Website contact-enquiry ingestion with durable HestivaOS-owned `ENQ-YYYYMMDD-NNNN` references and idempotent immutable-submission replay; Website consumer cutover remains coordinated after OS deployment.
+- Website contact-enquiry ingestion with durable HestivaOS-owned `ENQ-YYYYMMDD-NNNN` references and idempotent immutable-submission replay; the Website contact consumer cutover is merged and requires the authoritative `ENQ-...` acknowledgement before reporting successful intake.
 - Customer/Property Quote match-or-review, Admin Quote review, atomic ONE_TIME acceptance, supported recurring acceptance and non-lossy accepted-Quote operational handoff.
 - Work Order add-on quantities and Laundry/Ironing capacity controls.
 - Zero/one/many Technician assignment, Crew/Job Leader snapshots and unassigned Needs Attention.
@@ -29,7 +29,7 @@ Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Fin
 
 - **Phase 1A merged:** Work Order Customer, Property, Technician, Crew, primary Service and add-on Service selectors use bounded/debounced server-backed search instead of fixed 100-record reference snapshots. Direct-create Customer/Property canonical-ID preselection remains resolvable beyond the first result page, selected historical records remain visible while searches refresh, and the existing domain APIs remain authoritative. See `docs/WORK_ORDER_SELECTOR_SEARCH_V1.md`.
 - **Phase 1B merged:** Shift Planning Crew, Technician and linked Work Order selectors use the same bounded/debounced existing domain APIs rather than fixed 100-record snapshots. Existing selected/historical relationships remain available while search results refresh; no scheduling or staffing policy changed.
-- **Website enquiry runtime completed pending merge/deploy:** HestivaOS now owns guarded durable Website contact-enquiry intake, immutable-submission replay/conflict handling and `ENQ-YYYYMMDD-NNNN` allocation. The Website repository must switch its contact flow only after this OS runtime is merged/deployed and coordinated through Issue #73.
+- **Website enquiry ingestion and consumer cutover merged:** HestivaOS owns guarded durable Website contact-enquiry intake, immutable-submission replay/conflict handling and `ENQ-YYYYMMDD-NNNN` allocation, and the Website contact flow now requires that authoritative acknowledgement before reporting successful intake. Issue #73 remains the coordination/history source for any genuine residual Website ↔ HestivaOS work.
 - **Recurring lifecycle audit in progress:** current source already preserves generated Work Orders across pause/cancel and manual resume already skips backlog. PR #150 surfaces already-created future visits for explicit Admin review before lifecycle actions. Persisted automatic resume-date scheduling remains a separate verified residual requiring schema/migration and a safe due-resume execution boundary. See `docs/RECURRING_LIFECYCLE_REVIEW_V1.md`.
 - Add durable administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow.
 - Design and implement the approved Supabase Auth email-change/confirmation UX; authenticated email remains read-only until this exists.
