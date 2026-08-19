@@ -86,12 +86,13 @@ export class RecurringServiceAgreementsService {
     let resumed = 0;
     let ended = 0;
     for (const agreement of due) {
-      const isEnded = Boolean(agreement.endDate && agreement.endDate < today);
+      const nextServiceDate = agreement.frequency === WorkOrderFrequency.CUSTOM ? null : nextOccurrence(agreement, today);
+      const isEnded = Boolean(agreement.endDate && agreement.endDate < today) || (agreement.frequency !== WorkOrderFrequency.CUSTOM && nextServiceDate === null);
       const result = await this.prisma.recurringServiceAgreement.updateMany({
         where: { id: agreement.id, status: RecurringServiceAgreementStatus.PAUSED, autoResumeDate: { lte: today } },
         data: isEnded
           ? { status: RecurringServiceAgreementStatus.ENDED, autoResumeDate: null, nextServiceDate: null }
-          : { status: RecurringServiceAgreementStatus.ACTIVE, autoResumeDate: null, nextServiceDate: nextOccurrence(agreement, today) },
+          : { status: RecurringServiceAgreementStatus.ACTIVE, autoResumeDate: null, nextServiceDate },
       });
       if (result.count === 1) isEnded ? ended++ : resumed++;
     }
