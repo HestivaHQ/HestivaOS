@@ -447,6 +447,7 @@ export type RecurringServiceAgreement = {
   customFrequencyNote: string | null;
   recurringInstructions: string | null;
   nextServiceDate: string | null;
+  autoResumeDate: string | null;
   property: Property & { customer: Customer };
   service: Service;
   addOns: Array<{ serviceId: string; quantity: number; service: Service }>;
@@ -1068,10 +1069,10 @@ export const api = {
       method: "POST",
       ...json(input),
     }),
-  updateRecurringServiceStatus: (id: string, status: RecurringServiceStatus) =>
+  updateRecurringServiceStatus: (id: string, status: RecurringServiceStatus, autoResumeDate?: string | null) =>
     apiFetch<RecurringServiceAgreement>(`/recurring-services/${id}/status`, {
       method: "PATCH",
-      ...json({ status }),
+      ...json({ status, ...(autoResumeDate !== undefined ? { autoResumeDate } : {}) }),
     }),
   generateRecurringService: (id: string) =>
     apiFetch<WorkOrder | null>(`/recurring-services/${id}/generate`, {
