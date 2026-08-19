@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { Prisma } from '@prisma/client';
 import { WebsiteEnquiryIngestionService } from './website-enquiry-ingestion.service';
 import { WEBSITE_ENQUIRY_SCHEMA_VERSION } from './website-enquiry-contract';
@@ -17,6 +18,11 @@ const submission = {
   preferredContact: 'WhatsApp' as const,
 };
 
+type MockTransaction = {
+  enquiryDailyCounter: { upsert: ReturnType<typeof jest.fn> };
+  websiteEnquiry: { create: ReturnType<typeof jest.fn> };
+};
+
 describe('WebsiteEnquiryIngestionService', () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -29,7 +35,7 @@ describe('WebsiteEnquiryIngestionService', () => {
           id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222',
           reference: 'ENQ-20260819-0001',
           payloadFingerprint: websiteEnquiryPayloadFingerprint(submission),
-        }),
+        } as never),
       },
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
@@ -48,7 +54,7 @@ describe('WebsiteEnquiryIngestionService', () => {
           id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222',
           reference: 'ENQ-20260819-0001',
           payloadFingerprint: 'different',
-        }),
+        } as never),
       },
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
@@ -58,17 +64,17 @@ describe('WebsiteEnquiryIngestionService', () => {
 
   it('allocates an ENQ reference and persists the accepted enquiry atomically', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-08-19T06:00:00.000Z'));
-    const tx = {
+    const tx: MockTransaction = {
       enquiryDailyCounter: {
-        upsert: jest.fn().mockResolvedValue({ businessDate: '20260819', sequence: 7 }),
+        upsert: jest.fn().mockResolvedValue({ businessDate: '20260819', sequence: 7 } as never),
       },
       websiteEnquiry: {
-        create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data })),
+        create: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data }) as never),
       },
     };
     const prisma = {
-      websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null) },
-      $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
+      websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null as never) },
+      $transaction: jest.fn().mockImplementation((callback: (transaction: MockTransaction) => unknown) => callback(tx) as never),
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
 
@@ -84,17 +90,17 @@ describe('WebsiteEnquiryIngestionService', () => {
 
   it('uses the Johannesburg business date when allocating the reference', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-08-19T22:30:00.000Z'));
-    const tx = {
+    const tx: MockTransaction = {
       enquiryDailyCounter: {
-        upsert: jest.fn().mockResolvedValue({ businessDate: '20260820', sequence: 1 }),
+        upsert: jest.fn().mockResolvedValue({ businessDate: '20260820', sequence: 1 } as never),
       },
       websiteEnquiry: {
-        create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data })),
+        create: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data }) as never),
       },
     };
     const prisma = {
-      websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null) },
-      $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
+      websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null as never) },
+      $transaction: jest.fn().mockImplementation((callback: (transaction: MockTransaction) => unknown) => callback(tx) as never),
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
 
@@ -120,9 +126,9 @@ describe('WebsiteEnquiryIngestionService', () => {
     });
     const prisma = {
       websiteEnquiry: {
-        findUnique: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(concurrent),
+        findUnique: jest.fn().mockResolvedValueOnce(null as never).mockResolvedValueOnce(concurrent as never),
       },
-      $transaction: jest.fn().mockRejectedValue(uniqueConflict),
+      $transaction: jest.fn().mockRejectedValue(uniqueConflict as never),
     } as any;
     const service = new WebsiteEnquiryIngestionService(prisma);
 
