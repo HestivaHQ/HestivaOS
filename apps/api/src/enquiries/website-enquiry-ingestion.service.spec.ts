@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { WebsiteEnquiryIngestionService } from './website-enquiry-ingestion.service';
 import { WEBSITE_ENQUIRY_SCHEMA_VERSION } from './website-enquiry-contract';
 import { websiteEnquiryPayloadFingerprint } from './website-enquiry-idempotency';
@@ -79,5 +80,56 @@ describe('WebsiteEnquiryIngestionService', () => {
     expect(tx.websiteEnquiry.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ reference: 'ENQ-20260819-0007', submissionKey: submission.submissionId }),
     }));
+  });
+
+  it('uses the Johannesburg business date when allocating the reference', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-19T22:30:00.000Z'));
+    const tx = {
+      enquiryDailyCounter: {
+        upsert: jest.fn().mockResolvedValue({ businessDate: '20260820', sequence: 1 }),
+      },
+      websiteEnquiry: {
+        create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222', ...data })),
+      },
+    };
+    const prisma = {
+      websiteEnquiry: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn().mockImplementation((callback) => callback(tx)),
+    } as any;
+    const service = new WebsiteEnquiryIngestionService(prisma);
+
+    await expect(service.ingest(submission)).resolves.toMatchObject({
+      enquiryReference: 'ENQ-20260820-0001',
+    });
+    expect(tx.enquiryDailyCounter.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { businessDate: '20260820' },
+    }));
+  });
+
+  it('reconciles a concurrent duplicate to the already committed authoritative reference', async () => {
+    const fingerprint = websiteEnquiryPayloadFingerprint(submission);
+    const concurrent = {
+      id: '6ab4f479-34cc-42f9-a0a6-2d7e884b7222',
+      reference: 'ENQ-20260819-0004',
+      payloadFingerprint: fingerprint,
+    };
+    const uniqueConflict = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '6.19.3',
+      meta: { target: ['submission_key'] },
+    });
+    const prisma = {
+      websiteEnquiry: {
+        findUnique: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(concurrent),
+      },
+      $transaction: jest.fn().mockRejectedValue(uniqueConflict),
+    } as any;
+    const service = new WebsiteEnquiryIngestionService(prisma);
+
+    await expect(service.ingest(submission)).resolves.toMatchObject({
+      enquiryReference: 'ENQ-20260819-0004',
+      created: false,
+      replay: true,
+    });
   });
 });
