@@ -1549,3 +1549,34 @@ model AttentionItemActivity {
   @@index([actorId, createdAt])
   @@map("attention_item_activities")
 }
+
+model EnquiryDailyCounter {
+  businessDate String @id @map("business_date")
+  sequence Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("enquiry_daily_counters")
+}
+
+model WebsiteEnquiry {
+  id String @id @default(uuid()) @db.Uuid
+  reference String @unique
+  submissionKey String @unique @map("submission_key")
+  payloadFingerprint String @map("payload_fingerprint")
+  schemaVersion String @map("schema_version")
+  submittedAt DateTime @map("submitted_at")
+  name String
+  phone String
+  email String
+  enquiryType String @map("enquiry_type")
+  propertyAddress String @map("property_address")
+  description String
+  preferredContact String @map("preferred_contact")
+  structuredData Json @map("structured_data")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([submittedAt])
+  @@index([email])
+  @@map("website_enquiries")
+}
