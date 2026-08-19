@@ -21,7 +21,7 @@ test('add-on selector persists quantities and exposes explicit capacity approval
   assert.match(manager, /type="number" min=\{1\} step=\{1\}/);
   assert.match(manager, /Labour\/time capacity checked for this job/);
   assert.match(manager, /capacityApproved/);
-  assert.match(manager, /No add-ons are currently available\./);
+  assert.match(manager, /No add-ons match this search\./);
   assert.match(manager, /status=ACTIVE&type=ADD_ON/);
 });
 
