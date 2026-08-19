@@ -2,6 +2,7 @@ import type {
   SectionOutcomeOperation,
   StartJobOperation,
   CompleteJobOperation,
+  IncidentOperation,
   TechnicianJob,
 } from "../../../lib/api";
 export type PendingStart = StartJobOperation & {
@@ -14,6 +15,7 @@ export type PendingOutcome = SectionOutcomeOperation & {
   queuedAt: string;
 };
 export type PendingCompletion = CompleteJobOperation & { workOrderId:string; jobLeaderTechnicianId:string; kind:"COMPLETE_JOB"; queuedAt:string; localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW"; acknowledgedAt?:string; lastError?:string };
+export type PendingIncident = IncidentOperation & {kind:"REPORT_INCIDENT";queuedAt:string;localSyncState:"SYNC_PENDING"|"ACKNOWLEDGED"|"NEEDS_REVIEW";lastError?:string};
 export type EvidenceSyncState =
   | "CAPTURED_LOCAL"
   | "QUEUED"
@@ -26,7 +28,7 @@ export type LocalEvidence = {
   scopeRevisionId: string;
   sectionId: string;
   technicianId: string;
-  purpose: "REQUIRED_SECTION_EVIDENCE" | "EXCEPTION_EVIDENCE";
+  purpose: "REQUIRED_SECTION_EVIDENCE" | "EXCEPTION_EVIDENCE" | "INCIDENT_EVIDENCE";
   capturedAt: string;
   syncState: EvidenceSyncState;
   storagePath: string;
@@ -36,7 +38,7 @@ export type LocalEvidence = {
   acknowledgedAt?: string;
 };
 const DB = "homent-technician";
-export const VERSION = 4;
+export const VERSION = 5;
 function open() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB, VERSION);
@@ -148,6 +150,9 @@ export const saveCompletion = (operation: PendingCompletion) => transaction<IDBV
 export const completions = async () => ((await transaction<Array<PendingStart|PendingOutcome|PendingCompletion>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="COMPLETE_JOB") as PendingCompletion[]);
 export const pendingCompletions = async () => (await completions()).filter(x=>x.localSyncState==="SYNC_PENDING");
 export const completionForJob = async (workOrderId:string) => (await completions()).find(x=>x.workOrderId===workOrderId);
+export const saveIncident = (operation:PendingIncident)=>transaction<IDBValidKey>("operations","readwrite",store=>store.put(operation));
+export const incidents = async()=>((await transaction<Array<PendingStart|PendingOutcome|PendingCompletion|PendingIncident>>("operations","readonly",store=>store.getAll())).filter(x=>x.kind==="REPORT_INCIDENT") as PendingIncident[]);
+export const pendingIncidents=async()=>(await incidents()).filter(x=>x.localSyncState==="SYNC_PENDING");
 
 export const removeCachedJob = (id: string) =>
   transaction<undefined>(

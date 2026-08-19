@@ -8,6 +8,7 @@ import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput,
 import { UpdateAccessReadinessInput, WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
 import { CreateTemporaryCredentialInput, ReviewTemporaryCredentialInput, WorkOrderTemporaryAccessCredentialsService } from './work-order-temporary-access-credentials.service';
 import { InitiateAccessRecoveryInput, RegisterRecoveryCandidateInput, WorkOrderAccessRecoveryService } from './work-order-access-recovery.service';
+import { ReviewIncidentInput, WorkOrderIncidentService } from './work-order-incident.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -18,7 +19,16 @@ export class WorkOrdersController {
     private readonly accessReadiness: WorkOrderAccessReadinessService,
     private readonly temporaryCredentials: WorkOrderTemporaryAccessCredentialsService,
     private readonly accessRecovery: WorkOrderAccessRecoveryService,
+    private readonly incidents: WorkOrderIncidentService,
   ) {}
+
+  @Get(':id/incidents')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  incidentsList(@Param('id', new ParseUUIDPipe()) id:string){return this.incidents.list(id);}
+
+  @Post(':id/incidents/:incidentId/review')
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  reviewIncident(@Param('id',new ParseUUIDPipe()) id:string,@Param('incidentId',new ParseUUIDPipe()) incidentId:string,@Body() input:ReviewIncidentInput,@CurrentUser() actor:User){return this.incidents.review(id,incidentId,input,actor.id);}
 
   @Get(':id/access-recovery')
   @Roles(UserRole.ADMIN)

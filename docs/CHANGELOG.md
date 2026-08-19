@@ -787,3 +787,9 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Added provider-neutral durable message/recovery correlation, replay-safe inbound preservation, safe delivery/review summaries, and a focused Work Order UI without a second inbox or alert.
 - Added explicit stale/cross-visit guarded registration of an inbound response as Phase 3B protected evidence with source-message provenance and mandatory existing human review before usability.
 - Added migration, tests, ADR-0061, contract/deployment/recovery documentation, and Issue #116/#132 coordination synchronization. No adapter, automatic correspondence, lifecycle action, Technician authority, or Finance behavior was added.
+
+## 2026-08-19 — Phase 4A Work Order incidents
+
+- Added constrained, assignment-scoped Technician safety/damage/condition/operational reporting with durable offline UUID operations and existing Execution Evidence linkage.
+- Added append-only ADMIN/SUPERVISOR acknowledgement, neutral resolution and reopen history plus deterministic shared Needs Attention lifecycle.
+- Preserved independent completion, scope-mismatch and interrupted/replacement-visit facts. Added no correspondence, notification delivery, Finance, liability, legal, insurance or HR behavior.

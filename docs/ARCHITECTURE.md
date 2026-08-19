@@ -324,3 +324,7 @@ Assignment-scoped Technician job DTOs expose only canonical readiness plus a der
 ## Phase 3D human-triggered access recovery (2026-08-19)
 
 The canonical provider-neutral messaging boundary now persists provider-scoped conversations, normalized immutable-direction messages, provider-event/outbound idempotency identities, and minimal visit-scoped access-recovery correlation. An ADMIN may send the bounded access request only through a configured Customer-linked conversation. Inbound responses remain messaging evidence, are correlated for review without interpretation, and enter operational credential storage only through an explicit ADMIN command that reuses Phase 3B encryption/private attachment handling and human review. Safe Work Order recovery projections contain delivery/review state but no message body, provider identity, protected value, or private path. The existing access alert, lifecycle, Technician authority, and Finance are unchanged. See ADR-0061 and `WORK_ORDER_ACCESS_RECOVERY_V1.md`.
+
+## 2026-08-19 — Work Order field incidents v1
+
+Phase 4A adds assignment-scoped, offline-idempotent Work Order Incident reports and append-only ADMIN/SUPERVISOR reviews. Incident evidence extends the existing Execution Evidence metadata/pipeline; unresolved reports are authoritative producers in the shared Needs Attention Management Review queue. Work Order completion, frozen scope, scope mismatch, interruption and replacement visits remain independent authoritative aggregates. See `WORK_ORDER_INCIDENTS_V1.md` and ADR-0062.

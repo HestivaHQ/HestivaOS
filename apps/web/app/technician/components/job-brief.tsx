@@ -16,12 +16,14 @@ import {
   evidenceForJob,
   LocalEvidence,
   pendingEvidence,
+  pendingIncidents,
   pendingCompletions,
   pendingOutcomes,
   pendingStarts,
   removeCachedJob,
   removePendingStart,
   saveEvidence,
+  saveIncident,
   saveCompletion,
   savePendingOutcome,
   savePendingStart,
@@ -59,6 +61,7 @@ export function JobBrief({ id }: { id: string }) {
     [note, setNote] = useState(""),
     [review, setReview] = useState<JobReview | null>(null),
     [evidence, setEvidence] = useState<LocalEvidence[]>([]);
+  const [incidentCategory,setIncidentCategory]=useState("OPERATIONAL_INCIDENT"),[incidentNote,setIncidentNote]=useState(""),[incidentSection,setIncidentSection]=useState("");
   const reconcile = useCallback(async () => {
     try {
       for (const item of await pendingEvidence()) {
@@ -116,6 +119,7 @@ export function JobBrief({ id }: { id: string }) {
           if (error instanceof ApiError && error.status >= 400 && error.status < 500) await saveCompletion({ ...op, localSyncState: "NEEDS_REVIEW", lastError: error.message });
         }
       }
+      for(const op of await pendingIncidents()){try{await technicianApi.reportIncident(op);await saveIncident({...op,localSyncState:"ACKNOWLEDGED",lastError:undefined});}catch(error){if(error instanceof ApiError&&error.status>=400&&error.status<500)await saveIncident({...op,localSyncState:"NEEDS_REVIEW",lastError:error.message});}}
       const fresh = await technicianApi.job(id);
       const completion = await completionForJob(id);
       const merged = completion ? { ...fresh, localCompletion: { operationId: completion.operationId, syncState: completion.localSyncState, fieldCompletedAt: completion.fieldCompletedAt, lastError: completion.lastError } } : fresh;
@@ -141,6 +145,7 @@ export function JobBrief({ id }: { id: string }) {
         (await pendingStarts()).length +
           (await pendingOutcomes()).length +
           (await pendingCompletions()).length +
+          (await pendingIncidents()).length +
           (await pendingEvidence()).length,
       );
     }
@@ -300,6 +305,7 @@ export function JobBrief({ id }: { id: string }) {
     setBusy(true);const now=new Date().toISOString();const operation={kind:"COMPLETE_JOB" as const,workOrderId:id,operationId:crypto.randomUUID(),scopeRevisionId:job.executionScope.id,jobLeaderTechnicianId:job.technicianId,fieldCompletedAt:now,expectedVersion:job.updatedAt,expectedStatus:job.status as "ON_SITE"|"WAITING_FOR_PARTS",queuedAt:now,localSyncState:"SYNC_PENDING" as const};
     try{await saveCompletion(operation);const local={...job,localCompletion:{operationId:operation.operationId,syncState:operation.localSyncState,fieldCompletedAt:now}};await cacheJobs([local]);setJob(local);setMessage("✓ Job completed on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save completion. The job is not completed; try again.");}finally{setBusy(false);}
   }
+  async function reportIncident(){if(!job||!incidentNote.trim())return;const now=new Date().toISOString();const linked=evidence.filter(e=>e.sectionId===incidentSection&&e.purpose==="INCIDENT_EVIDENCE");const operation={kind:"REPORT_INCIDENT" as const,operationId:crypto.randomUUID(),workOrderId:id,category:incidentCategory as "SAFETY_CRITICAL_STOP"|"PROPERTY_OR_ITEM_DAMAGE"|"CUSTOMER_OR_PROPERTY_CONDITION"|"OPERATIONAL_INCIDENT",fieldReportedAt:now,sectionId:incidentSection||undefined,note:incidentNote.trim(),evidence:linked.map(e=>({localEvidenceId:e.evidenceId,capturedAt:e.capturedAt,syncState:e.syncState==="RETRY_PENDING"?"RETRY_PENDING" as const:"QUEUED" as const})),queuedAt:now,localSyncState:"SYNC_PENDING" as const};try{await saveIncident(operation);setIncidentNote("");setMessage("Incident saved on this device · Sync pending");if(navigator.onLine)void reconcile();}catch{setMessage("Could not safely save the incident. Try again.");}}
   if (!job)
     return (
       <section className="technicianPage">
@@ -354,6 +360,7 @@ export function JobBrief({ id }: { id: string }) {
           </p>
         ))}
       </article>
+      {job.startedAt&&!job.localCompletion?<details className="executionChecklist"><summary><strong>Report safety, damage or incident</strong></summary><p>Record the field fact here. If work cannot continue, also use the separate interrupted-visit action.</p><label>Incident type<select value={incidentCategory} onChange={e=>setIncidentCategory(e.target.value)}><option value="SAFETY_CRITICAL_STOP">Safety-critical stop</option><option value="PROPERTY_OR_ITEM_DAMAGE">Property or item damage</option><option value="CUSTOMER_OR_PROPERTY_CONDITION">Customer/property condition</option><option value="OPERATIONAL_INCIDENT">Operational incident</option></select></label><label>Affected section (optional)<select value={incidentSection} onChange={e=>setIncidentSection(e.target.value)}><option value="">Whole visit / no section</option>{scope?.sections.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}</select></label>{incidentSection?<label>Add incident photo<input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={busy} onChange={event=>void capture(event,incidentSection,"INCIDENT_EVIDENCE")}/></label>:null}<label>Concise factual note<textarea maxLength={1000} value={incidentNote} onChange={e=>setIncidentNote(e.target.value)}/></label><button disabled={!incidentNote.trim()} onClick={()=>void reportIncident()}>Save incident report</button></details>:null}
       {scope ? (
         <article className="executionChecklist">
           <h2>Execution scope · revision {scope.revision}</h2>
