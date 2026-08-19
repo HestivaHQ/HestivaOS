@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-19 — Phase 1B scalable Shift Planning selectors
+
+### Changed
+
+- Replaced fixed 100-record Shift Planning reference snapshots with 300 ms debounced, bounded server-backed search for active Crews, active Technicians, and linked Work Orders.
+- Preserved selected historical Crew, Technician, and Work Order relationships while search results refresh; Crew-selected designated-Technician choices continue to use the Crew's authoritative member snapshot.
+- Removed the redundant initial selector bootstrap so the bounded search effects are the single reference-loading path.
+
+### Preserved
+
+- No schema, migration, Shift persistence/status, Crew membership/leadership, Technician eligibility, Work Order lifecycle/assignment, scheduling/dispatch policy, recurring-service, Finance, Correspondence, Messaging, notification, or deployment behavior changed.
+
 ## 2026-08-19 — Phase 1A scalable Work Order selectors
 
 ### Changed
