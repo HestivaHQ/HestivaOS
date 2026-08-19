@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common';
-import { User, UserRole } from '@prisma/client';
+import { User, UserRole, UserStatus } from '@prisma/client';
 import { SupabaseAdminService } from './supabase-admin.service';
 import { UpdateAccessInput, UpdateProfileInput, UpdateRoleInput, UsersService } from './users.service';
 import { CurrentUser } from './current-user.decorator';
@@ -28,5 +28,9 @@ export class UsersController {
   updateRole(@CurrentUser() actor: User, @Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateRoleInput) { return this.users.updateRole(actor, id, input); }
   @Patch(':id/access')
   @Roles(UserRole.ADMIN)
-  updateAccess(@CurrentUser() actor: User, @Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateAccessInput) { return this.users.updateAccess(actor, id, input); }
+  async updateAccess(@CurrentUser() actor: User, @Param('id', new ParseUUIDPipe()) id: string, @Body() input: UpdateAccessInput) {
+    const updated = await this.users.updateAccess(actor, id, input);
+    if (input.status === UserStatus.INACTIVE) await this.supabaseAdmin.revokeRefreshSessionsForApplicationUser(id);
+    return updated;
+  }
 }
