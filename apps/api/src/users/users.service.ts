@@ -14,6 +14,7 @@ export type UpdateAccessInput = { status?: UserStatus };
 
 const ACCOUNT_CONFLICT_MESSAGE = 'This authenticated account cannot be linked automatically. Contact an administrator for account recovery.';
 const USER_ACCESS_SELECT = { id: true, email: true, firstName: true, lastName: true, displayName: true, role: true, status: true, createdAt: true, updatedAt: true } satisfies Prisma.UserSelect;
+const auditDisplayName = (user: { firstName: string; lastName: string; displayName: string | null }) => user.displayName?.trim() || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null;
 
 @Injectable()
 export class UsersService {
@@ -130,9 +131,6 @@ export class UsersService {
     if (!target) throw new NotFoundException('User account not found.');
     return this.prisma.userAccessChange.findMany({
       where: { targetUserId: targetId },
-      include: {
-        actorUser: { select: { id: true, email: true, firstName: true, lastName: true, displayName: true } },
-      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
   }
@@ -151,8 +149,12 @@ export class UsersService {
     try {
       return await this.prisma.$transaction(async (transaction) => {
         await transaction.$executeRaw`SELECT pg_advisory_xact_lock(48378623)`;
-        const target = await transaction.user.findUnique({ where: { id: targetId } });
+        const [target, actor] = await Promise.all([
+          transaction.user.findUnique({ where: { id: targetId } }),
+          transaction.user.findUnique({ where: { id: actorId } }),
+        ]);
         if (!target) throw new NotFoundException('User account not found.');
+        if (!actor) throw new ForbiddenException('Administrator account is unavailable.');
         const removesAdminAccess = target.role === UserRole.ADMIN && target.status === UserStatus.ACTIVE
           && (change.role !== undefined && change.role !== UserRole.ADMIN || change.status === UserStatus.INACTIVE);
         if (actorId === targetId && removesAdminAccess) throw new ForbiddenException('You cannot demote or disable your own administrator account.');
@@ -164,8 +166,12 @@ export class UsersService {
         if (target.role !== updated.role || target.status !== updated.status) {
           await transaction.userAccessChange.create({
             data: {
-              targetUserId: targetId,
-              actorUserId: actorId,
+              targetUserId: target.id,
+              targetEmail: target.email,
+              targetDisplayName: auditDisplayName(target),
+              actorUserId: actor.id,
+              actorEmail: actor.email,
+              actorDisplayName: auditDisplayName(actor),
               oldRole: target.role,
               newRole: updated.role,
               oldStatus: target.status,
