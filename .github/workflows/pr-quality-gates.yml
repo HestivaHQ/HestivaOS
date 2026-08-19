@@ -12,6 +12,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  policy-security-diff:
+    name: Validate policy, secrets and diff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate documentation policy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/validate_documentation.py "$BASE_SHA" "$HEAD_SHA"
+
+      - name: Scan tracked files for secrets
+        run: python3 scripts/scan_secrets.py
+
+      - name: Check patch whitespace
+        run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+
+  api-validation:
+    name: Validate API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+      - name: Type-check API workspace
+        run: npm run typecheck --workspace @hestiva/api
+      - name: Run API tests
+        run: npm run test --workspace @hestiva/api
+      - name: Build API workspace
+        run: npm run build --workspace @hestiva/api
+
+  web-cloudflare-validation:
+    name: Validate web and Cloudflare bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+      - name: Type-check web workspace
+        run: npm run typecheck --workspace @hestiva/web
+      - name: Run web tests
+        run: npm run test --workspace @hestiva/web
+      - name: Generate Cloudflare types
+        run: npm run cf-typegen --workspace @hestiva/web
+      - name: Build OpenNext Cloudflare Worker
+        run: npx opennextjs-cloudflare build
+        working-directory: apps/web
+      - name: Validate Wrangler bundle without deploying
+        run: npx wrangler deploy --dry-run --config apps/web/wrangler.jsonc --outdir /tmp/hestiva-pr-validation
+
   postgres-migrations:
     name: Replay PostgreSQL migrations
     runs-on: ubuntu-latest
@@ -44,58 +106,3 @@ jobs:
         run: scripts/test_postgres_migrations.sh clean postgresql://postgres:postgres@localhost:5432/hestiva_migration_clean
       - name: Replay from the migration immediately before Slice 5K
         run: scripts/test_postgres_migrations.sh staged postgresql://postgres:postgres@localhost:5432/hestiva_migration_staged
-
-  verify:
-    name: Verify repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository history
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install locked dependencies and generate Prisma Client
-        run: npm ci
-
-      - name: Validate documentation policy
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 scripts/validate_documentation.py "$BASE_SHA" "$HEAD_SHA"
-
-      - name: Scan tracked files for secrets
-        run: npm run secrets:scan
-
-      - name: Type-check all workspaces
-        run: npm run typecheck
-
-      - name: Build all workspaces
-        run: npm run build
-
-      - name: Run workspace tests
-        run: npm test
-
-      - name: Build API workspace independently
-        run: npm run build --workspace @hestiva/api
-
-      - name: Build web workspace independently
-        run: npm run build --workspace @hestiva/web
-
-      - name: Generate Cloudflare types
-        run: npm run cf-typegen --workspace @hestiva/web
-
-      - name: Build OpenNext Cloudflare Worker
-        run: npx opennextjs-cloudflare build
-        working-directory: apps/web
-
-      - name: Validate Wrangler bundle without deploying
-        run: npx wrangler deploy --dry-run --config apps/web/wrangler.jsonc --outdir /tmp/hestiva-next16-validation
-
-      - name: Check patch whitespace
-        run: git diff --check "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
