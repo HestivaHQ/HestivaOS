@@ -71,3 +71,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0061: Correlate human-triggered access recovery through canonical messaging](ADR-0061-human-triggered-work-order-access-recovery.md)
 - [ADR-0062: Preserve field incidents separately from visit outcomes](ADR-0062-work-order-field-incidents.md)
 - [ADR-0063: Project canonical execution truth for Supervisor operational review](ADR-0063-supervisor-operational-projection.md)
+- [ADR-0064: Broker private Execution Evidence reads through short-lived access](ADR-0064-private-execution-evidence-access.md)

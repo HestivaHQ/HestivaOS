@@ -234,3 +234,7 @@ Deploy additive migration `20260819160000_work_order_access_recovery` before the
 ## Phase 4A Work Order incidents deployment (2026-08-19)
 
 Deploy migration `20260819120000_work_order_incidents` before the matching API/web release, then regenerate Prisma Client. The migration is additive: controlled enums, incident/review tables, an incident evidence link, and a Needs Attention type. Verify assigned Technician idempotent reporting, incident evidence acknowledgement, ADMIN/SUPERVISOR review, and attention reconciliation. No environment variable, Storage bucket policy, correspondence provider, or Finance configuration changes.
+
+## Private Execution Evidence read deployment (2026-08-19)
+
+No migration or new bucket is introduced. Keep the existing Work Order photo bucket private, configure API-only `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_WORK_ORDER_PHOTOS_BUCKET` in Railway, and deploy the API before relying on private evidence links. Verify an ADMIN/SUPERVISOR and an assigned Technician can obtain a 60-second URL for acknowledged evidence; verify an unassigned Technician, unrelated role, wrong Work Order and pending evidence are denied; inspect broad API responses for absence of `storagePath`. Never place the service-role key in Cloudflare or browser variables.

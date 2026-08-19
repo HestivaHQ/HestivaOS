@@ -127,3 +127,7 @@ A section outcome says what work happened, and an interruption says whether the 
 ## 2026-08-19 — Supervisor review rationale
 
 Supervisor operational review projects existing execution truth instead of persisting a second review domain. This keeps exceptions actionable through Needs Attention, preserves each Work Order domain as authoritative, and minimizes sensitive broad-query data while allowing detail on existing permission-aware surfaces.
+
+## Why evidence reads are brokered
+
+A deterministic object path is useful for idempotent offline upload but is not an authorization boundary. Keeping paths private and issuing a short-lived URL only after application role/assignment and Work Order linkage checks preserves provenance and least authority without replacing the upload queue or creating a document-management domain. See ADR-0064.

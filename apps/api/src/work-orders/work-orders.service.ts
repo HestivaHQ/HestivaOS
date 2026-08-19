@@ -49,7 +49,7 @@ const workOrderInclude = {
   service: true,
   recurringAgreement: true,
   addOns: { include: { service: true }, orderBy: { createdAt: 'asc' as const } },
-  startedScopeRevision: { include: { sections: { orderBy: { sortOrder: 'asc' as const }, include: { currentOutcomeEvent: true, evidence: true } } } },
+  startedScopeRevision: { include: { sections: { orderBy: { sortOrder: 'asc' as const }, include: { currentOutcomeEvent: true, evidence: { select: { id: true, localEvidenceId: true, purpose: true, syncState: true, capturedAt: true, serverAcknowledgedAt: true } } } } } },
 } as const;
 
 export function johannesburgBusinessDate(now = new Date()) {

@@ -19,4 +19,4 @@ Every unresolved incident reconciles into the shared Needs Attention queue with 
 
 ## Boundaries
 
-Completion does not resolve incidents. Incident creation does not duplicate scope-mismatch, interruption, replacement-visit, completion, or Needs Attention domains. It sends no customer correspondence and creates no notification transport. It makes no liability, negligence, compensation, insurance, disciplinary, Finance, refund, credit, charge, deduction, or payment finding. Evidence remains non-public; broader evidence-read hardening is deferred.
+Completion does not resolve incidents. Incident creation does not duplicate scope-mismatch, interruption, replacement-visit, completion, or Needs Attention domains. It sends no customer correspondence and creates no notification transport. It makes no liability, negligence, compensation, insurance, disciplinary, Finance, refund, credit, charge, deduction, or payment finding. Evidence remains non-public. Broader evidence-read hardening was subsequently completed through explicit short-lived, role/assignment-scoped access without changing this incident contract.

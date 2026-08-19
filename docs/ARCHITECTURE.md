@@ -331,3 +331,7 @@ Phase 4A adds assignment-scoped, offline-idempotent Work Order Incident reports 
 ## Supervisor operational projection (Phase 4B)
 
 The SUPERVISOR-only `GET /api/v1/supervisor/operations` boundary provides a secret-minimized read projection over existing Work Order execution relations; it creates no new operational state. `/supervisor/operations` combines that projection with the canonical Needs Attention API and deep-links to existing domain review surfaces. Evidence is summarized as counts/synchronization state, and temporary credentials, raw storage paths, recovery context, Finance, and unrelated private data are excluded. Mutation authority remains on the existing role-guarded domain endpoints. See `SUPERVISOR_OPERATIONS_V1.md` and ADR-0063.
+
+## Private Execution Evidence reads (2026-08-19)
+
+Execution Evidence metadata remains append-only and local-first, while object retrieval is now an explicit API authorization boundary. Broad Work Order, incident, scope-mismatch and Supervisor projections expose safe provenance/synchronization metadata or counts without raw Storage paths. ADMIN/SUPERVISOR and currently assigned active Technicians may request one acknowledged artifact; the API verifies its Work Order binding and returns a 60-second signed private-bucket URL. See `EXECUTION_EVIDENCE_SECURITY_V1.md` and ADR-0064.

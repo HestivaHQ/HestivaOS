@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-19 — Field Operations evidence hardening
+
+- Audited completion/correction authority and deferred correction because no canonical authorizer or acknowledgement consequence is established.
+- Added a private evidence signing service, explicit role/assignment-scoped routes, safe DTO selections and focused authorization/non-exposure tests.
+- Added no schema, migration, upload queue, Finance, correspondence, messaging-provider or lifecycle behavior.
+
 ## 2026-08-19 — Phase 4B Supervisor Operational Review
 
 - Added a role-guarded aggregation over active/today, access, assignments, Job Leader, checklist/evidence counts, completion review, incidents, interruptions and scope mismatches.

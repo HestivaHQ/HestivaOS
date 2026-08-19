@@ -128,8 +128,9 @@ export class TechnicianJobsService {
         scopeRevisionId:input.scopeRevisionId,
         scopeRevision:{workOrderId,workOrder:{assignedTechnicians:{some:{technicianId}},startedScopeRevisionId:input.scopeRevisionId}},
       }});if(!section)throw new NotFoundException('Assigned active checklist section was not found.');
-      const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?existing:tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})}
-      return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()}})
+      const select={id:true,localEvidenceId:true,purpose:true,syncState:true,capturedAt:true,serverAcknowledgedAt:true} as const;
+      const existing=await tx.executionSectionEvidence.findUnique({where:{localEvidenceId:evidenceId}});if(existing){if(existing.workOrderId!==workOrderId||existing.scopeRevisionId!==input.scopeRevisionId||existing.sectionId!==sectionId||existing.technicianId!==technicianId)throw new ConflictException('Evidence identity is already bound to another context.');return existing.syncState==='SERVER_ACKNOWLEDGED'?tx.executionSectionEvidence.findUniqueOrThrow({where:{id:existing.id},select}):tx.executionSectionEvidence.update({where:{id:existing.id},data:{purpose:input.purpose,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()},select})}
+      return tx.executionSectionEvidence.create({data:{localEvidenceId:evidenceId,workOrderId,scopeRevisionId:input.scopeRevisionId,sectionId,technicianId,purpose:input.purpose,capturedAt,storagePath:expectedPath,syncState:'SERVER_ACKNOWLEDGED',serverAcknowledgedAt:new Date()},select})
     });
   }
 
