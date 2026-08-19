@@ -1,0 +1,1 @@
+ALTER TYPE "AttentionActivityType" ADD VALUE 'PRIORITY_CHANGED';

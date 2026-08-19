@@ -24,6 +24,7 @@ import {
   compareAttentionItems,
   eligibleQueuesForRole,
 } from './attention-policy';
+import { accessAttentionPriority, isAccessOperationallyResolved } from '../work-orders/access-operations-policy';
 
 const UNRESOLVED_WORK_ORDER_STATUSES: WorkOrderStatus[] = [
   WorkOrderStatus.NEW,
@@ -58,6 +59,9 @@ const workOrderAttentionSelect = {
   scheduledAt: true,
   completionAcceptedAt: true,
   accessReadiness: true,
+  temporaryAccessCredentials: {
+    select: { reviewStatus: true, validFrom: true, expiresAt: true, revokedAt: true },
+  },
   customer: { select: { name: true, contactName: true } },
   service: { select: { name: true } },
 } satisfies Prisma.WorkOrderSelect;
@@ -97,6 +101,7 @@ function serviceLabel(workOrder: AttentionWorkOrder): string {
 function candidateFor(
   workOrder: AttentionWorkOrder,
   type: AttentionItemType,
+  now: Date,
 ): AttentionCandidate {
   const reference = displayReference(workOrder);
   const customer = customerLabel(workOrder);
@@ -141,7 +146,7 @@ function candidateFor(
       ...base,
       conditionKey: `work-order:${workOrder.id}:access-required`,
       type,
-      priority: AttentionPriority.HIGH,
+      priority: accessAttentionPriority(workOrder.scheduledAt, now),
       queue: AttentionQueue.OPERATIONS,
       title: 'Work Order access is unresolved',
       summary: `${reference} · ${service} for ${customer} requires access readiness action.`,
@@ -185,7 +190,7 @@ export class AttentionService {
     throw new Error('Needs Attention transaction retry exhausted.');
   }
 
-  private async detectCandidates(tx: Prisma.TransactionClient): Promise<AttentionCandidate[]> {
+  private async detectCandidates(tx: Prisma.TransactionClient, now: Date): Promise<AttentionCandidate[]> {
     const { todayStart, tomorrowStart } = getJohannesburgDayBoundaries();
 
     const todayUnassigned = await tx.workOrder.findMany({
@@ -218,29 +223,31 @@ export class AttentionService {
     const unresolvedAccess = await tx.workOrder.findMany({
       where: {
         status: { in: UNRESOLVED_WORK_ORDER_STATUSES },
-        accessReadiness: { in: [WorkOrderAccessReadiness.REQUIRED_MISSING, WorkOrderAccessReadiness.NEEDS_REVIEW, WorkOrderAccessReadiness.EXPIRED] },
+        accessReadiness: { notIn: [WorkOrderAccessReadiness.NOT_REQUIRED, WorkOrderAccessReadiness.ARRANGED_ANOTHER_WAY] },
       },
       select: workOrderAttentionSelect,
     });
 
     return [
       ...todayUnassigned.map((item) =>
-        candidateFor(item, AttentionItemType.TODAY_UNASSIGNED_WORK_ORDER),
+        candidateFor(item, AttentionItemType.TODAY_UNASSIGNED_WORK_ORDER, now),
       ),
       ...overdue.map((item) =>
-        candidateFor(item, AttentionItemType.OVERDUE_WORK_ORDER),
+        candidateFor(item, AttentionItemType.OVERDUE_WORK_ORDER, now),
       ),
       ...completionAcknowledgements.map((item) =>
-        candidateFor(item, AttentionItemType.COMPLETION_ACKNOWLEDGEMENT_REQUIRED),
+        candidateFor(item, AttentionItemType.COMPLETION_ACKNOWLEDGEMENT_REQUIRED, now),
       ),
-      ...unresolvedAccess.map((item) => candidateFor(item, AttentionItemType.WORK_ORDER_ACCESS_REQUIRED)),
+      ...unresolvedAccess
+        .filter((item) => !isAccessOperationallyResolved(item.accessReadiness, item.temporaryAccessCredentials, now))
+        .map((item) => candidateFor(item, AttentionItemType.WORK_ORDER_ACCESS_REQUIRED, now)),
     ];
   }
 
   private async reconcile(): Promise<void> {
     await this.serializable(async (tx) => {
       const now = new Date();
-      const candidates = await this.detectCandidates(tx);
+      const candidates = await this.detectCandidates(tx, now);
       const activeKeys = new Set(candidates.map((candidate) => candidate.conditionKey));
 
       for (const candidate of candidates) {
@@ -288,6 +295,18 @@ export class AttentionService {
           data: {
             ...candidate,
             lastObservedAt: now,
+            ...(existing.priority !== candidate.priority ? {
+              activities: {
+                create: {
+                  type: AttentionActivityType.PRIORITY_CHANGED,
+                  metadata: {
+                    previousPriority: existing.priority,
+                    newPriority: candidate.priority,
+                    scheduledAt: candidate.dueAt?.toISOString() ?? null,
+                  },
+                },
+              },
+            } : {}),
           },
         });
       }

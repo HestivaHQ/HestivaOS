@@ -34,7 +34,7 @@ function dueLabel(item: AttentionItem): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(item.dueAt));
-  return item.priority === 'CRITICAL' ? `Was due ${value}` : `Matters by ${value}`;
+  return new Date(item.dueAt).getTime() <= Date.now() ? `Was due ${value}` : `Matters by ${value}`;
 }
 
 export function AttentionPanel({ initial }: { initial: AttentionOverview }) {

@@ -222,3 +222,7 @@ Apply `20260818230000_work_order_access_readiness` through the standard Prisma d
 ## Phase 3B protected credential deployment (2026-08-18)
 
 Deploy migration `20260819000000_protected_temporary_access_credentials` before the Phase 3B API. Configure API-only `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` as a base64-encoded 32-byte value through the deployment secret manager; never expose it to Next.js or commit it. Confirm the temporary-access attachment prefix remains private. Validate ADMIN metadata/create/review/reveal/revoke requests and verify broad Work Order, Dashboard, Needs Attention, and Technician responses contain no protected values. Phase 3C and Phase 3D have no deployment changes here.
+
+## Phase 3C access appointment escalation (2026-08-19)
+
+Deploy additive migration `20260819120000_access_appointment_escalation` before the API. It adds `PRIORITY_CHANGED` to `AttentionActivityType`; there are no new tables, environment variables, storage objects, background workers, timers, provider integrations, or Finance configuration. After deployment, an authorized Needs Attention read deterministically reconciles current priorities from persisted Work Order schedules and safe access usability metadata.

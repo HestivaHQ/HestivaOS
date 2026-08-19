@@ -19,7 +19,8 @@ export type AttentionItem = {
   type:
     | 'TODAY_UNASSIGNED_WORK_ORDER'
     | 'OVERDUE_WORK_ORDER'
-    | 'COMPLETION_ACKNOWLEDGEMENT_REQUIRED';
+    | 'COMPLETION_ACKNOWLEDGEMENT_REQUIRED'
+    | 'WORK_ORDER_ACCESS_REQUIRED';
   priority: AttentionPriority;
   queue: AttentionQueue;
   state: 'OPEN' | 'RESOLVED';
