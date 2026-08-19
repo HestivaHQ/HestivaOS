@@ -15,6 +15,8 @@ When sources disagree, use this order:
 
 Never treat an old coordination comment or historical plan as more authoritative than newer merged implementation and documentation.
 
+The current implementation/backlog checkpoint is `docs/CANONICAL_BACKLOG_FREEZE_2026-08-19.md`. It exists specifically to prevent historical Issue #73 / Issue #116 comments or older roadmap text from reopening work that later merged.
+
 ## Active coordination routes
 
 ### Website ↔ HestivaOS quote/enquiry/booking integration
@@ -29,7 +31,7 @@ Never treat an old coordination comment or historical plan as more authoritative
 - Coordination issue: `HestivaHQ/HestivaOS#116` — **Homent Messaging Integration — WhatsApp + Messenger Coordination**.
 - Scope: WhatsApp, Facebook Messenger, shared conversational/messaging architecture, provider adapters/webhooks, customer-message provenance, human escalation, and HestivaOS actions invoked from messaging channels.
 - The dedicated WhatsApp/Messenger development chat must use Issue #116 as its live synchronization record.
-- Before implementing a material HestivaOS messaging change, read the latest **Current Messaging State** and later material decision/PR comments in Issue #116, then verify the relevant current repository source.
+- Before implementing a material HestivaOS messaging change, read the latest **Current Messaging State**, the 2026-08-19 canonical reconciliation checkpoint, and later material decision/PR comments in Issue #116, then verify the relevant current repository source.
 - HestivaOS remains authoritative for Customers, Properties, Quotes, pricing, Work Orders, recurring services, payments and job execution. Messaging channels do not become a separate operational source of truth.
 
 ## What belongs in a coordination issue
@@ -64,13 +66,26 @@ For a new or resumed chat doing cross-system work:
 
 1. Read `AGENTS.md`.
 2. Read this file.
-3. Read the current architecture/business docs and ADRs relevant to the task.
-4. Read the applicable active coordination issue.
-5. Verify current merged source before implementing.
-6. Post material new decisions/blockers and later the PR link back to the coordination issue.
+3. Read `docs/CANONICAL_BACKLOG_FREEZE_2026-08-19.md` while that checkpoint remains current.
+4. Read the current architecture/business docs and ADRs relevant to the task.
+5. Read the applicable active coordination issue.
+6. Verify current merged source before implementing.
+7. Post material new decisions/blockers and later the PR link back to the coordination issue.
 
 This protocol is intended to reduce repeated decisions, stale assumptions and chat-to-chat drift while keeping the repositories as the durable implementation source of truth.
 
 ## 2026-08-19 Phase 3D Issue #116/#132 checkpoint
 
-The implemented HestivaOS boundary follows Issue #116's provider-neutral conversations, adapter-only authenticity/normalization/transport, provider-scoped identity, provenance, and idempotency decisions, plus Issue #132's human-triggered access request and reviewed candidate-ingestion scope. `WORK_ORDER_ACCESS_RECOVERY_V1.md` and ADR-0061 are the permanent contract. No adapter, autonomous contact policy, Customer identity inference, lifecycle action, or Finance behavior was added.
+The implemented HestivaOS boundary follows Issue #116's provider-neutral conversations, adapter-only authenticity/normalization/transport, provider-scoped identity, provenance, and idempotency decisions, plus Issue #132's human-triggered access request and reviewed candidate-ingestion scope. `WORK_ORDER_ACCESS_RECOVERY_V1.md` and ADR-0061 are the permanent contract. No live provider adapter, autonomous contact policy, Customer identity inference, lifecycle action, or Finance behavior was added.
+
+Phase 3D also introduced durable provider-neutral messaging persistence (`MessagingConversation`, `MessagingMessage`, message status events and related recovery provenance). Therefore older Issue #116 / roadmap wording that says durable messaging persistence is still entirely future work is superseded. The genuine messaging gap is now **live provider connectivity and customer conversation behavior**, not the base persistence layer.
+
+## 2026-08-19 canonical reconciliation checkpoint
+
+### Website / Issue #73
+
+Current merged state already includes guarded structured Website Quote ingestion, authoritative Quote references/pricing, match-or-review, Admin Quote review, atomic ONE_TIME and supported recurring acceptance, and non-lossy accepted-Quote handoff. Issue #73 remains open for genuine residual cross-system work, including the documented Website enquiry / `ENQ` runtime boundary and later correspondence/financial integrations. Do not use the stale Issue #73 body status paragraph to infer that the Quote integration is still awaiting contract finalization.
+
+### Messaging / Issue #116
+
+Current merged state includes provider-neutral contracts, adapter boundary, provider-event idempotency, Quote-draft/human-review boundary and durable conversation/message persistence. Live WhatsApp Cloud API and Messenger webhooks/adapters, provider credentials/configuration, deterministic customer-facing conversation flows, human takeover and any later AI integration remain future work. The Website integration secret remains Website-specific and must not be reused for messaging.
