@@ -1,8 +1,9 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UserRole } from '@prisma/client';
 import { ExecutionEvidenceAccessService } from './execution-evidence-access.service';
 
-const createSignedUrl = jest.fn();
+const createSignedUrl = jest.fn<() => Promise<{ data: { signedUrl: string } | null; error: Error | null }>>();
 jest.mock('@supabase/supabase-js', () => ({ createClient: () => ({ storage: { from: () => ({ createSignedUrl }) } }) }));
 
 describe('ExecutionEvidenceAccessService', () => {
@@ -13,7 +14,9 @@ describe('ExecutionEvidenceAccessService', () => {
   });
 
   function harness(evidence: unknown = { id: 'evidence-1', storagePath: 'work/scope/section/evidence.webp', syncState: 'SERVER_ACKNOWLEDGED' }, assignment: unknown = { technicianId: 'tech-1' }) {
-    const prisma = { executionSectionEvidence: { findFirst: jest.fn().mockResolvedValue(evidence) }, employeeRecord: { findFirst: jest.fn().mockResolvedValue(assignment) } } as any;
+    const findEvidence = jest.fn<() => Promise<unknown>>().mockResolvedValue(evidence);
+    const findAssignment = jest.fn<() => Promise<unknown>>().mockResolvedValue(assignment);
+    const prisma = { executionSectionEvidence: { findFirst: findEvidence }, employeeRecord: { findFirst: findAssignment } } as any;
     return { service: new ExecutionEvidenceAccessService(prisma), prisma };
   }
 

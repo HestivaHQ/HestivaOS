@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-19 — Execution Evidence CI correction
+
+- Aligned the new Execution Evidence specs with the repository's explicit `@jest/globals` TypeScript convention and preserved the safe acknowledgement projection during idempotent replay without requiring an extra database query.
+
 ## 2026-08-19 — Private Execution Evidence read hardening
 
 - Removed raw Execution Evidence storage paths from broad Work Order, incident and scope-mismatch responses.

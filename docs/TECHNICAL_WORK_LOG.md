@@ -1,5 +1,9 @@
 # Technical work log
 
+## 2026-08-19 — PR #142 test correction
+
+- Added explicit typed Jest imports/mocks to the private evidence specs and corrected the existing acknowledgement replay test to assert the intentionally path-free response contract.
+
 ## 2026-08-19 — Field Operations evidence hardening
 
 - Audited completion/correction authority and deferred correction because no canonical authorizer or acknowledgement consequence is established.
