@@ -74,3 +74,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0064: Broker private Execution Evidence reads through short-lived access](ADR-0064-private-execution-evidence-access.md)
 - [ADR-0065: Use an append-only aggregate for Technician completion corrections](ADR-0065-append-only-technician-completion-corrections.md)
 - [ADR-0066: Run recurring automatic resume in the persistent API with database-guarded reconciliation](ADR-0066-recurring-auto-resume-runner.md)
+- [ADR-0067: Three-stage development validation](ADR-0067-three-stage-development-validation.md)
