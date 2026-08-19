@@ -1,5 +1,11 @@
 # Technical work log
 
+## 2026-08-19 — Phase 1B scalable Shift Planning selectors
+
+- Audited Shift Planning reference loading after Phase 1A and verified Crew, Technician and Work Order APIs already provide bounded search; only the Shift UI still loaded fixed 100-record snapshots, so no new search service, API, index or schema was introduced.
+- Replaced those reference snapshots with 300 ms debounced 20-record Crew, Technician and Work Order queries. Crew-selected designated Technician remains sourced from the Crew member snapshot, and selected/historical relationships remain visible while results refresh.
+- Removed the redundant reference bootstrap, added focused web contract coverage, reconciled the controlled-input audit/roadmap, and documented `SHIFT_PLANNING_SELECTOR_SEARCH_V1.md`. No migration, scheduling/dispatch, staffing authority, Work Order lifecycle, recurring-service, Finance, Correspondence, Messaging, notification or deployment behavior changed.
+
 ## 2026-08-19 — Phase 1A scalable Work Order selectors
 
 - Audited Work Order reference loading against the Customer, Property, Technician, Crew and Service APIs. The backend already provided bounded search for Customers, Crews, Services and Properties; the Work Order manager still loaded fixed 100-record reference snapshots, so no new search service, index or schema was introduced.
@@ -272,6 +278,7 @@
 - Preserved the authentication middleware and its Supabase SSR cookie behavior; no source compatibility edits were required because the relevant async request APIs were already awaited. Recorded migration to the preferred `proxy` convention as separate follow-up.
 - Selected default Turbopack behavior and added no `--webpack` flag. The application has no custom webpack behavior, and the locked OpenNext Cloudflare 1.20.2 peer metadata explicitly includes Next.js 16.3.0; Wrangler remains 4.120.0. Worker name, entry, assets, compatibility date and flag, `keep_vars`, `API_URL`, observability, and native Git authority remain unchanged.
 - Attempted all requested validation without deploying. The environment runs Node.js 20.20.2 rather than the repository-required Node.js 24 and returned HTTP 403 while `npm ci` fetched PostCSS 8.5.23. The incomplete install prevented Prisma bootstrap, typecheck, builds, tests, OpenNext, type generation, Wrangler dry-run, and route regression testing. Both requested audits also returned HTTP 403, so no local vulnerability counts are recorded. GitHub validation and its authoritative security diagnostic remain required; remediation is not declared complete.
+- Dependency remediation is not marked complete. The authoritative GitHub dependency-security diagnostic must confirm the target counts.
 
 ## 2026-08-08 — Dependency Security Remediation PR 2
 
