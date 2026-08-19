@@ -21,8 +21,11 @@ export class PropertiesController {
   }
 
   @Get('selector-options')
-  selectorOptions(@Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string) {
-    return this.properties.selectorOptions(customerId);
+  selectorOptions(
+    @Query('customerId', new ParseUUIDPipe({ optional: true })) customerId?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.properties.selectorOptions(customerId, search);
   }
 
   @Get(':id')

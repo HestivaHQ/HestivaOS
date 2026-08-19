@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-19 — Phase 1A scalable Work Order selectors
+
+### Changed
+
+- Replaced fixed 100-record Work Order reference snapshots with 300 ms debounced, bounded server-backed search for Customers, customer-scoped Properties, eligible Technicians, active Crews, primary Services and add-on Services.
+- Preserved selected and historical canonical records while current search pages refresh, including inactive historical Crew/Service relationships during edit.
+- Extended Customer and Property search with exact canonical UUID lookup so `/work-orders/new` deep-link preselection remains reliable beyond the first ordinary result page; Property selector projections remain identifying-only.
+
+### Preserved
+
+- No schema, migration, Work Order lifecycle, assignment semantics, scheduling policy, Quote conversion, pricing, Finance, Correspondence, Messaging, notification or deployment behavior changed.
+- Shift Planning Crew/Work Order searchability remains a separate controlled-input residual.
+
 ## 2026-08-19 — Admin and Operations UX hardening
 
 - Added ADMIN Service Scope Template/version management, controlled section inputs, immutable history/usage visibility, and publish/retire actions.
@@ -209,7 +222,7 @@
 ### Preserved
 
 - Supabase remains the identity authority. Protected-route middleware authentication, API JWT verification, HestivaOS application-user synchronization, ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
-- No API contract, database schema, migration, business workflow, deployment setting, or production configuration changed.
+- No API contract, database schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
 
 ### Known issues
 
@@ -520,7 +533,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 ### Known issues
 
 - Registry-backed before/after vulnerability counts could not be verified because the npm advisory API returned HTTP 403; the targeted vulnerable lockfile versions are absent after the refresh.
-- Dependency-security remediation is not complete. Wrangler and Cloudflare tooling remediation remains pending, and Next.js, PostCSS, and Sharp compatibility investigation remains pending. The later work also owns the remaining `miniflare` and `undici` dependency families.
+- Dependency-security remediation is not complete. Wrangler and Cloudflare tooling remediation remains pending, and Next.js, PostCSS and Sharp compatibility investigation remains pending; the later work also owns the remaining `miniflare` and `undici` dependency families.
 
 ## 2026-08-08 — Dependency security audit diagnostic
 
@@ -531,7 +544,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 ### Known issues
 
-- Dependency review and remediation remain outstanding until maintainers run the workflow and assess its registry-backed results.
+- Dependency review and remediation remain outstanding until maintainers run the workflow and assess the registry-backed results.
 
 ## 2026-08-08 — Cloudflare environment ownership hardening
 

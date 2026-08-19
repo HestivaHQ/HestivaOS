@@ -25,7 +25,7 @@ Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Fin
 
 ## Phase 1 — safe Admin/Operations completion
 
-- Complete controlled-input Phase 3 large-list searchability for remaining Customer, Property, Crew and Service selectors using bounded/debounced server-side search.
+- **Phase 1A completed pending merge:** Work Order Customer, Property, Technician, Crew, primary Service and add-on Service selectors use bounded/debounced server-backed search instead of fixed 100-record reference snapshots. Direct-create Customer/Property canonical-ID preselection remains resolvable beyond the first result page, selected historical records remain visible while searches refresh, and the existing domain APIs remain authoritative. See `docs/WORK_ORDER_SELECTOR_SEARCH_V1.md`.
 - Implement the documented HestivaOS-owned Website contact-enquiry ingestion and authoritative `ENQ-...` reference boundary; current documentation records authority, not a live enquiry-ingestion domain/endpoint.
 - Audit recurring-service pause/resume/cancel/auto-resume and already-created-future-visit review behavior against current source, then implement only verified residual gaps.
 - Add durable administrative access-change audit history and a focused Supabase Admin invitation/provider-session-revocation workflow.

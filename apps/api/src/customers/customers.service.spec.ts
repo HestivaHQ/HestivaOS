@@ -34,6 +34,12 @@ describe('CustomersService customer-name compatibility', () => {
       { name: { contains: 'Ada', mode: 'insensitive' } },
     ]));
   });
+  it('supports exact canonical id lookup through bounded search', async () => {
+    prisma.$transaction.mockResolvedValue([[], 0]);
+    const id = '123e4567-e89b-42d3-a456-426614174000';
+    await service.findAll(1, 20, id);
+    expect(customer.findMany.mock.calls[0][0].where.OR).toEqual(expect.arrayContaining([{ id }]));
+  });
   it('returns only lean identifying fields for selectors', async () => {
     customer.findMany.mockResolvedValue([]); await service.selectorOptions();
     expect(customer.findMany.mock.calls[0][0].select).toEqual({ id: true, name: true, contactName: true });

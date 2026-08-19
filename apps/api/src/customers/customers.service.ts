@@ -14,6 +14,8 @@ export type CreateCustomerInput = {
 
 export type UpdateCustomerInput = Partial<Omit<CreateCustomerInput, 'ownerId'>>;
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -43,15 +45,17 @@ export class CustomersService {
     this.validateStatus(status);
     const safePage = Math.max(1, page);
     const safePageSize = Math.min(100, Math.max(1, pageSize));
+    const term = search?.trim();
     const where: Prisma.CustomerWhereInput = {
       status,
-      ...(search?.trim()
+      ...(term
         ? {
             OR: [
-              { name: { contains: search.trim(), mode: 'insensitive' } },
-              { contactName: { contains: search.trim(), mode: 'insensitive' } },
-              { email: { contains: search.trim(), mode: 'insensitive' } },
-              { phone: { contains: search.trim(), mode: 'insensitive' } },
+              ...(uuidPattern.test(term) ? [{ id: term }] : []),
+              { name: { contains: term, mode: 'insensitive' } },
+              { contactName: { contains: term, mode: 'insensitive' } },
+              { email: { contains: term, mode: 'insensitive' } },
+              { phone: { contains: term, mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -106,6 +110,7 @@ export class CustomersService {
     const term = search?.trim();
     return this.prisma.customer.findMany({
       where: term ? { OR: [
+        ...(uuidPattern.test(term) ? [{ id: term }] : []),
         { name: { contains: term, mode: 'insensitive' } },
         { contactName: { contains: term, mode: 'insensitive' } },
       ] } : undefined,
