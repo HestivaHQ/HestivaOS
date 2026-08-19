@@ -132,6 +132,7 @@ export class UsersService {
     return this.prisma.userAccessChange.findMany({
       where: { targetUserId: targetId },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
     });
   }
 
