@@ -27,7 +27,9 @@ const agreement = {
 };
 
 describe('RecurringServiceAgreementsService auto resume', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   it('persists a future automatic resume date when pausing', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-08-19T12:00:00.000Z'));
