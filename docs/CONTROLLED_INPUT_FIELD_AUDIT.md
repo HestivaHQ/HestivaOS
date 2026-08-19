@@ -1,5 +1,9 @@
 # Controlled input field audit
 
+## 2026-08-19 Admin/Operations hardening addendum
+
+Service Scope Template sections now use canonical Service IDs, unique lowercase stable keys, controlled evidence policy (`NONE`, `ON_EXCEPTION`, `REQUIRED`), controlled repeat fields, numeric ordering, and line-separated factual requirements. Work Order direct creation continues to store canonical relationship IDs and validates Customer/Property preselection. Technician assignment already had local search and remains unchanged. Remaining capped Customer, Property, Crew, and Service selector reads are not claimed complete for large-list searchability; debounced server-search conversion remains planned.
+
 Verified 2026-08-10 against the editable React forms and Prisma/API contracts on this branch. This matrix records Slice 5B Phase 1 and the implemented Slice 5C/5E Customer and Property decisions. Province remains stored and API-compatible but is dormant rather than editable, so the current ordinary UI exposes **107 editable fields**: 50 free text, 11 fixed enum, 2 managed lookup, 13 relationship, 20 boolean, 7 date/date-time, and 4 numeric/currency. Four additional derived relationship summaries were reviewed as read-only.
 
 | Module | Page/component | Field name(s) | Current control | Data type / backend model | Classification | Recommended control | Change | Rationale |

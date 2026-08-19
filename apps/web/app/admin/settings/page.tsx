@@ -16,6 +16,7 @@ export default async function AdminSettingsPage() {
       <Link className="panel adminModuleLink" href="/admin/settings/business-lists"><h3>Business Lists</h3><p>Manage Job Titles, Departments, and Property Types.</p><span className="statusPill">Manage business lists</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/customer-data-cleanup"><h3>Customer Data Cleanup</h3><p>Preview and permanently remove a complete test customer file.</p><span className="statusPill">Data management</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/services"><h3>Services</h3><p>Manage canonical primary services and add-ons.</p><span className="statusPill">Manage services</span></Link>
+      <Link className="panel adminModuleLink" href="/admin/settings/service-scopes"><h3>Service Scope Templates</h3><p>Manage versioned sections, requirements, evidence rules, and lifecycle.</p><span className="statusPill">Manage execution scopes</span></Link>
     </section>
   </AppFrame>;
 }

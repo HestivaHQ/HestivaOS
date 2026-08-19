@@ -334,6 +334,10 @@ export type CleaningJobTemplate = {
   createdAt: string;
   updatedAt: string;
 };
+export type ScopeSectionInput = { stableKey:string; title:string; requirements:string[]; evidencePolicy:"NONE"|"ON_EXCEPTION"|"REQUIRED"; repeatByPropertyField:"bedrooms"|"bathrooms"|"livingAreas"|null; sortOrder:number };
+export type ServiceScopeTemplateVersion = { id:string; version:number; status:"DRAFT"|"PUBLISHED"|"RETIRED"; publishedAt:string|null; retiredAt:string|null; sections:ScopeSectionInput[]; _count:{scopeRevisions:number} };
+export type ServiceScopeTemplate = { id:string; name:string; serviceId:string; service:Pick<Service,"id"|"name"|"status">; versions:ServiceScopeTemplateVersion[] };
+export type ScopeComparison = { workOrderId:string; currentRevision:{id:string;revision:number;templateVersionId:string;templateVersion:number}|null; target:{id:string;version:number;templateId:string;templateName:string}; added:ScopeSectionInput[]; removed:ScopeSectionInput[]; changed:Array<{stableKey:string;before:ScopeSectionInput;after:ScopeSectionInput}>; canAdopt:boolean; blockedReason:string|null; quoteDerived:boolean };
 export type WorkOrderStatus =
   | "NEW"
   | "ASSIGNED"
@@ -1050,6 +1054,13 @@ export const api = {
     apiFetch<CleaningJobTemplate>(`/cleaning-job-templates/${id}`, {
       method: "DELETE",
     }),
+  serviceScopeTemplates: (query = "") => apiFetch<ServiceScopeTemplate[]>(`/service-scope-templates${query}`),
+  createServiceScopeTemplate: (serviceId:string,input:{name:string;sections:ScopeSectionInput[]}) => apiFetch<ServiceScopeTemplate>(`/services/${serviceId}/scope-templates`,{method:"POST",...json(input)}),
+  createServiceScopeVersion: (templateId:string,sections:ScopeSectionInput[]) => apiFetch<ServiceScopeTemplateVersion>(`/service-scope-templates/${templateId}/versions`,{method:"POST",...json({sections})}),
+  publishServiceScopeVersion: (id:string) => apiFetch<ServiceScopeTemplateVersion>(`/service-scope-template-versions/${id}/publish`,{method:"PATCH"}),
+  retireServiceScopeVersion: (id:string) => apiFetch<ServiceScopeTemplateVersion>(`/service-scope-template-versions/${id}/retire`,{method:"PATCH"}),
+  compareWorkOrderScope: (workOrderId:string,versionId:string) => apiFetch<ScopeComparison>(`/work-orders/${workOrderId}/execution-scope-comparison?templateVersionId=${encodeURIComponent(versionId)}`),
+  adoptWorkOrderScope: (workOrderId:string,templateVersionId:string) => apiFetch<ExecutionScope>(`/work-orders/${workOrderId}/execution-scope-revisions`,{method:"POST",...json({templateVersionId})}),
   recurringServices: () =>
     apiFetch<RecurringServiceAgreement[]>("/recurring-services"),
   createRecurringService: (input: RecurringServiceInput) =>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-19 — Admin and Operations UX hardening
+
+- Added ADMIN Service Scope Template/version management, controlled section inputs, immutable history/usage visibility, and publish/retire actions.
+- Added same-Service pre-start scope comparison with added/removed/changed detail and explicit revision adoption through the existing frozen-scope domain.
+- Added the Management gateway and canonical direct-create Work Order route with validated Customer/Property preselection; removed legacy `mode=create` continuation.
+- Added focused API and web tests. No schema, Finance, correspondence, messaging, notification, scheduling-policy, or Technician execution change was made.
+
 ## 2026-08-19 — Execution Evidence CI correction
 
 - Aligned the new Execution Evidence specs with the repository's explicit `@jest/globals` TypeScript convention and preserved the safe acknowledgement projection during idempotent replay without requiring an extra database query.

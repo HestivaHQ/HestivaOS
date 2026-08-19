@@ -7,6 +7,7 @@ import { AppNavigation, type NavigationItem } from './app-navigation';
 
 export const APP_NAVIGATION_ITEMS = [
   { href: '/', label: 'Dashboard' },
+  { href: '/management', label: 'Management' },
   { href: '/customers', label: 'Customers' },
   { href: '/properties', label: 'Properties' },
   { href: '/quotes', label: 'Quotes' },

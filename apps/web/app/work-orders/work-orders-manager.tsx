@@ -34,11 +34,10 @@ function activityDescription(activity: WorkOrderActivity) {
   return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
 }
 
-export function WorkOrdersManager({ createdById }: { createdById: string }) {
+export function WorkOrdersManager({ createdById, createRoute = false, initialCustomerId, initialPropertyId }: { createdById: string; createRoute?: boolean; initialCustomerId?: string; initialPropertyId?: string }) {
   const searchParams = useSearchParams();
-  const createMode = searchParams.get('mode') === 'create';
-  const preselectedCustomerId = createMode ? searchParams.get('customerId') : null;
-  const preselectedPropertyId = createMode ? searchParams.get('propertyId') : null;
+  const preselectedCustomerId = createRoute ? initialCustomerId ?? null : null;
+  const preselectedPropertyId = createRoute ? initialPropertyId ?? null : null;
   const editId = searchParams.get('edit');
   const alert = searchParams.get('alert');
   const [items, setItems] = useState<WorkOrder[]>([]);
@@ -158,7 +157,7 @@ export function WorkOrdersManager({ createdById }: { createdById: string }) {
   }
 
   return <>
-    <header className="pageHeader"><div><p className="eyebrow">Operations</p><h2>Work orders</h2><p>Schedule work, assign technicians or crews, and complete each job checklist.</p></div></header>
+    <header className="pageHeader"><div><p className="eyebrow">Operations</p><h2>{createRoute?'Create Work Order':'Work orders'}</h2><p>Schedule work, assign technicians or crews, and complete each job checklist.</p></div>{createRoute?<Link href="/work-orders">Back to work orders</Link>:<Link className="primaryButton" href="/work-orders/new">Create Work Order</Link>}</header>
     {error ? <p className="errorBanner">{error}</p> : null}
     <div className="resourceGrid">
       <form className="panel resourceForm" onSubmit={submit}>

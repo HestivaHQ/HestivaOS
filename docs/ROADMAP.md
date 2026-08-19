@@ -1,5 +1,10 @@
 # Technical roadmap
 
+## Admin and Operations UX hardening status (2026-08-19)
+
+- Completed the ADMIN Service Scope Template management surface, immutable version lifecycle visibility, pre-start Work Order scope comparison and explicit adoption, Management gateway, and canonical `/work-orders/new` route with validated Customer/Property preselection.
+- Controlled-input Phase 3 remains partial: affected forms retain canonical-ID controls and bounded API reads, while large-list Customer, Property, Crew, and Service selectors still require separately reviewed debounced server search.
+
 ## Field Operations Hardening status (2026-08-19)
 
 - Completed private Execution Evidence read hardening: broad projections omit raw paths and explicit Work Order-scoped ADMIN/SUPERVISOR or assignment-scoped Technician reads return only 60-second signed access.
@@ -67,7 +72,6 @@ Only currently identified technical follow-up work is listed here.
 - Add functional Worker Issue and Job Exception models before presenting those approved future attention producers; do not fabricate records.
 - Extend the merged Needs Attention foundation only with authoritative producer contracts. Snooze/delegation and active notification delivery remain separate focused follow-ups.
 - Product Slice 5H completed the additive `WorkOrder` to canonical `Service` relationship, automatic permanent references, structured display labels, and legacy-title fallback. Searchable selector enhancements beyond reference/title/customer/property/service matching remain planned under controlled-input Phase 3.
-- Create the Management navigation gateway and direct-create Work Orders route state, then connect the currently non-destructive Management shortcut and `/work-orders` creation shortcut without brittle query parameters.
 - Perform a separately scoped repository-wide Maintenance Marshall legacy cleanup while retaining required historical compatibility.
 - Plan broader navigation and scheduling redesigns as separate product slices.
 - Migrate the Railway API away from the legacy `mmapi` hostname, coordinating API variables, CORS, rebuilds, and verification.
