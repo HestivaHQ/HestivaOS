@@ -1051,6 +1051,7 @@ model RecurringServiceAgreement {
   recurringInstructions String? @map("recurring_instructions")
   ecoFriendlyProducts Boolean? @map("eco_friendly_products")
   nextServiceDate DateTime? @map("next_service_date") @db.Date
+  autoResumeDate DateTime? @map("auto_resume_date") @db.Date
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   addOns RecurringServiceAgreementAddOn[]
@@ -1062,6 +1063,7 @@ model RecurringServiceAgreement {
   @@index([propertyId])
   @@index([serviceId])
   @@index([status, nextServiceDate])
+  @@index([status, autoResumeDate])
   @@map("recurring_service_agreements")
 }
 
