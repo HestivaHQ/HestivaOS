@@ -58,6 +58,6 @@ test('property creation still continues to work order with both canonical IDs', 
   assert.match(properties, /preselectedCustomerId/);
   assert.match(properties, /property\.customerId/);
   assert.match(properties, /property\.id/);
-  assert.match(properties, /\/work-orders\?mode=create&customerId=/);
+  assert.match(properties, /\/work-orders\/new\?customerId=/);
   assert.match(workOrders, /item\.id === preselectedPropertyId && item\.customerId === customer\?\.id/);
 });

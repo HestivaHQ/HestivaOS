@@ -1,5 +1,11 @@
 # Production architecture
 
+## Admin and Operations UX hardening (2026-08-19)
+
+The normalized Service Scope models now have an ADMIN surface at `/admin/settings/service-scopes`. Versions remain append-only definitions: create a draft, publish it, and retire a published version without deleting prior Work Order references. An ADMIN-only comparison endpoint reports stable-key additions, removals and title/requirements/evidence-policy changes between the latest planned Work Order revision and a published version for the same canonical Service. Explicit adoption reuses the existing pre-start Execution Scope revision transaction; Start Job continues to freeze one revision.
+
+`/management` is the operations gateway and `/work-orders/new` is the canonical direct-create route. It reuses the existing Work Order domain and validates optional canonical Customer/Property preselection. No parallel Work Order type, schema, Finance behavior, correspondence, or broader Supervisor authority was added. See `ADMIN_OPERATIONS_UX_HARDENING_V1.md`.
+
 ## Dashboard Needs Attention foundation (2026-08-18)
 
 The existing authenticated Dashboard remains the HestivaOS Today/Operations command centre; there is no parallel Operations product. The current presentation hierarchy is **Needs Attention → Today’s Work → Shortcuts → Upcoming**. This section supersedes older dashboard hierarchy wording below where those historical descriptions conflict with the current presentation. `GET /api/v1/dashboard` remains the compatibility/current-work data source for today and upcoming summaries, while the protected `GET /api/v1/attention?view=mine|all` boundary owns actionable exception reconciliation and read state.

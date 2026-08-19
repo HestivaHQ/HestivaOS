@@ -1,5 +1,12 @@
 # Technical work log
 
+## 2026-08-19 — Admin and Operations UX hardening bundle
+
+- Audited the older Cleaning Job Template and normalized Service Scope Template domains and implemented only missing normalized-scope management reads/UI; no completed domain was rebuilt.
+- Added ADMIN-only template projections, strict controlled-section validation, version lifecycle UI, Work Order scope diff projection, and explicit pre-start adoption using the existing revision transaction.
+- Added `/management` and `/work-orders/new`, reused the canonical Work Order manager/service, and changed Property continuation to validated ID preselection.
+- Preserved accepted Quote provenance and backend Start Job/frozen-scope protections. Added focused Jest and Node coverage and synchronized affected current/historical documentation. No migration was required.
+
 ## 2026-08-19 — PR #142 test correction
 
 - Added explicit typed Jest imports/mocks to the private evidence specs and corrected the existing acknowledgement replay test to assert the intentionally path-free response contract.

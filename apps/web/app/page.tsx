@@ -94,7 +94,7 @@ export default async function HomePage() {
 
       <section className="shortcuts" aria-labelledby="shortcuts-title"><h3 id="shortcuts-title">Shortcuts</h3><nav className="shortcutGrid" aria-label="Operational shortcuts">
         <Link className="shortcutCard primary" href="/customers"><ShortcutIcon kind="customers" /><span><strong>Customers</strong><small>Manage customer records</small></span></Link>
-        <Link className="shortcutCard" href="/work-orders"><ShortcutIcon kind="new" /><span><strong>New Work Order</strong><small>Create and assign cleaning work</small></span></Link>
+        <Link className="shortcutCard" href="/work-orders/new"><ShortcutIcon kind="new" /><span><strong>New Work Order</strong><small>Create and assign cleaning work</small></span></Link>
         <Link className="shortcutCard" href="/shifts"><ShortcutIcon kind="schedule" /><span><strong>Schedule</strong><small>Plan shifts and assignments</small></span></Link>
         <span className="shortcutCard disabled" aria-disabled="true" title="Management landing page is planned"><ShortcutIcon kind="management" /><span><strong>Management</strong><small>Management gateway coming soon</small></span></span>
       </nav></section>

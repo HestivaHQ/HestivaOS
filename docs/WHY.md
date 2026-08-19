@@ -1,5 +1,9 @@
 # Why the production system is structured this way
 
+## Operational configuration without historical rewrite
+
+Reusable service scope is managed as immutable versions because changing a template in place would make past and frozen Work Order execution ambiguous. Operations receives an explicit compare-before-adopt workflow so newer guidance is visible without silently changing planned work or accepted-Quote truth. A single Management gateway and canonical direct-create route reduce navigation ambiguity while preserving the existing domain and authorization boundaries.
+
 ## Canonical operational services
 
 The authenticated OS, rather than public marketing presentation, is the durable owner of operational service identity. A single classified Service record prevents primary services and add-ons from being confused, preserves historical relationships through deactivation, and keeps ordinary workflows on controlled selections. The public website remains a presentation and quote-flow consumer; future synchronization must reconcile to OS identity instead of creating live coupling or parallel catalogue ownership.

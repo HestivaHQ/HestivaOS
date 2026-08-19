@@ -14,7 +14,7 @@ test('Property form groups optional operational fields and keeps Province dorman
 });
 
 test('Property creation continues to Work Order with customer and property selected', () => {
-  assert.match(propertyForm, /\/work-orders\?mode=create&customerId=.*&propertyId=/);
+  assert.match(propertyForm, /\/work-orders\/new\?customerId=.*&propertyId=/);
   assert.match(workOrders, /preselectedCustomerId/);
   assert.match(workOrders, /preselectedPropertyId/);
 });
