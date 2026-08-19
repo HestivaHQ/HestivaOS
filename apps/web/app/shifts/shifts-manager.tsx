@@ -23,6 +23,9 @@ const emptyForm: ShiftForm = {
 
 function localInput(value: string) { return new Date(value).toISOString().slice(0, 16); }
 function readable(value: string) { return value.replaceAll('_', ' '); }
+function mergeSelected<T extends { id: string }>(items: T[], selected?: T | null) {
+  return selected && !items.some((item) => item.id === selected.id) ? [selected, ...items] : items;
+}
 
 export function ShiftsManager() {
   const [items, setItems] = useState<Shift[]>([]);
@@ -33,6 +36,9 @@ export function ShiftsManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [crewSearch, setCrewSearch] = useState('');
+  const [technicianSearch, setTechnicianSearch] = useState('');
+  const [workOrderSearch, setWorkOrderSearch] = useState('');
   const [dateFrom, setDateFrom] = useState(() => { const date = new Date(); date.setDate(date.getDate() - date.getDay() + 1); return date.toISOString().slice(0, 10); });
   const [dateTo, setDateTo] = useState(() => { const date = new Date(); date.setDate(date.getDate() - date.getDay() + 7); return date.toISOString().slice(0, 10); });
 
@@ -50,7 +56,7 @@ export function ShiftsManager() {
   async function loadReferenceData() {
     try {
       const [crewData, technicianData, workOrderData] = await Promise.all([
-        api.crews('?page=1&pageSize=100'), api.technicians('?page=1&pageSize=100'), api.workOrders('?page=1&pageSize=100'),
+        api.crews('?page=1&pageSize=20&status=ACTIVE'), api.technicians('?page=1&pageSize=20&status=ACTIVE'), api.workOrders('?page=1&pageSize=20'),
       ]);
       setCrews(crewData.items);
       setTechnicians(technicianData.items);
@@ -61,6 +67,31 @@ export function ShiftsManager() {
 
   useEffect(() => { void loadReferenceData(); }, []);
   useEffect(() => { void loadShifts(); }, [dateFrom, dateTo]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.crews(`?page=1&pageSize=20&status=ACTIVE${crewSearch.trim() ? `&search=${encodeURIComponent(crewSearch.trim())}` : ''}`)
+        .then((data) => setCrews((current) => mergeSelected(data.items, current.find((crew) => crew.id === form.crewId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search crews.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [crewSearch, form.crewId]);
+  useEffect(() => {
+    if (selectedCrew) return;
+    const timer = window.setTimeout(() => {
+      void api.technicians(`?page=1&pageSize=20&status=ACTIVE${technicianSearch.trim() ? `&search=${encodeURIComponent(technicianSearch.trim())}` : ''}`)
+        .then((data) => setTechnicians((current) => mergeSelected(data.items, current.find((technician) => technician.id === form.technicianId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search technicians.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [form.technicianId, selectedCrew, technicianSearch]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void api.workOrders(`?page=1&pageSize=20${workOrderSearch.trim() ? `&search=${encodeURIComponent(workOrderSearch.trim())}` : ''}`)
+        .then((data) => setWorkOrders((current) => mergeSelected(data.items, current.find((workOrder) => workOrder.id === form.workOrderId))))
+        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search work orders.'));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [form.workOrderId, workOrderSearch]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -89,6 +120,9 @@ export function ShiftsManager() {
 
   function edit(shift: Shift) {
     setEditingId(shift.id);
+    setCrews((current) => mergeSelected(current, shift.crew));
+    setTechnicians((current) => mergeSelected(current, shift.technician));
+    setWorkOrders((current) => mergeSelected(current, shift.workOrder));
     setForm({
       title: shift.title,
       startAt: localInput(shift.startAt),
@@ -130,8 +164,11 @@ export function ShiftsManager() {
         <label>Start<input required type="datetime-local" value={form.startAt} onChange={(event) => setForm({ ...form, startAt: event.target.value })} /></label>
         <label>End<input required type="datetime-local" value={form.endAt} onChange={(event) => setForm({ ...form, endAt: event.target.value })} /></label>
         <label>Unpaid break (minutes)<input min="0" type="number" value={form.unpaidBreakMinutes} onChange={(event) => setForm({ ...form, unpaidBreakMinutes: event.target.value })} /></label>
-        <label>Crew<select value={form.crewId} onChange={(event) => setForm({ ...form, crewId: event.target.value, technicianId: '' })}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}</option>)}</select></label>
+        <label>Search crews<input type="search" value={crewSearch} onChange={(event) => setCrewSearch(event.target.value)} placeholder="Crew or technician name" /></label>
+        <label>Crew<select value={form.crewId} onChange={(event) => { setTechnicianSearch(''); setForm({ ...form, crewId: event.target.value, technicianId: '' }); }}><option value="">No crew</option>{crews.filter((crew) => crew.status === 'ACTIVE' || crew.id === form.crewId).map((crew) => <option key={crew.id} value={crew.id}>{crew.name}{crew.status === 'INACTIVE' ? ' (inactive, historical)' : ''}</option>)}</select></label>
+        {!selectedCrew ? <label>Search technicians<input type="search" value={technicianSearch} onChange={(event) => setTechnicianSearch(event.target.value)} placeholder="Name, email or phone" /></label> : null}
         <label>{selectedCrew ? 'Designated technician' : 'Technician'}<select value={form.technicianId} onChange={(event) => setForm({ ...form, technicianId: event.target.value })}><option value="">{selectedCrew ? 'Whole crew' : 'Select technician'}</option>{availableTechnicians.filter((technician) => technician.status === 'ACTIVE' || technician.id === form.technicianId).map((technician) => <option key={technician.id} value={technician.id}>{technician.firstName} {technician.lastName}</option>)}</select></label>
+        <label>Search work orders<input type="search" value={workOrderSearch} onChange={(event) => setWorkOrderSearch(event.target.value)} placeholder="Reference, customer, property or service" /></label>
         <label>Work order<select value={form.workOrderId} onChange={(event) => setForm({ ...form, workOrderId: event.target.value })}><option value="">No linked work order</option>{workOrders.map((workOrder) => <option key={workOrder.id} value={workOrder.id}>{workOrderReference(workOrder)} · {workOrderDisplayLabel(workOrder)}</option>)}</select></label>
         <label>Location<input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label>
         <label>Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as ShiftStatus })}>{['DRAFT','SCHEDULED','CONFIRMED','COMPLETED','CANCELLED'].map((status) => <option key={status}>{status}</option>)}</select></label>
