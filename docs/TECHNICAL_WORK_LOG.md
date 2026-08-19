@@ -349,7 +349,7 @@
 
 ## 2026-08-07 — Phase 1 API monitoring and operational hardening
 
-- Split API monitoring into lightweight `GET /api/v1/health` liveness metadata and dependency-aware readiness endpoints. Readiness returns HTTP 503 when a required dependency check fails without returning configuration values.
+- Split API monitoring into lightweight `GET /api/v1/health` liveness metadata and `GET /api/v1/ready` process, database, and configured Supabase Auth connectivity checks. Readiness returns HTTP 503 when a required dependency check fails without returning configuration values.
 - Added safe request-ID propagation/generation, response correlation headers, structured JSON request completion and error records, and structured startup success/failure records. Logs exclude query strings, headers, bodies, credentials, and environment-variable values.
 - Preserved Railway's `/api/v1/health` health-check path, deployment topology, authentication behavior, business logic, Prisma schema, migrations, and environment-variable inventory.
 - Updated architecture, deployment, recovery, planning, and historical documentation with endpoint contracts and operational diagnosis workflows.
