@@ -1,197 +1,198 @@
 # Repository engineering standards
 
-These instructions apply to every file in this repository and are mandatory for all future Codex work. Documentation is part of the Definition of Done: code and documentation must never diverge, and no implementation is complete until the relevant documentation is updated and verified in the same change.
+These instructions apply to every file in this repository and are mandatory for all future Codex/development work. Documentation remains part of Definition of Done: implementation and current canonical documentation must not knowingly diverge.
 
-## Documentation principles
+The detailed documentation authority, impact-declaration, bounded-context and reconciliation model is in `docs/DOCUMENTATION_AUTHORITY.md`. ADR-0067 remains authoritative for the three-stage validation workflow; ADR-0069 governs documentation scalability and supersedes the old rule that every implementation must append both Changelog and Technical Work Log.
 
-- Record only repository state verified from code, configuration, tests, or authoritative project records. Never fabricate implementation details, operational state, credentials, URLs, commands, or decisions.
-- Preserve engineering history. Append dated entries to historical records; do not rewrite or delete earlier work to make the past resemble the present.
-- ADRs are append-only historical records. Create a new ADR that explicitly supersedes an old decision instead of overwriting it, unless a maintainer explicitly directs otherwise. Update the ADR index when adding or superseding an ADR.
-- Prefer updating the existing authoritative document over creating duplicate or competing documentation.
-- Never store secrets or commit credentials. Document variable names and safe acquisition/rotation procedures, never secret values.
-- Never modify runtime or deployment configuration without documenting the change, its scope, and its verification.
-- Documentation statements must distinguish verified current state, planned work, and historical state.
+## Durable-source principles
+
+- Record only repository state verified from code, configuration, tests or authoritative project records. Never fabricate implementation details, operational state, credentials, URLs, commands or decisions.
+- The repository is the durable source of truth. Chat history and handovers are navigation aids only.
+- Preserve history. Do not rewrite or delete historical records to make the past resemble the present.
+- ADRs are historical. Supersede accepted decisions with a new ADR instead of rewriting them unless a maintainer explicitly directs otherwise; update the ADR index.
+- Prefer one authoritative current-state document over duplicate/competing prose.
+- Never store secrets or credentials. Document variable names and safe acquisition/rotation procedures only.
+- Documentation must distinguish verified current state, planned work and historical state.
 
 ## Decision-documentation checkpoint
 
-Do not allow substantive product, business, operational, financial, customer-policy, cross-system, or architecture decisions to accumulate only in chat history.
+Do not allow substantive product, business, operational, financial, customer-policy, cross-system, security or architecture decisions to exist only in chat.
 
-- Routine documentation synchronization may batch up to approximately **15 substantive approved decisions** where each synchronization has material coordination cost. This is a batching maximum, not a requirement to manufacture decisions or delay a natural checkpoint.
-- Update documentation sooner when a major architecture, payment, legal/customer-terms, booking, operational, security, deployment, infrastructure, or cross-system decision is approved, or when continuing without synchronization would make implementation unsafe or inconsistent.
-- Minor clarifications that do not create or change policy do not individually trigger a checkpoint.
-- Handovers and chat history are navigation aids only; the repository is the durable source of truth.
-- For decisions affecting another repository, provider, or system, synchronize the permanent documentation in every affected repository and the applicable active coordination issue before incompatible implementation proceeds. Use `docs/CROSS_SYSTEM_COORDINATION.md` to route work to the correct issue.
+- Routine synchronization may batch up to approximately 15 substantive approved decisions where coordination cost is material, but this is a maximum, not permission to leave another lane dependent on undocumented state.
+- Synchronize sooner for major architecture, payment/legal/customer terms, booking, security, deployment/infrastructure or cross-system decisions, or whenever continuing without durable documentation would be unsafe.
+- Minor clarifications that do not create/change policy do not individually trigger a checkpoint.
+- For decisions affecting another repository/provider/system, update the appropriate permanent authority and applicable coordination issue before incompatible implementation proceeds. `docs/CROSS_SYSTEM_COORDINATION.md` routes active cross-system work.
 
 ## Branch and pull-request rule
 
 Do not write implementation or documentation changes directly to `main` by default.
 
-- Create or use a focused feature/documentation branch.
-- Make the scoped changes on that branch.
-- Run the required validation and review the complete diff.
-- Open a pull request targeting `main`.
-- A direct write to `main` is allowed only when the maintainer explicitly authorizes that exception for the specific change. General approval to make a change does **not** waive the branch/PR rule.
-- If a tool unexpectedly writes directly to `main`, report the deviation immediately and reconcile any affected documentation instead of concealing it.
+- Use one focused branch/PR per work lane.
+- Make scoped changes, run proportional validation, reconcile documentation/coordination, review the complete diff, then open/update a PR targeting `main`.
+- Direct `main` writes require explicit maintainer authorization for that specific change.
+- If a tool unexpectedly writes to `main`, report and reconcile the deviation; never conceal it.
 
-## Parallel development and multiple active PRs
+## Parallel development and global identifiers
 
-Treat every active development chat, Codex task, branch, and pull request as an independent work lane. Parallel work is allowed, but no lane may assume that its branch is the repository's final future state.
+Treat every development chat, Codex task, branch and PR as an independent lane. Active PRs are proposed future state; `main` is canonical integrated state.
 
-- One work lane owns one focused branch/PR scope. Do not modify, reset, force-update, reuse, or repurpose a branch owned by another active lane unless the maintainer explicitly coordinates that handoff.
-- `main` is the canonical integrated repository state. Active PR branches are proposed future states and must not be treated as canonical merely because their tests are green.
-- Before starting a new implementation slice, inspect current `main` and all relevant active PRs for overlapping scope and changed files. Pay particular attention to Prisma/schema changes, migrations, ADRs and their index, shared API/domain contracts, enums, authentication/authorization, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, and `docs/TECHNICAL_WORK_LOG.md`.
-- Before allocating a repository-global identifier, check both `main` and relevant active PRs. This includes ADR numbers, migration names/timestamps, important enum/event names, public API routes, and other identifiers whose uniqueness matters across lanes. Do not knowingly create a duplicate reservation.
-- A shared changed filename is not automatically a conflict. Where multiple lanes legitimately modify the same file, preserve and reconcile all valid changes. Never resolve shared schema, migration history, ADR index, architecture, roadmap, changelog, work-log, or contract conflicts by wholesale `ours`/`theirs` selection unless the maintainer explicitly confirms that one side is obsolete.
-- Database migrations are append-only lane-owned artifacts. Do not edit, replace, rename, or delete another active lane's migration merely to avoid a conflict. After another migration merges, rebase/merge against current `main` and validate the remaining migration sequence on top of it.
-- Merge active PRs into `main` one at a time. Immediately before merge, perform a parallel-PR collision check against the other relevant active PRs for overlapping files, schema/model areas, migrations, ADR numbers, enums/events, API/domain contracts, and contradictory documentation.
-- When another PR merges while a lane remains open, that lane must synchronize with the new `main` before it is merge-ready. Deliberately reconcile shared changes, review the complete resulting diff, and rerun all required validation. A previously green result does not authorize merge after the integration base has materially changed.
-- Never silently discard another lane's valid history during synchronization. For append-only/historical files such as changelogs, technical work logs, ADR indexes, and migration history, the integrated result normally retains both lanes' valid entries.
-- If parallel work exposes a substantive cross-lane architecture or product conflict rather than a mechanical Git conflict, stop incompatible implementation and coordinate the decision through the applicable repository documentation and coordination issue before proceeding.
-- Before declaring a PR merge-ready, verify its exact head SHA after synchronization and confirm that the reviewed/tested head is the one being merged.
+Before starting or resuming a slice:
+
+- inspect current `main` and relevant active PRs for overlapping scope/files;
+- check schema/Prisma areas, migrations, ADR numbers/index, shared API/domain contracts, enums/events, auth/authorization, current architecture/domain docs and Roadmap;
+- before allocating repository-global identifiers, check both `main` and relevant active PRs (ADR numbers, migration names/timestamps, important enums/events, public API routes and other uniqueness-sensitive identifiers).
+
+A shared filename is not automatically a conflict. Preserve and reconcile all valid changes. Never resolve shared schema, migration history, ADR index, current-state contracts or historical records by wholesale `ours`/`theirs` selection unless a maintainer explicitly confirms one side is obsolete.
+
+Database migrations are append-only lane-owned artifacts. Do not edit/rename/delete another lane's migration to avoid a conflict. After another migration merges, synchronize with current `main` and validate the remaining sequence on top.
+
+Merge active PRs into `main` one at a time. Immediately before merge perform relevant collision analysis. If another PR merges while a lane remains open, synchronize that lane with new `main`, deliberately reconcile shared changes, review the resulting complete diff and rerun required final validation. A previous green run does not authorize merge against a materially changed integration base.
 
 ## GitHub connector operating procedure
 
-For repository work performed through a GitHub connector or API-backed tool, use the following sequence by default:
+Default sequence: **READ → VERIFY → WRITE → VERIFY → PR**.
 
-**READ → VERIFY → WRITE → VERIFY → PR**
+Before a write:
 
-### Read and verify before every write
+- resolve exact repository/branch/path/scope;
+- fetch the exact target file from the exact branch and use its current blob SHA;
+- never reconstruct an existing file from chat memory, stale local state or another branch when current GitHub content can be fetched;
+- compare/verify an existing branch against current `main` before continuing it;
+- prefer the existing focused branch when a fix belongs to the same PR.
 
-- Resolve the current repository, branch, path and intended scope before mutating anything.
-- Fetch the exact target file from the exact target branch immediately before editing it. Use the returned current blob SHA for an existing-file update.
-- Never reconstruct an existing repository file from chat memory, an earlier tool response, a stale local copy or a previous branch version when the current target file can be fetched.
-- Before continuing an existing branch, compare or otherwise verify it against current `main`. If it is behind and contains no unique conflicting work, fast-forward it rather than creating unnecessary replacement branches.
-- Prefer the existing focused branch when a fix or follow-up belongs to the same PR scope.
+During writes:
 
-### Write one dependency at a time
+- serialize dependent writes;
+- treat returned content SHA as authoritative for the next update to the same path;
+- do not run parallel writes to the same path;
+- do not bypass branch/PR rules because a connector action is inconvenient.
 
-- Make one dependent repository write at a time and wait for its result before starting the next dependent write.
-- After updating a file, treat the returned content SHA as authoritative for any subsequent update to that same file.
-- Do not run parallel writes to the same path or assume a mutation succeeded because it was requested.
-- Do not bypass the branch/PR workflow by writing to `main` because a connector action is inconvenient or blocked.
+After important writes:
 
-### Verify after every important mutation
+- read back or otherwise verify exact branch/file state;
+- before PR creation, compare with `main`, inspect complete changed-file set and check unintended/stale/duplicate sources;
+- after PR creation verify base, head, exact head SHA, changed files and required quality-gate run.
 
-- Read back or otherwise verify the exact branch/file state after an important write before declaring it complete or building further dependent work on top of it.
-- Before opening a PR, compare the feature branch with `main`, inspect the complete changed-file set and confirm there are no unintended files, stale statements or duplicated sources of truth.
-- After opening a PR, verify the PR base, head, exact head SHA, changed files and required quality-gate run.
+On connector/API failure:
 
-### Failure handling
+1. do not blindly repeat the identical mutation;
+2. re-read GitHub state first;
+3. diagnose branch/path/SHA/PR state or evidenced cause;
+4. retry only after state is known and request is corrected;
+5. do not switch immediately to low-level Git object/ref APIs merely to bypass a blocked normal action;
+6. if the connector continues to block a legitimate operation, preserve safe state and request the smallest manual action needed.
 
-If a connector/API operation fails, times out, or is blocked:
+## Three-stage development validation workflow
 
-1. Do **not** blindly repeat the identical mutation.
-2. Re-read GitHub state first to determine whether the requested change actually occurred despite the failed response.
-3. Diagnose the current branch, file SHA, path, PR state or other evidenced cause before retrying.
-4. Retry only after current state is known and the operation is corrected where necessary.
-5. Do not immediately switch to low-level Git object/ref APIs merely to bypass a blocked normal contents/PR action. Use an alternate route only when it is justified by the repository task itself and current state has been verified.
-6. If the connector continues to block a legitimate operation, preserve the safe repository state and ask the maintainer for the smallest manual action required rather than broad manual editing.
+ADR-0067 remains unchanged in principle. This model optimizes sequencing only; it does not authorize skipping documentation, security checks, migration replay, complete-diff review, exact-head verification, cross-system coordination, parallel-PR reconciliation or final CI.
 
-### Three-stage development validation workflow
+### Stage 1 — Fast development loop
 
-Use the following three-stage model as the default implementation workflow. It optimizes repetition and sequencing only; it does **not** authorize skipping required documentation, security checks, migration replay, complete-diff review, exact-head verification, cross-system coordination, parallel-PR reconciliation, or final CI.
+During active implementation/corrections, run validation proportional to the affected area.
 
-#### Stage 1 — Fast development loop
+Examples:
 
-- During active implementation and evidence-driven corrections, run validation proportional to the affected area instead of repeatedly running the complete repository suite.
-- Prefer focused/high-signal checks such as affected Jest or Node tests, the affected workspace `typecheck`, `prisma validate`/`prisma generate` for schema work, a targeted build when compilation or packaging risk warrants it, `git diff --check`, and the cheap tracked-file secret scan at meaningful checkpoints.
-- Shared contracts or changes spanning API and web require proportional checks in every affected workspace; “targeted” does not mean ignoring known dependencies.
-- Material architecture, security, business, operational, financial, customer-policy, infrastructure, deployment, or cross-system decisions must still be synchronized to the durable repository/coordination sources as soon as another lane or resumed chat could depend on them. Do not postpone such decisions into chat history merely to keep the loop fast.
-- Completion-oriented history and final current-state reconciliation, including final `CHANGELOG.md`, `TECHNICAL_WORK_LOG.md`, Roadmap completion wording, PR-body reconciliation, and other non-blocking bookkeeping, may be batched until the implementation stabilizes, but must be complete before Stage 2 final validation.
-- Do not automatically run the full repository build/test/migration suite after every small edit unless the change itself creates a specific reason to do so.
+- API-only: focused API tests → API typecheck → API build when warranted → diff/secret checks.
+- Web-only: relevant web tests → web typecheck → targeted build when warranted → diff/secret checks.
+- Prisma/schema: Prisma validate/generate → affected API tests/typecheck → disposable DB check when useful; authoritative clean/staged replay remains Stage 2 CI.
+- Documentation-only: documentation/history/diff verification; do not run unrelated application builds merely because Markdown changed.
 
-Typical examples:
+Shared contracts spanning API/web require proportional checks in every affected workspace. Material architecture/security/business/operational/cross-system decisions still synchronize immediately when another lane could depend on them.
 
-- API-only change: focused API tests → API typecheck → API build when warranted → diff/secret checks.
-- Web-only change: relevant web tests → web typecheck → targeted build when warranted → diff/secret checks.
-- Prisma/schema change: Prisma validate/generate → affected API tests/typecheck → targeted disposable database check when readily available; authoritative clean/staged replay remains Stage 2 CI.
-- Documentation-only correction: documentation/history/diff verification; do not run unrelated application builds locally merely because documentation changed.
+Do not repeatedly run the full repository suite while the branch is fluid unless a specific risk/evidence requires it.
 
-#### Stage 2 — Authoritative full PR CI
+### Stage 2 — Authoritative full PR CI
 
-1. Finish the scoped implementation and resolve all known findings.
-2. Reconcile every applicable document required by the matrix below, plus any required coordination issue/checkpoint.
-3. Synchronize with current `main` where required and reconcile relevant active-PR/shared-history collisions.
-4. Review the complete changed-file set and diff, including append-only/historical integrity, stale statements, duplicate sources of truth and global identifiers.
-5. Freeze the exact head SHA. Stop discretionary edits while the required final gates run.
-6. Use the pull-request workflow as the authoritative comprehensive integration gate. Its independent policy/security/diff, API, web/Cloudflare and PostgreSQL migration jobs may run in parallel, but **all applicable required jobs must pass**. Do not add path-based final-gate skipping merely for speed unless a later accepted ADR proves the dependency boundary safe.
+1. Finish scoped implementation and resolve known findings.
+2. Complete the PR `Documentation impact` declaration and reconcile every affected canonical authority according to `docs/DOCUMENTATION_AUTHORITY.md`.
+3. Synchronize with current `main` where required and reconcile active-PR/global-identifier/shared-contract collisions.
+4. Review the complete changed-file set/diff, including current-state consistency, historical integrity where historical files are touched, stale statements and duplicate sources.
+5. Freeze the exact head SHA; stop discretionary edits.
+6. Run the authoritative PR workflow. Policy/security/diff, API, web/Cloudflare and PostgreSQL migration jobs remain required; there is no changed-path final-gate skipping.
 7. Do not duplicate final-stage validation locally simply to reproduce checks already authoritatively running in GitHub unless diagnosis requires it.
 
-A frozen head means no speculative refactors, wording polish, unrelated cleanup, or “while CI runs” improvements. A green result authorizes only that exact tested head against a materially unchanged integration base.
+A frozen head means no speculative refactor, wording polish, unrelated cleanup or “while CI runs” improvement. A green result authorizes only that tested head against a materially unchanged base.
 
-#### Stage 3 — Strict pre-merge review
+### Stage 3 — Strict pre-merge review
 
 Immediately before merge:
 
-- verify the exact reviewed/tested head SHA and required green check conclusions;
-- confirm no required gate is stale, red, running, cancelled, or superseded;
-- verify mergeability and synchronize with current `main` if the integration base materially changed;
-- perform the relevant parallel-PR collision check for overlapping files, schema/models, migrations, ADR/global identifiers, shared contracts and contradictory documentation;
-- reconcile append-only/shared historical files without dropping valid entries;
-- review complete-diff integrity and canonical documentation consistency; and
-- merge only after all repository and maintainer approval requirements are satisfied.
+- verify exact reviewed/tested head SHA and required green checks;
+- confirm no required gate is stale/red/running/cancelled/superseded;
+- verify mergeability and synchronize with current `main` if the base materially changed;
+- perform relevant parallel-PR collision analysis for overlapping files, schema/models, migrations, ADR/global identifiers, shared contracts and contradictory documentation;
+- preserve valid historical/shared entries where such files are touched;
+- review complete-diff integrity and canonical documentation consistency;
+- merge only after repository and maintainer approval requirements are satisfied.
 
-#### Evidence-driven failure path
+### Evidence-driven failure path
 
-A failed CI gate, review/security finding, materially changed merge base, or maintainer correction is new evidence that reopens the same scoped branch. Inspect the evidence, make the smallest justified correction, run proportional affected-area checks, update documentation only where the correction changes documented state, re-audit the affected area plus complete-diff integrity, freeze the new head, and rerun the complete required Stage 2 CI. Do not bundle unrelated improvements into that correction.
+A failed CI gate, review/security finding, materially changed merge base or maintainer correction reopens the same scoped branch. Inspect evidence, make the smallest justified correction, run proportional checks, update documentation only where documented state changes, re-audit affected area plus complete diff, freeze the new head and rerun all required Stage 2 gates. Do not bundle unrelated improvements.
 
-The target shape is therefore: **fast implementation loop → final docs/coordination + complete diff audit → freeze exact head → parallel authoritative CI → strict pre-merge review → merge**.
+## Bounded new-chat / resumed-work reading rule
 
-### CI and PR correction
+Before substantial work in a new/resumed chat:
 
-- A failed quality gate stays on the existing PR branch unless the branch itself is irreparably wrong.
-- Inspect the actual failing job/step/logs, fix the evidenced cause on the same branch, verify the new head SHA and let the required gates rerun.
-- Never merge a red or still-running required gate merely to move forward.
-- Merge only the reviewed exact head that passed the required gates; if the head changes after verification, re-check the new head before merge.
+1. read `AGENTS.md`;
+2. read `docs/README.md` as the router;
+3. read the relevant domain current-state document(s) for the task;
+4. read only the active ADRs that materially govern that task;
+5. when cross-system/provider work is involved, read `docs/CROSS_SYSTEM_COORDINATION.md` and the applicable active issue;
+6. inspect current merged implementation/tests and relevant active PRs.
 
-## New-chat / resumed-work reading rule
+Historical `docs/CHANGELOG.md`, `docs/TECHNICAL_WORK_LOG.md`, superseded ADRs, old PRs and old backlog text are lookup/reference material, not mandatory startup reading unless the task requires historical analysis.
 
-Before continuing substantial HestivaOS work in a new or resumed development chat, read at minimum:
+Current cross-system routes include Website ↔ HestivaOS Issue #73 and WhatsApp/Messenger ↔ HestivaOS Issue #116.
 
-1. `AGENTS.md`;
-2. the relevant current-state architecture/business documentation and ADRs for the task;
-3. `docs/CROSS_SYSTEM_COORDINATION.md` when the task affects another repository, provider, or system; and
-4. the applicable active coordination issue identified there.
+## Documentation impact and conditional update model
 
-Current routes include Website ↔ HestivaOS Slice 5M in Issue #73 and WhatsApp/Messenger ↔ HestivaOS messaging in Issue #116. Prefer verified repository state over remembered conversation details if they conflict.
+Every meaningful implementation/tooling PR must use the repository PR template and answer all `Documentation impact` fields truthfully. `scripts/validate_documentation.py` mechanically rejects high-confidence path/declaration contradictions and verifies mechanically determinable companions. Passing automation is only a minimum gate; Stage 2 semantic review remains authoritative.
 
-## Required update matrix
+Update a canonical document only when its authority is affected:
 
-For every implementation, inspect all rows that apply and update **every listed file whose content is affected**. `docs/TECHNICAL_WORK_LOG.md` and `docs/CHANGELOG.md` are mandatory for every implementation change. An applicable ADR is mandatory when a durable architectural or operational decision is introduced or superseded. Do not edit an unrelated document merely to satisfy automation.
-
-| Change | Required documentation |
+| Impact | Canonical authority to inspect/update when affected |
 | --- | --- |
-| Architecture, repository structure, or component boundaries | `docs/ARCHITECTURE.md`, `docs/WHY.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and the applicable ADR under `docs/decisions/` |
-| Infrastructure, Cloudflare, Railway, Supabase, deployment, or CI/CD | `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/RECOVERY_GUIDE.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and the applicable ADR |
-| Environment variables or runtime configuration | `docs/ENVIRONMENT.md`, `docs/DEPLOYMENT.md` and/or `docs/RECOVERY_GUIDE.md` as operationally applicable, `docs/TECHNICAL_WORK_LOG.md`, and `docs/CHANGELOG.md` |
-| Authentication or authorization | `docs/ARCHITECTURE.md`, `docs/ENVIRONMENT.md` when configuration changes, `docs/RECOVERY_GUIDE.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and the applicable ADR for a decision change |
-| Database schema, migrations, or Prisma models | `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md`, `docs/RECOVERY_GUIDE.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and the applicable ADR for a decision change |
-| API routes or contracts | `docs/ARCHITECTURE.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and consumer/operational documentation affected by the contract |
-| Business workflows | `docs/ARCHITECTURE.md`, `docs/WHY.md` when rationale changes, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md` when planned work changes |
-| Recovery or operational procedures | `docs/RECOVERY_GUIDE.md`, `docs/DEPLOYMENT.md` and/or `docs/ENVIRONMENT.md` as applicable, `docs/TECHNICAL_WORK_LOG.md`, and `docs/CHANGELOG.md` |
-| Development workflow or repository tooling | `docs/README.md`, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md` when planned work changes |
-| Dependencies | `docs/ARCHITECTURE.md` or `docs/WHY.md` when design changes, `docs/DEPLOYMENT.md` when build/runtime behavior changes, `docs/TECHNICAL_WORK_LOG.md`, `docs/CHANGELOG.md`, and an ADR for a durable technology choice |
+| Architecture/component/domain authority boundary | `docs/ARCHITECTURE.md`, affected domain current-state doc, `docs/WHY.md` only if rationale changed, ADR when a durable decision changed |
+| Domain/business behavior | affected domain current-state document; `docs/ROADMAP.md` only when planned/completed state changed; ADR only for durable decision |
+| Security/privacy/auth | affected security/auth/domain document, `docs/ARCHITECTURE.md` for authority/boundary change, `docs/ENVIRONMENT.md` only for configuration, `docs/RECOVERY_GUIDE.md` only for recovery change, ADR for durable decision |
+| Database/schema/migration | affected domain current-state document; Architecture only for architectural/domain-boundary change; Deployment/Recovery only if procedure changed; ADR only for durable decision |
+| Deployment/runtime configuration | `docs/DEPLOYMENT.md`, `docs/ENVIRONMENT.md`/`docs/RECOVERY_GUIDE.md` as actually affected, Architecture/ADR only for durable topology/authority change |
+| Recovery/incident procedure | `docs/RECOVERY_GUIDE.md` and other operational docs actually affected |
+| Roadmap/planned state | `docs/ROADMAP.md` and/or current backlog checkpoint |
+| Cross-system contract | affected permanent domain/contract doc plus applicable coordination issue; `docs/CROSS_SYSTEM_COORDINATION.md` only when routing/process changes |
+| Repository/CI/documentation workflow | `docs/README.md`, `docs/DOCUMENTATION_AUTHORITY.md` when documentation policy changes, ADR for durable decision; Deployment/Recovery only if their procedures actually change |
 
-`docs/ROADMAP.md` records only verified planned work; update it when work is added, reprioritized, completed, or made obsolete. Update `docs/WHY.md` only when engineering rationale changes. Update `docs/README.md` when the documentation system, document map, or documentation workflow changes.
+`docs/CHANGELOG.md` is milestone-only after ADR-0069. It is required when the PR declares `OPERATOR`, `SECURITY`, `PLATFORM` or `CROSS_SYSTEM` significance. `INTERNAL`/`NONE` normally remain in PR/commit history.
+
+`docs/TECHNICAL_WORK_LOG.md` is preserved historical material and is no longer a routine per-implementation requirement. Do not append to it merely to satisfy process. Use focused durable incident/migration/recovery documentation when unusual engineering history genuinely warrants it.
+
+Known incorrect canonical documentation must still be corrected immediately in the responsible PR; periodic reconciliation is not an excuse to defer known errors.
+
+## Periodic reconciliation and pilot
+
+Follow `docs/DOCUMENTATION_AUTHORITY.md` for periodic repository reconciliation. The default trigger is approximately 10 merged implementation PRs, roadmap-phase completion or monthly during active development, whichever meaningful checkpoint comes first, plus major architecture/provider migrations.
+
+The first 3–5 normal implementation PRs after ADR-0069 are a measured pilot. Use the PR template pilot metrics and perform a reconciliation review after the pilot before changing the policy further.
 
 ## Implementation and PR checklist
 
-Before declaring an implementation complete:
+Before declaring a PR complete:
 
-1. Reconcile the changed implementation against the matrix above.
-2. Update current-state documents and append the historical work-log and changelog entries.
-3. Complete the Stage 2 pre-freeze review: applicable docs/coordination, complete diff/history integrity, current-main/parallel-PR reconciliation, `git diff --check`, and secret scanning.
-4. Freeze the exact head and require the authoritative full PR CI to pass on that head.
-5. Perform the Stage 3 strict pre-merge review; after freeze, change the head only for an evidenced failure/review/integration correction, then re-audit and rerun the full required gates on the new exact head.
+1. Verify current `main`, relevant active PRs and uniqueness-sensitive identifiers.
+2. Complete the Documentation Impact Declaration and update only the affected canonical authorities.
+3. Preserve material decisions in ADR/current-state/coordination sources immediately where required.
+4. Complete Stage 2 current-main/parallel-lane/complete-diff review, `git diff --check` and secret scan.
+5. Freeze the exact head and require all authoritative PR quality gates to pass.
+6. Perform Stage 3 strict pre-merge review and merge only the reviewed/tested exact head after maintainer approval.
 
-Every implementation PR body must explicitly include:
+Every implementation PR body must include:
 
-- **Documentation updated:** the documentation files changed and why.
-- **Verification performed:** the exact checks and outcomes.
-- **Files changed:** a complete file list or an accurate categorized list.
-- **No stale documentation remains:** an affirmative statement based on review.
-- **Coordination source:** required when the PR materially changes a cross-system contract; link the applicable coordination issue/checkpoint and the permanent repository document/ADR that records the implemented result.
+- Summary;
+- Documentation impact declaration;
+- Verification performed;
+- Files changed;
+- Context/coordination source where applicable;
+- final integrity statement;
+- pilot metrics for the first 3–5 normal implementation PRs after ADR-0069.
 
-After opening a cross-system PR, post the PR link and a short contract-impact summary back to the applicable coordination issue so other development chats have one predictable discovery point.
-
-Documentation-only typo/formatting changes, README-only formatting, comment-only code changes, and license-only changes do not require historical documentation updates. They must not be used to conceal an implementation change.
+Documentation-only typo/formatting, comment-only code and license-only changes do not require an implementation impact declaration when the validator determines there is no meaningful implementation/tooling change. They must not be used to conceal implementation changes.
