@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-19 — Recurring lifecycle future-visit review
+
+### Changed
+
+- Recurring-service reads now surface already-created future Work Orders from the current Africa/Johannesburg business date so Admin/Operations users can review them directly from the recurring-service manager.
+- Pause and cancel actions now warn when future visits already exist and link those visits for separate review instead of implying that lifecycle changes mutate or delete generated Work Orders.
+
+### Preserved and deferred
+
+- Existing generated Work Orders remain immutable independent operational records; pause/cancel still do not silently alter or delete them, and manual resume still recalculates from the current Johannesburg business date without creating backlog.
+- No schema, migration, Work Order lifecycle/status, recurrence calculation, Finance, Correspondence, Messaging, notification, or deployment behavior changed. Persisted automatic resume-date scheduling remains a separate verified residual.
+
 ## 2026-08-19 — Website enquiry ingestion and authoritative ENQ references
 
 ### Added
