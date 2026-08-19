@@ -1,5 +1,13 @@
 # Production architecture
 
+## Recurring automatic resume scheduling (2026-08-19)
+
+`RecurringServiceAgreement.autoResumeDate` is the durable optional automatic-resume intent for a paused recurring agreement. It is a calendar business date interpreted in `Africa/Johannesburg`. Pausing may store a future date; manual resume, cancel, and natural/end-state handling clear it. The existing recurrence rules remain authoritative, and any successful resume recalculates `nextServiceDate` from the current Johannesburg business date so missed occurrences are not backfilled.
+
+The persistent Railway NestJS API process owns due-date reconciliation. `RecurringServiceAutoResumeRunner` reconciles once during application bootstrap and then every minute; ordinary read endpoints remain side-effect-free, and no external scheduler, queue, credential, environment variable, or additional dependency is introduced. A runner may observe a paused agreement whose automatic-resume date is due, but the database-conditional update requiring the still-`PAUSED`, still-due state is the concurrency authority. Multiple Railway API instances may therefore race safely: only the successful conditional update owns the transition. If the agreement end date has already passed, the due transition is `ENDED`; otherwise it becomes `ACTIVE` with a newly calculated next occurrence.
+
+Automatic resume changes only recurring-agreement lifecycle state. Generated Work Orders remain independent operational records and are never generated, cancelled, deleted, rescheduled, or otherwise mutated by the runner. The runner also triggers no correspondence, Messaging, Finance, pricing, staffing, notification, or Technician-execution behavior. This section supersedes the older current-state sentence in **Recurring lifecycle future-visit review (2026-08-19)** that recorded persisted automatic resume as not yet implemented; that older section remains preserved as the historical PR #150 checkpoint. See `RECURRING_LIFECYCLE_REVIEW_V1.md` and ADR-0066.
+
 ## Recurring lifecycle future-visit review (2026-08-19)
 
 `RecurringServiceAgreement` lifecycle remains separate from generated Work Order lifecycle. Recurring-service reads include already-created future Work Orders from the current Africa/Johannesburg business date as a bounded review projection containing only visit identity, reference, status, recurrence date and schedule. The Admin recurring-services manager surfaces those independent visits and links to their canonical Work Order detail.
