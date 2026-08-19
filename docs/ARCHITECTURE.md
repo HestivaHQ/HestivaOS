@@ -1,5 +1,21 @@
 # Production architecture
 
+## Three-stage development validation and PR gate topology (2026-08-19)
+
+HestivaOS development uses the three-stage validation model in `AGENTS.md` and ADR-0067. Active implementation uses proportional affected-area checks while material durable decisions are synchronized immediately; completion documentation and the complete diff are reconciled before the exact PR head is frozen for authoritative GitHub validation. Final merge still requires the strict current-main, parallel-PR, append-only-history, canonical-documentation, mergeability and exact-tested-head review.
+
+`.github/workflows/pr-quality-gates.yml` is the authoritative full integration gate and runs four independent required jobs in parallel: policy/security/diff validation, API validation, web/Cloudflare validation, and clean/staged PostgreSQL migration replay. The policy job needs repository history but no dependency install. API and web jobs each perform their own locked install/Prisma bootstrap and validate their workspace independently. The web job uses OpenNext as the production Next.js/Cloudflare build and then runs Wrangler `--dry-run`; the old sequence of root build followed by repeated API/web builds has been removed because it compiled the same workspaces redundantly before the authoritative downstream checks.
+
+Final gates are not skipped by changed-file paths. This preserves repository-wide integration confidence while reducing wall-clock latency through safe parallelism and removal of duplicated compilation. The documentation validator now mechanically requires both `docs/CHANGELOG.md` and `docs/TECHNICAL_WORK_LOG.md` for meaningful implementation diffs as a minimum gate; `AGENTS.md` remains authoritative for the complete change-to-document matrix.
+
+## Recurring automatic resume scheduling (2026-08-19)
+
+`RecurringServiceAgreement.autoResumeDate` is the durable optional automatic-resume intent for a paused recurring agreement. It is a calendar business date interpreted in `Africa/Johannesburg`. Pausing may store a future date; manual resume, cancel, and natural/end-state handling clear it. The existing recurrence rules remain authoritative, and any successful resume recalculates `nextServiceDate` from the current Johannesburg business date so missed occurrences are not backfilled.
+
+The persistent Railway NestJS API process owns due-date reconciliation. `RecurringServiceAutoResumeRunner` reconciles once during application bootstrap and then every minute; ordinary read endpoints remain side-effect-free, and no external scheduler, queue, credential, environment variable, or additional dependency is introduced. A runner may observe a paused agreement whose automatic-resume date is due, but the database-conditional update requiring the still-`PAUSED`, still-due state is the concurrency authority. Multiple Railway API instances may therefore race safely: only the successful conditional update owns the transition. If the agreement end date has already passed, the due transition is `ENDED`; otherwise it becomes `ACTIVE` with a newly calculated next occurrence.
+
+Automatic resume changes only recurring-agreement lifecycle state. Generated Work Orders remain independent operational records and are never generated, cancelled, deleted, rescheduled, or otherwise mutated by the runner. The runner also triggers no correspondence, Messaging, Finance, pricing, staffing, notification, or Technician-execution behavior. This section supersedes the older current-state sentence in **Recurring lifecycle future-visit review (2026-08-19)** that recorded persisted automatic resume as not yet implemented; that older section remains preserved as the historical PR #150 checkpoint. See `RECURRING_LIFECYCLE_REVIEW_V1.md` and ADR-0066.
+
 ## Recurring lifecycle future-visit review (2026-08-19)
 
 `RecurringServiceAgreement` lifecycle remains separate from generated Work Order lifecycle. Recurring-service reads include already-created future Work Orders from the current Africa/Johannesburg business date as a bounded review projection containing only visit identity, reference, status, recurrence date and schedule. The Admin recurring-services manager surfaces those independent visits and links to their canonical Work Order detail.

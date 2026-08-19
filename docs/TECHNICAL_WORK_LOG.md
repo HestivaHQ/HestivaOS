@@ -1,5 +1,20 @@
 # Technical work log
 
+## 2026-08-19 — Frozen-head verification workflow
+
+- Reviewed the recent PR cycle and identified the main avoidable latency source as discretionary head changes after final CI had already started. Because every head mutation correctly invalidates exact-head evidence, small speculative/documentation edits were forcing full repository and PostgreSQL replay reruns.
+- Added a repository-default completion sequence to `AGENTS.md`: finish scoped implementation, focused tests, mandatory documentation/coordination, and a complete diff/history audit before recording and freezing the exact head for final required CI. Once frozen, no speculative refactor, wording polish, unrelated cleanup, or other discretionary edit may create a new head while gates run.
+- Defined the failure path explicitly so efficiency does not weaken safety: a failed CI gate, review/security finding, materially changed merge base, or maintainer correction is new evidence that reopens the existing scoped branch for the smallest justified correction. The affected area and complete-diff integrity are re-audited, the new head is frozen, and all required exact-head gates rerun.
+- Kept all existing repository protections unchanged, including documentation policy, secret scanning, typecheck/build/tests, clean and staged PostgreSQL migration replay, Cloudflare/OpenNext/Wrangler validation, whitespace checks, mergeability, parallel-PR collision checks, and exact tested-head verification. `docs/README.md` now makes this workflow discoverable to future development chats.
+
+## 2026-08-19 — Recurring automatic resume scheduling
+
+- Re-audited the recurring-service lifecycle after PR #150 and confirmed the remaining verified gap was durable automatic resume scheduling; pause/cancel already preserve generated Work Orders and manual resume already recalculates from the current Africa/Johannesburg business date without creating missed-occurrence backlog.
+- Added nullable `RecurringServiceAgreement.autoResumeDate` persistence and migration `20260819223000_recurring_auto_resume`, with an index over lifecycle status and automatic-resume date for bounded due-row lookup. Pause accepts an optional future Johannesburg business date; manual resume, cancel, and end clear it.
+- Added an API-process reconciler that runs once at bootstrap and every minute. It finds due paused agreements and uses conditional database updates as the concurrency authority so competing Railway API instances cannot resume the same agreement twice. Agreements whose end date has already passed transition to `ENDED`; otherwise the next occurrence is recalculated from the current Johannesburg date and the agreement becomes `ACTIVE`.
+- Kept reads side-effect-free and introduced no external scheduler, queue, credential, environment variable, or dependency. Automatic resume does not create, mutate, cancel, or delete Work Orders and does not trigger correspondence, Messaging, Finance, pricing, staffing, or notification behavior.
+- Added Admin automatic-resume date controls, focused lifecycle tests for date validation, manual clearing, due activation, end-date handling, and competing-runner behavior, plus ADR-0066 and synchronized lifecycle, Roadmap, Deployment, Recovery, Architecture, Changelog, and work-log documentation. CI exposed one test-only Jest timer cleanup return-type issue; the callback was corrected to return `void` before final verification.
+
 ## 2026-08-19 — Recurring lifecycle future-visit review
 
 - Audited the existing recurring-service lifecycle against current source and ADR-0026 before implementation. Pause/cancel already preserved generated Work Orders, and manual resume already recalculated from the current Africa/Johannesburg business date without creating missed-occurrence backlog.

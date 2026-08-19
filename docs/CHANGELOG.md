@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-08-19 — Three-stage development validation
+
+### Changed
+
+- Adopted the repository-default three-stage workflow: proportional high-signal checks during active implementation, final documentation/coordination plus complete-diff reconciliation before freezing the exact head, and strict pre-merge verification after authoritative GitHub CI.
+- Split final PR validation into independent policy/security/diff, API, web/Cloudflare, and PostgreSQL migration jobs while keeping every meaningful final gate mandatory and removing redundant root/standalone compilation already covered by the dedicated jobs and OpenNext production build.
+- Strengthened `scripts/validate_documentation.py` so meaningful implementation diffs must include both `docs/CHANGELOG.md` and `docs/TECHNICAL_WORK_LOG.md` as a minimum automated requirement; the complete `AGENTS.md` documentation matrix remains authoritative.
+- Added ADR-0067 and synchronized repository, architecture, deployment, recovery, and documentation-map guidance. The narrower frozen-head-only proposal developed earlier on this unmerged PR is superseded by the approved three-stage model; exact-head freezing remains the Stage 2 final-validation boundary.
+
+### Preserved
+
+- Current-main synchronization, active-PR/global-identifier checks, cross-system coordination, immediate durable recording of material decisions, secret scanning, typecheck/tests/builds, clean and staged PostgreSQL replay, Cloudflare/OpenNext/Wrangler validation, whitespace checks, complete-diff/history review, mergeability, and exact tested-head requirements remain mandatory.
+- Final CI has no changed-file path skipping. No production environment variable, credential, runtime service, database migration, deployment authority, product behavior, or security boundary is changed by this workflow optimization.
+
+## 2026-08-19 — Recurring automatic resume scheduling
+
+### Added
+
+- Added nullable Johannesburg-business-date `autoResumeDate` persistence for paused recurring agreements plus an indexed additive migration.
+- Added a Railway API bootstrap/minute reconciler that activates due paused agreements with database-conditional idempotency and ends agreements whose end date has already passed.
+- Added Admin automatic-resume date controls and focused lifecycle tests covering validation, manual clearing, due activation, end-date handling, and competing runner attempts.
+- Added ADR-0066 plus deployment, recovery, lifecycle-contract, roadmap, and architecture documentation for the durable execution boundary.
+
+### Preserved
+
+- Manual resume still recalculates from the current Johannesburg business date and does not create missed-occurrence backlog.
+- Automatic resume does not generate, mutate, cancel, or delete Work Orders and triggers no correspondence, Messaging, Finance, pricing, staffing, or notification behavior.
+- No new environment variable, credential, external scheduler, queue, or dependency is required.
+
 ## 2026-08-19 — Recurring lifecycle future-visit review
 
 ### Changed
@@ -231,7 +260,7 @@
 
 ### Preserved
 
-- Supabase remains the identity authority. Protected-route middleware, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
+- Supabase remains the identity authority. Protected-route middleware authentication, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
 - No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
 
 ## 2026-08-14 — Dashboard operational query slimming

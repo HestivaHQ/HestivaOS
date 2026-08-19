@@ -87,6 +87,56 @@ If a connector/API operation fails, times out, or is blocked:
 5. Do not immediately switch to low-level Git object/ref APIs merely to bypass a blocked normal contents/PR action. Use an alternate route only when it is justified by the repository task itself and current state has been verified.
 6. If the connector continues to block a legitimate operation, preserve the safe repository state and ask the maintainer for the smallest manual action required rather than broad manual editing.
 
+### Three-stage development validation workflow
+
+Use the following three-stage model as the default implementation workflow. It optimizes repetition and sequencing only; it does **not** authorize skipping required documentation, security checks, migration replay, complete-diff review, exact-head verification, cross-system coordination, parallel-PR reconciliation, or final CI.
+
+#### Stage 1 — Fast development loop
+
+- During active implementation and evidence-driven corrections, run validation proportional to the affected area instead of repeatedly running the complete repository suite.
+- Prefer focused/high-signal checks such as affected Jest or Node tests, the affected workspace `typecheck`, `prisma validate`/`prisma generate` for schema work, a targeted build when compilation or packaging risk warrants it, `git diff --check`, and the cheap tracked-file secret scan at meaningful checkpoints.
+- Shared contracts or changes spanning API and web require proportional checks in every affected workspace; “targeted” does not mean ignoring known dependencies.
+- Material architecture, security, business, operational, financial, customer-policy, infrastructure, deployment, or cross-system decisions must still be synchronized to the durable repository/coordination sources as soon as another lane or resumed chat could depend on them. Do not postpone such decisions into chat history merely to keep the loop fast.
+- Completion-oriented history and final current-state reconciliation, including final `CHANGELOG.md`, `TECHNICAL_WORK_LOG.md`, Roadmap completion wording, PR-body reconciliation, and other non-blocking bookkeeping, may be batched until the implementation stabilizes, but must be complete before Stage 2 final validation.
+- Do not automatically run the full repository build/test/migration suite after every small edit unless the change itself creates a specific reason to do so.
+
+Typical examples:
+
+- API-only change: focused API tests → API typecheck → API build when warranted → diff/secret checks.
+- Web-only change: relevant web tests → web typecheck → targeted build when warranted → diff/secret checks.
+- Prisma/schema change: Prisma validate/generate → affected API tests/typecheck → targeted disposable database check when readily available; authoritative clean/staged replay remains Stage 2 CI.
+- Documentation-only correction: documentation/history/diff verification; do not run unrelated application builds locally merely because documentation changed.
+
+#### Stage 2 — Authoritative full PR CI
+
+1. Finish the scoped implementation and resolve all known findings.
+2. Reconcile every applicable document required by the matrix below, plus any required coordination issue/checkpoint.
+3. Synchronize with current `main` where required and reconcile relevant active-PR/shared-history collisions.
+4. Review the complete changed-file set and diff, including append-only/historical integrity, stale statements, duplicate sources of truth and global identifiers.
+5. Freeze the exact head SHA. Stop discretionary edits while the required final gates run.
+6. Use the pull-request workflow as the authoritative comprehensive integration gate. Its independent policy/security/diff, API, web/Cloudflare and PostgreSQL migration jobs may run in parallel, but **all applicable required jobs must pass**. Do not add path-based final-gate skipping merely for speed unless a later accepted ADR proves the dependency boundary safe.
+7. Do not duplicate final-stage validation locally simply to reproduce checks already authoritatively running in GitHub unless diagnosis requires it.
+
+A frozen head means no speculative refactors, wording polish, unrelated cleanup, or “while CI runs” improvements. A green result authorizes only that exact tested head against a materially unchanged integration base.
+
+#### Stage 3 — Strict pre-merge review
+
+Immediately before merge:
+
+- verify the exact reviewed/tested head SHA and required green check conclusions;
+- confirm no required gate is stale, red, running, cancelled, or superseded;
+- verify mergeability and synchronize with current `main` if the integration base materially changed;
+- perform the relevant parallel-PR collision check for overlapping files, schema/models, migrations, ADR/global identifiers, shared contracts and contradictory documentation;
+- reconcile append-only/shared historical files without dropping valid entries;
+- review complete-diff integrity and canonical documentation consistency; and
+- merge only after all repository and maintainer approval requirements are satisfied.
+
+#### Evidence-driven failure path
+
+A failed CI gate, review/security finding, materially changed merge base, or maintainer correction is new evidence that reopens the same scoped branch. Inspect the evidence, make the smallest justified correction, run proportional affected-area checks, update documentation only where the correction changes documented state, re-audit the affected area plus complete-diff integrity, freeze the new head, and rerun the complete required Stage 2 CI. Do not bundle unrelated improvements into that correction.
+
+The target shape is therefore: **fast implementation loop → final docs/coordination + complete diff audit → freeze exact head → parallel authoritative CI → strict pre-merge review → merge**.
+
 ### CI and PR correction
 
 - A failed quality gate stays on the existing PR branch unless the branch itself is irreparably wrong.
@@ -130,8 +180,9 @@ Before declaring an implementation complete:
 
 1. Reconcile the changed implementation against the matrix above.
 2. Update current-state documents and append the historical work-log and changelog entries.
-3. Run repository validation, Markdown validation, `git diff --check`, and a secret scan appropriate to the repository.
-4. Review the complete diff and confirm no stale, contradictory, speculative, or duplicated documentation remains.
+3. Complete the Stage 2 pre-freeze review: applicable docs/coordination, complete diff/history integrity, current-main/parallel-PR reconciliation, `git diff --check`, and secret scanning.
+4. Freeze the exact head and require the authoritative full PR CI to pass on that head.
+5. Perform the Stage 3 strict pre-merge review; after freeze, change the head only for an evidenced failure/review/integration correction, then re-audit and rerun the full required gates on the new exact head.
 
 Every implementation PR body must explicitly include:
 
