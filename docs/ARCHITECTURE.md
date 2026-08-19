@@ -1,5 +1,11 @@
 # Production architecture
 
+## Recurring lifecycle future-visit review (2026-08-19)
+
+`RecurringServiceAgreement` lifecycle remains separate from generated Work Order lifecycle. Recurring-service reads include already-created future Work Orders from the current Africa/Johannesburg business date as a bounded review projection containing only visit identity, reference, status, recurrence date and schedule. The Admin recurring-services manager surfaces those independent visits and links to their canonical Work Order detail.
+
+Pause and cancel remain agreement-state changes only. If future visits already exist, the Admin flow explicitly warns that those Work Orders are preserved and require separate review; no generated Work Order is silently mutated or deleted. Manual resume continues to calculate the next occurrence from the current Johannesburg business date and does not create missed-occurrence backlog. Persisted automatic resume-date scheduling is not implemented by this slice and remains a separate schema/runtime residual. See `RECURRING_LIFECYCLE_REVIEW_V1.md` and ADR-0026.
+
 ## Website enquiry ingestion and authoritative ENQ references (2026-08-19)
 
 HestivaOS owns the durable Website contact-enquiry intake boundary. `POST /api/v1/integrations/website/enquiries` is a public transport route protected by the same dedicated server-side Website bearer-secret verifier used by Website Quote ingestion; the browser never receives that credential. The versioned `website-enquiry.v1` payload preserves the current Website contact fields plus a stable Website-generated UUID `submissionId` and ISO `submittedAt` transport metadata. Unknown fields and unsupported enquiry types fail closed.
