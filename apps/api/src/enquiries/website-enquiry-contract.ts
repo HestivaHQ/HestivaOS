@@ -53,6 +53,7 @@ const allowedKeys = new Set([
 const PHONE_FORMAT = /^\+?[0-9 ()-]+$/;
 const EMAIL_LOCAL = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
 const DOMAIN_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -98,8 +99,8 @@ export function validateWebsiteEnquirySubmissionV1(payload: unknown): WebsiteEnq
   }
 
   const submittedAt = text(value.submittedAt);
-  if (!submittedAt || Number.isNaN(Date.parse(submittedAt))) {
-    errors.push({ path: 'submittedAt', code: 'INVALID_DATETIME', message: 'submittedAt must be an ISO date-time.' });
+  if (!ISO_DATETIME.test(submittedAt) || Number.isNaN(Date.parse(submittedAt))) {
+    errors.push({ path: 'submittedAt', code: 'INVALID_DATETIME', message: 'submittedAt must be an ISO date-time with an explicit timezone.' });
   }
 
   const name = text(value.name);
