@@ -1,8 +1,12 @@
 # Controlled input field audit
 
+## 2026-08-19 Phase 1A Work Order selector-search addendum
+
+Work Order create/edit now uses bounded, debounced server-backed search for Customer, customer-scoped Property, active Technician, active Crew, primary Service, and add-on Service instead of fixed 100-record reference snapshots. Selected/historical canonical records remain visible while current search pages refresh, and direct-create Customer/Property UUID preselection can resolve beyond the first normal result page. The existing domain APIs and IDs remain authoritative; no external index or new relationship model was introduced. Shift Planning Crew/Work Order selector searchability remains a separate Phase 3 residual and is not claimed complete by this slice.
+
 ## 2026-08-19 Admin/Operations hardening addendum
 
-Service Scope Template sections now use canonical Service IDs, unique lowercase stable keys, controlled evidence policy (`NONE`, `ON_EXCEPTION`, `REQUIRED`), controlled repeat fields, numeric ordering, and line-separated factual requirements. Work Order direct creation continues to store canonical relationship IDs and validates Customer/Property preselection. Technician assignment already had local search and remains unchanged. Remaining capped Customer, Property, Crew, and Service selector reads are not claimed complete for large-list searchability; debounced server-search conversion remains planned.
+Service Scope Template sections now use canonical Service IDs, unique lowercase stable keys, controlled evidence policy (`NONE`, `ON_EXCEPTION`, `REQUIRED`), controlled repeat fields, numeric ordering, and line-separated factual requirements. Work Order direct creation continues to store canonical relationship IDs and validates Customer/Property preselection. Technician assignment already had local search and remains unchanged. At that checkpoint, remaining capped Customer, Property, Crew, and Service selector reads were not claimed complete for large-list searchability; the later Phase 1A addendum above supersedes that Work Order-specific planning statement.
 
 Verified 2026-08-10 against the editable React forms and Prisma/API contracts on this branch. This matrix records Slice 5B Phase 1 and the implemented Slice 5C/5E Customer and Property decisions. Province remains stored and API-compatible but is dormant rather than editable, so the current ordinary UI exposes **107 editable fields**: 50 free text, 11 fixed enum, 2 managed lookup, 13 relationship, 20 boolean, 7 date/date-time, and 4 numeric/currency. Four additional derived relationship summaries were reviewed as read-only.
 
@@ -46,7 +50,7 @@ The supplied website `JOB_TYPES` were reviewed but not imported. They mix cadenc
 | Shifts | `shifts-manager` | Break minutes | number | integer | NUMERIC (1) | Existing number input | No | Correct numeric control. |
 | Shifts | `shifts-manager` | Crew; work order | select | canonical IDs | RELATIONSHIP (2) | Existing selectors; searchable later | No | Stores IDs. |
 | Shifts | `shifts-manager` | Status | select | `ShiftStatus` | FIXED ENUM (1) | Existing select | No | Already controlled. |
-| Work Orders | manager/detail | Customer; property; Service; crew; technician assignment | select/actions | canonical IDs | RELATIONSHIP (5) | Existing selectors, customer-filtered property, active Service for new work | No | Historical Service is nullable/readable; new records store the canonical Service ID. |
+| Work Orders | manager/detail | Customer; property; Service; crew; technician assignment | select/actions | canonical IDs | RELATIONSHIP (5) | Bounded server-backed search, customer-filtered Property, active Service for new work; selected/historical records retained | **Yes—Phase 1A Work Order searchability** | Stores canonical IDs, avoids fixed 100-record snapshots, and preserves historical selections. |
 | Work Orders | manager/detail | Description; checklist description; status note | text/textarea | work-order strings | FREE TEXT (3) | Existing inputs | No | Manual Work Order Title is removed; legacy title remains a read fallback and new rows populate it automatically with the server reference. |
 | Work Orders | manager/detail | Status; priority; checklist status | selects/actions | Prisma enums | FIXED ENUM (3) | Existing enum controls | No | Already controlled and API-validated. |
 | Work Orders | manager | Scheduled at | datetime-local | timestamp | DATE (1) | Existing date-time control | No | Existing timezone behavior retained. |
@@ -57,7 +61,7 @@ The supplied website `JOB_TYPES` were reviewed but not imported. They mix cadenc
 
 ## Phasing conclusion
 
-The audit found that migrating every remaining candidate would combine unrelated domain decisions. Phase 1 therefore establishes the standard and converts Employee job title and department only. Customer/property Phase 2 is complete with the decisions above; Work Order/scheduling searchability is Phase 3; technician skills and any remaining evidence-backed classifications are Phase 4. Existing fixed enums, relationships, booleans, dates, and deliberately free-text fields remain unchanged.
+The audit found that migrating every remaining candidate would combine unrelated domain decisions. Phase 1 therefore establishes the standard and converts Employee job title and department only. Customer/property Phase 2 is complete with the decisions above. Phase 3 is now partially complete: Work Order relationship searchability is implemented by Phase 1A, while Shift Planning Crew/Work Order selector searchability remains a separate residual. Technician skills and any remaining evidence-backed classifications remain Phase 4. Existing fixed enums, relationships, booleans, dates, and deliberately free-text fields remain unchanged.
 
 ## 2026-08-10 Property Type website alignment addendum
 
