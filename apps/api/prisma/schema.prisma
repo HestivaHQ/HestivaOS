@@ -1582,3 +1582,22 @@ model WebsiteEnquiry {
   @@index([email])
   @@map("website_enquiries")
 }
+
+model UserAccessChange {
+  id String @id @default(uuid()) @db.Uuid
+  targetUserId String @map("target_user_id") @db.Uuid
+  targetEmail String @map("target_email")
+  targetDisplayName String? @map("target_display_name")
+  actorUserId String @map("actor_user_id") @db.Uuid
+  actorEmail String @map("actor_email")
+  actorDisplayName String? @map("actor_display_name")
+  oldRole UserRole @map("old_role")
+  newRole UserRole @map("new_role")
+  oldStatus UserStatus @map("old_status")
+  newStatus UserStatus @map("new_status")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([targetUserId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("user_access_changes")
+}
