@@ -30,15 +30,16 @@ export class SupabaseAdminService {
     return { authUserId: data.user.id, email, invited: true };
   }
 
-  async revokeRefreshSessions(authUserId: string) {
-    if (!authUserId?.trim()) return;
+  async revokeRefreshSessionsForApplicationUser(applicationUserId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: applicationUserId }, select: { authUserId: true } });
+    if (!user?.authUserId) return;
     try {
-      // HestivaOS authorization is revoked independently through User.status. Removing
-      // provider sessions prevents refresh without deleting the Supabase Auth identity.
-      await this.prisma.$executeRaw`DELETE FROM auth.sessions WHERE user_id = ${authUserId}::uuid`;
-      this.logger.log(`supabase_refresh_sessions_revoked authUserId=${authUserId}`);
-    } catch (error) {
-      this.logger.error(`supabase_refresh_session_revocation_failed authUserId=${authUserId}`);
+      // User.status is the immediate HestivaOS authorization kill switch. Removing the
+      // provider session prevents refresh while preserving the Supabase Auth identity.
+      await this.prisma.$executeRaw`DELETE FROM auth.sessions WHERE user_id = ${user.authUserId}::uuid`;
+      this.logger.log(`supabase_refresh_sessions_revoked applicationUserId=${applicationUserId} authUserId=${user.authUserId}`);
+    } catch {
+      this.logger.error(`supabase_refresh_session_revocation_failed applicationUserId=${applicationUserId} authUserId=${user.authUserId}`);
       throw new ServiceUnavailableException('OS access is disabled, but provider session revocation could not be completed.');
     }
   }
