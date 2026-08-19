@@ -6,6 +6,7 @@ import { MaterialChangeCommitInput, MaterialChangePreviewInput, WorkOrderMateria
 import { ResolveScopeMismatchInput, WorkOrderScopeMismatchService } from './work-order-scope-mismatch.service';
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 import { UpdateAccessReadinessInput, WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
+import { CreateTemporaryCredentialInput, ReviewTemporaryCredentialInput, WorkOrderTemporaryAccessCredentialsService } from './work-order-temporary-access-credentials.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -14,7 +15,28 @@ export class WorkOrdersController {
     private readonly materialChanges: WorkOrderMaterialChangeService,
     private readonly scopeMismatches: WorkOrderScopeMismatchService,
     private readonly accessReadiness: WorkOrderAccessReadinessService,
+    private readonly temporaryCredentials: WorkOrderTemporaryAccessCredentialsService,
   ) {}
+
+  @Get(':id/temporary-access-credentials')
+  @Roles(UserRole.ADMIN)
+  temporaryCredentialList(@Param('id', new ParseUUIDPipe()) id:string,@CurrentUser() actor:User){return this.temporaryCredentials.list(id,actor.id);}
+
+  @Post(':id/temporary-access-credentials')
+  @Roles(UserRole.ADMIN)
+  createTemporaryCredential(@Param('id',new ParseUUIDPipe()) id:string,@Body() input:CreateTemporaryCredentialInput,@CurrentUser() actor:User){return this.temporaryCredentials.create(id,input,actor.id);}
+
+  @Post(':id/temporary-access-credentials/:credentialId/reveal')
+  @Roles(UserRole.ADMIN)
+  revealTemporaryCredential(@Param('id',new ParseUUIDPipe()) id:string,@Param('credentialId',new ParseUUIDPipe()) credentialId:string,@CurrentUser() actor:User){return this.temporaryCredentials.reveal(id,credentialId,actor.id);}
+
+  @Post(':id/temporary-access-credentials/:credentialId/review')
+  @Roles(UserRole.ADMIN)
+  reviewTemporaryCredential(@Param('id',new ParseUUIDPipe()) id:string,@Param('credentialId',new ParseUUIDPipe()) credentialId:string,@Body() input:ReviewTemporaryCredentialInput,@CurrentUser() actor:User){return this.temporaryCredentials.review(id,credentialId,input,actor.id);}
+
+  @Post(':id/temporary-access-credentials/:credentialId/revoke')
+  @Roles(UserRole.ADMIN)
+  revokeTemporaryCredential(@Param('id',new ParseUUIDPipe()) id:string,@Param('credentialId',new ParseUUIDPipe()) credentialId:string,@Body() input:{reason?:string},@CurrentUser() actor:User){return this.temporaryCredentials.revoke(id,credentialId,input.reason,actor.id);}
 
   @Get(':id/access-readiness/history')
   @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)

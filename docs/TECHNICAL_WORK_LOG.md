@@ -468,3 +468,7 @@ Implemented Job Leader-only durable `COMPLETE_JOB`, IndexedDB v4 reconciliation/
 - Added ADMIN/SUPERVISOR API and focused constrained UI with explicit no-secret guidance.
 - Added one deterministic High-priority Operations Needs Attention producer for missing/review/expired access, with existing automatic resolution/reopen semantics.
 - Added additive migration, backend/frontend regression coverage, deployment/recovery guidance, focused contract documentation, and ADR-0058. Phase 3B–3D, correspondence, Finance, automation, and credential access remain deferred.
+
+## 2026-08-18 — Phase 3B protected temporary access credentials
+
+Implemented the bounded Phase 3B package on top of canonical Phase 3A. The existing visit-owned credential record now supports authenticated encrypted text, private attachment provenance, supplementary metadata, request idempotency, controlled human review, actor-attributed reveal/lifecycle history, and non-destructive expiry/revocation. ADMIN-only endpoints and UI separate safe metadata from explicit audited reveal. Credential decisions transition the existing Work Order access-readiness state and append its canonical history. Contract tests lock non-exposure across broad Work Order, Needs Attention, Dashboard-adjacent attention, and Technician service code. Added ADR-0059 and synchronized architecture, rationale, environment, deployment, recovery, roadmap, and changelog. Phase 3C, Phase 3D, automatic correspondence, provider behavior, and Finance were not implemented.

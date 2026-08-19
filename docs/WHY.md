@@ -108,3 +108,7 @@ Foundation v1 deliberately stops before durable conversation tables. Message ret
 ## Why visit access readiness is separate
 
 Stable Property facts, one-visit operational readiness, and protected temporary credentials have different lifetimes and disclosure boundaries. A controlled Work Order readiness state makes missing access actionable without turning prose or `WorkOrderStatus` into a hidden workflow. Append-only transitions preserve who changed operational truth, while deterministic Needs Attention reconciliation avoids manual alert drift. Credential contents remain outside this foundation. See ADR-0058.
+
+## Why temporary access uses a narrow visit credential boundary
+
+A temporary code or access pass has a shorter lifetime and stricter disclosure boundary than Property access facts. Keeping it on one Work Order, encrypting text, retaining private originals, requiring human acceptance, and auditing each explicit reveal provides operational access without turning Work Order visibility into secret authority or allowing recurrence/replacement flows to spread credentials. Phase 3A readiness remains the operational state; the protected evidence is not a second readiness system. See ADR-0059.

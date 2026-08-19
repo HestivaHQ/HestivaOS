@@ -5,6 +5,7 @@ import { MaterialChangeAdminPanel } from './material-change-admin-panel';
 import { ScopeMismatchAdminPanel } from './scope-mismatch-admin-panel';
 import { TechnicianJobView } from './technician-job-view';
 import { AccessReadinessPanel } from './access-readiness-panel';
+import { TemporaryAccessCredentialsPanel } from './temporary-access-credentials-panel';
 
 export default async function TechnicianJobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,7 @@ export default async function TechnicianJobPage({ params }: { params: Promise<{ 
   return <AppFrame active="/work-orders" email={appUser.email} user={appUser}>
     <TechnicianJobView workOrderId={id} canAcknowledgeCompletion={canRouteInterruption} />
     {canRouteInterruption ? <AccessReadinessPanel workOrderId={id} /> : null}
+    {appUser.role === 'ADMIN' ? <TemporaryAccessCredentialsPanel workOrderId={id} /> : null}
     {canReadInterruption ? <InterruptedVisitAdminPanel workOrderId={id} canRoute={canRouteInterruption} /> : null}
     {appUser.role === 'ADMIN' ? <ScopeMismatchAdminPanel workOrderId={id} /> : null}
     {appUser.role === 'ADMIN' ? <MaterialChangeAdminPanel workOrderId={id} /> : null}

@@ -1,10 +1,10 @@
 # Work Order Access Readiness v1
 
-Status: implemented Phase 3A foundation on 2026-08-18. Phase 3B protected credential handling, Phase 3C appointment-relative escalation, Phase 3D messaging recovery, and Finance are not implemented here.
+Status: implemented Phase 3A foundation on 2026-08-18 and integrated with Phase 3B protected credential handling later that day. Phase 3C appointment-relative escalation, Phase 3D messaging recovery, and Finance are not implemented here.
 
 ## Canonical model
 
-`WorkOrder.accessReadiness` is visit-specific operational state and is independent of `WorkOrder.status`. Its controlled values are `REQUIRED_MISSING`, `RECEIVED`, `NEEDS_REVIEW`, `EXPIRED`, `ARRANGED_ANOTHER_WAY`, and `NOT_REQUIRED`. Stable access facts and instructions remain on Property; temporary credential records remain Work Order scoped and are neither read nor written by this foundation.
+`WorkOrder.accessReadiness` is visit-specific operational state and is independent of `WorkOrder.status`. Its controlled values are `REQUIRED_MISSING`, `RECEIVED`, `NEEDS_REVIEW`, `EXPIRED`, `ARRANGED_ANOTHER_WAY`, and `NOT_REQUIRED`. Stable access facts and instructions remain on Property; Phase 3B temporary credential commands use this state and its history without copying protected contents into readiness.
 
 Every effective readiness change appends a `WorkOrderAccessReadinessEvent` with old/new state, actor, and time, and also adds a state-only Work Order activity. ADMIN and SUPERVISOR may read history and change state through the constrained Work Order panel and protected API. Repeating the current state is a no-op.
 
@@ -14,7 +14,7 @@ An unresolved active Work Order in `REQUIRED_MISSING`, `NEEDS_REVIEW`, or `EXPIR
 
 ## Security boundary
 
-Readiness state and state-only audit history are not credential storage. The UI explicitly prohibits codes, passwords, PINs, links, and credential files. Needs Attention and list/detail projections do not select the temporary credential relation or credential fields. Phase 3A does not expose, migrate, copy, validate, retrieve, or broaden access to temporary credentials.
+Readiness state and state-only audit history are not credential storage. The readiness UI explicitly prohibits codes, passwords, PINs, links, and credential files. Needs Attention and broad list/detail projections do not select the temporary credential relation or credential fields. Phase 3B uses separate ADMIN-only protected endpoints described in `WORK_ORDER_TEMPORARY_ACCESS_CREDENTIALS_V1.md`.
 
 ## API
 

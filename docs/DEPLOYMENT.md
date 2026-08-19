@@ -218,3 +218,7 @@ Deploy additive migration `20260818120000_homent_technician_completion` before t
 ## Phase 3A access-readiness deployment
 
 Apply `20260818230000_work_order_access_readiness` through the standard Prisma deploy step before serving the corresponding API. It additively creates the readiness enum/current-state column, attention/activity enum members, and append-only readiness-event table. Existing Work Orders default to `NOT_REQUIRED`; no environment variable or credential-store configuration changes. Verify Prisma migration state, an authorized ADMIN/SUPERVISOR state change and history read, and Needs Attention open/self-resolution without inspecting or logging credential data.
+
+## Phase 3B protected credential deployment (2026-08-18)
+
+Deploy migration `20260819000000_protected_temporary_access_credentials` before the Phase 3B API. Configure API-only `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` as a base64-encoded 32-byte value through the deployment secret manager; never expose it to Next.js or commit it. Confirm the temporary-access attachment prefix remains private. Validate ADMIN metadata/create/review/reveal/revoke requests and verify broad Work Order, Dashboard, Needs Attention, and Technician responses contain no protected values. Phase 3C and Phase 3D have no deployment changes here.

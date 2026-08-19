@@ -67,3 +67,7 @@ Use ignored local environment files and placeholder-only tracked examples.
 4. Confirm bucket **names** in Supabase Storage before configuring the two bucket variables; do not invent buckets.
 5. Trigger a new Cloudflare build for build-time values, redeploy/restart Railway for API runtime values, then validate authentication, an API read, and storage access.
 6. Rotate any credential that may have been exposed and review platform audit logs.
+
+## Phase 3B protected temporary access
+
+- `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` — API-only, required when protected text is written or revealed; base64 encoding of exactly 32 random bytes. Acquire and rotate it through the approved deployment secret manager. Never prefix it with `NEXT_PUBLIC_`, log it, or commit a value. Rotation requires a controlled re-encryption procedure because existing ciphertext remains bound to the prior key.

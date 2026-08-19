@@ -140,3 +140,8 @@ Only currently identified technical follow-up work is listed here.
 
 - Phase 3A is implemented: controlled visit-specific Work Order access readiness, append-only transition history, ADMIN/SUPERVISOR management, and deterministic self-resolving Needs Attention integration.
 - Phase 3B protected credential storage/review, Phase 3C appointment-relative escalation, and Phase 3D WhatsApp/Messenger recovery remain planned separate packages. Finance, automatic correspondence, cancellation, dispatch override, and customer commitments are not part of Phase 3A.
+
+## 2026-08-18 — Phase 3 access readiness progress
+
+- Phase 3A access readiness foundation and Phase 3B protected visit-scoped temporary credentials are implemented.
+- Phase 3C appointment-relative escalation and Phase 3D WhatsApp/Messenger recovery remain deferred. Finance is unchanged and outside this work.

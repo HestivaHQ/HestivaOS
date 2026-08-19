@@ -372,6 +372,7 @@ export type WorkOrderAccessReadinessEvent = {
   id: string; previousState: WorkOrderAccessReadiness; newState: WorkOrderAccessReadiness; createdAt: string;
   actor: { id: string; firstName: string; lastName: string; displayName: string | null };
 };
+export type TemporaryAccessCredential = { id:string; workOrderId:string; type:"CODE"|"QR_IMAGE"|"QR_DOCUMENT"|"OTHER"; attachmentFileName:string|null; attachmentMediaType:string|null; derivedMetadata:Record<string,string>|null; validFrom:string|null; expiresAt:string|null; singleUse:boolean; revokedAt:string|null; reviewStatus:"PENDING_REVIEW"|"ACCEPTED"|"REJECTED"|"REVOKED"; createdAt:string; createdBy:{id:string;firstName:string;lastName:string;displayName:string|null}|null; events:Array<{id:string;type:string;reason:string|null;createdAt:string;actor:{id:string;firstName:string;lastName:string;displayName:string|null}}> };
 export type HomeCondition =
   | "LIGHT_UPKEEP"
   | "STANDARD"
@@ -1091,6 +1092,11 @@ export const api = {
   workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
   workOrderAccessReadinessHistory: (id: string) => apiFetch<WorkOrderAccessReadinessEvent[]>(`/work-orders/${id}/access-readiness/history`),
   updateWorkOrderAccessReadiness: (id: string, state: WorkOrderAccessReadiness) => apiFetch<{id:string;accessReadiness:WorkOrderAccessReadiness}>(`/work-orders/${id}/access-readiness`, { method: "PATCH", ...json({ state }) }),
+  temporaryAccessCredentials: (id:string) => apiFetch<TemporaryAccessCredential[]>(`/work-orders/${id}/temporary-access-credentials`),
+  createTemporaryAccessCredential: (id:string,input:Record<string,unknown>) => apiFetch<TemporaryAccessCredential>(`/work-orders/${id}/temporary-access-credentials`,{method:"POST",...json(input)}),
+  reviewTemporaryAccessCredential: (workOrderId:string,id:string,decision:"ACCEPT"|"REJECT",reason?:string) => apiFetch<TemporaryAccessCredential>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/review`,{method:"POST",...json({decision,reason})}),
+  revokeTemporaryAccessCredential: (workOrderId:string,id:string,reason?:string) => apiFetch<TemporaryAccessCredential>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/revoke`,{method:"POST",...json({reason})}),
+  revealTemporaryAccessCredential: (workOrderId:string,id:string) => apiFetch<{id:string;protectedText:string|null;attachmentStoragePath:string|null}>(`/work-orders/${workOrderId}/temporary-access-credentials/${id}/reveal`,{method:"POST"}),
   createWorkOrder: (input: WorkOrderInput) =>
     apiFetch<WorkOrder>("/work-orders", { method: "POST", ...json(input) }),
   updateWorkOrder: (
