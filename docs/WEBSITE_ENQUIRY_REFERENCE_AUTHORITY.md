@@ -14,7 +14,7 @@ HestivaOS is the authoritative system for Website contact enquiries that require
 
 ## HestivaOS runtime contract
 
-`POST /integrations/website/enquiries` is a public transport endpoint protected by the same server-side Website integration authorization boundary used by Website Quote ingestion. The Website integration secret remains server-only and must never be exposed to browser code.
+`POST /api/v1/integrations/website/enquiries` is a public transport endpoint protected by the same server-side Website integration authorization boundary used by Website Quote ingestion. The Website integration secret remains server-only and must never be exposed to browser code.
 
 The v1 request schema is `website-enquiry.v1` and contains:
 
