@@ -29,8 +29,8 @@ export class RecurringServiceAutoResumeRunner implements OnApplicationBootstrap,
       if (result.resumed || result.ended) {
         console.info(JSON.stringify({ event: 'recurring_auto_resume_reconciled', ...result }));
       }
-    } catch (error) {
-      console.error(JSON.stringify({ event: 'recurring_auto_resume_failed', message: error instanceof Error ? error.message : 'unknown error' }));
+    } catch {
+      console.error(JSON.stringify({ event: 'recurring_auto_resume_failed' }));
     } finally {
       this.running = false;
     }
