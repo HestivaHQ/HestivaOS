@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-19 — Administrative access-change audit history
+
+### Added
+
+- Added append-only `UserAccessChange` persistence for effective ADMIN role and Hestiva OS access-status changes, including actor/target application User UUIDs, identity snapshots, old/new role/status values, and server-created time.
+- Added ADMIN-only `GET /api/v1/users/:id/access-history` with a bounded latest-100 newest-first operational history read.
+- Added migration `20260819230000_admin_access_audit_history`, focused access-management tests, ADR-0068, and the focused `ADMIN_ACCESS_AUDIT_HISTORY_V1.md` contract.
+
+### Security and preserved behavior
+
+- Audit insertion occurs in the same existing PostgreSQL `SERIALIZABLE` transaction as the authoritative User mutation, so the access change and audit evidence commit or roll back together; no-op mutations create no audit row.
+- Existing self-demotion/self-disable and last-active-ADMIN protections remain unchanged. `User.role` and `User.status` remain the current access authority; audit history is evidence only.
+- Identity labels are stored as mutation-time snapshots so later profile edits cannot rewrite historical evidence. This slice introduces no Supabase Admin credential, invitation, provider-session revocation, email-change flow, environment variable, deployment authority, messaging, Finance, or notification behavior.
+
 ## 2026-08-19 — Three-stage development validation
 
 ### Changed
@@ -551,7 +565,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 ### Added
 
-- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap, root and workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
+- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap verification, root and independent workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
 - Added a successful-run job summary and an explicit reminder that authenticated runtime route testing remains a separate post-build smoke test.
 
 ### Security
