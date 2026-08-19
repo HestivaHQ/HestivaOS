@@ -565,7 +565,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 
 ### Added
 
-- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap verification, root and independent workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
+- Added a temporary, manually dispatched Node.js 24 workflow that validates the committed Next.js 16 migration through locked installation, Prisma bootstrap, root and workspace checks, OpenNext, Cloudflare type generation, a Wrangler dry run, and repository documentation/security checks.
 - Added a successful-run job summary and an explicit reminder that authenticated runtime route testing remains a separate post-build smoke test.
 
 ### Security
