@@ -297,3 +297,7 @@ Preserve `TEMPORARY_ACCESS_CREDENTIAL_ENCRYPTION_KEY` in the approved deployment
 ## Phase 3C access escalation recovery (2026-08-19)
 
 If access priority or resolution appears wrong, verify the authoritative Work Order schedule and readiness, then verify Phase 3B credential review/revocation/validity metadata through the ADMIN-only credential surface. Correct those facts through existing authorized actions and read Needs Attention again. Reconciliation will update, resolve, or reopen the stable condition. Never edit attention rows/history, expose credential contents, invent a timer, or alter Work Order lifecycle/staffing to repair the display.
+
+## Phase 3D access recovery (2026-08-19)
+
+For an uncertain outbound result, retry with the original recovery request UUID; never create a replacement merely because the response was lost. The canonical adapter receives the same idempotency key. For duplicated webhooks, preserve the existing provider-event record. Do not manually relink a response across conversations or Work Orders. If access facts changed after sending, the candidate command intentionally stops: review current readiness and initiate a new human-authorized request only if still eligible. Never repair recovery by editing message bodies, source provenance, Needs Attention rows, Work Order lifecycle, or Finance. Restore private messaging/temporary-access objects without making paths public.

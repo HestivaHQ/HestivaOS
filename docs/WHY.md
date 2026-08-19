@@ -116,3 +116,7 @@ A temporary code or access pass has a shorter lifetime and stricter disclosure b
 ## 2026-08-19 — Why access urgency is derived rather than scheduled
 
 Appointment-relative access urgency is calculated from authoritative Work Order scheduling on each Needs Attention reconciliation because mutable countdowns or timers would duplicate truth and create restart/recovery drift. The stable condition preserves one operational thread while deterministic priority changes make deadline proximity visible. Technician access remains a safe assignment-scoped readiness signal because field need-to-know does not justify broader credential access. Phase 3D messaging recovery and Finance remain separate, deferred domains.
+
+## Why access recovery is a correlated human action
+
+A missing-access alert is not customer-contact authority, and a provider identity is not a Customer identity. Requiring an ADMIN to select an already linked canonical conversation prevents urgency from silently becoming autonomous correspondence. Keeping the inbound response immutable in messaging while registering only an explicitly reviewed, visit-scoped Phase 3B candidate preserves provenance and least authority without creating another access state or credential store. See ADR-0061.

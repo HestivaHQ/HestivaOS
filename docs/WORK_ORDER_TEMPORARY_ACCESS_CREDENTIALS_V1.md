@@ -21,3 +21,7 @@ All routes require ADMIN:
 - `POST /api/v1/work-orders/:id/temporary-access-credentials/:credentialId/revoke` — preserves the record and removes usability.
 
 Never include credential material in logs, Needs Attention, broad Work Order APIs, Dashboard, analytics, generic activity notes, or documentation examples.
+
+## 2026-08-19 Phase 3D provenance
+
+An ADMIN may register a response already correlated to the same Work Order recovery as protected Phase 3B evidence. The credential retains a unique source messaging-message relation, encrypted text/private attachment handling, and `PENDING_REVIEW`; existing explicit review remains required for usability. Original inbound messaging evidence is not replaced or exposed through credential summaries.

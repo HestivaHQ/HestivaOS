@@ -70,3 +70,7 @@ For a new or resumed chat doing cross-system work:
 6. Post material new decisions/blockers and later the PR link back to the coordination issue.
 
 This protocol is intended to reduce repeated decisions, stale assumptions and chat-to-chat drift while keeping the repositories as the durable implementation source of truth.
+
+## 2026-08-19 Phase 3D Issue #116/#132 checkpoint
+
+The implemented HestivaOS boundary follows Issue #116's provider-neutral conversations, adapter-only authenticity/normalization/transport, provider-scoped identity, provenance, and idempotency decisions, plus Issue #132's human-triggered access request and reviewed candidate-ingestion scope. `WORK_ORDER_ACCESS_RECOVERY_V1.md` and ADR-0061 are the permanent contract. No adapter, autonomous contact policy, Customer identity inference, lifecycle action, or Finance behavior was added.

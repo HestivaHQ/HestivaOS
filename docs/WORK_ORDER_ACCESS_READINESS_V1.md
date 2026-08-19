@@ -24,3 +24,7 @@ Readiness state and state-only audit history are not credential storage. The rea
 ## Deployment and recovery
 
 Deploy the additive `20260818230000_work_order_access_readiness` migration before the API. Existing Work Orders safely default to `NOT_REQUIRED`; operators must deliberately classify visits that require access. Roll forward rather than deleting audit history. If a state is wrong, an authorized operator records the correct controlled state, producing a compensating history event. Never repair readiness by editing Work Order lifecycle state or inserting credential data anywhere in readiness history.
+
+## 2026-08-19 Phase 3D integration
+
+Human-triggered messaging recovery derives eligibility from this canonical readiness plus operational lifecycle and configured conversation facts. It stores no second readiness/countdown state. `ARRANGED_ANOTHER_WAY`, `NOT_REQUIRED`, and operationally usable `RECEIVED` are excluded; response arrival does not change readiness. See `WORK_ORDER_ACCESS_RECOVERY_V1.md`.

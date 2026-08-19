@@ -68,3 +68,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0058: Separate Work Order access readiness from lifecycle and credentials](ADR-0058-work-order-access-readiness-foundation.md)
 - [ADR-0059: Protect and review visit-scoped temporary access credentials](ADR-0059-protected-temporary-access-credentials.md)
 - [ADR-0060: Derive access escalation from appointment time and safe usability](ADR-0060-appointment-relative-access-operations.md)
+- [ADR-0061: Correlate human-triggered access recovery through canonical messaging](ADR-0061-human-triggered-work-order-access-recovery.md)

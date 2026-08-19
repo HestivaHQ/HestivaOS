@@ -46,3 +46,7 @@ Assigned Technician list/detail/cache responses now include safe access readines
 Deploy migration `20260819120000_access_appointment_escalation` before the API. It adds only `PRIORITY_CHANGED` to the append-only attention activity enum. No environment-variable or storage change is introduced.
 
 Recovery is forward-only. Correct authoritative Work Order schedule/readiness or credential lifecycle facts through existing authorized actions, then read Needs Attention again. Do not edit attention rows, fabricate credential usability, or change Work Order lifecycle to clear an access condition.
+
+## 2026-08-19 Phase 3D integration
+
+Recovery delivery/review metadata does not create another Needs Attention condition. The stable access-required condition and its priority continue to derive only from Phase 3A–3C persisted facts. Recovery never resolves access merely because a response arrived.

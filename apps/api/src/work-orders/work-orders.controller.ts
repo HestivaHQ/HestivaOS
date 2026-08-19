@@ -7,6 +7,7 @@ import { ResolveScopeMismatchInput, WorkOrderScopeMismatchService } from './work
 import { ChangeWorkOrderStatusInput, CreateWorkOrderInput, UpdateWorkOrderInput, WorkOrderAlert, WorkOrdersService } from './work-orders.service';
 import { UpdateAccessReadinessInput, WorkOrderAccessReadinessService } from './work-order-access-readiness.service';
 import { CreateTemporaryCredentialInput, ReviewTemporaryCredentialInput, WorkOrderTemporaryAccessCredentialsService } from './work-order-temporary-access-credentials.service';
+import { InitiateAccessRecoveryInput, RegisterRecoveryCandidateInput, WorkOrderAccessRecoveryService } from './work-order-access-recovery.service';
 
 @Controller('work-orders')
 export class WorkOrdersController {
@@ -16,7 +17,20 @@ export class WorkOrdersController {
     private readonly scopeMismatches: WorkOrderScopeMismatchService,
     private readonly accessReadiness: WorkOrderAccessReadinessService,
     private readonly temporaryCredentials: WorkOrderTemporaryAccessCredentialsService,
+    private readonly accessRecovery: WorkOrderAccessRecoveryService,
   ) {}
+
+  @Get(':id/access-recovery')
+  @Roles(UserRole.ADMIN)
+  accessRecoverySummary(@Param('id', new ParseUUIDPipe()) id:string){return this.accessRecovery.summary(id);}
+
+  @Post(':id/access-recovery')
+  @Roles(UserRole.ADMIN)
+  initiateAccessRecovery(@Param('id', new ParseUUIDPipe()) id:string,@Body() input:InitiateAccessRecoveryInput,@CurrentUser() actor:User){return this.accessRecovery.initiate(id,input,actor.id);}
+
+  @Post(':id/access-recovery/:recoveryId/credential-candidate')
+  @Roles(UserRole.ADMIN)
+  registerAccessRecoveryCandidate(@Param('id',new ParseUUIDPipe()) id:string,@Param('recoveryId',new ParseUUIDPipe()) recoveryId:string,@Body() input:RegisterRecoveryCandidateInput,@CurrentUser() actor:User){return this.accessRecovery.registerCandidate(id,recoveryId,input,actor.id);}
 
   @Get(':id/temporary-access-credentials')
   @Roles(UserRole.ADMIN)

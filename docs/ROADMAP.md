@@ -151,3 +151,8 @@ Only currently identified technical follow-up work is listed here.
 - Completed deterministic appointment-relative access escalation using the stable Needs Attention condition: Normal beyond 24 hours, High from 24 hours through exactly 4 hours, and Critical below 4 hours or at/after the appointment.
 - Completed safe credential-usability derivation, auditable priority changes, self-resolution/reopen behavior, and assignment-scoped Technician readiness presentation without protected credential access.
 - Phase 3D WhatsApp/Messenger recovery remains deferred. Finance, automatic correspondence, and automatic Work Order lifecycle actions remain unimplemented by this package.
+
+## 2026-08-19 — Phase 3D access recovery completed
+
+- Completed ADMIN-triggered, provider-neutral WhatsApp/Messenger access recovery through configured Customer-linked conversations, durable retry identity, inbound provenance correlation, and explicit Phase 3B candidate registration/review.
+- No provider adapter, autonomous correspondence, general inbox, Work Order lifecycle action, or Finance behavior was added. Live provider configuration and broader messaging workflows remain separate coordinated work under Issue #116.

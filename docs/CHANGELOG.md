@@ -780,3 +780,10 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Ensured only currently usable accepted credentials can resolve `RECEIVED`, while `ARRANGED_ANOTHER_WAY` remains credential-free.
 - Added assignment-scoped Technician access readiness guidance without credential metadata, protected contents, or reveal authority.
 - Kept Work Order lifecycle, correspondence, Phase 3D messaging recovery, and Finance unchanged.
+
+## 2026-08-19 — Phase 3D WhatsApp/Messenger access recovery
+
+- Added ADMIN-triggered access recovery through configured canonical Customer-linked WhatsApp/Messenger conversations with explicit constrained channel selection and retry-safe outbound identity.
+- Added provider-neutral durable message/recovery correlation, replay-safe inbound preservation, safe delivery/review summaries, and a focused Work Order UI without a second inbox or alert.
+- Added explicit stale/cross-visit guarded registration of an inbound response as Phase 3B protected evidence with source-message provenance and mandatory existing human review before usability.
+- Added migration, tests, ADR-0061, contract/deployment/recovery documentation, and Issue #116/#132 coordination synchronization. No adapter, automatic correspondence, lifecycle action, Technician authority, or Finance behavior was added.

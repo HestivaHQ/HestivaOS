@@ -3,10 +3,10 @@ import { Prisma, TemporaryAccessCredentialEventType, TemporaryAccessCredentialRe
 import { PrismaService } from '../prisma.service';
 import { decryptCredential, encryptCredential } from './temporary-access-crypto';
 
-export type CreateTemporaryCredentialInput = { requestId: string; type: TemporaryAccessCredentialType; protectedText?: string; attachmentStoragePath?: string; attachmentFileName?: string; attachmentMediaType?: string; derivedMetadata?: Record<string, string>; validFrom?: string; expiresAt?: string; singleUse?: boolean };
+export type CreateTemporaryCredentialInput = { requestId: string; type: TemporaryAccessCredentialType; protectedText?: string; attachmentStoragePath?: string; attachmentFileName?: string; attachmentMediaType?: string; derivedMetadata?: Record<string, string>; validFrom?: string; expiresAt?: string; singleUse?: boolean; sourceMessageId?: string };
 export type ReviewTemporaryCredentialInput = { decision: 'ACCEPT'|'REJECT'; reason?: string };
 const TYPES = new Set(Object.values(TemporaryAccessCredentialType));
-const projection = { id:true, workOrderId:true, type:true, attachmentFileName:true, attachmentMediaType:true, validFrom:true, expiresAt:true, singleUse:true, revokedAt:true, reviewStatus:true, createdAt:true, updatedAt:true, createdBy:{select:{id:true,firstName:true,lastName:true,displayName:true}}, events:{select:{id:true,type:true,reason:true,createdAt:true,actor:{select:{id:true,firstName:true,lastName:true,displayName:true}}},orderBy:{createdAt:'asc' as const}} };
+const projection = { id:true, workOrderId:true, sourceMessageId:true, type:true, attachmentFileName:true, attachmentMediaType:true, validFrom:true, expiresAt:true, singleUse:true, revokedAt:true, reviewStatus:true, createdAt:true, updatedAt:true, createdBy:{select:{id:true,firstName:true,lastName:true,displayName:true}}, events:{select:{id:true,type:true,reason:true,createdAt:true,actor:{select:{id:true,firstName:true,lastName:true,displayName:true}}},orderBy:{createdAt:'asc' as const}} };
 
 @Injectable()
 export class WorkOrderTemporaryAccessCredentialsService {
@@ -26,7 +26,8 @@ export class WorkOrderTemporaryAccessCredentialsService {
       await this.assertWorkOrder(workOrderId,tx);
       const replay=await tx.workOrderTemporaryAccessCredential.findUnique({where:{requestId:input.requestId},select:projection});
       if(replay){if(replay.workOrderId!==workOrderId)throw new ConflictException('Request identity is already bound to another Work Order.');return replay;}
-      const credential=await tx.workOrderTemporaryAccessCredential.create({data:{workOrderId,type:input.type,secretValue:text?encryptCredential(text):null,attachmentStoragePath:path||null,attachmentFileName:input.attachmentFileName?.trim()||null,attachmentMediaType:input.attachmentMediaType?.trim()||null,derivedMetadata:input.derivedMetadata??undefined,validFrom,expiresAt,singleUse:input.singleUse??false,createdById:actorId,requestId:input.requestId},select:projection});
+      if(input.sourceMessageId&&!await tx.messagingMessage.findFirst({where:{id:input.sourceMessageId,responseRecovery:{workOrderId}},select:{id:true}}))throw new ConflictException('Source message is not linked to this Work Order recovery.');
+      const credential=await tx.workOrderTemporaryAccessCredential.create({data:{workOrderId,type:input.type,secretValue:text?encryptCredential(text):null,attachmentStoragePath:path||null,attachmentFileName:input.attachmentFileName?.trim()||null,attachmentMediaType:input.attachmentMediaType?.trim()||null,derivedMetadata:input.derivedMetadata??undefined,validFrom,expiresAt,singleUse:input.singleUse??false,createdById:actorId,requestId:input.requestId,sourceMessageId:input.sourceMessageId},select:projection});
       await tx.workOrderTemporaryAccessCredentialEvent.create({data:{credentialId:credential.id,type:TemporaryAccessCredentialEventType.CREATED,actorId}});
       await this.readiness(tx,workOrderId,WorkOrderAccessReadiness.NEEDS_REVIEW,actorId);
       return credential;
