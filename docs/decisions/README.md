@@ -41,13 +41,19 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0037: Protect internal Quote review and defer acceptance until atomic conversion](ADR-0037-internal-quote-decision-foundation.md)
 - [ADR-0038: Quote Customer and Property match-or-review](ADR-0038-quote-customer-property-match-resolution.md)
 - [ADR-0039: Convert accepted ONE_TIME Quotes atomically](ADR-0039-atomic-one-time-quote-acceptance.md)
+
 - [ADR-0040: Convert accepted recurring Quotes atomically](ADR-0040-atomic-recurring-quote-acceptance.md)
 - [ADR-0041: Own accepted Quote operational context by lifecycle](ADR-0041-non-lossy-accepted-quote-operational-context.md)
+
 - [ADR-0042: Make Work Order Technician assignments explicit snapshots](ADR-0042-work-order-technician-assignment-snapshots.md)
+
 - [ADR-0043: Crew and Work Order leadership snapshots](ADR-0043-crew-and-job-leadership-snapshots.md)
+
 - [ADR-0044: Homent Technician role-focused offline foundation](ADR-0044-homent-technician-foundation.md)
+
 - [ADR-0045: Freeze versioned Execution Scope and record compressed field outcomes](ADR-0045-frozen-execution-scope-and-field-checklist.md)
 - [ADR-0046: Retain local-first Execution Evidence through authoritative acknowledgement](ADR-0046-local-first-execution-evidence.md)
+
 - [ADR-0047: Reconcile local-first job completion before management acknowledgement](ADR-0047-offline-authoritative-job-completion.md)
 - [ADR-0048: Establish a provider-neutral messaging foundation before live Meta integration](ADR-0048-provider-neutral-messaging-foundation.md)
 - [ADR-0049: Reuse canonical Quote capture and privacy retention for messaging](ADR-0049-reuse-canonical-quote-capture-and-retention.md)
