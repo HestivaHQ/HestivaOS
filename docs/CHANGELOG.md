@@ -1,16 +1,18 @@
 # Changelog
 
-## 2026-08-19 — Frozen-head verification workflow
+## 2026-08-19 — Three-stage development validation
 
 ### Changed
 
-- Adopted a repository-default completion sequence of implementation → focused tests → required documentation/coordination → complete diff audit → exact-head freeze → final CI → merge.
-- Prohibited discretionary or speculative head changes while final required gates are running; a failed gate, review/security finding, materially changed merge base, or maintainer correction explicitly reopens the head for the smallest evidenced fix followed by re-audit and a new full exact-head validation cycle.
-- Recorded the workflow in `AGENTS.md` and `docs/README.md` so new and resumed HestivaOS development chats inherit it automatically.
+- Adopted the repository-default three-stage workflow: proportional high-signal checks during active implementation, final documentation/coordination plus complete-diff reconciliation before freezing the exact head, and strict pre-merge verification after authoritative GitHub CI.
+- Split final PR validation into independent policy/security/diff, API, web/Cloudflare, and PostgreSQL migration jobs while keeping every meaningful final gate mandatory and removing redundant root/standalone compilation already covered by the dedicated jobs and OpenNext production build.
+- Strengthened `scripts/validate_documentation.py` so meaningful implementation diffs must include both `docs/CHANGELOG.md` and `docs/TECHNICAL_WORK_LOG.md` as a minimum automated requirement; the complete `AGENTS.md` documentation matrix remains authoritative.
+- Added ADR-0067 and synchronized repository, architecture, deployment, recovery, and documentation-map guidance. The narrower frozen-head-only proposal developed earlier on this unmerged PR is superseded by the approved three-stage model; exact-head freezing remains the Stage 2 final-validation boundary.
 
 ### Preserved
 
-- Existing documentation, secret-scan, typecheck, build, test, migration-replay, whitespace, mergeability, exact-head, and parallel-PR safety requirements are unchanged; the workflow reduces avoidable reruns without weakening gates.
+- Current-main synchronization, active-PR/global-identifier checks, cross-system coordination, immediate durable recording of material decisions, secret scanning, typecheck/tests/builds, clean and staged PostgreSQL replay, Cloudflare/OpenNext/Wrangler validation, whitespace checks, complete-diff/history review, mergeability, and exact tested-head requirements remain mandatory.
+- Final CI has no changed-file path skipping. No production environment variable, credential, runtime service, database migration, deployment authority, product behavior, or security boundary is changed by this workflow optimization.
 
 ## 2026-08-19 — Recurring automatic resume scheduling
 
@@ -258,7 +260,7 @@
 
 ### Preserved
 
-- Supabase remains the identity authority. Protected-route middleware, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
+- Supabase remains the identity authority. Protected-route middleware authentication, authenticated API token acquisition, local API JWT verification, application-user synchronization and ACTIVE-status enforcement, role authorization, and fail-closed behavior remain unchanged.
 - No API contract, Prisma schema, migration, business workflow, deployment setting, dependency, or production configuration changed.
 
 ## 2026-08-14 — Dashboard operational query slimming
