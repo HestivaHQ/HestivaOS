@@ -53,19 +53,6 @@ export function ShiftsManager() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load shifts.'); }
   }
 
-  async function loadReferenceData() {
-    try {
-      const [crewData, technicianData, workOrderData] = await Promise.all([
-        api.crews('?page=1&pageSize=20&status=ACTIVE'), api.technicians('?page=1&pageSize=20&status=ACTIVE'), api.workOrders('?page=1&pageSize=20'),
-      ]);
-      setCrews(crewData.items);
-      setTechnicians(technicianData.items);
-      setWorkOrders(workOrderData.items);
-      setError('');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load shift reference data.'); }
-  }
-
-  useEffect(() => { void loadReferenceData(); }, []);
   useEffect(() => { void loadShifts(); }, [dateFrom, dateTo]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
