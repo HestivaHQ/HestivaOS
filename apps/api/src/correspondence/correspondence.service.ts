@@ -84,12 +84,14 @@ export class CorrespondenceService {
   }
 
   async retire(templateId: string, versionId: string) {
-    const target = await this.prisma.correspondenceTemplateVersion.findFirst({ where: { id: versionId, templateId } });
-    if (!target) throw new NotFoundException('Correspondence template version not found.');
-    if (target.status !== CorrespondenceTemplateVersionStatus.PUBLISHED) throw new ConflictException('Only a published version can be retired.');
-    return this.prisma.correspondenceTemplateVersion.update({
-      where: { id: target.id },
-      data: { status: CorrespondenceTemplateVersionStatus.RETIRED, retiredAt: new Date() },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const target = await tx.correspondenceTemplateVersion.findFirst({ where: { id: versionId, templateId } });
+      if (!target) throw new NotFoundException('Correspondence template version not found.');
+      if (target.status !== CorrespondenceTemplateVersionStatus.PUBLISHED) throw new ConflictException('Only a published version can be retired.');
+      return tx.correspondenceTemplateVersion.update({
+        where: { id: target.id },
+        data: { status: CorrespondenceTemplateVersionStatus.RETIRED, retiredAt: new Date() },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 }
