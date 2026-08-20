@@ -5,6 +5,22 @@ import { PrismaService } from '../prisma.service';
 export type MaterializeWorkOrderEventInput = { templateVersionId: string };
 export type MaterializeWorkOrderCompletionInput = MaterializeWorkOrderEventInput;
 export type MaterializeWorkOrderBookingInput = MaterializeWorkOrderEventInput;
+export type MaterializeWorkOrderMaterialChangeInput = MaterializeWorkOrderEventInput;
+
+type MaterialChangeRow = {
+  operation_id: string;
+  work_order_id: string;
+  actor_id: string;
+  stage: string;
+  reason: string | null;
+  override_reason: string | null;
+  previous_snapshot: Prisma.JsonValue;
+  requested_changes: Prisma.JsonValue;
+  consequences: Prisma.JsonValue;
+  created_at: Date;
+};
+
+type MaterialChangeEventType = 'RESCHEDULED' | 'CANCELLED';
 
 function actorSnapshot(actor: User): Prisma.InputJsonObject {
   return {
@@ -112,6 +128,130 @@ export class CorrespondenceWorkOrderEventsService {
               recurrenceDate: workOrder.recurrenceDate?.toISOString() ?? null,
               preferredTimeWindow: workOrder.preferredTimeWindow ?? null,
               frequency: workOrder.frequency ?? null,
+            },
+            materializedBy: actorSnapshot(actor),
+          },
+        },
+        include: { templateVersion: { include: { template: true } } },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  async materializeReschedule(
+    actor: User,
+    workOrderId: string,
+    operationId: string,
+    input: MaterializeWorkOrderMaterialChangeInput,
+  ) {
+    return this.materializeMaterialChange(actor, workOrderId, operationId, 'RESCHEDULED', input);
+  }
+
+  async materializeCancellation(
+    actor: User,
+    workOrderId: string,
+    operationId: string,
+    input: MaterializeWorkOrderMaterialChangeInput,
+  ) {
+    return this.materializeMaterialChange(actor, workOrderId, operationId, 'CANCELLED', input);
+  }
+
+  private async materializeMaterialChange(
+    actor: User,
+    workOrderId: string,
+    operationId: string,
+    expectedEventType: MaterialChangeEventType,
+    input: MaterializeWorkOrderMaterialChangeInput,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const changes = await tx.$queryRaw<MaterialChangeRow[]>(Prisma.sql`
+        SELECT operation_id, work_order_id, actor_id, stage, reason, override_reason,
+               previous_snapshot, requested_changes, consequences, created_at
+        FROM work_order_material_changes
+        WHERE operation_id = CAST(${operationId} AS UUID)
+          AND work_order_id = CAST(${workOrderId} AS UUID)
+        LIMIT 1
+      `);
+      const change = changes[0];
+      if (!change) throw new NotFoundException('Authoritative Work Order material change not found.');
+
+      const requested = change.requested_changes as Prisma.JsonObject;
+      const requestedStatus = requested.status;
+      const hasScheduledAt = Object.prototype.hasOwnProperty.call(requested, 'scheduledAt');
+      const actualEventType: MaterialChangeEventType | null =
+        requestedStatus === WorkOrderStatus.CANCELLED ? 'CANCELLED' : hasScheduledAt ? 'RESCHEDULED' : null;
+      if (actualEventType !== expectedEventType) {
+        throw new ConflictException(
+          expectedEventType === 'CANCELLED'
+            ? 'Material change is not an authoritative Work Order cancellation.'
+            : 'Material change is not an authoritative Work Order reschedule.',
+        );
+      }
+
+      const sourceEventKey = `work_order.material_change.${actualEventType.toLowerCase()}.v1:${change.operation_id}`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`correspondence:${sourceEventKey}`}, 0))`;
+
+      const existing = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM correspondence_records
+        WHERE provenance -> 'eventIntegration' ->> 'sourceEventKey' = ${sourceEventKey}
+        LIMIT 1
+      `;
+      if (existing[0]) {
+        return tx.correspondenceRecord.findUniqueOrThrow({
+          where: { id: existing[0].id },
+          include: { templateVersion: { include: { template: true } } },
+        });
+      }
+
+      const workOrder = await tx.workOrder.findUnique({
+        where: { id: workOrderId },
+        select: {
+          id: true,
+          reference: true,
+          customer: { select: { id: true, name: true, contactName: true, email: true, phone: true } },
+        },
+      });
+      if (!workOrder) throw new NotFoundException('Work Order not found.');
+
+      const version = await tx.correspondenceTemplateVersion.findUnique({
+        where: { id: input.templateVersionId },
+        include: { template: true },
+      });
+      if (!version) throw new NotFoundException('Correspondence template version not found.');
+      if (version.status !== CorrespondenceTemplateVersionStatus.PUBLISHED) {
+        throw new ConflictException('Only a published correspondence template version can be materialized.');
+      }
+
+      return tx.correspondenceRecord.create({
+        data: {
+          templateVersionId: version.id,
+          templateKeySnapshot: version.template.key,
+          templateVersionNumber: version.version,
+          subject: version.subject,
+          body: version.body,
+          recipientSnapshot: {
+            customerId: workOrder.customer.id,
+            name: workOrder.customer.name,
+            contactName: workOrder.customer.contactName ?? null,
+            email: workOrder.customer.email ?? null,
+            phone: workOrder.customer.phone ?? null,
+          },
+          provenance: {
+            eventIntegration: {
+              sourceEventKey,
+              sourceDomain: 'WORK_ORDER_MATERIAL_CHANGE',
+              eventType: actualEventType === 'CANCELLED' ? 'WORK_ORDER_CANCELLED' : 'WORK_ORDER_RESCHEDULED',
+              operationId: change.operation_id,
+              workOrderId: change.work_order_id,
+              workOrderReference: workOrder.reference ?? null,
+              changedByUserId: change.actor_id,
+              stage: change.stage,
+              committedAt: change.created_at.toISOString(),
+              reason: change.reason,
+              overrideReason: change.override_reason,
+              previousSnapshot: change.previous_snapshot,
+              requestedChanges: change.requested_changes,
+              consequences: change.consequences,
             },
             materializedBy: actorSnapshot(actor),
           },
