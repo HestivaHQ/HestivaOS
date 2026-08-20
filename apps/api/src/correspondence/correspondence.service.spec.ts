@@ -1,4 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CorrespondenceTemplateVersionStatus } from '@prisma/client';
 import { CorrespondenceService } from './correspondence.service';
 
@@ -11,7 +12,7 @@ describe('CorrespondenceService', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('normalizes the stable machine key before persistence', async () => {
-    createTemplate.mockResolvedValue({ id: 'template-1' });
+    createTemplate.mockResolvedValue({ id: 'template-1' } as never);
 
     await service.create({ key: ' Booking Confirmation ', name: 'Booking confirmation', body: 'Hello' });
 
@@ -22,9 +23,9 @@ describe('CorrespondenceService', () => {
 
   it('rejects a second draft for the same template', async () => {
     const tx = {
-      correspondenceTemplate: { findUnique: jest.fn().mockResolvedValue({ id: 'template-1' }) },
+      correspondenceTemplate: { findUnique: jest.fn().mockResolvedValue({ id: 'template-1' } as never) },
       correspondenceTemplateVersion: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'draft-1', status: CorrespondenceTemplateVersionStatus.DRAFT }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'draft-1', status: CorrespondenceTemplateVersionStatus.DRAFT } as never),
       },
     };
     transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
@@ -36,9 +37,9 @@ describe('CorrespondenceService', () => {
     const published = { id: 'draft-2', status: CorrespondenceTemplateVersionStatus.PUBLISHED };
     const tx = {
       correspondenceTemplateVersion: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'draft-2', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.DRAFT }),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        update: jest.fn().mockResolvedValue(published),
+        findFirst: jest.fn().mockResolvedValue({ id: 'draft-2', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.DRAFT } as never),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 } as never),
+        update: jest.fn().mockResolvedValue(published as never),
       },
     };
     transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
@@ -58,8 +59,8 @@ describe('CorrespondenceService', () => {
     const retired = { id: 'version-1', status: CorrespondenceTemplateVersionStatus.RETIRED };
     const tx = {
       correspondenceTemplateVersion: {
-        findFirst: jest.fn().mockResolvedValue({ id: 'version-1', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.PUBLISHED }),
-        update: jest.fn().mockResolvedValue(retired),
+        findFirst: jest.fn().mockResolvedValue({ id: 'version-1', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.PUBLISHED } as never),
+        update: jest.fn().mockResolvedValue(retired as never),
       },
     };
     transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
@@ -73,7 +74,7 @@ describe('CorrespondenceService', () => {
   });
 
   it('does not publish a missing version', async () => {
-    const tx = { correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue(null) } };
+    const tx = { correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue(null as never) } };
     transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
 
     await expect(service.publish('template-1', 'missing')).rejects.toBeInstanceOf(NotFoundException);
