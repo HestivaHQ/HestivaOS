@@ -71,7 +71,7 @@ describe('CorrespondenceWorkOrderEventsService', () => {
   });
 
   it('returns the existing record when the same source event is materialized again', async () => {
-    tx.$queryRaw.mockResolvedValueOnce([{ id: 'existing-record' }]);
+    tx.$queryRaw.mockResolvedValueOnce([{ id: 'existing-record' }] as never);
     tx.correspondenceRecord.findUniqueOrThrow.mockResolvedValueOnce({ id: 'existing-record' } as never);
     const result: any = await service.materializeCompletion(actor, 'work-order-1', { templateVersionId: 'version-1' });
     expect(result.id).toBe('existing-record');
