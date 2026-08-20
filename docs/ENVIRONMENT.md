@@ -35,6 +35,15 @@ The public webhook route is `/api/v1/messaging/webhooks/whatsapp`. It intentiona
 
 WhatsApp outbound is registered only when the access token, phone-number ID and explicit Graph API version are all present. Each outbound text send carries the durable HestivaOS idempotency key as Meta `biz_opaque_callback_data`, and authenticated provider status webhooks reconcile ambiguous send outcomes before another provider call is allowed. Network failures, provider 5xx responses and malformed success responses are not treated as safe-to-retry failures. If no resolving provider status arrives, HestivaOS remains fail-closed rather than blindly resending.
 
+### Messenger Platform receive-only runtime
+
+The first Messenger provider edge is receive-only and uses the existing Meta app-secret authenticity boundary.
+
+- `META_MESSENGER_WEBHOOK_VERIFY_TOKEN` — private random value chosen by Homent and configured identically in the Meta Page webhook subscription and Railway API runtime. It is used only for the GET subscription challenge.
+- `META_APP_SECRET` — shared Meta app secret used to validate the Messenger POST `X-Hub-Signature-256` HMAC over the exact raw request bytes.
+
+The public webhook route is `/api/v1/messaging/webhooks/messenger`. Messenger outbound remains disabled in this slice, so no Page access token is required by the current HestivaOS runtime. Do not add a Page token until the outbound permission/window and duplicate-safe retry boundary has been separately reviewed. Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET` for Messenger.
+
 ## Cloudflare Worker runtime
 
 - `API_URL`
