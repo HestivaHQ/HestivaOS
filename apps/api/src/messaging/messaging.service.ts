@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind, MessagingMessagePurpose, Prisma, WorkOrderAccessRecoveryStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import type { NormalizedInboundMessagingEvent, OutboundMessagingCommand, OutboundMessagingResult } from './messaging-contract';
@@ -6,6 +6,8 @@ import { MessagingAdapterRegistry } from './messaging-adapter-registry';
 import { buildMessagingProviderEventKey } from './messaging-idempotency';
 import { MessagingProviderOutcomeUnknownError } from './messaging-provider-adapter';
 import type { NormalizedWhatsAppStatusEvent } from './whatsapp-cloud-api.adapter';
+
+const MESSENGER_STANDARD_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export class MessagingOutcomePendingReconciliationError extends Error {
   constructor() {
@@ -23,13 +25,39 @@ function inboundMetadata(event: NormalizedInboundMessagingEvent): Prisma.InputJs
   return envelope;
 }
 
+function isMetaMessenger(channel: string, provider: string): boolean {
+  return channel === 'MESSENGER' && provider.trim().toLowerCase() === 'meta';
+}
+
 @Injectable()
 export class MessagingService {
   constructor(private readonly prisma: PrismaService, private readonly adapters: MessagingAdapterRegistry) {}
 
   async availableCustomerConversations(customerId: string) {
-    const rows = await this.prisma.messagingConversation.findMany({ where: { customerId }, orderBy: { updatedAt: 'desc' }, select: { id: true, channel: true, provider: true, providerIdentityId: true } });
-    return rows.filter((row) => this.adapters.get(row.channel, row.provider)).map(({ providerIdentityId: _private, ...safe }) => safe);
+    const rows = await this.prisma.messagingConversation.findMany({
+      where: { customerId },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        channel: true,
+        provider: true,
+        providerIdentityId: true,
+        messages: {
+          where: { direction: MessagingDirection.INBOUND },
+          orderBy: { occurredAt: 'desc' },
+          take: 1,
+          select: { occurredAt: true },
+        },
+      },
+    });
+    const cutoff = Date.now() - MESSENGER_STANDARD_WINDOW_MS;
+    return rows
+      .filter((row) => {
+        if (!this.adapters.get(row.channel, row.provider)) return false;
+        if (!isMetaMessenger(row.channel, row.provider)) return true;
+        return !!row.messages[0] && row.messages[0].occurredAt.getTime() >= cutoff;
+      })
+      .map(({ providerIdentityId: _private, messages: _messages, ...safe }) => safe);
   }
 
   async send(command: OutboundMessagingCommand): Promise<OutboundMessagingResult> {
@@ -37,6 +65,18 @@ export class MessagingService {
     if (!adapter) throw new Error('The selected messaging channel is not currently configured.');
     const message = await this.prisma.messagingMessage.findUnique({ where: { idempotencyKey: command.idempotencyKey }, include: { statusEvents: { orderBy: { createdAt: 'asc' } } } });
     if (!message) throw new Error('Outbound messaging requires a durable local message before provider delivery.');
+    if (message.conversationId !== command.conversationId) throw new ConflictException('Outbound messaging command does not match the durable conversation.');
+
+    if (isMetaMessenger(command.channel, command.provider)) {
+      const latestInbound = await this.prisma.messagingMessage.findFirst({
+        where: { conversationId: command.conversationId, direction: MessagingDirection.INBOUND },
+        orderBy: { occurredAt: 'desc' },
+        select: { occurredAt: true },
+      });
+      if (!latestInbound || latestInbound.occurredAt.getTime() < Date.now() - MESSENGER_STANDARD_WINDOW_MS) {
+        throw new ConflictException('Messenger replies are allowed only within 24 hours of the customer\'s latest message.');
+      }
+    }
 
     const accepted = [...message.statusEvents].reverse().find((event) => event.status === MessagingDeliveryStatus.ACCEPTED && event.providerMessageId);
     if (accepted?.providerMessageId) return { providerMessageId: accepted.providerMessageId, acceptedAt: accepted.createdAt.toISOString() };
