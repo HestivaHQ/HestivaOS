@@ -1,5 +1,15 @@
 # Deployment
 
+## 2026-08-20 Messenger guarded outbound replies
+
+Deploy the API revision only after the existing Messenger inbound webhook is healthy and the Page/app has the current Meta access required for customer messaging. Configure API-only `META_MESSENGER_PAGE_ACCESS_TOKEN`, `META_MESSENGER_PAGE_ID`, and the already reviewed explicit `META_GRAPH_API_VERSION` in Railway. The Page access token must belong to the intended Page/app configuration with the required Messenger permission such as `pages_messaging`; do not expose the token to Cloudflare/browser code and do not infer provider approval merely because a token value exists.
+
+Outbound v1 is deliberately limited to `messaging_type=RESPONSE` text replies. Before every provider call HestivaOS requires the same durable Messenger conversation to contain a customer inbound message from the preceding 24 hours. A conversation outside that window is not offered as an outbound channel. Message tags, sponsored messaging, marketing, and other out-of-window exceptions are not enabled.
+
+After deployment, require `/api/v1/ready` to remain healthy, confirm Messenger inbound verification still succeeds, then use a disposable customer/test profile that has messaged the Page within the last 24 hours. Trigger one authorized HestivaOS reply and require exactly one Meta provider message ID/accepted local state. Verify a fixture/conversation whose latest inbound message is older than 24 hours is not offered for sending and fails before a provider request. Do not deliberately create provider ambiguity in production; if a network/provider 5xx or malformed success response occurs naturally, leave the durable message pending reconciliation and do not resend it manually with a new identity.
+
+No database migration is introduced. To disable Messenger outbound without disabling inbound receipt, remove `META_MESSENGER_PAGE_ACCESS_TOKEN` or `META_MESSENGER_PAGE_ID` from Railway and restart/redeploy the API; the adapter will stop registering as an outbound transport while webhook verification continues through `META_APP_SECRET` and `META_MESSENGER_WEBHOOK_VERIFY_TOKEN`. A full application rollback may deploy the prior API revision. See `MESSENGER_PROVIDER_EDGE_V1.md` and ADR-0082.
+
 ## 2026-08-20 Messenger receive-only provider edge
 
 Deploy the API revision after configuring the API-only `META_MESSENGER_WEBHOOK_VERIFY_TOKEN` in Railway and the identical verify token in the Meta Page webhook subscription. The existing `META_APP_SECRET` remains the raw-body `X-Hub-Signature-256` verification key. Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`, and do not expose either value to Cloudflare/browser code.
@@ -223,7 +233,7 @@ Deploy additive migration `20260812120000_property_operational_profile` before t
 
 ## Slice 5K service availability rollout
 
-Migration `20260810233000_service_availability_and_addon_reconciliation` now only adds `ServiceType.BOTH`; consecutive migration `20260810233100_service_availability_and_addon_data` uses the committed value, updates Interior Window Cleaning and Laundry Folding by normalized name, and inserts six fixed add-on records with `ON CONFLICT DO NOTHING`. It creates no scope structures or Work Order rows. Production has a failed record for the first name from PR #69, so do not run a routine Railway redeploy until the read-only checks and controlled `migrate resolve` procedure in the recovery guide are complete.
+Migration `20260810233000_service_availability_and_addon_reconciliation` now only adds `ServiceType.BOTH`; consecutive migration `20260810233100_service_availability_and_addon_data` uses the committed value, updates Interior Window Cleaning and Laundry Folding by normalized name, and inserts six fixed-ID add-on records with `ON CONFLICT DO NOTHING`. It creates no scope structures or Work Order rows. Production has a failed record for the first name from PR #69, so do not run a routine Railway redeploy until the read-only checks and controlled `migrate resolve` procedure in the recovery guide are complete.
 
 ## 2026-08-10 Property vocabulary migration
 
