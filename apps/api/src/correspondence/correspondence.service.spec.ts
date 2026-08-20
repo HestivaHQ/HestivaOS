@@ -3,13 +3,17 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CorrespondenceTemplateVersionStatus } from '@prisma/client';
 import { CorrespondenceService } from './correspondence.service';
 
+type TransactionCallback = (client: any) => unknown;
+
 describe('CorrespondenceService', () => {
-  const transaction = jest.fn();
+  const transaction = jest.fn<(callback: TransactionCallback) => unknown>();
   const createTemplate = jest.fn();
   const prisma = { $transaction: transaction, correspondenceTemplate: { create: createTemplate } } as any;
   const service = new CorrespondenceService(prisma);
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it('normalizes the stable machine key before persistence', async () => {
     createTemplate.mockResolvedValue({ id: 'template-1' } as never);
@@ -28,7 +32,7 @@ describe('CorrespondenceService', () => {
         findFirst: jest.fn().mockResolvedValue({ id: 'draft-1', status: CorrespondenceTemplateVersionStatus.DRAFT } as never),
       },
     };
-    transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+    transaction.mockImplementation((callback) => callback(tx));
 
     await expect(service.createVersion('template-1', { body: 'Next version' })).rejects.toBeInstanceOf(ConflictException);
   });
@@ -42,7 +46,7 @@ describe('CorrespondenceService', () => {
         update: jest.fn().mockResolvedValue(published as never),
       },
     };
-    transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+    transaction.mockImplementation((callback) => callback(tx));
 
     await expect(service.publish('template-1', 'draft-2')).resolves.toEqual(published);
     expect(tx.correspondenceTemplateVersion.updateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -63,7 +67,7 @@ describe('CorrespondenceService', () => {
         update: jest.fn().mockResolvedValue(retired as never),
       },
     };
-    transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+    transaction.mockImplementation((callback) => callback(tx));
 
     await expect(service.retire('template-1', 'version-1')).resolves.toEqual(retired);
     expect(transaction).toHaveBeenCalledTimes(1);
@@ -75,7 +79,7 @@ describe('CorrespondenceService', () => {
 
   it('does not publish a missing version', async () => {
     const tx = { correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue(null as never) } };
-    transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+    transaction.mockImplementation((callback) => callback(tx));
 
     await expect(service.publish('template-1', 'missing')).rejects.toBeInstanceOf(NotFoundException);
   });
