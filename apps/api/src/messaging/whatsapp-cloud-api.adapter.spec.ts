@@ -1,4 +1,4 @@
-import { BadGatewayException, UnauthorizedException } from '@nestjs/common';
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
@@ -51,13 +51,11 @@ function payload() {
 }
 
 describe('WhatsAppCloudApiAdapter', () => {
-  const registry = { register: jest.fn() };
   let adapter: WhatsAppCloudApiAdapter;
 
   beforeEach(() => {
     for (const name of ENV_NAMES) delete process.env[name];
-    registry.register.mockClear();
-    adapter = new WhatsAppCloudApiAdapter(registry as any);
+    adapter = new WhatsAppCloudApiAdapter();
   });
 
   afterEach(() => {
@@ -115,29 +113,13 @@ describe('WhatsAppCloudApiAdapter', () => {
     }));
   });
 
-  it('does not register outbound availability until transport configuration is complete', () => {
-    process.env.META_APP_SECRET = 'app-secret';
-    process.env.META_WHATSAPP_WEBHOOK_VERIFY_TOKEN = 'verify-me';
-    adapter.onModuleInit();
-    expect(registry.register).not.toHaveBeenCalled();
-
+  it('keeps outbound transport disabled even when Meta send credentials are present', async () => {
     process.env.META_WHATSAPP_ACCESS_TOKEN = 'access-token';
     process.env.META_WHATSAPP_PHONE_NUMBER_ID = 'phone-number-1';
     process.env.META_GRAPH_API_VERSION = 'vXX.X';
-    adapter.onModuleInit();
-    expect(registry.register).toHaveBeenCalledWith(adapter);
-  });
+    const fetchMock = jest.spyOn(global, 'fetch');
 
-  it('sends an authorized text command through the configured Graph endpoint', async () => {
-    process.env.META_WHATSAPP_ACCESS_TOKEN = 'access-token';
-    process.env.META_WHATSAPP_PHONE_NUMBER_ID = 'phone-number-1';
-    process.env.META_GRAPH_API_VERSION = 'vXX.X';
-    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(new Response(
-      JSON.stringify({ messages: [{ id: 'wamid.outbound-1' }] }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ));
-
-    const result = await adapter.send({
+    await expect(adapter.send({
       channel: 'WHATSAPP',
       provider: 'meta',
       providerIdentityId: '27821234567',
@@ -145,34 +127,8 @@ describe('WhatsAppCloudApiAdapter', () => {
       idempotencyKey: 'outbound-1',
       kind: 'TEXT',
       text: 'Hello',
-    });
+    })).rejects.toBeInstanceOf(ServiceUnavailableException);
 
-    expect(result.providerMessageId).toBe('wamid.outbound-1');
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://graph.facebook.com/vXX.X/phone-number-1/messages',
-      expect.objectContaining({ method: 'POST' }),
-    );
-    const request = fetchMock.mock.calls[0][1] as RequestInit;
-    expect(request.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer access-token' }));
-    expect(JSON.parse(request.body as string)).toEqual(expect.objectContaining({
-      messaging_product: 'whatsapp',
-      to: '27821234567',
-      type: 'text',
-    }));
-  });
-
-  it('does not expose Meta error bodies when outbound delivery fails', async () => {
-    process.env.META_WHATSAPP_ACCESS_TOKEN = 'access-token';
-    process.env.META_WHATSAPP_PHONE_NUMBER_ID = 'phone-number-1';
-    process.env.META_GRAPH_API_VERSION = 'vXX.X';
-    jest.spyOn(global, 'fetch').mockResolvedValue(new Response(
-      JSON.stringify({ error: { message: 'sensitive provider detail' } }),
-      { status: 400 },
-    ));
-
-    await expect(adapter.send({
-      channel: 'WHATSAPP', provider: 'meta', providerIdentityId: '27821234567',
-      conversationId: 'conversation-1', idempotencyKey: 'outbound-1', kind: 'TEXT', text: 'Hello',
-    })).rejects.toBeInstanceOf(BadGatewayException);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
