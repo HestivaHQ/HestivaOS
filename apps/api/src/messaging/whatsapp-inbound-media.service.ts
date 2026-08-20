@@ -5,7 +5,8 @@ import { PrismaService } from '../prisma.service';
 import type { NormalizedInboundMessagingEvent } from './messaging-contract';
 
 const PROVIDER = 'meta';
-const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
+const MEDIA_BUCKET = 'messaging-media';
+const MAX_BYTES = 20 * 1024 * 1024;
 
 type ExistingAsset = { id: string; status: string; storage_path: string | null };
 type MetaMediaMetadata = {
@@ -23,10 +24,6 @@ function env(name: string): string | undefined {
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
-function maxBytes(): number {
-  const configured = Number(env('META_WHATSAPP_INBOUND_MEDIA_MAX_BYTES'));
-  return Number.isSafeInteger(configured) && configured > 0 ? configured : DEFAULT_MAX_BYTES;
-}
 function safeFailure(error: unknown): string {
   if (error instanceof UnprocessableEntityException) return error.message.slice(0, 240);
   if (error instanceof Error) return error.name.slice(0, 120);
@@ -36,12 +33,10 @@ function safeFailure(error: unknown): string {
 @Injectable()
 export class WhatsAppInboundMediaService {
   private readonly storage: SupabaseClient | null;
-  private readonly bucket: string;
 
   constructor(private readonly prisma: PrismaService) {
     const url = env('SUPABASE_URL');
     const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
-    this.bucket = env('SUPABASE_MESSAGING_MEDIA_BUCKET') || 'messaging-media';
     this.storage = url && serviceRoleKey
       ? createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
       : null;
@@ -115,8 +110,8 @@ export class WhatsAppInboundMediaService {
     }
     const parsedUrl = new URL(downloadUrl);
     if (parsedUrl.protocol !== 'https:') throw new UnprocessableEntityException('WhatsApp media download URL is not HTTPS.');
-    if (!Number.isSafeInteger(providerFileSize) || providerFileSize < 0 || providerFileSize > maxBytes()) {
-      throw new UnprocessableEntityException('WhatsApp media exceeds the configured inbound size limit.');
+    if (!Number.isSafeInteger(providerFileSize) || providerFileSize < 0 || providerFileSize > MAX_BYTES) {
+      throw new UnprocessableEntityException('WhatsApp media exceeds the 20 MB inbound size limit.');
     }
 
     const downloadResponse = await fetch(downloadUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
@@ -127,7 +122,7 @@ export class WhatsAppInboundMediaService {
     }
 
     const bytes = Buffer.from(await downloadResponse.arrayBuffer());
-    if (bytes.length !== providerFileSize || bytes.length > maxBytes()) {
+    if (bytes.length !== providerFileSize || bytes.length > MAX_BYTES) {
       throw new UnprocessableEntityException('WhatsApp media byte length does not match provider metadata.');
     }
     if (providerSha256 && createHash('sha256').update(bytes).digest('hex') !== providerSha256.toLowerCase()) {
@@ -135,7 +130,7 @@ export class WhatsAppInboundMediaService {
     }
 
     const storagePath = `whatsapp/${messageId}/${providerMediaId}`;
-    const { error } = await this.storage!.storage.from(this.bucket).upload(storagePath, bytes, {
+    const { error } = await this.storage!.storage.from(MEDIA_BUCKET).upload(storagePath, bytes, {
       contentType: mimeType,
       upsert: true,
     });
