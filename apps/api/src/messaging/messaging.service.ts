@@ -53,7 +53,9 @@ export class MessagingService {
         const raced = await this.prisma.messagingMessageStatusEvent.findFirst({ where: { messageId: message.id, status: MessagingDeliveryStatus.ACCEPTED, providerMessageId: { not: null } }, orderBy: { createdAt: 'desc' } });
         if (raced?.providerMessageId) return { providerMessageId: raced.providerMessageId, acceptedAt: raced.createdAt.toISOString() };
         const pendingNow = await this.prisma.messagingMessageStatusEvent.count({ where: { messageId: message.id, status: MessagingDeliveryStatus.PENDING } });
-        if (pendingNow < 2) await this.appendStatus(message.id, MessagingDeliveryStatus.PENDING);
+        if (pendingNow < 2) {
+          await this.prisma.messagingMessageStatusEvent.create({ data: { messageId: message.id, status: MessagingDeliveryStatus.PENDING } });
+        }
         throw new MessagingOutcomePendingReconciliationError();
       }
       await this.appendStatus(message.id, MessagingDeliveryStatus.FAILED);
