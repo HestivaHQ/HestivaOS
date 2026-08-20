@@ -1,5 +1,13 @@
 # Deployment
 
+## 2026-08-20 WhatsApp inbound media storage
+
+Deploy additive migration `20260820191500_whatsapp_inbound_media_assets` through the normal Railway `npm run deploy:api` path before enabling inbound WhatsApp media handling. Before the matching API revision receives media traffic, create a **private** Supabase Storage bucket named `messaging-media`. Do not make that bucket public and do not expose `SUPABASE_SERVICE_ROLE_KEY` to Cloudflare/browser code.
+
+The runtime reuses existing API-only `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `META_WHATSAPP_ACCESS_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, and `META_GRAPH_API_VERSION`; no new environment variable is introduced. Authenticated inbound media is persisted first as immutable messaging history, then retrieved from Meta and secured in the private bucket under a deterministic message/media path. Provider-declared media above the fixed 20 MB v1 limit fails closed.
+
+After deployment, verify the migration completed, `/api/v1/ready` remains healthy, the bucket is private, and one disposable inbound WhatsApp image under 20 MB produces one immutable message plus one `STORED` row in `messaging_media_assets`. Replay the same webhook/provider event and require no second logical message or asset. Application rollback should retain the additive media table and private objects; a prior API can ignore them. See `WHATSAPP_INBOUND_MEDIA_STORAGE_V1.md` and ADR-0081.
+
 ## 2026-08-19 administrative access-audit migration
 
 Deploy additive migration `20260819230000_admin_access_audit_history` through the normal Railway `npm run deploy:api` path before the API revision that writes or reads administrative access-audit history. The migration creates only the `user_access_changes` table and its indexes. It does not rewrite existing User records or require any new runtime configuration.
