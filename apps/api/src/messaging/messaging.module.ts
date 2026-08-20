@@ -1,5 +1,4 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import { MessagingAdapterRegistry } from './messaging-adapter-registry';
 import { MessagingAdminReplyController } from './messaging-admin-reply.controller';
 import { MessagingAdminReplyService } from './messaging-admin-reply.service';
@@ -15,7 +14,7 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 @Global()
 @Module({
   controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController],
-  providers: [PrismaService, MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
+  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
   exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService],
 })
 export class MessagingModule {}
