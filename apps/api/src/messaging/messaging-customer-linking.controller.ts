@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Put } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Put } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../users/roles.decorator';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
@@ -20,7 +20,7 @@ export class MessagingCustomerLinkingController {
     @Param('conversationId', new ParseUUIDPipe()) conversationId: string,
     @Body() input: { customerId?: string },
   ) {
-    if (!input.customerId) throw new Error('customerId is required.');
+    if (!input.customerId) throw new BadRequestException('customerId is required.');
     return this.linking.link(conversationId, input.customerId);
   }
 }
