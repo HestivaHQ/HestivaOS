@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-20 — Messenger outbound standard-window safety
+
+### Added
+
+- Enabled configured Facebook Page text replies through the existing Messenger adapter only when a Page access token, Page ID, and explicit Graph API version are present.
+- Enforced the standard 24-hour response window from the latest inbound message in the same durable conversation and hid expired Messenger conversations from outbound availability.
+- Added focused tests and ADR-0082 for Page-config activation, `messaging_type=RESPONSE`, reply-window enforcement, and ambiguous provider outcomes.
+
+### Security and preserved behavior
+
+- Network failures, provider 5xx responses, and malformed success responses are treated as unknown outcomes and block another provider call for the same durable message rather than risking a duplicate customer send.
+- Messenger v1 remains text-response-only. No message tags, sponsored/out-of-window messaging, media outbound, Customer auto-linking, Quote automation, human takeover, AI, Finance, or Website behavior is enabled.
+- Inbound signature verification and PSID-as-provider-identity boundaries remain unchanged.
+
 ## 2026-08-20 — Messenger receive-only provider edge
 
 ### Added
@@ -526,7 +540,7 @@
 
 ### Security
 
-- Enforced Admin Settings authorization from the server-rendered route against the synchronized application User role; only `ADMIN` is accepted. Supabase Auth remains credential authority and no password is stored in the application database.
+- Enforced Admin Settings authorization from the server-rendered route against the synchronized authenticated User role; only `ADMIN` is accepted. Supabase Auth remains credential authority and no password is stored in the application database.
 
 ### Known issues
 
@@ -768,7 +782,7 @@ Notable engineering and operational changes are recorded manually here. Add new 
 - Reorganized Work Order creation into job, Property snapshot, visit instructions, and assignment concepts; retained Customer/Property continuation, automatic immutable reference generation, structured labels, and existing operational assignment/scheduling fields.
 - Deferred persistent Property quote fields to Slice 5J, catalogue/scope reconciliation to 5K, recurring agreements to 5L, and website handoff to 5M.
 
-## 2026-08-10 — Product Slice 5J — Property operational profile
+## 2026-08-10 — Slice 5J — Property operational profile
 
 - Added nullable, controlled bedrooms, bathrooms, living-area, and storey facts plus lean persistent access, logistics, pet, camera, off-limits, fragile-care, product-restriction, and operational allergy fields to Property without backfilling historical data.
 - Restructured Property create/edit into progressive Identity, Address, Home Profile, Access & Logistics, and Household & Care sections while retaining dormant Province compatibility and the managed Property Type relationship.
