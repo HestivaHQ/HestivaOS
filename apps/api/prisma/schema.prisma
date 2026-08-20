@@ -1601,3 +1601,39 @@ model UserAccessChange {
   @@index([actorUserId, createdAt])
   @@map("user_access_changes")
 }
+
+enum CorrespondenceTemplateVersionStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+model CorrespondenceTemplate {
+  id String @id @default(uuid()) @db.Uuid
+  key String @unique
+  name String
+  versions CorrespondenceTemplateVersion[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@map("correspondence_templates")
+}
+
+model CorrespondenceTemplateVersion {
+  id String @id @default(uuid()) @db.Uuid
+  templateId String @map("template_id") @db.Uuid
+  version Int
+  status CorrespondenceTemplateVersionStatus @default(DRAFT)
+  subject String?
+  body String
+  publishedAt DateTime? @map("published_at")
+  retiredAt DateTime? @map("retired_at")
+  template CorrespondenceTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([templateId, version])
+  @@index([templateId, status])
+  @@map("correspondence_template_versions")
+}

@@ -1,0 +1,86 @@
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { CorrespondenceTemplateVersionStatus } from '@prisma/client';
+import { CorrespondenceService } from './correspondence.service';
+
+type TransactionCallback = (client: any) => unknown;
+
+describe('CorrespondenceService', () => {
+  const transaction = jest.fn<(callback: TransactionCallback) => unknown>();
+  const createTemplate = jest.fn();
+  const prisma = { $transaction: transaction, correspondenceTemplate: { create: createTemplate } } as any;
+  const service = new CorrespondenceService(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('normalizes the stable machine key before persistence', async () => {
+    createTemplate.mockResolvedValue({ id: 'template-1' } as never);
+
+    await service.create({ key: ' Booking Confirmation ', name: 'Booking confirmation', body: 'Hello' });
+
+    expect(createTemplate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ key: 'booking_confirmation' }),
+    }));
+  });
+
+  it('rejects a second draft for the same template', async () => {
+    const tx = {
+      correspondenceTemplate: { findUnique: jest.fn().mockResolvedValue({ id: 'template-1' } as never) },
+      correspondenceTemplateVersion: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'draft-1', status: CorrespondenceTemplateVersionStatus.DRAFT } as never),
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.createVersion('template-1', { body: 'Next version' })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('publishes a draft while retiring the previously published version atomically', async () => {
+    const published = { id: 'draft-2', status: CorrespondenceTemplateVersionStatus.PUBLISHED };
+    const tx = {
+      correspondenceTemplateVersion: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'draft-2', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.DRAFT } as never),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 } as never),
+        update: jest.fn().mockResolvedValue(published as never),
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.publish('template-1', 'draft-2')).resolves.toEqual(published);
+    expect(tx.correspondenceTemplateVersion.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.PUBLISHED },
+      data: expect.objectContaining({ status: CorrespondenceTemplateVersionStatus.RETIRED }),
+    }));
+    expect(tx.correspondenceTemplateVersion.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'draft-2' },
+      data: expect.objectContaining({ status: CorrespondenceTemplateVersionStatus.PUBLISHED }),
+    }));
+  });
+
+  it('retires a published version inside the serialized lifecycle boundary', async () => {
+    const retired = { id: 'version-1', status: CorrespondenceTemplateVersionStatus.RETIRED };
+    const tx = {
+      correspondenceTemplateVersion: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'version-1', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.PUBLISHED } as never),
+        update: jest.fn().mockResolvedValue(retired as never),
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.retire('template-1', 'version-1')).resolves.toEqual(retired);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(tx.correspondenceTemplateVersion.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'version-1' },
+      data: expect.objectContaining({ status: CorrespondenceTemplateVersionStatus.RETIRED }),
+    }));
+  });
+
+  it('does not publish a missing version', async () => {
+    const tx = { correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue(null as never) } };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.publish('template-1', 'missing')).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
