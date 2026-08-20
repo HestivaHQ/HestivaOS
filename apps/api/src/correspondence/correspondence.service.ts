@@ -11,6 +11,15 @@ function required(value: string | undefined, field: string): string {
   return normalized;
 }
 
+function normalizeTemplateKey(value: string | undefined): string {
+  const key = required(value, 'key')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (!key) throw new BadRequestException('key is required.');
+  return key;
+}
+
 @Injectable()
 export class CorrespondenceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -32,7 +41,7 @@ export class CorrespondenceService {
   }
 
   async create(input: CreateCorrespondenceTemplateInput) {
-    const key = required(input.key, 'key');
+    const key = normalizeTemplateKey(input.key);
     const name = required(input.name, 'name');
     const body = required(input.body, 'body');
     try {
