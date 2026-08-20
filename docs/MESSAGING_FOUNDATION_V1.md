@@ -2,7 +2,7 @@
 
 ## Status
 
-Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. The first provider-runtime extension now implements the authenticated WhatsApp Cloud API inbound edge described below. AI, autonomous Quote creation, Messenger runtime, provider-identity Customer linking, broad customer-facing automation, and live WhatsApp outbound transport remain outside this foundation.
+Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. The first provider-runtime extension now implements authenticated WhatsApp Cloud API inbound plus bounded correlated text outbound. AI, autonomous Quote creation, Messenger runtime, provider-identity Customer linking, broad customer-facing automation, rich outbound message kinds and separate durable delivered/read analytics remain outside this foundation.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -60,7 +60,7 @@ The contract now carries optional exact raw request bytes solely so providers wh
 
 ## WhatsApp Cloud API provider runtime v1
 
-The first provider-specific runtime is direct Meta WhatsApp Business Platform / Cloud API. This slice intentionally enables **authenticated inbound webhook ingestion only**. It does not register WhatsApp as an available outbound transport.
+The first provider-specific runtime is direct Meta WhatsApp Business Platform / Cloud API. It supports authenticated inbound webhook ingestion and bounded **text-only outbound** when deployment-owned Meta send configuration is complete.
 
 - Public callback: `GET|POST /api/v1/messaging/webhooks/whatsapp`.
 - GET subscription verification requires `hub.mode=subscribe`, exact `META_WHATSAPP_WEBHOOK_VERIFY_TOKEN` equality and a challenge value.
@@ -68,16 +68,22 @@ The first provider-specific runtime is direct Meta WhatsApp Business Platform / 
 - Authenticated inbound WhatsApp messages normalize to provider `meta`, channel `WHATSAPP`, provider-scoped identity, immutable provider message/event identity, text/interactive/media facts and supplied referral/click provenance. `MessagingService.persistInbound()` remains the database idempotency and durable-history boundary.
 - Complete raw Meta payloads are not persisted. Only approved normalized fields enter HestivaOS messaging history.
 - Media-only messages preserve the existing media-array JSON shape. When provider referral or interactive provenance also exists, the same JSON field uses a small envelope so that provenance is not silently discarded.
-- WhatsApp outbound remains deliberately disabled even when send credentials are present. An ambiguous network/provider outcome could otherwise cause the current retry path to send the same customer message twice. Outbound must not be registered until reconciliation or another provider-supported duplicate-prevention boundary is proven.
-- Provider delivery/read/failure status-webhook persistence, rich outbound message kinds and safe outbound retry/reconciliation are later bounded extensions.
+- Every outbound text send includes the durable HestivaOS message `idempotencyKey` as Meta `biz_opaque_callback_data`. Meta returns that correlation value in later message-status webhooks, allowing HestivaOS to reconcile a send even if the original HTTP response was lost.
+- A successful provider response records `ACCEPTED`. A definite provider rejection records `FAILED`. Network errors, provider 5xx responses and malformed success responses are treated as ambiguous: HestivaOS records a second `PENDING` marker and refuses to call the provider again for that same idempotency key until a status webhook resolves the outcome.
+- Authenticated `sent`, `delivered` and `read` status callbacks are positive provider evidence and currently reconcile to the existing durable `ACCEPTED` state. `failed` reconciles to `FAILED`. Replayed identical status evidence is ignored at the local message/status boundary.
+- The existing Work Order access-recovery retry path is now safe against blind duplicate sends: an ambiguous outcome remains blocked; a positive callback moves the recovery to `SENT`; a failed callback moves it to `SEND_FAILED`, after which the deliberate same-request retry path may run again.
+- If Meta never produces a resolving status after an ambiguous send, HestivaOS remains fail-closed and does not automatically resend.
+- Rich outbound message kinds, media download/securing where required, and separate durable `delivered` / `read` analytics remain later bounded extensions.
 
-See ADR-0078 and `docs/ENVIRONMENT.md`.
+See ADR-0078, ADR-0079 and `docs/ENVIRONMENT.md`.
 
 ## Replay and idempotency
 
 `buildMessagingProviderEventKey()` creates a deterministic SHA-256 key from channel, normalized provider name and provider event ID. The key contains no Customer/phone identity and is the intended durable deduplication identity.
 
 Persistence must enforce provider-event uniqueness at the database boundary before a webhook can cause a Quote, booking, notification or other consequential action. Network retries and uncertain send outcomes are recovered by read/reconciliation rather than blind duplicate mutation.
+
+For outbound WhatsApp text delivery, the durable local `idempotencyKey` is also the provider callback correlation identity. Once a provider call has an ambiguous outcome, replay of the same local message is blocked until provider evidence resolves it.
 
 ## Provider data storage
 
@@ -164,7 +170,7 @@ No AI provider or model is part of Foundation v1. Later AI may interpret free te
 
 Durable channel-neutral `MessagingConversation`, `MessagingMessage` and message-status-event persistence now exists, including the bounded Work Order access-recovery extension described below. Provider-event idempotency and immutable message history remain authoritative.
 
-The next WhatsApp provider-runtime residual is safe outbound retry/reconciliation plus provider delivery/read/failure status ingestion. Messenger then follows behind the same provider-neutral boundary. Customer-linking and deterministic Quote/service automation remain separate product slices.
+The next WhatsApp provider-runtime residual is richer outbound/status fidelity and media handling rather than the former duplicate-send blocker. Messenger then follows behind the same provider-neutral boundary. Customer-linking and deterministic Quote/service automation remain separate product slices.
 
 ## 2026-08-19 Phase 3D access-recovery extension
 
