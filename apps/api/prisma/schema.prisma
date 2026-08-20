@@ -1158,7 +1158,7 @@ model MessagingProviderStatusEvent {
   message MessagingMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([provider, providerMessageId, providerStatus, occurredAt], map: "messaging_provider_status_events_provider_message_status_occurred_key")
+  @@unique([provider, providerMessageId, providerStatus, occurredAt], map: "msg_provider_status_event_dedupe_key")
   @@index([messageId, occurredAt])
   @@map("messaging_provider_status_events")
 }
