@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import { WorkOrderInterruptionService } from './work-order-interruption.service';
 import { WorkOrderInterruptionsController } from './work-order-interruptions.controller';
 import { WorkOrderMaterialChangeService } from './work-order-material-change.service';
@@ -16,7 +15,7 @@ import { WorkOrderCompletionCorrectionService } from './work-order-completion-co
 
 @Module({
   controllers: [WorkOrdersController, WorkOrderInterruptionsController],
-  providers: [WorkOrderCompletionCorrectionService, ExecutionEvidenceAccessService, WorkOrderIncidentService, WorkOrderAccessRecoveryService, WorkOrdersService, WorkOrderAccessReadinessService, WorkOrderTemporaryAccessCredentialsService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, PrismaService],
+  providers: [WorkOrderCompletionCorrectionService, ExecutionEvidenceAccessService, WorkOrderIncidentService, WorkOrderAccessRecoveryService, WorkOrdersService, WorkOrderAccessReadinessService, WorkOrderTemporaryAccessCredentialsService, WorkOrderMaterialChangeService, WorkOrderScopeMismatchService, WorkOrderInterruptionService, WorkOrderReplacementVisitService],
   exports: [WorkOrderCompletionCorrectionService, ExecutionEvidenceAccessService, WorkOrderInterruptionService, WorkOrderReplacementVisitService, WorkOrderIncidentService],
 })
 export class WorkOrdersModule {}

@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import { AttentionController } from './attention.controller';
 import { AttentionService } from './attention.service';
 
 @Module({
   controllers: [AttentionController],
-  providers: [AttentionService, PrismaService],
+  providers: [AttentionService],
   exports: [AttentionService],
 })
 export class AttentionModule {}
