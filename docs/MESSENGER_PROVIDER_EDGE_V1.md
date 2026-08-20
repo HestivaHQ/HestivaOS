@@ -2,7 +2,7 @@
 
 ## Status
 
-This document records the first live Facebook Messenger provider slice for the canonical HestivaOS messaging foundation. Coordination source: `HestivaHQ/HestivaOS#116`.
+This document records the first live Facebook Messenger provider runtime for the canonical HestivaOS messaging foundation. Coordination source: `HestivaHQ/HestivaOS#116`.
 
 ## Runtime boundary
 
@@ -14,22 +14,43 @@ POST delivery bypasses Supabase user authentication because Meta provider authen
 
 Authenticated Page webhook messaging events normalize into the existing provider-neutral contract with `channel=MESSENGER` and `provider=meta`. The Page-scoped sender ID remains only a provider identity; it is never treated as a canonical Customer ID. Text messages, postbacks, referral provenance, and bounded attachment metadata reuse the existing immutable conversation/message/status persistence and provider-event idempotency boundary.
 
-## Receive-only activation
+## Guarded outbound activation
 
-This v1 slice is intentionally receive-only. `MessengerPlatformAdapter.send()` fails closed and the adapter is not registered as an available outbound transport. This prevents HestivaOS from presenting Messenger as a send-capable channel before a safe retry/reconciliation strategy is approved.
+Messenger outbound v1 supports **standard-window TEXT replies only**. The adapter registers as an available outbound transport only when all of these API-only values are configured:
 
-The reason is transport safety: a network failure after Meta accepts a Messenger Send API request can leave HestivaOS without the provider message ID. Unlike the current WhatsApp implementation, this slice has no approved provider callback correlation field that lets HestivaOS prove that an ambiguous send already succeeded. Blind retry could therefore duplicate a customer message.
+- `META_MESSENGER_PAGE_ACCESS_TOKEN`
+- `META_MESSENGER_PAGE_ID`
+- `META_GRAPH_API_VERSION`
 
-Outbound Messenger activation requires a separate reviewed slice covering Page access-token/permission configuration, applicable messaging-window policy, provider response/reconciliation behavior, and duplicate-safe retry semantics.
+The configured Page/app must have the Meta permissions/access required for Messenger customer messaging, including `pages_messaging`. HestivaOS does not infer that platform approval from the presence of a token.
+
+Before any provider call, the shared messaging service requires a durable inbound message in the same Messenger conversation within the preceding 24 hours. If the latest customer message is older, the conversation is not advertised as an available outbound channel and a direct send attempt fails before reaching Meta. The Send API request uses `messaging_type=RESPONSE`.
+
+No message tags, sponsored messages, out-of-window service sends, marketing sends, or other policy exceptions are enabled in v1.
+
+## Duplicate-send safety
+
+Messenger does not currently provide the HestivaOS callback-correlation field used by the WhatsApp adapter. A network failure after Meta accepts a request can therefore leave the local system without the provider message ID.
+
+HestivaOS handles that state conservatively. Network failures, provider 5xx responses, and malformed successful responses are classified as an unknown outcome. The existing durable messaging state appends the ambiguity marker and blocks another provider call for that same idempotency key. It does **not** blindly resend.
+
+Explicit non-5xx provider rejection is recorded as a normal failed attempt and may follow the existing same-message retry path. See ADR-0082.
 
 ## Configuration
 
-This slice reuses `META_APP_SECRET` and adds one API-only value:
+Inbound verification uses:
 
-- `META_MESSENGER_WEBHOOK_VERIFY_TOKEN` — private random value configured identically in the Meta Page webhook subscription and Railway API runtime.
+- `META_APP_SECRET`
+- `META_MESSENGER_WEBHOOK_VERIFY_TOKEN`
 
-Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`. No Page access token is required by this receive-only slice.
+Outbound additionally uses:
+
+- `META_MESSENGER_PAGE_ACCESS_TOKEN`
+- `META_MESSENGER_PAGE_ID`
+- `META_GRAPH_API_VERSION`
+
+Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`. Provider tokens are Railway/API-only and must never be committed or exposed to browser code.
 
 ## Explicit non-goals
 
-No Messenger outbound sending, Page-token storage, delivery/read status reconciliation, attachment download/storage, Customer auto-linking, deterministic Quote flow, human takeover, AI behavior, or business-policy decision is introduced here.
+No Messenger out-of-window messaging, message-tag policy, media outbound, delivery/read reconciliation, attachment download/storage, Customer auto-linking, deterministic Quote flow, human takeover, AI behavior, Finance, or Website behavior is introduced here.
