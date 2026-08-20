@@ -80,3 +80,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0070: Bound Supabase administrator operations to invitation and refresh-session revocation](ADR-0070-supabase-admin-invitation-and-session-revocation.md)
 - [ADR-0071: Make HestivaOS Correspondence the authority for immutable template versions](ADR-0071-correspondence-template-version-ownership.md)
 - [ADR-0072: Persist rendered correspondence as immutable provider-neutral history](ADR-0072-immutable-rendered-correspondence-history.md)
+- [ADR-0073: Persist provider-neutral Correspondence delivery attempts as append-only chains](ADR-0073-provider-neutral-correspondence-delivery-attempts.md)
