@@ -78,3 +78,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0068: Persist administrative access changes as append-only identity snapshots](ADR-0068-admin-access-audit-history.md)
 - [ADR-0069: Scalable documentation authority and bounded context loading](ADR-0069-scalable-documentation-authority.md)
 - [ADR-0070: Bound Supabase administrator operations to invitation and refresh-session revocation](ADR-0070-supabase-admin-invitation-and-session-revocation.md)
+- [ADR-0071: Make HestivaOS Correspondence the authority for immutable template versions](ADR-0071-correspondence-template-version-ownership.md)
