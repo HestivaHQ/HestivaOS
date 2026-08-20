@@ -57,7 +57,18 @@ export class WorkOrderAccessRecoveryService {
 
   private async deliver(recovery:{id:string;status:WorkOrderAccessRecoveryStatus;conversation:{id:string;channel:any;provider:string;providerIdentityId:string};outboundMessage:{id:string;contentText:string|null;idempotencyKey:string|null}}){
     if(recovery.status===WorkOrderAccessRecoveryStatus.SENT||recovery.status===WorkOrderAccessRecoveryStatus.RESPONSE_REQUIRES_REVIEW||recovery.status===WorkOrderAccessRecoveryStatus.CLOSED)return this.summaryResult(recovery.id);
-    try{const result=await this.messaging.send({channel:recovery.conversation.channel,provider:recovery.conversation.provider,providerIdentityId:recovery.conversation.providerIdentityId,conversationId:recovery.conversation.id,idempotencyKey:recovery.outboundMessage.idempotencyKey!,kind:'TEXT',text:recovery.outboundMessage.contentText!});await this.prisma.$transaction([this.prisma.messagingMessageStatusEvent.create({data:{messageId:recovery.outboundMessage.id,status:MessagingDeliveryStatus.ACCEPTED,providerMessageId:result.providerMessageId}}),this.prisma.workOrderAccessRecovery.update({where:{id:recovery.id},data:{status:WorkOrderAccessRecoveryStatus.SENT,sentAt:new Date(result.acceptedAt)}})]);return this.summaryResult(recovery.id);}catch{await this.prisma.$transaction([this.prisma.messagingMessageStatusEvent.create({data:{messageId:recovery.outboundMessage.id,status:MessagingDeliveryStatus.FAILED}}),this.prisma.workOrderAccessRecovery.update({where:{id:recovery.id},data:{status:WorkOrderAccessRecoveryStatus.SEND_FAILED}})]);throw new ConflictException('The recovery message was not accepted. Retry with the same request identity.');}
+    try{
+      const result=await this.messaging.send({channel:recovery.conversation.channel,provider:recovery.conversation.provider,providerIdentityId:recovery.conversation.providerIdentityId,conversationId:recovery.conversation.id,idempotencyKey:recovery.outboundMessage.idempotencyKey!,kind:'TEXT',text:recovery.outboundMessage.contentText!});
+      await this.prisma.workOrderAccessRecovery.update({where:{id:recovery.id},data:{status:WorkOrderAccessRecoveryStatus.SENT,sentAt:new Date(result.acceptedAt)}});
+      return this.summaryResult(recovery.id);
+    }catch{
+      const latest=await this.prisma.messagingMessageStatusEvent.findFirst({where:{messageId:recovery.outboundMessage.id},orderBy:{createdAt:'desc'}});
+      if(latest?.status===MessagingDeliveryStatus.FAILED){
+        await this.prisma.workOrderAccessRecovery.update({where:{id:recovery.id},data:{status:WorkOrderAccessRecoveryStatus.SEND_FAILED}});
+        throw new ConflictException('The recovery message was not accepted. Retry with the same request identity.');
+      }
+      throw new ConflictException('The recovery message outcome is still being reconciled. Do not retry yet.');
+    }
   }
   private summaryResult(id:string){return this.prisma.workOrderAccessRecovery.findUniqueOrThrow({where:{id},select:{id:true,status:true,sentAt:true,createdAt:true,conversation:{select:{channel:true}}}});}
   private async workOrder(id:string){const row=await this.prisma.workOrder.findUnique({where:{id},select:{id:true,customerId:true,status:true,accessReadiness:true,scheduledAt:true,updatedAt:true}});if(!row)throw new NotFoundException('Work order not found.');return row;}
