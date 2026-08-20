@@ -79,6 +79,16 @@ describe('CorrespondenceWorkOrderEventsService', () => {
     expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
   });
 
+  it('keeps acknowledged completion eligible after the Work Order is closed', async () => {
+    tx.workOrder.findUnique.mockResolvedValueOnce({
+      id: 'work-order-1', reference: 'WO-20260820-0001', status: WorkOrderStatus.CLOSED,
+      completionOperationId: '00000000-0000-0000-0000-000000000010', completedAt: new Date('2026-08-20T10:00:00Z'),
+      completionAcknowledgedAt: new Date('2026-08-20T10:05:00Z'), completionCorrespondenceEligibleAt: new Date('2026-08-20T10:05:00Z'),
+      customer: { id: 'customer-1', name: 'Customer', contactName: null, email: 'customer@example.com', phone: null },
+    } as never);
+    await expect(service.materializeCompletion(actor, 'work-order-1', { templateVersionId: 'version-1' })).resolves.toEqual(expect.objectContaining({ id: 'record-1' }));
+  });
+
   it('rejects completion that has not crossed the authoritative acknowledgement eligibility boundary', async () => {
     tx.workOrder.findUnique.mockResolvedValueOnce({
       id: 'work-order-1', reference: 'WO-20260820-0001', status: WorkOrderStatus.COMPLETED,
