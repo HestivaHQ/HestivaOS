@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { api, AppUser } from '../../lib/api';
 import { preflightEmailChange } from '../../lib/email-change-api';
 import { createClient } from '../../lib/supabase/client';
@@ -20,6 +20,12 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [newEmail, setNewEmail] = useState(authenticatedEmail);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('email-change') === 'confirmed') {
+      setMessage('Email confirmation processed. If the confirmed email shown above has changed, the update is complete. Otherwise, Secure Email Change may still require confirmation from the other address.');
+    }
+  }, []);
 
   async function token() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -60,7 +66,7 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
       const { error: updateError } = await createClient().auth.updateUser({ email }, { emailRedirectTo: redirectTo });
       if (updateError) throw updateError;
       setNewEmail(email);
-      setMessage('Email change requested. Follow the confirmation instructions sent by Supabase. Secure email change may require confirmation from both your current and new addresses.');
+      setMessage('Email change requested. Follow the confirmation instructions sent by Supabase. Secure Email Change may require confirmation from both your current and new addresses.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to request an email change.'); } finally { setEmailSaving(false); }
   }
   async function changePassword(event: FormEvent) {
