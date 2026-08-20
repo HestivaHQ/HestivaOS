@@ -1630,10 +1630,28 @@ model CorrespondenceTemplateVersion {
   publishedAt DateTime? @map("published_at")
   retiredAt DateTime? @map("retired_at")
   template CorrespondenceTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  records CorrespondenceRecord[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([templateId, version])
   @@index([templateId, status])
   @@map("correspondence_template_versions")
+}
+
+model CorrespondenceRecord {
+  id String @id @default(uuid()) @db.Uuid
+  templateVersionId String @map("template_version_id") @db.Uuid
+  templateKeySnapshot String @map("template_key_snapshot")
+  templateVersionNumber Int @map("template_version_number")
+  subject String?
+  body String
+  recipientSnapshot Json @map("recipient_snapshot")
+  provenance Json
+  templateVersion CorrespondenceTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([templateVersionId, createdAt])
+  @@index([createdAt])
+  @@map("correspondence_records")
 }
