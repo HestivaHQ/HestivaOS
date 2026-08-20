@@ -24,16 +24,16 @@ export class MessagingAdminReplyService {
         customerId: true,
         customer: { select: { id: true, name: true, contactName: true } },
         messages: {
+          where: { direction: MessagingDirection.INBOUND },
           orderBy: { occurredAt: 'desc' },
-          take: 8,
+          take: 1,
           select: { id: true, direction: true, kind: true, contentText: true, occurredAt: true },
         },
       },
     });
     const cutoff = Date.now() - MESSENGER_STANDARD_WINDOW_MS;
     return rows.map((row) => {
-      const latestInbound = row.messages.find((message) => message.direction === MessagingDirection.INBOUND) ?? null;
-      const latestMessage = row.messages[0] ?? null;
+      const latestInbound = row.messages[0] ?? null;
       return {
         id: row.id,
         channel: row.channel,
@@ -42,7 +42,7 @@ export class MessagingAdminReplyService {
         customerId: row.customerId,
         replyEligible: !!latestInbound && latestInbound.occurredAt.getTime() >= cutoff,
         latestInboundAt: latestInbound?.occurredAt ?? null,
-        latestMessage,
+        latestMessage: latestInbound,
       };
     });
   }
