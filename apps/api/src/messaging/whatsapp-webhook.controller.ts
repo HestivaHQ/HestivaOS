@@ -14,6 +14,7 @@ import {
 import { Public } from '../users/public.decorator';
 import { MessagingService } from './messaging.service';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
+import { WhatsAppInboundMediaService } from './whatsapp-inbound-media.service';
 
 type WebhookRequest = { body: unknown };
 type WebhookResponse = {
@@ -28,6 +29,7 @@ export class WhatsAppWebhookController {
   constructor(
     private readonly adapter: WhatsAppCloudApiAdapter,
     private readonly messaging: MessagingService,
+    private readonly inboundMedia: WhatsAppInboundMediaService,
   ) {}
 
   @Get()
@@ -55,7 +57,10 @@ export class WhatsAppWebhookController {
     const context = { receivedAt: new Date().toISOString(), headers, rawBody: request.rawBody };
     const events = await this.adapter.normalizeInboundWebhook(request.body, context);
     const statusEvents = await this.adapter.normalizeStatusWebhook(request.body, context);
-    for (const event of events) await this.messaging.persistInbound(event);
+    for (const event of events) {
+      const message = await this.messaging.persistInbound(event);
+      await this.inboundMedia.secureInboundMedia(message.id, event);
+    }
     for (const event of statusEvents) await this.messaging.persistWhatsAppStatus(event);
     return { received: true, normalizedEvents: events.length, normalizedStatusEvents: statusEvents.length };
   }
