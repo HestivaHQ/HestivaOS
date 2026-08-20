@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { MessagingDeliveryStatus, MessagingDirection, WorkOrderAccessRecoveryStatus } from '@prisma/client';
 import { describe, expect, it, jest } from '@jest/globals';
 import { MessagingProviderOutcomeUnknownError } from './messaging-provider-adapter';
@@ -17,7 +18,7 @@ describe('MessagingService', () => {
   });
 
   it('marks an ambiguous send attempt as pending reconciliation and blocks a blind replay', async () => {
-    const message={id:'message-1',direction:MessagingDirection.OUTBOUND,statusEvents:[{status:MessagingDeliveryStatus.PENDING,providerMessageId:null,createdAt:new Date()}]};
+    const message={id:'message-1',conversationId:'c',direction:MessagingDirection.OUTBOUND,statusEvents:[{status:MessagingDeliveryStatus.PENDING,providerMessageId:null,createdAt:new Date()}]};
     const statusRows:any[]=[...message.statusEvents];
     const prisma={messagingMessage:{findUnique:jest.fn(async()=>({...message,statusEvents:statusRows}))},messagingMessageStatusEvent:{findFirst:jest.fn(async({where}:any)=>statusRows.slice().reverse().find(row=>(where.status?row.status===where.status:true)&&(where.providerMessageId?.not===null?row.providerMessageId!==null:true))??null),count:jest.fn(async()=>statusRows.filter(row=>row.status===MessagingDeliveryStatus.PENDING).length),create:jest.fn(async({data}:any)=>{const row={...data,createdAt:new Date()};statusRows.push(row);return row;})},workOrderAccessRecovery:{findUnique:jest.fn(async()=>null),update:jest.fn()}};
     const adapter={send:jest.fn(async()=>{throw new MessagingProviderOutcomeUnknownError();})};
@@ -27,6 +28,47 @@ describe('MessagingService', () => {
     await expect(service.send(command)).rejects.toBeInstanceOf(MessagingOutcomePendingReconciliationError);
     expect(adapter.send).toHaveBeenCalledTimes(1);
     expect(statusRows.filter(row=>row.status===MessagingDeliveryStatus.PENDING)).toHaveLength(2);
+  });
+
+  it('allows a Messenger response only when the customer messaged within the last 24 hours', async () => {
+    const now = new Date();
+    const message={id:'message-1',conversationId:'conversation-1',direction:MessagingDirection.OUTBOUND,statusEvents:[{status:MessagingDeliveryStatus.PENDING,providerMessageId:null,createdAt:now}]};
+    const createStatus=jest.fn(async({data}:any)=>({id:'status-2',createdAt:new Date(),...data}));
+    const prisma={
+      messagingMessage:{
+        findUnique:jest.fn(async()=>message),
+        findFirst:jest.fn(async()=>({occurredAt:new Date(now.getTime()-60*60*1000)})),
+      },
+      messagingMessageStatusEvent:{findFirst:jest.fn(async()=>null),count:jest.fn(async()=>1),create:createStatus},
+    };
+    const adapter={send:jest.fn(async()=>({providerMessageId:'mid.out-1',acceptedAt:new Date().toISOString()}))};
+    const service=new MessagingService(prisma as any,{get:()=>adapter} as any);
+    const result=await service.send({channel:'MESSENGER',provider:'meta',providerIdentityId:'psid-1',conversationId:'conversation-1',idempotencyKey:'key-1',kind:'TEXT',text:'Reply'});
+    expect(result.providerMessageId).toBe('mid.out-1');
+    expect(adapter.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks Messenger provider delivery when the latest inbound message is outside 24 hours', async () => {
+    const now = new Date();
+    const message={id:'message-1',conversationId:'conversation-1',direction:MessagingDirection.OUTBOUND,statusEvents:[{status:MessagingDeliveryStatus.PENDING,providerMessageId:null,createdAt:now}]};
+    const prisma={messagingMessage:{findUnique:jest.fn(async()=>message),findFirst:jest.fn(async()=>({occurredAt:new Date(now.getTime()-25*60*60*1000)}))}};
+    const adapter={send:jest.fn()};
+    const service=new MessagingService(prisma as any,{get:()=>adapter} as any);
+    await expect(service.send({channel:'MESSENGER',provider:'meta',providerIdentityId:'psid-1',conversationId:'conversation-1',idempotencyKey:'key-1',kind:'TEXT',text:'Too late'})).rejects.toBeInstanceOf(ConflictException);
+    expect(adapter.send).not.toHaveBeenCalled();
+  });
+
+  it('hides Messenger from available customer channels when its reply window has expired', async () => {
+    const now = new Date();
+    const rows=[
+      {id:'messenger-recent',channel:'MESSENGER',provider:'meta',providerIdentityId:'psid-1',messages:[{occurredAt:new Date(now.getTime()-60*60*1000)}]},
+      {id:'messenger-old',channel:'MESSENGER',provider:'meta',providerIdentityId:'psid-2',messages:[{occurredAt:new Date(now.getTime()-25*60*60*1000)}]},
+      {id:'whatsapp',channel:'WHATSAPP',provider:'meta',providerIdentityId:'2782',messages:[]},
+    ];
+    const prisma={messagingConversation:{findMany:jest.fn(async()=>rows)}};
+    const service=new MessagingService(prisma as any,{get:()=>({send:jest.fn()})} as any);
+    const available=await service.availableCustomerConversations('customer-1');
+    expect(available.map((row:any)=>row.id)).toEqual(['messenger-recent','whatsapp']);
   });
 
   it('preserves sent, delivered and read as provider-specific history without changing generic acceptance semantics', async () => {

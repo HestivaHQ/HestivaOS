@@ -1,8 +1,20 @@
-import { Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  OnModuleInit,
+  ServiceUnavailableException,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { NormalizedInboundMessagingEvent, OutboundMessagingCommand, OutboundMessagingResult } from './messaging-contract';
 import { MESSAGING_CONTRACT_VERSION } from './messaging-contract';
-import type { MessagingProviderAdapter, MessagingWebhookContext } from './messaging-provider-adapter';
+import { MessagingAdapterRegistry } from './messaging-adapter-registry';
+import {
+  MessagingProviderOutcomeUnknownError,
+  type MessagingProviderAdapter,
+  type MessagingWebhookContext,
+} from './messaging-provider-adapter';
 
 const PROVIDER = 'meta';
 
@@ -37,9 +49,15 @@ function normalizeAttachments(message: Record<string, unknown>) {
 }
 
 @Injectable()
-export class MessengerPlatformAdapter implements MessagingProviderAdapter {
+export class MessengerPlatformAdapter implements MessagingProviderAdapter, OnModuleInit {
   readonly channel = 'MESSENGER' as const;
   readonly provider = PROVIDER;
+
+  constructor(private readonly registry: MessagingAdapterRegistry) {}
+
+  onModuleInit(): void {
+    if (this.outboundConfigured()) this.registry.register(this);
+  }
 
   verifySubscription(mode: unknown, token: unknown): boolean {
     const verifyToken = env('META_MESSENGER_WEBHOOK_VERIFY_TOKEN');
@@ -92,8 +110,40 @@ export class MessengerPlatformAdapter implements MessagingProviderAdapter {
     return events;
   }
 
-  async send(_command: OutboundMessagingCommand): Promise<OutboundMessagingResult> {
-    throw new ServiceUnavailableException('Messenger outbound transport is disabled until safe retry semantics are approved.');
+  async send(command: OutboundMessagingCommand): Promise<OutboundMessagingResult> {
+    const accessToken = env('META_MESSENGER_PAGE_ACCESS_TOKEN');
+    const pageId = env('META_MESSENGER_PAGE_ID');
+    const graphVersion = env('META_GRAPH_API_VERSION');
+    if (!accessToken || !pageId || !graphVersion) throw new ServiceUnavailableException('Messenger outbound transport is not configured.');
+    if (command.channel !== this.channel || command.provider.trim().toLowerCase() !== this.provider) throw new UnprocessableEntityException('Outbound command does not target this Messenger provider adapter.');
+    if (command.kind !== 'TEXT' || !command.text?.trim()) throw new UnprocessableEntityException('Messenger outbound v1 supports non-empty text replies only.');
+
+    let response: Response;
+    try {
+      response = await fetch(`https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(pageId)}/messages`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipient: { id: command.providerIdentityId }, messaging_type: 'RESPONSE', message: { text: command.text.trim() } }),
+      });
+    } catch {
+      throw new MessagingProviderOutcomeUnknownError();
+    }
+
+    if (response.status >= 500) throw new MessagingProviderOutcomeUnknownError();
+    if (!response.ok) throw new BadGatewayException(`Messenger Send API rejected the message with HTTP ${response.status}.`);
+    try {
+      const body = await response.json() as { message_id?: unknown };
+      const providerMessageId = asString(body.message_id);
+      if (!providerMessageId) throw new MessagingProviderOutcomeUnknownError();
+      return { providerMessageId, acceptedAt: new Date().toISOString() };
+    } catch (error) {
+      if (error instanceof MessagingProviderOutcomeUnknownError) throw error;
+      throw new MessagingProviderOutcomeUnknownError();
+    }
+  }
+
+  private outboundConfigured(): boolean {
+    return !!env('META_MESSENGER_PAGE_ACCESS_TOKEN') && !!env('META_MESSENGER_PAGE_ID') && !!env('META_GRAPH_API_VERSION');
   }
 
   private verifySignature(context: MessagingWebhookContext): void {
