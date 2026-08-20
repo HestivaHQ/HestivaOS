@@ -34,7 +34,7 @@ Failure records store only bounded failure classifications/messages. Access toke
 
 ## Storage and deployment
 
-The Supabase project must contain a **private** bucket named `messaging-media`. Do not make the bucket public and do not expose the service-role credential to browser/Cloudflare code.
+The Supabase project must contain a **private** bucket named `messaging-media`. Do not make the bucket public and do not expose the service-role credential to browser/Cloudflare code. Create and verify this private bucket before the matching API revision is allowed to receive production WhatsApp media traffic.
 
 This slice reuses existing API-only configuration:
 
