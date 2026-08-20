@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CorrespondenceTemplateVersionStatus, UserRole, UserStatus, WorkOrderStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CorrespondenceWorkOrderEventsService } from './correspondence-work-order-events.service';
@@ -99,6 +99,35 @@ describe('Correspondence Work Order material-change events', () => {
     expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
   });
 
+  it('rejects using the cancellation endpoint for a reschedule operation', async () => {
+    tx.$queryRaw.mockResolvedValueOnce([change({ scheduledAt: '2026-08-27T08:00:00.000Z' })]);
+    await expect(service.materializeCancellation(actor, workOrderId, operationId, { templateVersionId: 'version-1' }))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the operation does not belong to the supplied Work Order', async () => {
+    tx.$queryRaw.mockResolvedValueOnce([]);
+    await expect(service.materializeReschedule(actor, workOrderId, operationId, { templateVersionId: 'version-1' }))
+      .rejects.toBeInstanceOf(NotFoundException);
+    expect(tx.$executeRaw).not.toHaveBeenCalled();
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('requires an explicitly selected published template version', async () => {
+    tx.$queryRaw
+      .mockResolvedValueOnce([change({ scheduledAt: '2026-08-27T08:00:00.000Z' })])
+      .mockResolvedValueOnce([]);
+    tx.correspondenceTemplateVersion.findUnique.mockResolvedValueOnce({
+      id: 'version-1', version: 1, status: CorrespondenceTemplateVersionStatus.DRAFT,
+      subject: 'Changed', body: 'Your booking changed.', template: { key: 'booking_changed' },
+    } as never);
+
+    await expect(service.materializeReschedule(actor, workOrderId, operationId, { templateVersionId: 'version-1' }))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
+  });
+
   it('returns the existing record when the same material-change event is replayed', async () => {
     tx.$queryRaw
       .mockResolvedValueOnce([change({ scheduledAt: '2026-08-27T08:00:00.000Z' })])
@@ -109,6 +138,7 @@ describe('Correspondence Work Order material-change events', () => {
 
     expect(result.id).toBe('existing-record');
     expect(tx.workOrder.findUnique).not.toHaveBeenCalled();
+    expect(tx.correspondenceTemplateVersion.findUnique).not.toHaveBeenCalled();
     expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
   });
 });
