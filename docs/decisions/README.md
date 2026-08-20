@@ -87,3 +87,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0077: Materialize reschedule and cancellation correspondence from controlled Work Order changes](ADR-0077-materialize-reschedule-cancellation-correspondence-from-controlled-material-changes.md)
 - [ADR-0078: Authenticate WhatsApp Cloud API at the provider edge](ADR-0078-authenticate-whatsapp-cloud-api-at-provider-edge.md)
 - [ADR-0079: Reconcile WhatsApp outbound before retry](ADR-0079-reconcile-whatsapp-outbound-before-retry.md)
+- [ADR-0080: Preserve provider status fidelity separately from generic delivery state](ADR-0080-preserve-provider-status-fidelity-separately-from-generic-delivery-state.md)
