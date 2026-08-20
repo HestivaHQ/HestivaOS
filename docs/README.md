@@ -26,7 +26,8 @@ Load context in this order:
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Current cross-domain technical architecture and authority boundaries. |
 | [`WHY.md`](WHY.md) | Durable engineering/product rationale. |
 | [`ROADMAP.md`](ROADMAP.md) | Verified current future work and sequencing. |
-| [`CANONICAL_BACKLOG_FREEZE_2026-08-19.md`](CANONICAL_BACKLOG_FREEZE_2026-08-19.md) | Current reconciliation checkpoint preventing old plans from reopening merged work. |
+| [`CANONICAL_BACKLOG_FREEZE_2026-08-20.md`](CANONICAL_BACKLOG_FREEZE_2026-08-20.md) | Current reconciliation checkpoint preventing old plans from reopening merged or explicitly closed work. |
+| [`CANONICAL_BACKLOG_FREEZE_2026-08-19.md`](CANONICAL_BACKLOG_FREEZE_2026-08-19.md) | Preserved historical planning checkpoint superseded by the 2026-08-20 freeze. |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Current Cloudflare/Railway deployment procedure and controller ownership. |
 | [`ENVIRONMENT.md`](ENVIRONMENT.md) | Environment-variable names/scopes and safe acquisition/recovery. |
 | [`RECOVERY_GUIDE.md`](RECOVERY_GUIDE.md) | Current incident/recovery procedure. |
@@ -43,7 +44,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 | --- | --- | --- | --- |
 | User access / Admin security / authenticated email | `ADMIN_ACCESS_AUDIT_HISTORY_V1.md`, `AUTH_EMAIL_CHANGE_V1.md`, Architecture auth/access sections | `apps/api/src/users`, `apps/web/app/profile`, auth/roles boundaries | ADR-0013, ADR-0014, ADR-0068, ADR-0070; Supabase ADRs as applicable |
 | Work Orders / staffing / execution | Work Order access, execution scope/evidence/correction documents; Architecture current Work Order sections | API Work Order/Technician modules; `apps/web/app/work-orders`, `/technician` | ADR-0021 onward for affected Work Order capability; load only relevant ADRs |
-| Service scope / controlled inputs | `CANONICAL_SERVICE_SCOPE_PRICING_V1.md`, `CONTROLLED_INPUT_FIELD_AUDIT.md`, focused selector/scope docs | Services, scope templates, Work Order/Shift selectors | ADR-0017/0018/0029 plus focused newer ADRs when relevant |
+| Service scope / controlled inputs | `CANONICAL_SERVICE_SCOPE_PRICING_V1.md`, `CONTROLLED_INPUT_FIELD_AUDIT.md`, `CONTROLLED_INPUT_RESIDUAL_REVIEW_2026-08-20.md`, focused selector/scope docs | Services, scope templates, Work Order/Shift selectors | ADR-0017/0018/0029 plus focused newer ADRs when relevant |
 | Recurring services | `RECURRING_LIFECYCLE_REVIEW_V1.md`, relevant Architecture current section | recurring-service-agreements API/web | ADR-0026, ADR-0066 |
 | Website Quote integration | Quote contract/mapping/current-state docs | Quote/integration modules | Issue #73 + relevant Quote ADRs |
 | Website enquiries | `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` | enquiries/integration modules | Issue #73 and applicable Website-integration ADRs |
