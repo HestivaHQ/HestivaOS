@@ -9,7 +9,7 @@ import { websiteIntegrationSecretFingerprint } from './quotes/website-integratio
 async function bootstrap(): Promise<void> {
   const startedAt = process.hrtime.bigint();
   const logger = new JsonLogger();
-  const app = await NestFactory.create(AppModule, { logger });
+  const app = await NestFactory.create(AppModule, { logger, rawBody: true });
   app.useGlobalFilters(new StructuredExceptionFilter(app.get(HttpAdapterHost)));
   app.setGlobalPrefix('api/v1');
   app.enableCors(createCorsOptions());
