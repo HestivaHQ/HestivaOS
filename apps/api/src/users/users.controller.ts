@@ -7,6 +7,7 @@ import { Roles } from './roles.decorator';
 
 type AuthenticatedRequest = { supabaseUser: { id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> } };
 type InviteUserInput = { email?: string };
+type EmailChangeInput = { email?: string };
 
 @Controller('users')
 export class UsersController {
@@ -14,6 +15,7 @@ export class UsersController {
   @Post('sync') sync(@Req() request: AuthenticatedRequest) { return this.users.sync(request.supabaseUser); }
   @Get('me') findMe(@Req() request: AuthenticatedRequest) { return this.users.findByAuthUserId(request.supabaseUser.id); }
   @Patch('me/profile') updateProfile(@Req() request: AuthenticatedRequest, @Body() input: UpdateProfileInput) { return this.users.updateProfile(request.supabaseUser.id, input); }
+  @Post('me/email-change/preflight') preflightEmailChange(@Req() request: AuthenticatedRequest, @Body() input: EmailChangeInput) { return this.users.preflightEmailChange(request.supabaseUser.id, input.email ?? ''); }
   @Post('admin/invitations')
   @Roles(UserRole.ADMIN)
   inviteUser(@Body() input: InviteUserInput) { return this.supabaseAdmin.inviteUser(input.email ?? ''); }
