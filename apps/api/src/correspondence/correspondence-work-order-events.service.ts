@@ -1,8 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { CorrespondenceTemplateVersionStatus, Prisma, User, WorkOrderStatus } from '@prisma/client';
+import { CorrespondenceTemplateVersionStatus, Prisma, QuoteStatus, User, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
-export type MaterializeWorkOrderCompletionInput = { templateVersionId: string };
+export type MaterializeWorkOrderEventInput = { templateVersionId: string };
+export type MaterializeWorkOrderCompletionInput = MaterializeWorkOrderEventInput;
+export type MaterializeWorkOrderBookingInput = MaterializeWorkOrderEventInput;
 
 function actorSnapshot(actor: User): Prisma.InputJsonObject {
   return {
@@ -16,6 +18,108 @@ function actorSnapshot(actor: User): Prisma.InputJsonObject {
 @Injectable()
 export class CorrespondenceWorkOrderEventsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async materializeBooking(actor: User, workOrderId: string, input: MaterializeWorkOrderBookingInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const workOrder = await tx.workOrder.findUnique({
+        where: { id: workOrderId },
+        select: {
+          id: true,
+          reference: true,
+          scheduledAt: true,
+          recurrenceDate: true,
+          preferredTimeWindow: true,
+          frequency: true,
+          customer: { select: { id: true, name: true, contactName: true, email: true, phone: true } },
+          sourceQuote: {
+            select: {
+              id: true,
+              reference: true,
+              status: true,
+              acceptedAt: true,
+              acceptedByUserId: true,
+              acceptedRevisionId: true,
+              workOrderId: true,
+            },
+          },
+        },
+      });
+      if (!workOrder) throw new NotFoundException('Work Order not found.');
+      const quote = workOrder.sourceQuote;
+      if (
+        !quote ||
+        quote.status !== QuoteStatus.ACCEPTED ||
+        !quote.acceptedAt ||
+        !quote.acceptedByUserId ||
+        !quote.acceptedRevisionId ||
+        quote.workOrderId !== workOrder.id
+      ) {
+        throw new ConflictException('Work Order does not have an authoritative accepted Quote booking boundary.');
+      }
+
+      const sourceEventKey = `quote.accepted.v1:${quote.id}`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`correspondence:${sourceEventKey}`}, 0))`;
+
+      const existing = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM correspondence_records
+        WHERE provenance -> 'eventIntegration' ->> 'sourceEventKey' = ${sourceEventKey}
+        LIMIT 1
+      `;
+      if (existing[0]) {
+        return tx.correspondenceRecord.findUniqueOrThrow({
+          where: { id: existing[0].id },
+          include: { templateVersion: { include: { template: true } } },
+        });
+      }
+
+      const version = await tx.correspondenceTemplateVersion.findUnique({
+        where: { id: input.templateVersionId },
+        include: { template: true },
+      });
+      if (!version) throw new NotFoundException('Correspondence template version not found.');
+      if (version.status !== CorrespondenceTemplateVersionStatus.PUBLISHED) {
+        throw new ConflictException('Only a published correspondence template version can be materialized.');
+      }
+
+      return tx.correspondenceRecord.create({
+        data: {
+          templateVersionId: version.id,
+          templateKeySnapshot: version.template.key,
+          templateVersionNumber: version.version,
+          subject: version.subject,
+          body: version.body,
+          recipientSnapshot: {
+            customerId: workOrder.customer.id,
+            name: workOrder.customer.name,
+            contactName: workOrder.customer.contactName ?? null,
+            email: workOrder.customer.email ?? null,
+            phone: workOrder.customer.phone ?? null,
+          },
+          provenance: {
+            eventIntegration: {
+              sourceEventKey,
+              sourceDomain: 'QUOTE',
+              eventType: 'QUOTE_ACCEPTED_BOOKING_CREATED',
+              quoteId: quote.id,
+              quoteReference: quote.reference,
+              acceptedRevisionId: quote.acceptedRevisionId,
+              acceptedAt: quote.acceptedAt.toISOString(),
+              acceptedByUserId: quote.acceptedByUserId,
+              workOrderId: workOrder.id,
+              workOrderReference: workOrder.reference ?? null,
+              scheduledAt: workOrder.scheduledAt?.toISOString() ?? null,
+              recurrenceDate: workOrder.recurrenceDate?.toISOString() ?? null,
+              preferredTimeWindow: workOrder.preferredTimeWindow ?? null,
+              frequency: workOrder.frequency ?? null,
+            },
+            materializedBy: actorSnapshot(actor),
+          },
+        },
+        include: { templateVersion: { include: { template: true } } },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
 
   async materializeCompletion(actor: User, workOrderId: string, input: MaterializeWorkOrderCompletionInput) {
     return this.prisma.$transaction(async (tx) => {

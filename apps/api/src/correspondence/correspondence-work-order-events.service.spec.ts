@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { CorrespondenceTemplateVersionStatus, UserRole, UserStatus, WorkOrderStatus } from '@prisma/client';
+import { CorrespondenceTemplateVersionStatus, QuoteStatus, UserRole, UserStatus, WorkOrderFrequency, WorkOrderStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CorrespondenceWorkOrderEventsService } from './correspondence-work-order-events.service';
 
@@ -23,7 +23,7 @@ const actor = {
 function transaction(overrides: Record<string, unknown> = {}) {
   return {
     $executeRaw: jest.fn(async () => 1),
-    $queryRaw: jest.fn(async () => []),
+    $queryRaw: jest.fn(async () => [] as Array<{ id: string }>),
     correspondenceRecord: {
       findUniqueOrThrow: jest.fn(),
       create: jest.fn(async ({ data }: any) => ({ id: 'record-1', ...data })),
@@ -50,6 +50,23 @@ function transaction(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function acceptedBookingWorkOrder() {
+  return {
+    id: 'work-order-1',
+    reference: 'WO-20260820-0001',
+    scheduledAt: new Date('2026-08-25T00:00:00+02:00'),
+    recurrenceDate: null,
+    preferredTimeWindow: 'MORNING',
+    frequency: WorkOrderFrequency.ONE_TIME,
+    customer: { id: 'customer-1', name: 'Customer', contactName: 'Contact', email: 'customer@example.com', phone: '+27110000000' },
+    sourceQuote: {
+      id: 'quote-1', reference: 'Q-20260820-0001', status: QuoteStatus.ACCEPTED,
+      acceptedAt: new Date('2026-08-20T09:00:00Z'), acceptedByUserId: actor.id,
+      acceptedRevisionId: 'revision-1', workOrderId: 'work-order-1',
+    },
+  };
+}
+
 describe('CorrespondenceWorkOrderEventsService', () => {
   let tx: ReturnType<typeof transaction>;
   let service: CorrespondenceWorkOrderEventsService;
@@ -58,6 +75,44 @@ describe('CorrespondenceWorkOrderEventsService', () => {
     tx = transaction();
     const prisma = { $transaction: jest.fn(async (callback: any) => callback(tx)) } as any;
     service = new CorrespondenceWorkOrderEventsService(prisma);
+  });
+
+  it('materializes booking from the authoritative accepted Quote and linked Work Order without creating a delivery attempt', async () => {
+    tx.workOrder.findUnique.mockResolvedValueOnce(acceptedBookingWorkOrder() as never);
+    const result: any = await service.materializeBooking(actor, 'work-order-1', { templateVersionId: 'version-1' });
+    expect(result.recipientSnapshot).toEqual(expect.objectContaining({ customerId: 'customer-1', email: 'customer@example.com' }));
+    expect(result.provenance).toEqual(expect.objectContaining({
+      eventIntegration: expect.objectContaining({
+        sourceEventKey: 'quote.accepted.v1:quote-1', eventType: 'QUOTE_ACCEPTED_BOOKING_CREATED',
+        quoteId: 'quote-1', workOrderId: 'work-order-1', acceptedRevisionId: 'revision-1',
+      }),
+    }));
+    expect(tx.correspondenceRecord.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the existing booking record when the same accepted Quote event is materialized again', async () => {
+    tx.workOrder.findUnique.mockResolvedValueOnce(acceptedBookingWorkOrder() as never);
+    tx.$queryRaw.mockResolvedValueOnce([{ id: 'existing-booking-record' }]);
+    tx.correspondenceRecord.findUniqueOrThrow.mockResolvedValueOnce({ id: 'existing-booking-record' } as never);
+    const result: any = await service.materializeBooking(actor, 'work-order-1', { templateVersionId: 'version-1' });
+    expect(result.id).toBe('existing-booking-record');
+    expect(tx.correspondenceTemplateVersion.findUnique).not.toHaveBeenCalled();
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Work Order that is not backed by the authoritative accepted Quote link', async () => {
+    tx.workOrder.findUnique.mockResolvedValueOnce({ ...acceptedBookingWorkOrder(), sourceQuote: null } as never);
+    await expect(service.materializeBooking(actor, 'work-order-1', { templateVersionId: 'version-1' })).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects inconsistent accepted Quote state instead of treating Work Order creation alone as booking confirmation', async () => {
+    tx.workOrder.findUnique.mockResolvedValueOnce({
+      ...acceptedBookingWorkOrder(),
+      sourceQuote: { ...acceptedBookingWorkOrder().sourceQuote, status: QuoteStatus.SUBMITTED },
+    } as never);
+    await expect(service.materializeBooking(actor, 'work-order-1', { templateVersionId: 'version-1' })).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.correspondenceRecord.create).not.toHaveBeenCalled();
   });
 
   it('materializes completion from acknowledged authoritative Work Order state without creating a delivery attempt', async () => {
@@ -71,7 +126,7 @@ describe('CorrespondenceWorkOrderEventsService', () => {
   });
 
   it('returns the existing record when the same source event is materialized again', async () => {
-    tx.$queryRaw.mockResolvedValueOnce([{ id: 'existing-record' }] as never);
+    tx.$queryRaw.mockResolvedValueOnce([{ id: 'existing-record' }]);
     tx.correspondenceRecord.findUniqueOrThrow.mockResolvedValueOnce({ id: 'existing-record' } as never);
     const result: any = await service.materializeCompletion(actor, 'work-order-1', { templateVersionId: 'version-1' });
     expect(result.id).toBe('existing-record');

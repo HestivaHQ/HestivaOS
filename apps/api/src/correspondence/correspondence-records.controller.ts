@@ -8,7 +8,11 @@ import {
   MaterializeCorrespondenceInput,
   RecordCorrespondenceDeliveryOutcomeInput,
 } from './correspondence.service';
-import { CorrespondenceWorkOrderEventsService, MaterializeWorkOrderCompletionInput } from './correspondence-work-order-events.service';
+import {
+  CorrespondenceWorkOrderEventsService,
+  MaterializeWorkOrderBookingInput,
+  MaterializeWorkOrderCompletionInput,
+} from './correspondence-work-order-events.service';
 
 @Roles(UserRole.ADMIN)
 @Controller('correspondence/records')
@@ -27,6 +31,15 @@ export class CorrespondenceRecordsController {
   @Post('materialize')
   materialize(@CurrentUser() actor: User, @Body() input: MaterializeCorrespondenceInput) {
     return this.correspondence.materialize(actor, input);
+  }
+
+  @Post('events/work-orders/:workOrderId/booking/materialize')
+  materializeWorkOrderBooking(
+    @CurrentUser() actor: User,
+    @Param('workOrderId', new ParseUUIDPipe()) workOrderId: string,
+    @Body() input: MaterializeWorkOrderBookingInput,
+  ) {
+    return this.workOrderEvents.materializeBooking(actor, workOrderId, input);
   }
 
   @Post('events/work-orders/:workOrderId/completion/materialize')

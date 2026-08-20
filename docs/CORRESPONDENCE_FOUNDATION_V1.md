@@ -2,7 +2,7 @@
 
 ## Status
 
-ADR-0071 approves the Phase 2 Correspondence ownership architecture. Durable template/version persistence and ADMIN-only management are implemented. ADR-0072 adds immutable rendered correspondence history/provenance. ADR-0073 adds provider-neutral append-only delivery-attempt, retry and failure state without authorizing a live provider send. ADR-0074 fixes the conservative launch boundary: every customer-facing delivery attempt, including a retry, must be explicitly initiated by an ADMIN. ADR-0075 adds the first authoritative Work Order event integration for acknowledged completion.
+ADR-0071 approves the Phase 2 Correspondence ownership architecture. Durable template/version persistence and ADMIN-only management are implemented. ADR-0072 adds immutable rendered correspondence history/provenance. ADR-0073 adds provider-neutral append-only delivery-attempt, retry and failure state without authorizing a live provider send. ADR-0074 fixes the conservative launch boundary: every customer-facing delivery attempt, including a retry, must be explicitly initiated by an ADMIN. ADR-0075 adds authoritative acknowledged Work Order completion integration. ADR-0076 adds authoritative accepted-Quote booking integration.
 
 ## Authority boundary
 
@@ -66,13 +66,17 @@ Automated/event-driven integration may prepare or materialize auditable Correspo
 
 ## Work Order event integration
 
-ADR-0075 implements the first event-specific bridge: acknowledged Work Order completion.
+ADR-0075 implements acknowledged Work Order completion. ADR-0076 implements accepted-Quote booking creation.
 
 `POST /api/v1/correspondence/records/events/work-orders/:workOrderId/completion/materialize` is ADMIN-only. It requires an explicitly selected published template version, then reads authoritative Work Order and Customer state server-side. Materialization is allowed only when the Work Order has an authoritative completion operation plus `completionAcknowledgedAt` and `completionCorrespondenceEligibleAt`, and remains valid after later closure.
 
-The immutable record snapshots canonical Customer contact fields and completion source facts under `provenance.eventIntegration`. The stable source-event key is `work_order.completion_acknowledged.v1:<workOrderId>`. A transaction-scoped PostgreSQL advisory lock plus existing-record lookup makes repeated materialization requests for that source event return the same record rather than creating duplicates.
+The completion record snapshots canonical Customer contact fields and completion source facts under `provenance.eventIntegration`. Its stable source-event key is `work_order.completion_acknowledged.v1:<workOrderId>`.
 
-This integration does not hard-code a completion template, perform placeholder substitution, create a delivery attempt, or send anything. Booking, reschedule and cancellation integration remain separate verified slices.
+`POST /api/v1/correspondence/records/events/work-orders/:workOrderId/booking/materialize` is also ADMIN-only. Booking materialization requires that the Work Order has a canonical `sourceQuote` whose status is `ACCEPTED`, whose acceptance identity/timestamp/revision facts are present, and whose persisted `workOrderId` links back to that exact Work Order. This is the authoritative Quote-originated booking boundary because Quote acceptance creates the operational Work Order and transitions the Quote atomically; arbitrary Work Order creation is not treated as booking confirmation.
+
+The booking record snapshots canonical Customer contact fields, Quote acceptance identity, accepted revision, Work Order identity and the current scheduled/recurrence date, preferred time window and frequency. Its stable source-event key is `quote.accepted.v1:<quoteId>`.
+
+Both event bridges use a transaction-scoped PostgreSQL advisory lock plus existing-record lookup so repeated materialization for the same source event returns the same immutable record rather than creating duplicates. Neither bridge hard-codes a template, performs placeholder substitution, creates a delivery attempt, or sends anything. Reschedule and cancellation integration remain separate verified slices.
 
 ## Authorization and API boundary
 
@@ -89,6 +93,7 @@ Template API capabilities:
 Rendered-history API capabilities:
 
 - materialize an immutable record from a published template version;
+- materialize one idempotent booking record from an authoritative accepted Quote linked to its Work Order and an explicitly selected published template version;
 - materialize one idempotent completion record from an acknowledged/eligible Work Order and an explicitly selected published template version;
 - list the newest 100 rendered records;
 - read one rendered record by ID.
@@ -104,6 +109,6 @@ No API in this foundation invokes a transport provider.
 
 ## Deliberately deferred
 
-This foundation still does not approve actual customer-facing wording/tone, placeholder vocabulary, dynamic substitution, a delivery channel/provider, live sending, automatic retry timing/scheduling, provider-specific safe-retry rules, final-delivery/read tracking, automatic delivery-attempt creation, duplicate-send prevention beyond the retry-chain and implemented completion-source invariants, payment links, or Finance-specific correspondence behavior.
+This foundation still does not approve actual customer-facing wording/tone, placeholder vocabulary, dynamic substitution, a delivery channel/provider, live sending, automatic retry timing/scheduling, provider-specific safe-retry rules, final-delivery/read tracking, automatic delivery-attempt creation, duplicate-send prevention beyond the retry-chain and implemented event-source invariants, payment links, or Finance-specific correspondence behavior.
 
-The remaining Phase 2 event-driven work is booking and reschedule/cancellation integration only after each authoritative runtime transition point is verified. Under ADR-0074 those integrations may prepare auditable Correspondence state but must preserve the ADMIN delivery-attempt gate. Live transport remains a separate provider-specific decision and no customer send is authorized merely by a rendered record.
+The remaining Phase 2 event-driven work is reschedule/cancellation integration only after each authoritative runtime transition point is verified. Under ADR-0074 those integrations may prepare auditable Correspondence state but must preserve the ADMIN delivery-attempt gate. Live transport remains a separate provider-specific decision and no customer send is authorized merely by a rendered record.

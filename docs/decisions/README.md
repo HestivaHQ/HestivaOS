@@ -83,3 +83,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0073: Persist provider-neutral Correspondence delivery attempts as append-only chains](ADR-0073-provider-neutral-correspondence-delivery-attempts.md)
 - [ADR-0074: Require human initiation for customer Correspondence delivery](ADR-0074-human-approved-correspondence-delivery-boundary.md)
 - [ADR-0075: Materialize completion correspondence from authoritative Work Order state](ADR-0075-materialize-completion-correspondence-from-authoritative-work-order-state.md)
+- [ADR-0076: Materialize booking correspondence from accepted Quote state](ADR-0076-materialize-booking-correspondence-from-accepted-quote.md)

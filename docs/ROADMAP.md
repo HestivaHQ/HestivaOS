@@ -31,7 +31,7 @@ The following foundations are implemented or explicitly closed by evidence revie
 - Customer Correspondence also has append-only rendered history/provenance anchored to the exact published template version, with exact subject/body, recipient snapshot, template key/version snapshot and server-stamped actor provenance; a rendered record does not imply delivery.
 - Customer Correspondence has provider-neutral append-only delivery-attempt chains with immutable `PENDING` / `ACCEPTED` / `FAILED` events, linear retry-from-latest-failure semantics and no automatic retry timing or live-provider send behavior.
 - Customer Correspondence delivery attempts, including retries, require explicit ADMIN initiation; materialization alone never authorizes delivery.
-- Acknowledged Work Order completion can be materialized idempotently into immutable Correspondence history from authoritative completion/Customer state without creating a delivery attempt or selecting a provider.
+- Accepted Quote bookings and acknowledged Work Order completions can be materialized idempotently into immutable Correspondence history from their authoritative source state without creating a delivery attempt or selecting a provider.
 - Repository development uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
 
 Live Meta WhatsApp/Messenger connectivity, broad customer correspondence delivery and Finance runtime are **not** implied by those completed foundations.
@@ -52,12 +52,11 @@ Because the remaining Phase 1 item is decision-blocked, proceed with the next de
 
 ## Phase 2 — Customer Correspondence runtime
 
-Template/version ownership, rendered-message history/provenance, provider-neutral delivery-attempt/retry/failure state, the conservative human delivery gate, and acknowledged-completion materialization are implemented. Finish the remaining verified operational-event bridges before broad automated delivery:
+Template/version ownership, rendered-message history/provenance, provider-neutral delivery-attempt/retry/failure state, the conservative human delivery gate, acknowledged-completion materialization and accepted-Quote booking materialization are implemented. Finish the remaining verified operational-event bridge before broad automated delivery:
 
-1. verify and integrate the authoritative booking/appointment-confirmation transition;
-2. verify and integrate authoritative reschedule/cancellation transitions.
+1. verify and integrate authoritative reschedule/cancellation transitions.
 
-Completion materialization uses the existing Work Order acknowledgement/eligibility boundary and must not be reopened as a generic future slice. Event integrations may materialize auditable Correspondence state but must stop before delivery-attempt creation. No hard-coded event-to-template binding is approved; a published template version is selected explicitly until that policy exists.
+Booking materialization uses the existing atomic accepted-Quote-to-Work-Order boundary. Completion materialization uses the existing Work Order acknowledgement/eligibility boundary. Neither must be reopened as a generic future slice. Event integrations may materialize auditable Correspondence state but must stop before delivery-attempt creation. No hard-coded event-to-template binding is approved; a published template version is selected explicitly until that policy exists.
 
 Transport providers must consume HestivaOS business/correspondence state rather than own business decisions. Live adapter/provider selection and provider-specific safe-retry semantics remain separate decisions.
 
@@ -142,4 +141,4 @@ Before declaring HestivaOS launch-complete:
 
 ## Backlog guardrail
 
-Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors”, “recurring auto-resume”, “admin access audit history”, “Supabase Admin invitation/provider-session revocation”, “Supabase Auth email-change/confirmation UX”, “controlled fields”, “subordinate job types”, “Technician skills”, “Website JOB_TYPES mapping”, “Correspondence template/version ownership”, “rendered correspondence history/provenance”, “Correspondence delivery-attempt/retry/failure state”, “Correspondence human-approval boundary” or “Work Order completion correspondence materialization”. Those foundations are merged or explicitly closed by evidence review. Any future work in those areas must identify a specific verified residual requirement, defect or newly approved vocabulary/extension.
+Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors”, “recurring auto-resume”, “admin access audit history”, “Supabase Admin invitation/provider-session revocation”, “Supabase Auth email-change/confirmation UX”, “controlled fields”, “subordinate job types”, “Technician skills”, “Website JOB_TYPES mapping”, “Correspondence template/version ownership”, “rendered correspondence history/provenance”, “Correspondence delivery-attempt/retry/failure state”, “Correspondence human-approval boundary”, “Work Order completion correspondence materialization” or “accepted Quote booking correspondence materialization”. Those foundations are merged or explicitly closed by evidence review. Any future work in those areas must identify a specific verified residual requirement, defect or newly approved vocabulary/extension.
