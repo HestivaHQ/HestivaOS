@@ -16,7 +16,7 @@ A `CorrespondenceTemplate` is a stable logical identity with a durable unique ma
 
 A `CorrespondenceTemplateVersion` contains subject/body source text and a monotonically increasing version number scoped to its template.
 
-Version lifecycle is `DRAFT`, `PUBLISHED`, `RETIRED`. The database enforces at most one draft and one published version per template. Publishing a draft runs in a serializable transaction and atomically retires any previously published version for the same template. A published or retired version is never edited in place through the API; changes require a new draft.
+Version lifecycle is `DRAFT`, `PUBLISHED`, `RETIRED`. The database enforces at most one draft and one published version per template. Publishing and retiring run through serializable lifecycle transactions; publishing atomically retires any previously published version for the same template. A published or retired version is never edited in place through the API; changes require a new draft.
 
 The additive migration creates `correspondence_templates`, `correspondence_template_versions` and the `CorrespondenceTemplateVersionStatus` enum. Template/version history uses restrictive foreign-key deletion semantics so historical versions are not cascaded away with their logical template.
 
