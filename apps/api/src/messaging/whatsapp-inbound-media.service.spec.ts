@@ -9,11 +9,9 @@ jest.mock('@supabase/supabase-js', () => ({ createClient: () => ({ storage: { fr
 const ENV_NAMES = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_MESSAGING_MEDIA_BUCKET',
   'META_WHATSAPP_ACCESS_TOKEN',
   'META_WHATSAPP_PHONE_NUMBER_ID',
   'META_GRAPH_API_VERSION',
-  'META_WHATSAPP_INBOUND_MEDIA_MAX_BYTES',
 ] as const;
 
 function mediaEvent() {
@@ -43,7 +41,6 @@ describe('WhatsAppInboundMediaService', () => {
     for (const name of ENV_NAMES) delete process.env[name];
     process.env.SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-only-service-role-key';
-    process.env.SUPABASE_MESSAGING_MEDIA_BUCKET = 'messaging-media';
     process.env.META_WHATSAPP_ACCESS_TOKEN = 'access-token';
     process.env.META_WHATSAPP_PHONE_NUMBER_ID = 'phone-number-1';
     process.env.META_GRAPH_API_VERSION = 'vXX.X';
@@ -85,14 +82,13 @@ describe('WhatsAppInboundMediaService', () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
-  it('fails closed when provider integrity or configured size limits are violated', async () => {
-    process.env.META_WHATSAPP_INBOUND_MEDIA_MAX_BYTES = '4';
+  it('fails closed when provider media exceeds the fixed 20 MB v1 limit', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       id: 'media-1',
       url: 'https://lookaside.fbsbx.com/media-1',
       mime_type: 'image/jpeg',
       sha256: 'deadbeef',
-      file_size: '10',
+      file_size: String(20 * 1024 * 1024 + 1),
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     const { service } = harness();
     await expect(service.secureInboundMedia('11111111-1111-4111-8111-111111111111', mediaEvent())).rejects.toBeInstanceOf(UnprocessableEntityException);
