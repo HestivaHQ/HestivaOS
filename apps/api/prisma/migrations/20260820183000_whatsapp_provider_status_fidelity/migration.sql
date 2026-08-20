@@ -6,9 +6,7 @@ CREATE TABLE "messaging_provider_status_events" (
   "provider_status" TEXT NOT NULL,
   "occurred_at" TIMESTAMP(3) NOT NULL,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "messaging_provider_status_events_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "messaging_provider_status_events_provider_status_check"
-    CHECK ("provider_status" IN ('sent', 'delivered', 'read', 'failed'))
+  CONSTRAINT "messaging_provider_status_events_pkey" PRIMARY KEY ("id")
 );
 
 CREATE UNIQUE INDEX "messaging_provider_status_events_provider_message_status_occurred_key"
