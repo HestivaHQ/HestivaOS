@@ -2,7 +2,7 @@
 
 ## Status
 
-Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. The first provider-runtime extension now implements the authenticated WhatsApp Cloud API edge described below. AI, autonomous Quote creation, Messenger runtime, provider-identity Customer linking and broad customer-facing automation remain outside this foundation.
+Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. The first provider-runtime extension now implements the authenticated WhatsApp Cloud API inbound edge described below. AI, autonomous Quote creation, Messenger runtime, provider-identity Customer linking, broad customer-facing automation, and live WhatsApp outbound transport remain outside this foundation.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -53,24 +53,25 @@ The conversation may ask questions in a more natural order when the customer vol
 1. verify webhook authenticity using the provider-supported mechanism;
 2. fail closed when authenticity cannot be established;
 3. normalize one webhook into zero, one, or many provider-neutral events;
-4. submit only already-authorized outbound commands;
+4. submit only already-authorized outbound commands when a provider-specific send boundary is proven safe;
 5. keep provider payload details out of business-domain logic.
 
 The contract now carries optional exact raw request bytes solely so providers whose signatures cover the original HTTP body can authenticate before normalization. Those bytes are transport input and are not normal durable messaging data.
 
 ## WhatsApp Cloud API provider runtime v1
 
-The first provider-specific runtime is direct Meta WhatsApp Business Platform / Cloud API. It is implemented behind the existing `MessagingProviderAdapter` boundary and remains inactive until deployment-owned Meta configuration is supplied.
+The first provider-specific runtime is direct Meta WhatsApp Business Platform / Cloud API. This slice intentionally enables **authenticated inbound webhook ingestion only**. It does not register WhatsApp as an available outbound transport.
 
 - Public callback: `GET|POST /api/v1/messaging/webhooks/whatsapp`.
 - GET subscription verification requires `hub.mode=subscribe`, exact `META_WHATSAPP_WEBHOOK_VERIFY_TOKEN` equality and a challenge value.
 - POST authentication requires `X-Hub-Signature-256` HMAC-SHA256 verification over the exact raw request bytes with `META_APP_SECRET`. Missing raw bytes, missing configuration, malformed signatures and mismatches fail closed before persistence.
 - Authenticated inbound WhatsApp messages normalize to provider `meta`, channel `WHATSAPP`, provider-scoped identity, immutable provider message/event identity, text/interactive/media facts and supplied referral/click provenance. `MessagingService.persistInbound()` remains the database idempotency and durable-history boundary.
-- Complete raw Meta payloads are not persisted. Only the approved normalized fields enter HestivaOS messaging history.
-- Text outbound commands use the explicitly configured Graph API version, WhatsApp phone-number ID and access token. The adapter advertises outbound availability through `MessagingAdapterRegistry` only when the outbound transport configuration is complete.
-- Rich outbound message kinds and provider delivery/read/failure status-webhook persistence are later bounded extensions; this v1 transport does not pretend they are complete.
+- Complete raw Meta payloads are not persisted. Only approved normalized fields enter HestivaOS messaging history.
+- Media-only messages preserve the existing media-array JSON shape. When provider referral or interactive provenance also exists, the same JSON field uses a small envelope so that provenance is not silently discarded.
+- WhatsApp outbound remains deliberately disabled even when send credentials are present. An ambiguous network/provider outcome could otherwise cause the current retry path to send the same customer message twice. Outbound must not be registered until reconciliation or another provider-supported duplicate-prevention boundary is proven.
+- Provider delivery/read/failure status-webhook persistence, rich outbound message kinds and safe outbound retry/reconciliation are later bounded extensions.
 
-The Graph API version is intentionally an environment value rather than a repository default. Provider-version upgrades must therefore be deliberate and reverified instead of silently following a moving external default. See ADR-0078 and `docs/ENVIRONMENT.md`.
+See ADR-0078 and `docs/ENVIRONMENT.md`.
 
 ## Replay and idempotency
 
@@ -163,7 +164,7 @@ No AI provider or model is part of Foundation v1. Later AI may interpret free te
 
 Durable channel-neutral `MessagingConversation`, `MessagingMessage` and message-status-event persistence now exists, including the bounded Work Order access-recovery extension described below. Provider-event idempotency and immutable message history remain authoritative.
 
-The next provider-runtime residual after WhatsApp Cloud API v1 is provider delivery/read/failure status ingestion and richer outbound transport, followed by Messenger behind the same provider-neutral boundary. Customer-linking and deterministic Quote/service automation remain separate product slices.
+The next WhatsApp provider-runtime residual is safe outbound retry/reconciliation plus provider delivery/read/failure status ingestion. Messenger then follows behind the same provider-neutral boundary. Customer-linking and deterministic Quote/service automation remain separate product slices.
 
 ## 2026-08-19 Phase 3D access-recovery extension
 
