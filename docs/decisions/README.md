@@ -82,3 +82,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0072: Persist rendered correspondence as immutable provider-neutral history](ADR-0072-immutable-rendered-correspondence-history.md)
 - [ADR-0073: Persist provider-neutral Correspondence delivery attempts as append-only chains](ADR-0073-provider-neutral-correspondence-delivery-attempts.md)
 - [ADR-0074: Require human initiation for customer Correspondence delivery](ADR-0074-human-approved-correspondence-delivery-boundary.md)
+- [ADR-0075: Materialize completion correspondence from authoritative Work Order state](ADR-0075-materialize-completion-correspondence-from-authoritative-work-order-state.md)
