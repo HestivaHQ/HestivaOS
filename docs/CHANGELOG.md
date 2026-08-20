@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-20 — Messenger receive-only provider edge
+
+### Added
+
+- Added Meta Page webhook subscription verification at `/api/v1/messaging/webhooks/messenger` and raw-body `X-Hub-Signature-256` HMAC verification using the existing API-only Meta app secret.
+- Added normalization of authenticated Messenger text, postback, referral, and bounded attachment metadata into the existing provider-neutral `MESSENGER` contract and immutable persistence/idempotency boundary.
+- Added focused adapter tests and `MESSENGER_PROVIDER_EDGE_V1.md` plus deployment guidance for the receive-only activation boundary.
+
+### Security and deferred behavior
+
+- Messenger sender PSIDs remain provider identities only and are not treated as canonical Customer identities.
+- Messenger outbound is deliberately disabled because this slice has no approved duplicate-safe reconciliation path for an ambiguous Send API result. No Page access token, delivery/read reconciliation, attachment storage, Customer auto-linking, Quote automation, human takeover, or AI behavior is introduced.
+- Added API-only `META_MESSENGER_WEBHOOK_VERIFY_TOKEN`; `HESTIVA_WEBSITE_INTEGRATION_SECRET` remains a separate Website trust boundary.
+
 ## 2026-08-19 — Administrative access-change audit history
 
 ### Added
