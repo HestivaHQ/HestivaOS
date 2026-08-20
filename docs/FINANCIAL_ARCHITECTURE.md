@@ -26,17 +26,20 @@ Month-end billing rehabilitation is now resolved: after the approved privilege-w
 
 Website/customer correspondence must disclose material financial terms consistently with HestivaOS authoritative financial state. Any Website ↔ HestivaOS payment/billing fields must be structured and versioned through the Slice 5M Issue #73 coordination process before incompatible implementation is merged.
 
+Customer Correspondence is now approved as a separate HestivaOS provider-neutral authority under ADR-0071. The approved first boundary is stable template identity plus immutable version lifecycle. Future Finance invoices, receipts and payment communications must consume that shared correspondence authority rather than create a competing template or outbound-history system.
+
 ## Current policy records
 
 - `docs/decisions/ADR-0033-recurring-payment-arrangements-and-upcoming-payments.md` — original accepted domain separation and recurring-payment architecture.
 - `docs/decisions/ADR-0035-recurring-financial-policy-v2.md` — superseding resolved recurring financial-policy summary.
 - `docs/decisions/ADR-0036-launch-financial-controls-and-payment-policy-v3.md` — launch payment authority, verification, disputes, tolerance, rehabilitation, allocation and financial-record controls.
+- `docs/decisions/ADR-0071-correspondence-template-version-ownership.md` — shared provider-neutral correspondence template/version ownership boundary.
 - `docs/financial/MONTH_END_BILLING_POLICY.md` — detailed month-end eligibility, selected-date, transition, live-statement and rehabilitation rules.
 - `docs/financial/COLLECTIONS_REFUNDS_AND_PRICE_CHANGES.md` — refunds, collections, account-state, launch controls and recurring-price-increase rules.
 - `docs/financial/CUSTOMER_FINANCIAL_DISCLOSURE.md` — customer disclosure and preserved recurring-payment terms.
 
 ## Explicitly not yet designed
 
-The technical automated-correspondence system is not approved. Before implementation, a separate decision is required for provider/architecture, templates/tone, triggers/jobs, retries, failed-send handling, delivery tracking where supported, payment links, already-paid/disputed-payment handling, duplicate-message prevention, audit/history storage, and any communication channels beyond email.
+Correspondence provider/channel selection, customer-specific rendering and provenance, triggers/jobs, retries, failed-send handling, delivery tracking where supported, payment links, already-paid/disputed-payment handling, duplicate-message prevention, human approval boundaries, and communication-channel integration remain unresolved. ADR-0071 does not authorize any customer send.
 
-Payment/collection provider selection, weekend/public-holiday collection behaviour, exact persistence schema/API/UI design, and automatic collection remain unresolved. No universal three-hour retry rule is approved; future automated retries must follow the eventual provider's safe-retry semantics and first verify that the original transaction did not succeed.
+Payment/collection provider selection, weekend/public-holiday collection behaviour, exact Finance persistence schema/API/UI design, and automatic collection remain unresolved. No universal three-hour retry rule is approved; future automated retries must follow the eventual provider's safe-retry semantics and first verify that the original transaction did not succeed.
