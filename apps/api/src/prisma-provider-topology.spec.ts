@@ -30,4 +30,13 @@ describe('Prisma provider topology', () => {
     expect(appModule).toContain("import { DatabaseModule } from './database.module';");
     expect(appModule).toMatch(/imports:\s*\[DatabaseModule,/);
   });
+
+  it('does not require a database connection during application bootstrap', () => {
+    const prismaService = readFileSync(join(__dirname, 'prisma.service.ts'), 'utf8');
+
+    expect(prismaService).not.toContain('OnModuleInit');
+    expect(prismaService).not.toContain('onModuleInit');
+    expect(prismaService).not.toContain('this.$connect()');
+    expect(prismaService).toContain('this.$disconnect()');
+  });
 });
