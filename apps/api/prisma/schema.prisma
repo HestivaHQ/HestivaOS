@@ -1608,6 +1608,12 @@ enum CorrespondenceTemplateVersionStatus {
   RETIRED
 }
 
+enum CorrespondenceDeliveryAttemptStatus {
+  PENDING
+  ACCEPTED
+  FAILED
+}
+
 model CorrespondenceTemplate {
   id String @id @default(uuid()) @db.Uuid
   key String @unique
@@ -1649,9 +1655,42 @@ model CorrespondenceRecord {
   recipientSnapshot Json @map("recipient_snapshot")
   provenance Json
   templateVersion CorrespondenceTemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  deliveryAttempts CorrespondenceDeliveryAttempt[]
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([templateVersionId, createdAt])
   @@index([createdAt])
   @@map("correspondence_records")
+}
+
+model CorrespondenceDeliveryAttempt {
+  id String @id @default(uuid()) @db.Uuid
+  correspondenceRecordId String @map("correspondence_record_id") @db.Uuid
+  attemptNumber Int @map("attempt_number")
+  previousAttemptId String? @unique @map("previous_attempt_id") @db.Uuid
+  routeSnapshot Json @map("route_snapshot")
+  correspondenceRecord CorrespondenceRecord @relation(fields: [correspondenceRecordId], references: [id], onDelete: Restrict)
+  previousAttempt CorrespondenceDeliveryAttempt? @relation("CorrespondenceDeliveryRetryChain", fields: [previousAttemptId], references: [id], onDelete: Restrict)
+  nextAttempt CorrespondenceDeliveryAttempt? @relation("CorrespondenceDeliveryRetryChain")
+  events CorrespondenceDeliveryAttemptEvent[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([correspondenceRecordId, attemptNumber])
+  @@index([correspondenceRecordId, createdAt])
+  @@map("correspondence_delivery_attempts")
+}
+
+model CorrespondenceDeliveryAttemptEvent {
+  id String @id @default(uuid()) @db.Uuid
+  attemptId String @map("attempt_id") @db.Uuid
+  status CorrespondenceDeliveryAttemptStatus
+  providerReference String? @map("provider_reference")
+  failureCode String? @map("failure_code")
+  failureMessage String? @map("failure_message")
+  metadata Json?
+  attempt CorrespondenceDeliveryAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([attemptId, createdAt])
+  @@map("correspondence_delivery_attempt_events")
 }
