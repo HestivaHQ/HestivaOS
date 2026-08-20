@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind, MessagingMessagePurpose, Prisma, WorkOrderAccessRecoveryStatus } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 import type { NormalizedInboundMessagingEvent, OutboundMessagingCommand, OutboundMessagingResult } from './messaging-contract';
 import { MessagingAdapterRegistry } from './messaging-adapter-registry';
@@ -73,7 +72,24 @@ export class MessagingService {
     if (!message || message.direction !== MessagingDirection.OUTBOUND) return null;
 
     const occurredAt = new Date(event.occurredAt);
-    await this.persistWhatsAppProviderStatus(message.id, event, occurredAt);
+    await this.prisma.messagingProviderStatusEvent.upsert({
+      where: {
+        provider_providerMessageId_providerStatus_occurredAt: {
+          provider: 'meta',
+          providerMessageId: event.providerMessageId,
+          providerStatus: event.providerStatus,
+          occurredAt,
+        },
+      },
+      create: {
+        messageId: message.id,
+        provider: 'meta',
+        providerMessageId: event.providerMessageId,
+        providerStatus: event.providerStatus,
+        occurredAt,
+      },
+      update: {},
+    });
 
     const mapped = event.providerStatus === 'failed' ? MessagingDeliveryStatus.FAILED : MessagingDeliveryStatus.ACCEPTED;
     await this.appendStatus(message.id, mapped, event.providerMessageId);
@@ -101,16 +117,6 @@ export class MessagingService {
       if (recovery) await tx.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { responseMessageId: message.id, status: WorkOrderAccessRecoveryStatus.RESPONSE_REQUIRES_REVIEW } });
       return message;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-  }
-
-  private async persistWhatsAppProviderStatus(messageId: string, event: NormalizedWhatsAppStatusEvent, occurredAt: Date) {
-    await this.prisma.$executeRaw`
-      INSERT INTO "messaging_provider_status_events"
-        ("id", "message_id", "provider", "provider_message_id", "provider_status", "occurred_at")
-      VALUES
-        (${randomUUID()}::uuid, ${messageId}::uuid, 'meta', ${event.providerMessageId}, ${event.providerStatus}, ${occurredAt})
-      ON CONFLICT ("provider", "provider_message_id", "provider_status", "occurred_at") DO NOTHING
-    `;
   }
 
   private async appendStatus(messageId: string, status: MessagingDeliveryStatus, providerMessageId?: string) {
