@@ -21,16 +21,19 @@ The verified production signing configuration is asymmetric ECC P-256 / ES256. T
 
 ### WhatsApp Cloud API provider runtime
 
-The direct Meta WhatsApp Business Platform inbound adapter is inert until its webhook-authentication configuration is supplied. Values are API-only.
+The direct Meta WhatsApp Business Platform adapter remains inert unless the required provider configuration is supplied. Values are API-only.
 
 - `META_APP_SECRET` — Meta app secret used only to validate the `X-Hub-Signature-256` HMAC over exact raw webhook request bytes. Never log, commit or expose it to browser code.
 - `META_WHATSAPP_WEBHOOK_VERIFY_TOKEN` — private random value chosen by Homent and configured identically in the Meta webhook subscription and Railway API runtime. It is used only for the GET subscription challenge.
+- `META_WHATSAPP_ACCESS_TOKEN` — API-only Meta access token used for authorized WhatsApp sends.
+- `META_WHATSAPP_PHONE_NUMBER_ID` — Meta phone-number ID used as the `/messages` endpoint target.
+- `META_GRAPH_API_VERSION` — explicit Graph API version such as `vXX.X`; do not hard-code or silently upgrade it without current Meta verification.
 
 Production onboarding also requires the corresponding Meta business portfolio, WhatsApp Business Account and registered business phone number. Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET` or any Website integration identity for messaging.
 
 The public webhook route is `/api/v1/messaging/webhooks/whatsapp`. It intentionally bypasses Supabase user authentication because Meta provider verification is the authentication boundary: GET requires the configured verification token and POST fails closed unless the raw-body Meta signature is valid. Raw provider payload bytes are transport input only and must not be logged or durably retained.
 
-WhatsApp outbound transport is deliberately disabled in this slice, even if future send credentials are present in a runtime environment. Do not configure or rely on `META_WHATSAPP_ACCESS_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, or `META_GRAPH_API_VERSION` as an active HestivaOS send path until the outbound retry/reconciliation boundary is implemented and reviewed. This prevents an ambiguous provider/network outcome from causing a blind duplicate customer send.
+WhatsApp outbound is registered only when the access token, phone-number ID and explicit Graph API version are all present. Each outbound text send carries the durable HestivaOS idempotency key as Meta `biz_opaque_callback_data`, and authenticated provider status webhooks reconcile ambiguous send outcomes before another provider call is allowed. Network failures, provider 5xx responses and malformed success responses are not treated as safe-to-retry failures. If no resolving provider status arrives, HestivaOS remains fail-closed rather than blindly resending.
 
 ## Cloudflare Worker runtime
 

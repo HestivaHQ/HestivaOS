@@ -52,13 +52,11 @@ export class WhatsAppWebhookController {
     if (!request.rawBody) {
       throw new ServiceUnavailableException('Raw webhook body is unavailable for signature verification.');
     }
-    const receivedAt = new Date().toISOString();
-    const events = await this.adapter.normalizeInboundWebhook(request.body, {
-      receivedAt,
-      headers,
-      rawBody: request.rawBody,
-    });
+    const context = { receivedAt: new Date().toISOString(), headers, rawBody: request.rawBody };
+    const events = await this.adapter.normalizeInboundWebhook(request.body, context);
+    const statusEvents = await this.adapter.normalizeStatusWebhook(request.body, context);
     for (const event of events) await this.messaging.persistInbound(event);
-    return { received: true, normalizedEvents: events.length };
+    for (const event of statusEvents) await this.messaging.persistWhatsAppStatus(event);
+    return { received: true, normalizedEvents: events.length, normalizedStatusEvents: statusEvents.length };
   }
 }
