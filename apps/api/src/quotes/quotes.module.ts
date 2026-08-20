@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
 import {
   ApprovedQuoteOperationalCostProvider,
   type AllocatedRouteDistanceResolver,
@@ -68,7 +67,6 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
 @Module({
   controllers: [QuoteReviewController, WebsiteIntegrationHealthController, WebsiteQuoteIngestionController],
   providers: [
-    PrismaService,
     WebsiteQuoteIngestionService,
     QuoteReviewService,
     {
