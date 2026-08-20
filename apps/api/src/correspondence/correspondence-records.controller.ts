@@ -8,11 +8,15 @@ import {
   MaterializeCorrespondenceInput,
   RecordCorrespondenceDeliveryOutcomeInput,
 } from './correspondence.service';
+import { CorrespondenceWorkOrderEventsService, MaterializeWorkOrderCompletionInput } from './correspondence-work-order-events.service';
 
 @Roles(UserRole.ADMIN)
 @Controller('correspondence/records')
 export class CorrespondenceRecordsController {
-  constructor(private readonly correspondence: CorrespondenceService) {}
+  constructor(
+    private readonly correspondence: CorrespondenceService,
+    private readonly workOrderEvents: CorrespondenceWorkOrderEventsService,
+  ) {}
 
   @Get()
   findAll() { return this.correspondence.findRecords(); }
@@ -23,6 +27,15 @@ export class CorrespondenceRecordsController {
   @Post('materialize')
   materialize(@CurrentUser() actor: User, @Body() input: MaterializeCorrespondenceInput) {
     return this.correspondence.materialize(actor, input);
+  }
+
+  @Post('events/work-orders/:workOrderId/completion/materialize')
+  materializeWorkOrderCompletion(
+    @CurrentUser() actor: User,
+    @Param('workOrderId', new ParseUUIDPipe()) workOrderId: string,
+    @Body() input: MaterializeWorkOrderCompletionInput,
+  ) {
+    return this.workOrderEvents.materializeCompletion(actor, workOrderId, input);
   }
 
   @Get(':id/delivery-attempts')
