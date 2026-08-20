@@ -1,10 +1,7 @@
 import {
-  BadGatewayException,
   Injectable,
-  OnModuleInit,
   ServiceUnavailableException,
   UnauthorizedException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
@@ -13,7 +10,6 @@ import type {
   OutboundMessagingResult,
 } from './messaging-contract';
 import { MESSAGING_CONTRACT_VERSION } from './messaging-contract';
-import { MessagingAdapterRegistry } from './messaging-adapter-registry';
 import type {
   MessagingProviderAdapter,
   MessagingWebhookContext,
@@ -117,15 +113,9 @@ function attributionFrom(referral: Record<string, unknown> | undefined) {
 }
 
 @Injectable()
-export class WhatsAppCloudApiAdapter implements MessagingProviderAdapter, OnModuleInit {
+export class WhatsAppCloudApiAdapter implements MessagingProviderAdapter {
   readonly channel = 'WHATSAPP' as const;
   readonly provider = PROVIDER;
-
-  constructor(private readonly registry: MessagingAdapterRegistry) {}
-
-  onModuleInit(): void {
-    if (this.outboundConfigured()) this.registry.register(this);
-  }
 
   verifySubscription(mode: unknown, token: unknown): boolean {
     const verifyToken = env('META_WHATSAPP_WEBHOOK_VERIFY_TOKEN');
@@ -191,49 +181,10 @@ export class WhatsAppCloudApiAdapter implements MessagingProviderAdapter, OnModu
     return events;
   }
 
-  async send(command: OutboundMessagingCommand): Promise<OutboundMessagingResult> {
-    const accessToken = env('META_WHATSAPP_ACCESS_TOKEN');
-    const phoneNumberId = env('META_WHATSAPP_PHONE_NUMBER_ID');
-    const graphVersion = env('META_GRAPH_API_VERSION');
-    if (!accessToken || !phoneNumberId || !graphVersion) {
-      throw new ServiceUnavailableException('WhatsApp Cloud API outbound transport is not configured.');
-    }
-    if (command.channel !== this.channel || command.provider.trim().toLowerCase() !== this.provider) {
-      throw new UnprocessableEntityException('Outbound command does not target this WhatsApp provider adapter.');
-    }
-    if (command.kind !== 'TEXT' || !command.text?.trim()) {
-      throw new UnprocessableEntityException('WhatsApp Cloud API v1 transport currently supports text commands only.');
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(`https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(phoneNumberId)}/messages`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: command.providerIdentityId,
-          type: 'text',
-          text: { preview_url: false, body: command.text.trim() },
-        }),
-      });
-    } catch {
-      throw new BadGatewayException('WhatsApp Cloud API could not be reached.');
-    }
-
-    if (!response.ok) {
-      throw new BadGatewayException(`WhatsApp Cloud API rejected the message with HTTP ${response.status}.`);
-    }
-    const body = await response.json() as { messages?: Array<{ id?: unknown }> };
-    const providerMessageId = asString(body.messages?.[0]?.id);
-    if (!providerMessageId) {
-      throw new BadGatewayException('WhatsApp Cloud API returned no provider message identity.');
-    }
-    return { providerMessageId, acceptedAt: new Date().toISOString() };
+  async send(_command: OutboundMessagingCommand): Promise<OutboundMessagingResult> {
+    throw new ServiceUnavailableException(
+      'WhatsApp outbound transport is intentionally disabled until ambiguous provider outcomes can be reconciled without duplicate customer sends.',
+    );
   }
 
   private verifySignature(context: MessagingWebhookContext): void {
@@ -252,9 +203,5 @@ export class WhatsAppCloudApiAdapter implements MessagingProviderAdapter, OnModu
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
       throw new UnauthorizedException('WhatsApp webhook authenticity could not be established.');
     }
-  }
-
-  private outboundConfigured(): boolean {
-    return !!env('META_WHATSAPP_ACCESS_TOKEN') && !!env('META_WHATSAPP_PHONE_NUMBER_ID') && !!env('META_GRAPH_API_VERSION');
   }
 }
