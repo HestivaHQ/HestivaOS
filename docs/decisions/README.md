@@ -77,3 +77,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0067: Three-stage development validation](ADR-0067-three-stage-development-validation.md)
 - [ADR-0068: Persist administrative access changes as append-only identity snapshots](ADR-0068-admin-access-audit-history.md)
 - [ADR-0069: Scalable documentation authority and bounded context loading](ADR-0069-scalable-documentation-authority.md)
+- [ADR-0070: Bound Supabase administrator operations to invitation and refresh-session revocation](ADR-0070-supabase-admin-invitation-and-session-revocation.md)
