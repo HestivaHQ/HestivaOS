@@ -43,6 +43,24 @@ describe('CorrespondenceService', () => {
     }));
   });
 
+  it('retires a published version inside the serialized lifecycle boundary', async () => {
+    const retired = { id: 'version-1', status: CorrespondenceTemplateVersionStatus.RETIRED };
+    const tx = {
+      correspondenceTemplateVersion: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'version-1', templateId: 'template-1', status: CorrespondenceTemplateVersionStatus.PUBLISHED }),
+        update: jest.fn().mockResolvedValue(retired),
+      },
+    };
+    transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+
+    await expect(service.retire('template-1', 'version-1')).resolves.toEqual(retired);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(tx.correspondenceTemplateVersion.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'version-1' },
+      data: expect.objectContaining({ status: CorrespondenceTemplateVersionStatus.RETIRED }),
+    }));
+  });
+
   it('does not publish a missing version', async () => {
     const tx = { correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue(null) } };
     transaction.mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
