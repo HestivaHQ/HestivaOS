@@ -98,6 +98,19 @@ export class UsersService {
     return user;
   }
 
+  async preflightEmailChange(authUserId: string, emailInput: string) {
+    const email = emailInput.trim().toLowerCase();
+    if (!email || !email.includes('@')) throw new BadRequestException('A valid email address is required.');
+    const current = await this.findByAuthUserId(authUserId);
+    if (current.email.toLowerCase() === email) throw new BadRequestException('Enter a different email address.');
+    const conflict = await this.prisma.user.findFirst({
+      where: { id: { not: current.id }, email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (conflict) throw new ConflictException('That email address is already associated with another HestivaOS account.');
+    return { email, allowed: true };
+  }
+
   async updateProfile(authUserId: string, input: UpdateProfileInput) {
     const user = await this.findByAuthUserId(authUserId);
     return this.prisma.user.update({
