@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { CorrespondenceTemplateVersionStatus } from '@prisma/client';
+import { CorrespondenceDeliveryAttemptStatus, CorrespondenceTemplateVersionStatus } from '@prisma/client';
 import { CorrespondenceService } from './correspondence.service';
 
 type TransactionCallback = (client: any) => unknown;
@@ -17,6 +17,12 @@ describe('CorrespondenceService', () => {
     correspondenceRecord: { create: createRecord },
   } as any;
   const service = new CorrespondenceService(prisma);
+  const actor = {
+    id: 'admin-1',
+    authUserId: '11111111-1111-1111-1111-111111111111',
+    email: 'admin@example.com',
+    displayName: 'Admin User',
+  } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -101,12 +107,6 @@ describe('CorrespondenceService', () => {
       template: { id: 'template-1', key: 'booking_confirmation' },
     } as never);
     createRecord.mockResolvedValue({ id: 'record-1' } as never);
-    const actor = {
-      id: 'admin-1',
-      authUserId: '11111111-1111-1111-1111-111111111111',
-      email: 'admin@example.com',
-      displayName: 'Admin User',
-    } as any;
 
     await service.materialize(actor, {
       templateVersionId: 'version-2',
@@ -158,5 +158,146 @@ describe('CorrespondenceService', () => {
       recipientSnapshot: [] as unknown as Record<string, unknown>,
     })).rejects.toBeInstanceOf(BadRequestException);
     expect(findTemplateVersion).not.toHaveBeenCalled();
+  });
+
+  it('creates the first delivery attempt with an initial pending event and actor snapshot', async () => {
+    const createAttempt = jest.fn().mockResolvedValue({ id: 'attempt-1', attemptNumber: 1 } as never);
+    const tx = {
+      correspondenceRecord: { findUnique: jest.fn().mockResolvedValue({ id: 'record-1' } as never) },
+      correspondenceDeliveryAttempt: {
+        findFirst: jest.fn().mockResolvedValue(null as never),
+        create: createAttempt,
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await service.createDeliveryAttempt(actor, 'record-1', { routeSnapshot: { adapter: 'future-provider' } });
+
+    expect(createAttempt).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        correspondenceRecordId: 'record-1',
+        attemptNumber: 1,
+        previousAttemptId: null,
+        routeSnapshot: { adapter: 'future-provider' },
+        events: {
+          create: {
+            status: CorrespondenceDeliveryAttemptStatus.PENDING,
+            metadata: {
+              initiatedBy: {
+                userId: 'admin-1',
+                authUserId: '11111111-1111-1111-1111-111111111111',
+                email: 'admin@example.com',
+                displayName: 'Admin User',
+              },
+            },
+          },
+        },
+      }),
+    }));
+  });
+
+  it('creates a retry only from the latest failed attempt', async () => {
+    const createAttempt = jest.fn().mockResolvedValue({ id: 'attempt-2', attemptNumber: 2 } as never);
+    const tx = {
+      correspondenceRecord: { findUnique: jest.fn().mockResolvedValue({ id: 'record-1' } as never) },
+      correspondenceDeliveryAttempt: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'attempt-1',
+          attemptNumber: 1,
+          events: [{ status: CorrespondenceDeliveryAttemptStatus.FAILED }],
+        } as never),
+        create: createAttempt,
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await service.createDeliveryAttempt(actor, 'record-1', {
+      previousAttemptId: 'attempt-1',
+      routeSnapshot: { adapter: 'future-provider', retry: true },
+    });
+
+    expect(createAttempt).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ attemptNumber: 2, previousAttemptId: 'attempt-1' }),
+    }));
+  });
+
+  it('refuses to retry a pending delivery attempt', async () => {
+    const tx = {
+      correspondenceRecord: { findUnique: jest.fn().mockResolvedValue({ id: 'record-1' } as never) },
+      correspondenceDeliveryAttempt: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'attempt-1',
+          attemptNumber: 1,
+          events: [{ status: CorrespondenceDeliveryAttemptStatus.PENDING }],
+        } as never),
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.createDeliveryAttempt(actor, 'record-1', {
+      previousAttemptId: 'attempt-1',
+      routeSnapshot: { adapter: 'future-provider' },
+    })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('records one accepted terminal outcome with provider and actor snapshots', async () => {
+    const createEvent = jest.fn().mockResolvedValue({ id: 'event-2', status: CorrespondenceDeliveryAttemptStatus.ACCEPTED } as never);
+    const tx = {
+      correspondenceDeliveryAttempt: { findUnique: jest.fn().mockResolvedValue({ id: 'attempt-1' } as never) },
+      correspondenceDeliveryAttemptEvent: {
+        findFirst: jest.fn()
+          .mockResolvedValueOnce(null as never)
+          .mockResolvedValueOnce({ id: 'event-1' } as never),
+        create: createEvent,
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await service.recordDeliveryOutcome(actor, 'attempt-1', {
+      status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
+      providerReference: 'provider-ref-1',
+      metadata: { providerState: 'queued' },
+    });
+
+    expect(createEvent).toHaveBeenCalledWith({
+      data: {
+        attemptId: 'attempt-1',
+        status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
+        providerReference: 'provider-ref-1',
+        failureCode: null,
+        failureMessage: null,
+        metadata: {
+          providerState: 'queued',
+          recordedBy: {
+            userId: 'admin-1',
+            authUserId: '11111111-1111-1111-1111-111111111111',
+            email: 'admin@example.com',
+            displayName: 'Admin User',
+          },
+        },
+      },
+    });
+  });
+
+  it('requires failure detail for a failed outcome', async () => {
+    await expect(service.recordDeliveryOutcome(actor, 'attempt-1', {
+      status: CorrespondenceDeliveryAttemptStatus.FAILED,
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses a second terminal outcome for the same attempt', async () => {
+    const tx = {
+      correspondenceDeliveryAttempt: { findUnique: jest.fn().mockResolvedValue({ id: 'attempt-1' } as never) },
+      correspondenceDeliveryAttemptEvent: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'terminal-1' } as never),
+      },
+    };
+    transaction.mockImplementation((callback) => callback(tx));
+
+    await expect(service.recordDeliveryOutcome(actor, 'attempt-1', {
+      status: CorrespondenceDeliveryAttemptStatus.FAILED,
+      failureMessage: 'Provider rejected request',
+    })).rejects.toBeInstanceOf(ConflictException);
   });
 });
