@@ -12,6 +12,7 @@ import {
   CorrespondenceWorkOrderEventsService,
   MaterializeWorkOrderBookingInput,
   MaterializeWorkOrderCompletionInput,
+  MaterializeWorkOrderMaterialChangeInput,
 } from './correspondence-work-order-events.service';
 
 @Roles(UserRole.ADMIN)
@@ -40,6 +41,26 @@ export class CorrespondenceRecordsController {
     @Body() input: MaterializeWorkOrderBookingInput,
   ) {
     return this.workOrderEvents.materializeBooking(actor, workOrderId, input);
+  }
+
+  @Post('events/work-orders/:workOrderId/material-changes/:operationId/reschedule/materialize')
+  materializeWorkOrderReschedule(
+    @CurrentUser() actor: User,
+    @Param('workOrderId', new ParseUUIDPipe()) workOrderId: string,
+    @Param('operationId', new ParseUUIDPipe()) operationId: string,
+    @Body() input: MaterializeWorkOrderMaterialChangeInput,
+  ) {
+    return this.workOrderEvents.materializeReschedule(actor, workOrderId, operationId, input);
+  }
+
+  @Post('events/work-orders/:workOrderId/material-changes/:operationId/cancellation/materialize')
+  materializeWorkOrderCancellation(
+    @CurrentUser() actor: User,
+    @Param('workOrderId', new ParseUUIDPipe()) workOrderId: string,
+    @Param('operationId', new ParseUUIDPipe()) operationId: string,
+    @Body() input: MaterializeWorkOrderMaterialChangeInput,
+  ) {
+    return this.workOrderEvents.materializeCancellation(actor, workOrderId, operationId, input);
   }
 
   @Post('events/work-orders/:workOrderId/completion/materialize')
