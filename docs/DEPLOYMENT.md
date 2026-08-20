@@ -1,5 +1,13 @@
 # Deployment
 
+## 2026-08-20 Messenger receive-only provider edge
+
+Deploy the API revision after configuring the API-only `META_MESSENGER_WEBHOOK_VERIFY_TOKEN` in Railway and the identical verify token in the Meta Page webhook subscription. The existing `META_APP_SECRET` remains the raw-body `X-Hub-Signature-256` verification key. Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`, and do not expose either value to Cloudflare/browser code.
+
+The public callback is `/api/v1/messaging/webhooks/messenger`. GET must return the Meta challenge only for `hub.mode=subscribe` plus the matching verification token. POST must reject missing raw body, missing app-secret configuration, malformed signatures, and invalid HMAC before normalizing or persisting any event. A successful disposable Page message should create exactly one immutable `MESSENGER` message on repeated delivery of the same provider event.
+
+This revision is deliberately receive-only. No Page access token is required or accepted by this slice, Messenger is not registered as an outbound-capable adapter, and `send()` fails closed. Do not enable customer-facing Messenger sends until a later reviewed slice records the applicable Page-token/permission and messaging-window requirements plus duplicate-safe reconciliation for ambiguous Send API outcomes. See `MESSENGER_PROVIDER_EDGE_V1.md`.
+
 ## 2026-08-20 WhatsApp inbound media storage
 
 Deploy additive migration `20260820191500_whatsapp_inbound_media_assets` through the normal Railway `npm run deploy:api` path before enabling inbound WhatsApp media handling. Before the matching API revision receives media traffic, create a **private** Supabase Storage bucket named `messaging-media`. Do not make that bucket public and do not expose `SUPABASE_SERVICE_ROLE_KEY` to Cloudflare/browser code.
@@ -57,7 +65,7 @@ Deploy migration `20260815220000_quote_customer_property_resolution` before the 
 
 Deploy additive migration `20260815190000_quote_review_decision_foundation` through the normal Railway `npm run deploy:api` path before the API version that serves internal Quote review. It adds a nullable accepted-revision foreign key and replaces ordinary future operational-link indexes with unique restricted foreign keys. It creates no Customer, Property, Work Order, Recurring Service Agreement or accepted Quote and does not modify Website ingestion data.
 
-After deployment, verify the migration completed and inspect the three unique indexes and foreign keys on `quotes`. At this historical foundation checkpoint the smoke check confirmed list/detail/preflight access and that no Accept route yet existed; the later 2026-08-16 deployment section supersedes that route limitation. A prior application can run with the additive schema; retain the constraints during application rollback unless a separately reviewed database rollback is required.
+After deployment, verify the migration completed and inspect the three unique indexes and foreign keys on `quotes`. At this historical foundation checkpoint the smoke check confirmed list/detail/preflight access and that no Accept route yet existed; the later 2026-08-16 ONE_TIME conversion supersedes that route limitation. A prior application can run with the additive schema; retain the constraints during application rollback unless a separately reviewed database rollback is required.
 
 ## Slice 5M-A Quote domain migration
 
@@ -77,7 +85,7 @@ The frontend is pinned to Next.js 16.3.0 and uses Next.js 16's default Turbopack
 
 The Cloudflare production build environment must provide `API_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The workspace deployment command runs `validate:cloudflare-env` before OpenNext starts and fails with missing variable names only. It never prints values. Optional public Storage bucket names are also build-time configuration when production does not use the application defaults.
 
-`apps/web/wrangler.jsonc` owns repository-declared Worker runtime configuration, including `API_URL`. Its `keep_vars: true` policy preserves deliberately platform-managed runtime variables rather than deleting them during deployment. This preservation policy does not turn Worker runtime variables into build variables: all `NEXT_PUBLIC_*` values needed by browser code must still exist in the Cloudflare production build environment before deployment.
+`apps/web/wrangler.jsonc` owns repository-declared Worker runtime configuration, including `API_URL`. Its `keep_vars: true` policy preserves deliberately platform-managed runtime variables rather than deleting them during a later Wrangler deployment. This preservation policy does not turn Worker runtime variables into build variables: all `NEXT_PUBLIC_*` values needed by browser code must still exist in the Cloudflare production build environment before deployment.
 
 For local verification, from the repository root:
 
@@ -187,7 +195,7 @@ Maintainers can manually dispatch `.github/workflows/dependency-security-audit.y
 
 ## Employee Records migration
 
-Slice 5 adds the additive `20260810120000_add_employee_records` migration. The normal Railway `npm run deploy:api` path applies it before API startup. It creates only the `EmployeeStatus` enum and `employee_records` table, indexes, and nullable `ON DELETE SET NULL` links; it does not update or delete existing Users, Technicians, crews, shifts, or work orders and performs no identity backfill. After deployment, verify Prisma migration completion, API readiness, an ADMIN list request, and non-ADMIN rejection. Do not infer legacy links by matching names, phone numbers, or email addresses.
+Slice 5 adds the additive `20260810120000_add_employee_records` migration. The normal Railway `npm run deploy:api` path applies it before API startup. It creates only the `EmployeeStatus` enum and `employee_records` table, indexes, and nullable `ON DELETE SET NULL` links; it does not update or delete existing Users, Technicians, crews, shifts, or work orders and performs no identity backfill. After deployment, verify Prisma migration completion, an ADMIN list request, and non-ADMIN rejection. Do not infer legacy links by matching names, phone numbers, or email addresses.
 
 ## Slice 5B controlled-list migration
 
