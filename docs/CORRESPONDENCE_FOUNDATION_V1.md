@@ -2,7 +2,7 @@
 
 ## Status
 
-ADR-0071 approves the Phase 2 Correspondence ownership architecture. Durable template/version persistence and ADMIN-only management are implemented. ADR-0072 adds immutable rendered correspondence history/provenance. ADR-0073 adds provider-neutral append-only delivery-attempt, retry and failure state without authorizing a live provider send.
+ADR-0071 approves the Phase 2 Correspondence ownership architecture. Durable template/version persistence and ADMIN-only management are implemented. ADR-0072 adds immutable rendered correspondence history/provenance. ADR-0073 adds provider-neutral append-only delivery-attempt, retry and failure state without authorizing a live provider send. ADR-0074 fixes the conservative launch boundary: every customer-facing delivery attempt, including a retry, must be explicitly initiated by an ADMIN.
 
 ## Authority boundary
 
@@ -35,6 +35,8 @@ Only a currently `PUBLISHED` template version can be materialized. No update/del
 
 Placeholder/merge-field semantics are still unapproved. The v1 materializer therefore performs no substitution: it copies the published subject/body verbatim into the immutable record. This preserves exact output provenance without inventing template syntax ahead of product approval.
 
+Materialization is not delivery approval. A rendered record may exist without any delivery attempt.
+
 ## Implemented delivery-attempt model
 
 `CorrespondenceDeliveryAttempt` is append-only delivery-intent history anchored to one immutable `CorrespondenceRecord`.
@@ -53,6 +55,14 @@ Each attempt has a monotonic attempt number, an opaque route snapshot, and an op
 Attempt creation and terminal-outcome recording use serializable transactions and server-stamp ADMIN identity snapshots into append-only event metadata. Provider references and failure details are event snapshots, not mutable Correspondence state.
 
 `ACCEPTED` means only that a future adapter reported acceptance at its boundary. It does not mean final recipient delivery or read confirmation.
+
+## Human-approval boundary
+
+Until a narrower automation policy is explicitly approved, all customer-facing Correspondence delivery is human-initiated.
+
+Creating a provider-neutral delivery attempt is the explicit approval action for the exact immutable Correspondence record. The API is ADMIN-only and the initial `PENDING` event stores the initiating ADMIN identity snapshot. A retry is also a new ADMIN-initiated attempt; there is no automatic retry scheduler.
+
+Automated/event-driven integration may prepare or materialize auditable Correspondence state, but it must stop before delivery-attempt creation. A future provider adapter may send only from an already-authorized attempt and may not infer send permission merely because a rendered record exists.
 
 ## Authorization and API boundary
 
@@ -75,14 +85,14 @@ Rendered-history API capabilities:
 Delivery-state API capabilities:
 
 - list the attempt/event chain for one Correspondence record;
-- create the first provider-neutral attempt with an opaque route snapshot;
-- create a retry only from the latest failed attempt;
+- create the first provider-neutral, human-approved attempt with an opaque route snapshot;
+- create a human-approved retry only from the latest failed attempt;
 - append one `ACCEPTED` or `FAILED` terminal outcome with provider/failure metadata.
 
 No API in this foundation invokes a transport provider.
 
 ## Deliberately deferred
 
-This foundation still does not approve actual customer-facing wording/tone, placeholder vocabulary, dynamic substitution, a delivery channel/provider, live sending, automatic retry timing/scheduling, provider-specific safe-retry rules, final-delivery/read tracking, automated triggers, duplicate-send prevention beyond the retry-chain invariants, human approval rules, payment links, or Finance-specific correspondence behavior.
+This foundation still does not approve actual customer-facing wording/tone, placeholder vocabulary, dynamic substitution, a delivery channel/provider, live sending, automatic retry timing/scheduling, provider-specific safe-retry rules, final-delivery/read tracking, automatic delivery-attempt creation, duplicate-send prevention beyond the retry-chain invariants, payment links, or Finance-specific correspondence behavior.
 
-The next Phase 2 slice is explicit human-approval boundaries where required, followed by approved event-driven Correspondence integration. Live transport remains a separate provider-specific decision and no customer send is authorized merely by ADR-0071, ADR-0072, ADR-0073 or the current Correspondence runtime.
+The next Phase 2 slice is event-driven integration with already-approved booking, completion, reschedule/cancellation and related customer events. Under ADR-0074 those integrations may prepare auditable Correspondence state but must preserve the ADMIN delivery-attempt gate. Live transport remains a separate provider-specific decision and no customer send is authorized merely by a rendered record.
