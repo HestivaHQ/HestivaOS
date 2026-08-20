@@ -1,9 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { CorrespondenceTemplateVersionStatus, Prisma } from '@prisma/client';
+import { CorrespondenceTemplateVersionStatus, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 
 export type CreateCorrespondenceTemplateInput = { key: string; name: string; subject?: string | null; body: string };
 export type CreateCorrespondenceTemplateVersionInput = { subject?: string | null; body: string };
+export type MaterializeCorrespondenceInput = {
+  templateVersionId: string;
+  recipientSnapshot: Record<string, unknown>;
+  provenance?: Record<string, unknown>;
+};
 
 function required(value: string | undefined, field: string): string {
   const normalized = value?.trim();
@@ -18,6 +23,13 @@ function normalizeTemplateKey(value: string | undefined): string {
     .replace(/^_+|_+$/g, '');
   if (!key) throw new BadRequestException('key is required.');
   return key;
+}
+
+function jsonObject(value: unknown, field: string): Prisma.InputJsonObject {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BadRequestException(`${field} must be a JSON object.`);
+  }
+  return value as Prisma.InputJsonObject;
 }
 
 @Injectable()
@@ -102,5 +114,58 @@ export class CorrespondenceService {
         data: { status: CorrespondenceTemplateVersionStatus.RETIRED, retiredAt: new Date() },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  findRecords() {
+    return this.prisma.correspondenceRecord.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { templateVersion: { include: { template: true } } },
+      take: 100,
+    });
+  }
+
+  async findRecord(id: string) {
+    const record = await this.prisma.correspondenceRecord.findUnique({
+      where: { id },
+      include: { templateVersion: { include: { template: true } } },
+    });
+    if (!record) throw new NotFoundException('Correspondence record not found.');
+    return record;
+  }
+
+  async materialize(actor: User, input: MaterializeCorrespondenceInput) {
+    const recipientSnapshot = jsonObject(input.recipientSnapshot, 'recipientSnapshot');
+    const callerProvenance = input.provenance === undefined ? {} : jsonObject(input.provenance, 'provenance');
+    const version = await this.prisma.correspondenceTemplateVersion.findUnique({
+      where: { id: input.templateVersionId },
+      include: { template: true },
+    });
+    if (!version) throw new NotFoundException('Correspondence template version not found.');
+    if (version.status !== CorrespondenceTemplateVersionStatus.PUBLISHED) {
+      throw new ConflictException('Only a published correspondence template version can be materialized.');
+    }
+
+    const provenance: Prisma.InputJsonObject = {
+      ...callerProvenance,
+      materializedBy: {
+        userId: actor.id,
+        authUserId: actor.authUserId,
+        email: actor.email,
+        displayName: actor.displayName ?? null,
+      },
+    };
+
+    return this.prisma.correspondenceRecord.create({
+      data: {
+        templateVersionId: version.id,
+        templateKeySnapshot: version.template.key,
+        templateVersionNumber: version.version,
+        subject: version.subject,
+        body: version.body,
+        recipientSnapshot,
+        provenance,
+      },
+      include: { templateVersion: { include: { template: true } } },
+    });
   }
 }

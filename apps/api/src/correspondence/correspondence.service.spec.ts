@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CorrespondenceTemplateVersionStatus } from '@prisma/client';
 import { CorrespondenceService } from './correspondence.service';
@@ -8,7 +8,14 @@ type TransactionCallback = (client: any) => unknown;
 describe('CorrespondenceService', () => {
   const transaction = jest.fn<(callback: TransactionCallback) => unknown>();
   const createTemplate = jest.fn();
-  const prisma = { $transaction: transaction, correspondenceTemplate: { create: createTemplate } } as any;
+  const findTemplateVersion = jest.fn();
+  const createRecord = jest.fn();
+  const prisma = {
+    $transaction: transaction,
+    correspondenceTemplate: { create: createTemplate },
+    correspondenceTemplateVersion: { findUnique: findTemplateVersion },
+    correspondenceRecord: { create: createRecord },
+  } as any;
   const service = new CorrespondenceService(prisma);
 
   beforeEach(() => {
@@ -82,5 +89,74 @@ describe('CorrespondenceService', () => {
     transaction.mockImplementation((callback) => callback(tx));
 
     await expect(service.publish('template-1', 'missing')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('materializes the exact published content with template and actor provenance snapshots', async () => {
+    findTemplateVersion.mockResolvedValue({
+      id: 'version-2',
+      version: 2,
+      status: CorrespondenceTemplateVersionStatus.PUBLISHED,
+      subject: 'Booking confirmed',
+      body: 'Your booking is confirmed.',
+      template: { id: 'template-1', key: 'booking_confirmation' },
+    } as never);
+    createRecord.mockResolvedValue({ id: 'record-1' } as never);
+    const actor = {
+      id: 'admin-1',
+      authUserId: '11111111-1111-1111-1111-111111111111',
+      email: 'admin@example.com',
+      displayName: 'Admin User',
+    } as any;
+
+    await service.materialize(actor, {
+      templateVersionId: 'version-2',
+      recipientSnapshot: { customerId: 'customer-1', email: 'customer@example.com' },
+      provenance: { sourceType: 'manual_test' },
+    });
+
+    expect(createRecord).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        templateVersionId: 'version-2',
+        templateKeySnapshot: 'booking_confirmation',
+        templateVersionNumber: 2,
+        subject: 'Booking confirmed',
+        body: 'Your booking is confirmed.',
+        recipientSnapshot: { customerId: 'customer-1', email: 'customer@example.com' },
+        provenance: {
+          sourceType: 'manual_test',
+          materializedBy: {
+            userId: 'admin-1',
+            authUserId: '11111111-1111-1111-1111-111111111111',
+            email: 'admin@example.com',
+            displayName: 'Admin User',
+          },
+        },
+      }),
+    }));
+  });
+
+  it('refuses to materialize a draft version', async () => {
+    findTemplateVersion.mockResolvedValue({
+      id: 'version-3',
+      version: 3,
+      status: CorrespondenceTemplateVersionStatus.DRAFT,
+      subject: null,
+      body: 'Draft',
+      template: { id: 'template-1', key: 'booking_confirmation' },
+    } as never);
+
+    await expect(service.materialize({ id: 'admin-1' } as any, {
+      templateVersionId: 'version-3',
+      recipientSnapshot: { customerId: 'customer-1' },
+    })).rejects.toBeInstanceOf(ConflictException);
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
+  it('requires recipient provenance to be a JSON object', async () => {
+    await expect(service.materialize({ id: 'admin-1' } as any, {
+      templateVersionId: 'version-2',
+      recipientSnapshot: [] as unknown as Record<string, unknown>,
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(findTemplateVersion).not.toHaveBeenCalled();
   });
 });
