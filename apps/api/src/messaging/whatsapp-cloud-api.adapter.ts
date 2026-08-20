@@ -46,6 +46,8 @@ type WhatsAppMessage = Record<string, unknown> & {
   referral?: Record<string, unknown>;
 };
 
+type WhatsAppOutboundMediaType = 'image' | 'document' | 'audio' | 'video';
+
 export type NormalizedWhatsAppStatusEvent = {
   providerMessageId: string;
   correlationId?: string;
@@ -83,6 +85,43 @@ function attributionFrom(referral: Record<string, unknown> | undefined) {
   const metadata: Record<string, unknown> = {};
   for (const key of ['source_type', 'source_id', 'source_url', 'ctwa_clid', 'headline', 'body', 'media_type']) if (referral[key] !== undefined) metadata[key] = referral[key];
   return { sourceType: asString(referral.source_type), sourceId: asString(referral.source_id), sourceUrl: asString(referral.source_url), clickId: asString(referral.ctwa_clid), headline: asString(referral.headline), body: asString(referral.body), mediaType: asString(referral.media_type), providerMetadata: Object.keys(metadata).length ? metadata : undefined };
+}
+function outboundMediaType(mimeType: string): WhatsAppOutboundMediaType | undefined {
+  const normalized = mimeType.trim().toLowerCase();
+  if (normalized === 'image/jpeg' || normalized === 'image/png') return 'image';
+  if (['video/mp4', 'video/3gpp'].includes(normalized)) return 'video';
+  if (['audio/aac', 'audio/mp4', 'audio/mpeg', 'audio/amr', 'audio/ogg'].includes(normalized)) return 'audio';
+  if (normalized.startsWith('application/') || normalized.startsWith('text/')) return 'document';
+  return undefined;
+}
+function mediaReference(url: string | undefined, mediaId: string | undefined) {
+  if (!!url === !!mediaId) throw new UnprocessableEntityException('WhatsApp media requires exactly one media ID or HTTPS URL.');
+  if (mediaId) return { id: mediaId };
+  let parsed: URL;
+  try { parsed = new URL(url!); } catch { throw new UnprocessableEntityException('WhatsApp media URL is invalid.'); }
+  if (parsed.protocol !== 'https:') throw new UnprocessableEntityException('WhatsApp media URL must use HTTPS.');
+  return { link: parsed.toString() };
+}
+function outboundBody(command: OutboundMessagingCommand): Record<string, unknown> {
+  const base: Record<string, unknown> = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: command.providerIdentityId,
+    biz_opaque_callback_data: command.idempotencyKey,
+  };
+  if (command.kind === 'TEXT') {
+    if (!command.text?.trim()) throw new UnprocessableEntityException('WhatsApp text commands require non-empty text.');
+    return { ...base, type: 'text', text: { preview_url: false, body: command.text.trim() } };
+  }
+  if (command.kind !== 'MEDIA') throw new UnprocessableEntityException('WhatsApp Cloud API v1 transport currently supports text and bounded media commands only.');
+  if (!command.media || command.media.length !== 1) throw new UnprocessableEntityException('WhatsApp media commands require exactly one media item.');
+  const media = command.media[0];
+  const type = media.mimeType ? outboundMediaType(media.mimeType) : undefined;
+  if (!type) throw new UnprocessableEntityException('WhatsApp media MIME type is not supported by this transport boundary.');
+  const payload: Record<string, unknown> = mediaReference(media.url, media.mediaId);
+  if ((type === 'image' || type === 'video' || type === 'document') && command.text?.trim()) payload.caption = command.text.trim();
+  if (type === 'document' && media.fileName?.trim()) payload.filename = media.fileName.trim();
+  return { ...base, type, [type]: payload };
 }
 
 @Injectable()
@@ -140,18 +179,18 @@ export class WhatsAppCloudApiAdapter implements MessagingProviderAdapter, OnModu
     const accessToken = env('META_WHATSAPP_ACCESS_TOKEN'), phoneNumberId = env('META_WHATSAPP_PHONE_NUMBER_ID'), graphVersion = env('META_GRAPH_API_VERSION');
     if (!accessToken || !phoneNumberId || !graphVersion) throw new ServiceUnavailableException('WhatsApp Cloud API outbound transport is not configured.');
     if (command.channel !== this.channel || command.provider.trim().toLowerCase() !== this.provider) throw new UnprocessableEntityException('Outbound command does not target this WhatsApp provider adapter.');
-    if (command.kind !== 'TEXT' || !command.text?.trim()) throw new UnprocessableEntityException('WhatsApp Cloud API v1 transport currently supports text commands only.');
     if (command.idempotencyKey.length > 512) throw new UnprocessableEntityException('Outbound correlation identity is too long for the provider callback field.');
+    const body = outboundBody(command);
 
     let response: Response;
     try {
-      response = await fetch(`https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(phoneNumberId)}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: command.providerIdentityId, type: 'text', text: { preview_url: false, body: command.text.trim() }, biz_opaque_callback_data: command.idempotencyKey }) });
+      response = await fetch(`https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${encodeURIComponent(phoneNumberId)}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     } catch { throw new MessagingProviderOutcomeUnknownError(); }
     if (response.status >= 500) throw new MessagingProviderOutcomeUnknownError();
     if (!response.ok) throw new BadGatewayException(`WhatsApp Cloud API rejected the message with HTTP ${response.status}.`);
     try {
-      const body = await response.json() as { messages?: Array<{ id?: unknown }> };
-      const providerMessageId = asString(body.messages?.[0]?.id);
+      const responseBody = await response.json() as { messages?: Array<{ id?: unknown }> };
+      const providerMessageId = asString(responseBody.messages?.[0]?.id);
       if (!providerMessageId) throw new MessagingProviderOutcomeUnknownError();
       return { providerMessageId, acceptedAt: new Date().toISOString() };
     } catch (error) {
