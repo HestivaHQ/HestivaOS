@@ -71,13 +71,33 @@ export class MessagingService {
     }
     if (!message || message.direction !== MessagingDirection.OUTBOUND) return null;
 
+    const occurredAt = new Date(event.occurredAt);
+    await this.prisma.messagingProviderStatusEvent.upsert({
+      where: {
+        provider_providerMessageId_providerStatus_occurredAt: {
+          provider: 'meta',
+          providerMessageId: event.providerMessageId,
+          providerStatus: event.providerStatus,
+          occurredAt,
+        },
+      },
+      create: {
+        messageId: message.id,
+        provider: 'meta',
+        providerMessageId: event.providerMessageId,
+        providerStatus: event.providerStatus,
+        occurredAt,
+      },
+      update: {},
+    });
+
     const mapped = event.providerStatus === 'failed' ? MessagingDeliveryStatus.FAILED : MessagingDeliveryStatus.ACCEPTED;
     await this.appendStatus(message.id, mapped, event.providerMessageId);
 
     const recovery = await this.prisma.workOrderAccessRecovery.findUnique({ where: { outboundMessageId: message.id } });
     if (!recovery || recovery.status === WorkOrderAccessRecoveryStatus.RESPONSE_REQUIRES_REVIEW || recovery.status === WorkOrderAccessRecoveryStatus.CLOSED) return message;
     if (mapped === MessagingDeliveryStatus.ACCEPTED) {
-      await this.prisma.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { status: WorkOrderAccessRecoveryStatus.SENT, sentAt: recovery.sentAt ?? new Date(event.occurredAt) } });
+      await this.prisma.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { status: WorkOrderAccessRecoveryStatus.SENT, sentAt: recovery.sentAt ?? occurredAt } });
     } else {
       await this.prisma.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { status: WorkOrderAccessRecoveryStatus.SEND_FAILED } });
     }

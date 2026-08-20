@@ -29,14 +29,43 @@ describe('MessagingService', () => {
     expect(statusRows.filter(row=>row.status===MessagingDeliveryStatus.PENDING)).toHaveLength(2);
   });
 
-  it('reconciles a correlated provider status and updates access recovery', async () => {
+  it('preserves sent, delivered and read as provider-specific history without changing generic acceptance semantics', async () => {
     const message={id:'message-1',direction:MessagingDirection.OUTBOUND};
+    const statusRows:any[]=[];
+    const create=jest.fn(async({data}:any)=>{const row={id:`status-${statusRows.length+1}`,createdAt:new Date(),...data};statusRows.push(row);return row;});
+    const upsert=jest.fn(async({create:data}:any)=>({id:'provider-status',createdAt:new Date(),...data}));
+    const update=jest.fn(async()=>({}));
+    const prisma={
+      messagingMessage:{findUnique:jest.fn(async()=>message)},
+      messagingMessageStatusEvent:{findFirst:jest.fn(async({where}:any)=>statusRows.find(row=>row.messageId===where.messageId&&row.status===where.status&&row.providerMessageId===(where.providerMessageId??null))??null),create},
+      messagingProviderStatusEvent:{upsert},
+      workOrderAccessRecovery:{findUnique:jest.fn(async()=>({id:'recovery-1',status:WorkOrderAccessRecoveryStatus.PENDING_SEND,sentAt:null})),update}
+    };
+    const service=new MessagingService(prisma as any,{} as any);
+    const common={providerMessageId:'wamid.out-1',correlationId:'key-1'};
+    await service.persistWhatsAppStatus({...common,providerStatus:'sent',occurredAt:'2026-08-20T15:00:00.000Z'});
+    await service.persistWhatsAppStatus({...common,providerStatus:'delivered',occurredAt:'2026-08-20T15:00:05.000Z'});
+    await service.persistWhatsAppStatus({...common,providerStatus:'read',occurredAt:'2026-08-20T15:01:00.000Z'});
+
+    expect(upsert).toHaveBeenCalledTimes(3);
+    expect(upsert).toHaveBeenNthCalledWith(1,expect.objectContaining({create:expect.objectContaining({messageId:'message-1',provider:'meta',providerMessageId:'wamid.out-1',providerStatus:'sent',occurredAt:new Date('2026-08-20T15:00:00.000Z')})}));
+    expect(upsert).toHaveBeenNthCalledWith(2,expect.objectContaining({create:expect.objectContaining({providerStatus:'delivered',occurredAt:new Date('2026-08-20T15:00:05.000Z')})}));
+    expect(upsert).toHaveBeenNthCalledWith(3,expect.objectContaining({create:expect.objectContaining({providerStatus:'read',occurredAt:new Date('2026-08-20T15:01:00.000Z')})}));
+    expect(statusRows.filter(row=>row.status===MessagingDeliveryStatus.ACCEPTED)).toHaveLength(1);
+    expect(update).toHaveBeenCalledTimes(3);
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({data:expect.objectContaining({status:WorkOrderAccessRecoveryStatus.SENT})}));
+  });
+
+  it('keeps explicit provider failure in both provider-specific history and generic retry state', async () => {
+    const message={id:'message-1',direction:MessagingDirection.OUTBOUND};
+    const upsert=jest.fn(async({create:data}:any)=>({id:'provider-status',createdAt:new Date(),...data}));
     const create=jest.fn(async({data}:any)=>({id:'status-new',createdAt:new Date(),...data}));
     const update=jest.fn(async()=>({}));
-    const prisma={messagingMessage:{findUnique:jest.fn(async()=>message)},messagingMessageStatusEvent:{findFirst:jest.fn(async()=>null),create},workOrderAccessRecovery:{findUnique:jest.fn(async()=>({id:'recovery-1',status:WorkOrderAccessRecoveryStatus.PENDING_SEND,sentAt:null})),update}};
+    const prisma={messagingMessage:{findUnique:jest.fn(async()=>message)},messagingMessageStatusEvent:{findFirst:jest.fn(async()=>null),create},messagingProviderStatusEvent:{upsert},workOrderAccessRecovery:{findUnique:jest.fn(async()=>({id:'recovery-1',status:WorkOrderAccessRecoveryStatus.PENDING_SEND,sentAt:null})),update}};
     const service=new MessagingService(prisma as any,{} as any);
-    await service.persistWhatsAppStatus({providerMessageId:'wamid.out-1',correlationId:'key-1',providerStatus:'delivered',occurredAt:'2026-08-20T15:00:00.000Z'});
-    expect(create).toHaveBeenCalledWith({data:{messageId:'message-1',status:MessagingDeliveryStatus.ACCEPTED,providerMessageId:'wamid.out-1'}});
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({data:expect.objectContaining({status:WorkOrderAccessRecoveryStatus.SENT})}));
+    await service.persistWhatsAppStatus({providerMessageId:'wamid.out-1',correlationId:'key-1',providerStatus:'failed',occurredAt:'2026-08-20T15:00:00.000Z'});
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({create:expect.objectContaining({providerStatus:'failed'})}));
+    expect(create).toHaveBeenCalledWith({data:{messageId:'message-1',status:MessagingDeliveryStatus.FAILED,providerMessageId:'wamid.out-1'}});
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({data:{status:WorkOrderAccessRecoveryStatus.SEND_FAILED}}));
   });
 });
