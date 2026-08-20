@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind, MessagingMessagePurpose, Prisma, WorkOrderAccessRecoveryStatus } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 import type { NormalizedInboundMessagingEvent, OutboundMessagingCommand, OutboundMessagingResult } from './messaging-contract';
 import { MessagingAdapterRegistry } from './messaging-adapter-registry';
@@ -21,15 +22,6 @@ function inboundMetadata(event: NormalizedInboundMessagingEvent): Prisma.InputJs
   if (event.interactivePayload) envelope.interactivePayload = event.interactivePayload as Prisma.InputJsonValue;
   if (event.attribution) envelope.attribution = event.attribution as Prisma.InputJsonValue;
   return envelope;
-}
-
-function mapWhatsAppStatus(status: NormalizedWhatsAppStatusEvent['providerStatus']): MessagingDeliveryStatus {
-  switch (status) {
-    case 'sent': return MessagingDeliveryStatus.SENT;
-    case 'delivered': return MessagingDeliveryStatus.DELIVERED;
-    case 'read': return MessagingDeliveryStatus.READ;
-    case 'failed': return MessagingDeliveryStatus.FAILED;
-  }
 }
 
 @Injectable()
@@ -55,7 +47,7 @@ export class MessagingService {
 
     try {
       const result = await adapter.send(command);
-      await this.appendStatus(message.id, MessagingDeliveryStatus.ACCEPTED, result.providerMessageId, new Date(result.acceptedAt));
+      await this.appendStatus(message.id, MessagingDeliveryStatus.ACCEPTED, result.providerMessageId);
       return result;
     } catch (error) {
       if (error instanceof MessagingProviderOutcomeUnknownError) {
@@ -81,15 +73,14 @@ export class MessagingService {
     if (!message || message.direction !== MessagingDirection.OUTBOUND) return null;
 
     const occurredAt = new Date(event.occurredAt);
-    const mapped = mapWhatsAppStatus(event.providerStatus);
-    if (mapped !== MessagingDeliveryStatus.FAILED) {
-      await this.appendStatus(message.id, MessagingDeliveryStatus.ACCEPTED, event.providerMessageId, occurredAt);
-    }
-    await this.appendStatus(message.id, mapped, event.providerMessageId, occurredAt);
+    await this.persistWhatsAppProviderStatus(message.id, event, occurredAt);
+
+    const mapped = event.providerStatus === 'failed' ? MessagingDeliveryStatus.FAILED : MessagingDeliveryStatus.ACCEPTED;
+    await this.appendStatus(message.id, mapped, event.providerMessageId);
 
     const recovery = await this.prisma.workOrderAccessRecovery.findUnique({ where: { outboundMessageId: message.id } });
     if (!recovery || recovery.status === WorkOrderAccessRecoveryStatus.RESPONSE_REQUIRES_REVIEW || recovery.status === WorkOrderAccessRecoveryStatus.CLOSED) return message;
-    if (mapped !== MessagingDeliveryStatus.FAILED) {
+    if (mapped === MessagingDeliveryStatus.ACCEPTED) {
       await this.prisma.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { status: WorkOrderAccessRecoveryStatus.SENT, sentAt: recovery.sentAt ?? occurredAt } });
     } else {
       await this.prisma.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { status: WorkOrderAccessRecoveryStatus.SEND_FAILED } });
@@ -105,16 +96,26 @@ export class MessagingService {
       if (replay) return replay;
       const conversation = await tx.messagingConversation.upsert({ where: { channel_provider_providerIdentityId: { channel: event.channel, provider: event.provider, providerIdentityId: event.identity.providerIdentityId } }, create: { channel: event.channel, provider: event.provider, providerIdentityId: event.identity.providerIdentityId, providerConversationId: event.providerConversationId }, update: { providerConversationId: event.providerConversationId ?? undefined } });
       const message = await tx.messagingMessage.create({ data: { conversationId: conversation.id, direction: MessagingDirection.INBOUND, kind: event.kind as MessagingMessageKind, purpose: MessagingMessagePurpose.GENERAL, providerEventKey, contentText: event.text, attachmentMetadata: inboundMetadata(event), occurredAt: new Date(event.occurredAt) } });
-      await tx.messagingMessageStatusEvent.create({ data: { messageId: message.id, status: MessagingDeliveryStatus.RECEIVED, occurredAt: new Date(event.occurredAt), providerMessageId: event.providerMessageId } });
+      await tx.messagingMessageStatusEvent.create({ data: { messageId: message.id, status: MessagingDeliveryStatus.RECEIVED, providerMessageId: event.providerMessageId } });
       const recovery = await tx.workOrderAccessRecovery.findFirst({ where: { conversationId: conversation.id, status: WorkOrderAccessRecoveryStatus.SENT, sentAt: { lte: message.occurredAt } }, orderBy: { sentAt: 'desc' }, select: { id: true } });
       if (recovery) await tx.workOrderAccessRecovery.update({ where: { id: recovery.id }, data: { responseMessageId: message.id, status: WorkOrderAccessRecoveryStatus.RESPONSE_REQUIRES_REVIEW } });
       return message;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  private async appendStatus(messageId: string, status: MessagingDeliveryStatus, providerMessageId?: string, occurredAt?: Date) {
+  private async persistWhatsAppProviderStatus(messageId: string, event: NormalizedWhatsAppStatusEvent, occurredAt: Date) {
+    await this.prisma.$executeRaw`
+      INSERT INTO "messaging_provider_status_events"
+        ("id", "message_id", "provider", "provider_message_id", "provider_status", "occurred_at")
+      VALUES
+        (${randomUUID()}::uuid, ${messageId}::uuid, 'meta', ${event.providerMessageId}, ${event.providerStatus}, ${occurredAt})
+      ON CONFLICT ("provider", "provider_message_id", "provider_status", "occurred_at") DO NOTHING
+    `;
+  }
+
+  private async appendStatus(messageId: string, status: MessagingDeliveryStatus, providerMessageId?: string) {
     const existing = await this.prisma.messagingMessageStatusEvent.findFirst({ where: { messageId, status, providerMessageId: providerMessageId ?? null } });
     if (existing) return existing;
-    return this.prisma.messagingMessageStatusEvent.create({ data: { messageId, status, providerMessageId, occurredAt } });
+    return this.prisma.messagingMessageStatusEvent.create({ data: { messageId, status, providerMessageId } });
   }
 }
