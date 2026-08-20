@@ -21,7 +21,7 @@ The following foundations are implemented or explicitly closed by evidence revie
 - Private Execution Evidence signed-read hardening and append-only authorized post-completion Technician corrections.
 - Admin Service Scope Template management, pre-start revision comparison/adoption, Management gateway and canonical direct Work Order creation.
 - Provider-neutral WhatsApp/Messenger contracts plus durable conversation/message/status persistence used by access recovery.
-- The first direct Meta WhatsApp Cloud API runtime edge is implemented behind the provider-neutral adapter: public subscription verification, raw-body HMAC authentication, normalized inbound message persistence and configured text outbound transport. Production Meta credentials/onboarding are deployment-owned and are not committed or activated by the repository slice.
+- The first direct Meta WhatsApp Cloud API runtime edge is implemented behind the provider-neutral adapter as a receive-only boundary: public subscription verification, raw-body HMAC authentication, normalized inbound message persistence and referral/interactive provenance preservation. WhatsApp outbound remains deliberately unavailable until ambiguous provider outcomes can be reconciled without duplicate customer sends.
 - Work Order and Shift Planning relationship selectors use bounded/debounced server-backed search rather than fixed 100-record snapshots.
 - Recurring-service lifecycle preserves generated Work Orders, surfaces future visits for review, skips paused backlog on resume, and supports persisted Johannesburg automatic-resume dates through a database-guarded Railway API reconciler.
 - Administrative role/status changes have append-only application-owned audit history with actor/target identity snapshots and old/new role/status values, written atomically with effective access mutations and exposed through a bounded ADMIN-only history read.
@@ -35,7 +35,7 @@ The following foundations are implemented or explicitly closed by evidence revie
 - Accepted Quote bookings, acknowledged Work Order completions, and committed controlled Work Order reschedule/cancellation operations can be materialized idempotently into immutable Correspondence history from their authoritative source state without creating a delivery attempt or selecting a provider.
 - Repository development uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
 
-Live Facebook Messenger connectivity, broad customer correspondence delivery and Finance runtime are **not** implied by those completed foundations. WhatsApp production activation still requires the actual Meta business assets, approved credentials/configuration and provider onboarding outside the repository.
+Live Facebook Messenger connectivity, live WhatsApp outbound sending, broad customer correspondence delivery and Finance runtime are **not** implied by those completed foundations. WhatsApp production inbound activation still requires the actual Meta business assets, approved webhook credentials/configuration and provider onboarding outside the repository.
 
 ## Execution strategy
 
@@ -61,15 +61,16 @@ Transport providers must consume HestivaOS business/correspondence state rather 
 
 ## Phase 3 — live WhatsApp + Facebook Messenger
 
-Continue from the merged provider-neutral messaging contracts and persistence. The direct Meta WhatsApp direction is approved. On 2026-08-20 the initial provider edge was reverified against current Meta-owned Cloud API material for the primary permissions, business/WABA/phone-number onboarding shape, webhook subscription verification and raw-body `X-Hub-Signature-256` authenticity requirement. The repository deliberately does not hard-code a moving Graph API version; deployment must select a currently supported version after provider verification.
+Continue from the merged provider-neutral messaging contracts and persistence. The direct Meta WhatsApp direction is approved. On 2026-08-20 the initial provider edge was reverified against current Meta-owned Cloud API material for the primary onboarding shape, webhook subscription verification and raw-body `X-Hub-Signature-256` authenticity requirement.
 
-1. **WhatsApp provider edge v1:** authenticated webhook subscription and POST signature verification, normalization into HestivaOS messaging persistence, and configured text outbound transport are implemented. Production credentials/onboarding remain deployment-owned and inactive until configured.
-2. Add provider delivery/read/failure status ingestion, richer authorized outbound message kinds, media download/securing where required, and explicit safe-retry/reconciliation behavior around uncertain provider sends.
-3. Implement Messenger against the same shared conversation engine and persistence, with current Meta webhook/signature, Page token/permission and messaging-window policy verification before activation.
-4. Add deliberate provider-identity ↔ canonical Customer linking without fuzzy automatic merges.
-5. Add deterministic Quote/service conversation flows that call HestivaOS authoritative pricing/business boundaries.
-6. Add human takeover/operator handling.
-7. Select/integrate an AI provider only after deterministic flows exist and keep the AI boundary replaceable.
+1. **WhatsApp provider edge v1:** authenticated webhook subscription and POST signature verification, normalization into HestivaOS messaging persistence, and provider referral/interactive provenance preservation are implemented as a receive-only boundary. Production webhook credentials/onboarding remain deployment-owned and inactive until configured.
+2. Implement provider delivery/read/failure status ingestion plus a safe outbound retry/reconciliation rule for ambiguous provider outcomes; only after that boundary is proven may WhatsApp register as an available outbound transport.
+3. Add richer authorized outbound message kinds and media download/securing where required.
+4. Implement Messenger against the same shared conversation engine and persistence, with current Meta webhook/signature, Page token/permission and messaging-window policy verification before activation.
+5. Add deliberate provider-identity ↔ canonical Customer linking without fuzzy automatic merges.
+6. Add deterministic Quote/service conversation flows that call HestivaOS authoritative pricing/business boundaries.
+7. Add human takeover/operator handling.
+8. Select/integrate an AI provider only after deterministic flows exist and keep the AI boundary replaceable.
 
 Messaging coordination remains Issue #116. The Website integration remains a separate boundary and `HESTIVA_WEBSITE_INTEGRATION_SECRET` must not be reused for messaging.
 
