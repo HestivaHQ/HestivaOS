@@ -89,3 +89,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0079: Reconcile WhatsApp outbound before retry](ADR-0079-reconcile-whatsapp-outbound-before-retry.md)
 - [ADR-0080: Preserve provider status fidelity separately from generic delivery state](ADR-0080-preserve-provider-status-fidelity-separately-from-generic-delivery-state.md)
 - [ADR-0081: Secure provider media outside immutable message history](ADR-0081-secure-provider-media-outside-immutable-message-history.md)
+- [ADR-0082: Messenger outbound uses standard-window replies and fail-closed unknown outcomes](ADR-0082-messenger-outbound-standard-window-and-unknown-outcome-safety.md)
