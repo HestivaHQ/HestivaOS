@@ -1,5 +1,13 @@
 # Technical work log
 
+## 2026-08-20 — Messenger outbound standard-window safety
+
+- Reverified the current Meta Messenger Send API boundary before enabling provider delivery: ordinary Page replies require the configured Page messaging access and must remain inside the standard 24-hour window from the customer interaction unless a separately approved out-of-window mechanism applies.
+- Reused the existing provider-neutral HestivaOS unknown-outcome state instead of inventing a Messenger-specific correlation model. Network failures, provider 5xx responses, and malformed success responses append the ambiguity marker and block another provider call for the same durable idempotency key.
+- Added Page-config-gated adapter registration and `messaging_type=RESPONSE` text delivery using API-only `META_MESSENGER_PAGE_ACCESS_TOKEN`, `META_MESSENGER_PAGE_ID`, and `META_GRAPH_API_VERSION`. Explicit non-5xx provider rejection remains a normal failed attempt.
+- Added a same-conversation 24-hour eligibility check in `MessagingService` before any Messenger provider call, plus filtering so expired Messenger conversations are not offered as currently available outbound channels. WhatsApp availability and its callback-correlation behavior are unchanged.
+- Added focused adapter/service coverage for config activation, the Send API request shape, provider 5xx ambiguity, in-window delivery, expired-window rejection, and channel availability. Added ADR-0082 and synchronized Messenger provider, environment, deployment, roadmap, changelog, and Issue #116 records. No schema/migration, message tags, sponsored/out-of-window sends, Messenger media outbound, Customer auto-linking, deterministic Quote flow, human takeover, AI provider, Finance, or Website behavior is introduced.
+
 ## 2026-08-20 — Messenger receive-only provider edge
 
 - Re-audited current Phase 3 messaging after WhatsApp media PR #170. The provider-neutral contracts already include `MESSENGER`, so this slice did not create a second conversation engine or persistence model.
@@ -209,7 +217,7 @@
 ## 2026-08-11 — Slice 5M-A authoritative Quote domain foundation
 
 - Reconciled the accepted Slice 5M decisions in HestivaOS Issue #73 against current `main` before implementation. The existing schema had Customer, Property, Work Order, recurring agreements, Services, and Work Order daily references, but no durable Quote aggregate; the website reconciliation also confirmed its current quote reference is ephemeral and its payload is primarily presentation text.
-- Added an additive Quote domain without changing existing Customer/Property/WorkOrder behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance and transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
+- Added an additive Quote domain without changing existing Customer/Property/WorkOrder behavior: `Quote` owns stable commercial identity, status, validity, current revision number, and future operational linkage slots; `QuoteRevision` owns immutable structured submission/pricing snapshots; `QuoteLineItem` owns quantity/unit/line pricing; `QuotePhoto` owns customer/Admin provenance/transfer state; `QuoteActivity` owns append-only quote history; `QuoteDailyCounter` is the atomic primitive for the approved daily quote-reference family.
 - Added database-unique retry identities at the durable boundary: every Quote has a required `submissionKey`, and every QuotePhoto has a required `transferKey`. Later ingestion/transfer services must reuse these keys across retries so duplicate requests cannot create duplicate Quote or photo records.
 - Stored pricing in integer minor units with initial `ZAR` currency, explicit subtotal/discount/total, and dormant tax fields defaulting disabled/zero. This foundation does not implement pricing calculation, customer-facing VAT presentation, coupon codes, or QuickBooks.
 - Preserved one stable public Quote reference across revisions. Revisions are uniquely numbered per Quote and keep the submitted structured JSON plus their own immutable financial line-item snapshot. Customer and Admin photos remain distinguishable; failed/pending/stored transfer states have durable metadata rather than relying on email attachments.
