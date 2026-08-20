@@ -4,10 +4,21 @@ import { CorrespondenceService } from './correspondence.service';
 
 describe('CorrespondenceService', () => {
   const transaction = jest.fn();
-  const prisma = { $transaction: transaction } as any;
+  const createTemplate = jest.fn();
+  const prisma = { $transaction: transaction, correspondenceTemplate: { create: createTemplate } } as any;
   const service = new CorrespondenceService(prisma);
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('normalizes the stable machine key before persistence', async () => {
+    createTemplate.mockResolvedValue({ id: 'template-1' });
+
+    await service.create({ key: ' Booking Confirmation ', name: 'Booking confirmation', body: 'Hello' });
+
+    expect(createTemplate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ key: 'booking_confirmation' }),
+    }));
+  });
 
   it('rejects a second draft for the same template', async () => {
     const tx = {
