@@ -41,7 +41,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 
 | Domain / task | Current-state documentation | Primary implementation area | Decision / coordination route |
 | --- | --- | --- | --- |
-| User access / Admin security | `ADMIN_ACCESS_AUDIT_HISTORY_V1.md`, Architecture auth/access sections | `apps/api/src/users`, auth/roles boundaries; related Admin UI | ADR-0013, ADR-0014, ADR-0068; Supabase ADRs as applicable |
+| User access / Admin security / authenticated email | `ADMIN_ACCESS_AUDIT_HISTORY_V1.md`, `AUTH_EMAIL_CHANGE_V1.md`, Architecture auth/access sections | `apps/api/src/users`, `apps/web/app/profile`, auth/roles boundaries | ADR-0013, ADR-0014, ADR-0068, ADR-0070; Supabase ADRs as applicable |
 | Work Orders / staffing / execution | Work Order access, execution scope/evidence/correction documents; Architecture current Work Order sections | API Work Order/Technician modules; `apps/web/app/work-orders`, `/technician` | ADR-0021 onward for affected Work Order capability; load only relevant ADRs |
 | Service scope / controlled inputs | `CANONICAL_SERVICE_SCOPE_PRICING_V1.md`, `CONTROLLED_INPUT_FIELD_AUDIT.md`, focused selector/scope docs | Services, scope templates, Work Order/Shift selectors | ADR-0017/0018/0029 plus focused newer ADRs when relevant |
 | Recurring services | `RECURRING_LIFECYCLE_REVIEW_V1.md`, relevant Architecture current section | recurring-service-agreements API/web | ADR-0026, ADR-0066 |
