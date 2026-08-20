@@ -2,11 +2,11 @@
 
 This roadmap records only verified current planned work. Historical implementation detail remains in ADRs, `docs/CHANGELOG.md`, `docs/TECHNICAL_WORK_LOG.md`, focused contract documents and merged PR history.
 
-The canonical reconciliation checkpoint for the current backlog is `docs/CANONICAL_BACKLOG_FREEZE_2026-08-19.md`. Before starting any slice, verify the specific gap against current `main`; do not reopen a completed foundation because an older issue body, historical roadmap paragraph or sub-slice document still describes it as future work.
+The canonical reconciliation checkpoint for the current backlog is `docs/CANONICAL_BACKLOG_FREEZE_2026-08-20.md`. Before starting any slice, verify the specific gap against current `main`; do not reopen a completed foundation because an older issue body, historical roadmap paragraph or sub-slice document still describes it as future work.
 
-## Current state — 2026-08-19
+## Current state — 2026-08-20
 
-The following foundations are implemented and must not be reopened as generic backlog items:
+The following foundations are implemented or explicitly closed by evidence review and must not be reopened as generic backlog items:
 
 - Website → HestivaOS structured Quote ingestion, integration authentication, idempotency/replay handling, HestivaOS-owned pricing/profitability and Quote persistence.
 - Website contact-enquiry ingestion with durable HestivaOS-owned `ENQ-YYYYMMDD-NNNN` references and idempotent immutable-submission replay; the Website contact consumer cutover is merged and requires the authoritative `ENQ-...` acknowledgement before reporting successful intake.
@@ -26,7 +26,8 @@ The following foundations are implemented and must not be reopened as generic ba
 - Administrative role/status changes have append-only application-owned audit history with actor/target identity snapshots and old/new role/status values, written atomically with effective access mutations and exposed through a bounded ADMIN-only history read.
 - Bounded Supabase provider administration supports ADMIN-only email invitations and refresh-session revocation after HestivaOS access disablement while preserving the Supabase identity and keeping canonical `User.role` / `User.status` authoritative.
 - Authenticated profile email changes use HestivaOS conflict preflight plus Supabase confirmation, preserve the same application User/Auth UUID binding, and reconcile only the provider-confirmed email through the existing fail-closed sync path.
-- Repository development now uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
+- The generic controlled-input/subordinate-job-type residual is closed by `CONTROLLED_INPUT_RESIDUAL_REVIEW_2026-08-20.md`: Website `JOB_TYPES` are explicitly non-canonical mixed concepts and no approved Technician-skills or subordinate Cleaning Job Template taxonomy exists to implement.
+- Repository development uses the ADR-0067 three-stage workflow: proportional fast-loop checks, one documentation/current-main/full-diff reconciliation before final validation, parallel authoritative PR CI, and strict exact-head pre-merge review.
 
 Live Meta WhatsApp/Messenger connectivity, broad customer correspondence and Finance runtime are **not** implied by those completed foundations.
 
@@ -38,12 +39,11 @@ For each slice, use the three-stage workflow in `AGENTS.md` and ADR-0067: fast p
 
 ## Phase 1 — safe Admin/Operations completion
 
-The scalable selector, Website enquiry, recurring-lifecycle, application-owned administrative access-audit, bounded Supabase provider-admin and authenticated email-change residuals are implemented. Remaining Phase 1 work should proceed in this order:
+All dependency-ready Phase 1 Admin/Operations residuals are complete or explicitly closed by evidence review. One item remains blocked:
 
-1. **Remaining evidence-backed controlled fields / subordinate job-type mappings.** Audit current source and existing Service / Cleaning Job Template architecture first; implement only verified missing controlled vocabularies/search behavior and do not invent lists.
-2. **Customer duplicate resolution / merge reversal / archival.** Product-decision-blocked until exact merge authority, reversal semantics, history retention and archival behavior are approved. Do not implement destructive merge behavior speculatively.
+1. **Customer duplicate resolution / merge reversal / archival.** Product-decision-blocked until exact merge authority, reversal semantics, history retention and archival behavior are approved. Do not implement destructive merge behavior speculatively.
 
-Keep item 1 as a separate focused PR. Item 2 remains blocked until product authority is explicit.
+Because the remaining Phase 1 item is decision-blocked, proceed with the next dependency-ready phase rather than inventing merge semantics.
 
 ## Phase 2 — Customer Correspondence runtime
 
@@ -138,4 +138,4 @@ Before declaring HestivaOS launch-complete:
 
 ## Backlog guardrail
 
-Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors”, “recurring auto-resume”, “admin access audit history”, “Supabase Admin invitation/provider-session revocation” or “Supabase Auth email-change/confirmation UX”. Those foundations are merged or become current-state foundations with this roadmap revision. Any future work in those areas must identify a specific verified residual requirement, defect or approved extension.
+Do not create future slices named only “Quote handoff”, “Technician app”, “Execution Scope”, “Complete Job”, “Access readiness”, “Supervisor workspace”, “Messaging persistence”, “Service Scope Admin editor”, “Incident workflow”, “Evidence security”, “Website enquiry ingestion”, “scalable selectors”, “recurring auto-resume”, “admin access audit history”, “Supabase Admin invitation/provider-session revocation”, “Supabase Auth email-change/confirmation UX”, “controlled fields”, “subordinate job types”, “Technician skills” or “Website JOB_TYPES mapping”. Those foundations are merged or explicitly closed by evidence review. Any future work in those areas must identify a specific verified residual requirement, defect or newly approved vocabulary/extension.
