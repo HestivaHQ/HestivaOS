@@ -2,7 +2,7 @@
 
 ## Status
 
-Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. The first provider-runtime extensions now implement authenticated WhatsApp Cloud API inbound, bounded correlated text outbound, and durable provider-specific message-status history. AI, autonomous Quote creation, Messenger runtime, provider-identity Customer linking, broad customer-facing automation, rich outbound message kinds and media securing remain outside this foundation.
+Messaging Foundation v1 establishes the channel-neutral contract and persistence direction for Homent customer messaging. Provider-runtime extensions now implement authenticated direct Meta WhatsApp and Messenger edges, bounded safe outbound behavior, durable provider-specific status/media handling where approved, and deliberate provider-conversation to canonical Customer linking. AI, autonomous Quote creation, broad customer-facing automation and general operator inbox behavior remain outside this foundation.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -132,6 +132,8 @@ Provider/channel identity is not a canonical HestivaOS `Customer`.
 
 WhatsApp mobile identity may be used as a deterministic matching input where it safely fits the existing HestivaOS Customer matching rules. Name-only or fuzzy cross-channel matching is not permitted. Ambiguous or conflicting matches require review.
 
+The first explicit linking boundary uses the existing nullable `MessagingConversation.customerId` relation. An ADMIN may deliberately link an existing unlinked conversation to an existing canonical Customer through the guarded messaging Customer-link API. Selecting the same Customer again is idempotent. A conversation already linked to a different Customer fails with conflict; v1 does not silently unlink or reassign it. Provider identity, provider conversation identity and historical message records are never rewritten by the Customer link. See `MESSAGING_CUSTOMER_LINKING_V1.md` and ADR-0083.
+
 A messaging lead does not immediately create an operational Customer. A conversation may remain an enquiry and complete a Quote without creating a Customer record. New Customer creation follows the existing accepted-Quote conversion flow.
 
 ## Messaging Quote draft and submission
@@ -171,9 +173,9 @@ No AI provider or model is part of Foundation v1. Later AI may interpret free te
 
 ## Persistence foundation status
 
-Durable channel-neutral `MessagingConversation`, `MessagingMessage` and generic message-status-event persistence exists, including the bounded Work Order access-recovery extension described below. WhatsApp now also has separate append-only provider-status history for exact `sent`, `delivered`, `read`, and `failed` evidence. Provider-event idempotency and immutable message history remain authoritative.
+Durable channel-neutral `MessagingConversation`, `MessagingMessage` and generic message-status-event persistence exists, including the bounded Work Order access-recovery extension described below. WhatsApp also has separate append-only provider-status history for exact `sent`, `delivered`, `read`, and `failed` evidence, and approved inbound media is secured outside immutable message history. Provider-event idempotency and immutable message history remain authoritative.
 
-The next WhatsApp provider-runtime residual is richer outbound message kinds and media handling rather than status fidelity or the former duplicate-send blocker. Messenger then follows behind the same provider-neutral boundary. Customer-linking and deterministic Quote/service automation remain separate product slices.
+Direct WhatsApp and Messenger provider edges are implemented within their current bounded policies. Deliberate provider-conversation to canonical Customer linking is implemented as a separate guarded extension. Deterministic Quote/service conversation flows, broad human takeover/operator handling and AI remain later Phase 3 slices.
 
 ## 2026-08-19 Phase 3D access-recovery extension
 
