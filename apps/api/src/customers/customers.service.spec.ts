@@ -19,9 +19,13 @@ const customerContact: any = {
   findFirst: jest.fn(),
   count: jest.fn(),
 };
+const customerMessagingIdentity: any = {
+  count: jest.fn(),
+};
 const prisma: any = {
   customer,
   customerContact,
+  customerMessagingIdentity,
   $transaction: jest.fn(),
 };
 
@@ -30,6 +34,7 @@ const service = new CustomersService(prisma as never);
 describe('CustomersService account and contact management', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    customerMessagingIdentity.count.mockResolvedValue(0);
     prisma.$transaction.mockImplementation(async (arg: any) => {
       if (Array.isArray(arg)) return Promise.all(arg);
       return arg(prisma);
@@ -112,6 +117,85 @@ describe('CustomersService account and contact management', () => {
       .rejects.toBeInstanceOf(BadRequestException);
     await expect(service.create({ ownerId: 'owner', contactName: 'Ada', accountType: 'HOUSEHOLD' as any }))
       .rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('keeps an individual compatibility edit synchronized with the canonical primary contact', async () => {
+    customer.findUnique.mockResolvedValue({
+      id: 'customer-1',
+      accountType: 'INDIVIDUAL',
+      name: 'Ada',
+      contactName: 'Ada',
+      email: 'old@example.com',
+      phone: '111',
+    });
+    customer.update.mockResolvedValue({ id: 'customer-1', name: 'Grace', contactName: 'Grace' });
+    customerContact.findFirst.mockResolvedValue({ id: 'contact-1' });
+    customerContact.update.mockResolvedValue({ id: 'contact-1' });
+
+    await service.update('customer-1', {
+      contactName: ' Grace ',
+      email: ' GRACE@EXAMPLE.COM ',
+      phone: ' 222 ',
+    });
+
+    expect(customer.update.mock.calls[0][0].data).toMatchObject({
+      name: 'Grace',
+      contactName: 'Grace',
+      email: 'grace@example.com',
+      phone: '222',
+    });
+    expect(customerContact.update).toHaveBeenCalledWith({
+      where: { id: 'contact-1' },
+      data: {
+        name: 'Grace',
+        email: 'grace@example.com',
+        phone: '222',
+      },
+    });
+  });
+
+  it('does not overwrite an organisation account name when its compatibility contact changes', async () => {
+    customer.findUnique.mockResolvedValue({
+      id: 'customer-1',
+      accountType: 'ORGANISATION',
+      name: 'Acme Properties',
+      contactName: 'Jane',
+      email: null,
+      phone: null,
+    });
+    customer.update.mockResolvedValue({ id: 'customer-1', name: 'Acme Properties', contactName: 'John' });
+    customerContact.findFirst.mockResolvedValue({ id: 'contact-1' });
+    customerContact.update.mockResolvedValue({ id: 'contact-1' });
+
+    await service.update('customer-1', { contactName: ' John ' });
+
+    expect(customer.update.mock.calls[0][0].data).toMatchObject({ contactName: 'John' });
+    expect(customer.update.mock.calls[0][0].data).not.toHaveProperty('name');
+  });
+
+  it('recreates a missing canonical primary contact when legacy fields are edited', async () => {
+    customer.findUnique.mockResolvedValue({
+      id: 'customer-1',
+      accountType: 'INDIVIDUAL',
+      name: 'Ada',
+      contactName: 'Ada',
+      email: 'old@example.com',
+      phone: '111',
+    });
+    customer.update.mockResolvedValue({ id: 'customer-1' });
+    customerContact.findFirst.mockResolvedValue(null);
+    customerContact.create.mockResolvedValue({ id: 'contact-1' });
+
+    await service.update('customer-1', { phone: ' 222 ' });
+
+    expect(customerContact.create.mock.calls[0][0].data).toMatchObject({
+      customerId: 'customer-1',
+      name: 'Ada',
+      relationship: 'SELF',
+      email: 'old@example.com',
+      phone: '222',
+      isPrimary: true,
+    });
   });
 
   it('searches canonical active contacts as well as compatibility fields', async () => {
@@ -251,21 +335,36 @@ describe('CustomersService account and contact management', () => {
       .rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('does not hard-delete Customers with operational, property, messaging or contact history', async () => {
+  it('does not hard-delete Customers with operational or Quote history', async () => {
     customer.findUnique.mockResolvedValue({
       id: 'customer-1',
-      _count: { properties: 0, workOrders: 0, messagingConversations: 1, contacts: 1 },
+      _count: { properties: 0, workOrders: 0, quotes: 1, messagingConversations: 0 },
     });
 
     await expect(service.remove('customer-1')).rejects.toBeInstanceOf(ConflictException);
     expect(customer.delete).not.toHaveBeenCalled();
   });
 
-  it('deletes only a Customer with no linked history', async () => {
+  it('does not hard-delete Customers with messaging conversation or identity history', async () => {
     customer.findUnique.mockResolvedValue({
       id: 'customer-1',
-      _count: { properties: 0, workOrders: 0, messagingConversations: 0, contacts: 0 },
+      _count: { properties: 0, workOrders: 0, quotes: 0, messagingConversations: 0 },
     });
+    customerMessagingIdentity.count.mockResolvedValue(1);
+
+    await expect(service.remove('customer-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(customerMessagingIdentity.count).toHaveBeenCalledWith({
+      where: { contact: { customerId: 'customer-1' } },
+    });
+    expect(customer.delete).not.toHaveBeenCalled();
+  });
+
+  it('still allows deleting an accidental Customer that has contacts but no protected history', async () => {
+    customer.findUnique.mockResolvedValue({
+      id: 'customer-1',
+      _count: { properties: 0, workOrders: 0, quotes: 0, messagingConversations: 0 },
+    });
+    customerMessagingIdentity.count.mockResolvedValue(0);
     customer.delete.mockResolvedValue({ id: 'customer-1' });
 
     await expect(service.remove('customer-1')).resolves.toEqual({ id: 'customer-1' });
@@ -274,5 +373,6 @@ describe('CustomersService account and contact management', () => {
   it('returns not found for an unknown Customer', async () => {
     customer.findUnique.mockResolvedValue(null);
     await expect(service.remove('missing')).rejects.toBeInstanceOf(NotFoundException);
+    expect(customerMessagingIdentity.count).not.toHaveBeenCalled();
   });
 });
