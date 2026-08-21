@@ -5,24 +5,77 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { api, ApiError, type Property, type QuoteDetail, type QuotePreflight, type QuoteResolutionDecision } from '../../../lib/api';
 
 type Submission = Record<string, any>;
+type SubmissionRow = { path: string; label: string; value: string };
+type SubmissionSection = { key: string; title: string; rows: SubmissionRow[] };
+
 const words = (value: unknown) => typeof value === 'string' ? value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase()) : String(value ?? '');
 const money = (minor: number, currency: string) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency }).format(minor / 100);
 const present = (value: unknown) => value !== undefined && value !== null && value !== '';
 const decisionText = (decision: QuoteResolutionDecision | null, entity: string) => decision === 'USE_EXISTING' ? `Existing ${entity}` : decision === 'CREATE_NEW' ? `New ${entity} will be created` : `Unresolved ${entity}`;
 
-function operationalRows(submission: Submission) {
-  const request = submission.request ?? {}; const visit = submission.visit ?? {}; const property = submission.property ?? {}; const access = submission.access ?? {}; const safety = submission.safety ?? {}; const notes = submission.notes ?? {};
-  const rows: Array<[string, unknown]> = [
-    ['Service', request.primaryService?.canonicalService ?? request.primaryService?.websiteValue], ['Frequency', words(request.frequency)],
-    ['Preferred date', visit.preferredDate], ['Alternative date', visit.alternativeDate], ['Preferred time', words(visit.preferredTime)],
-    ['Flexibility', visit.flexibility], ['Urgency', visit.urgency], ['Exact floor', property.exactFloor], ['Building access', words(property.buildingAccess)],
-    ['Complex access', words(access.complexAccess)], ['Access instructions', access.securityInstructions], ['Parking', access.parking],
-    ['Key handover', words(access.keyHandover)], ['Key handover details', access.keyHandoverDetails], ['Someone present', present(access.someonePresent) ? (access.someonePresent ? 'Yes' : 'No') : null],
-    ['Eco-friendly products', request.ecoFriendlyProducts ? 'Requested' : null], ['Customer-declared existing damage', safety.existingDamage],
-    ['Recurring instructions', visit.recurringNotes], ['Attention areas', notes.attentionAreas], ['Renovation dust', notes.renovationDust], ['Appliance notes', notes.applianceNotes], ['Additional notes', notes.additionalNotes],
-    ['Laundry loads', request.laundry?.laundryLoads], ['Ironing loads', request.laundry?.ironingLoads],
-  ];
-  return rows.filter(([, value]) => present(value));
+const submissionSectionTitles: Record<string, string> = {
+  metadata: 'Submission metadata',
+  customer: 'Customer details',
+  property: 'Property details',
+  request: 'Service request',
+  visit: 'Visit preferences',
+  access: 'Access & arrival',
+  household: 'Household',
+  safety: 'Safety & care instructions',
+  notes: 'Customer notes',
+  photos: 'Submitted photo metadata',
+};
+
+const metadataKeys = new Set(['schemaVersion', 'submissionId', 'source', 'submittedAt']);
+
+function fieldLabel(key: string) {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replaceAll('_', ' ')
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function fieldValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'string' && /^[A-Z0-9_]+$/.test(value)) return words(value);
+  return String(value);
+}
+
+function collectSubmissionRows(value: unknown, path: string[], rows: SubmissionRow[]) {
+  if (!present(value)) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectSubmissionRows(item, [...path, `[${index + 1}]`], rows));
+    return;
+  }
+  if (typeof value === 'object' && value !== null) {
+    Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
+      const nextPath = [...path, key];
+      if (key === 'dataBase64' && path.at(-1) === 'transfer') {
+        if (present(child)) rows.push({ path: nextPath.join('.').replace('.[', '['), label: 'Binary upload payload', value: 'Captured for transport; intentionally not displayed in Admin review.' });
+        return;
+      }
+      collectSubmissionRows(child, nextPath, rows);
+    });
+    return;
+  }
+  const lastNamedPart = [...path].reverse().find((part) => !part.startsWith('[')) ?? path.at(-1) ?? 'Value';
+  rows.push({ path: path.join('.').replaceAll('.[', '['), label: fieldLabel(lastNamedPart), value: fieldValue(value) });
+}
+
+function comprehensiveSubmissionSections(submission: Submission): SubmissionSection[] {
+  const metadataRows: SubmissionRow[] = [];
+  const sections: SubmissionSection[] = [];
+  Object.entries(submission).forEach(([key, value]) => {
+    if (metadataKeys.has(key)) {
+      collectSubmissionRows(value, [key], metadataRows);
+      return;
+    }
+    if (!present(value)) return;
+    const rows: SubmissionRow[] = [];
+    collectSubmissionRows(value, [key], rows);
+    if (rows.length) sections.push({ key, title: submissionSectionTitles[key] ?? fieldLabel(key), rows });
+  });
+  return metadataRows.length ? [{ key: 'metadata', title: submissionSectionTitles.metadata, rows: metadataRows }, ...sections] : sections;
 }
 
 function activityLabel(type: string, previous: string | null, next: string | null) {
@@ -52,7 +105,8 @@ export function QuoteReview({ quoteId }: { quoteId: string }) {
     finally { setLoading(false); }
   }, [quoteId]);
   useEffect(() => { void load(); }, [load]);
-  const submission = quote?.currentRevision.structuredData ?? {}; const rows = useMemo(() => operationalRows(submission), [submission]);
+  const submission = quote?.currentRevision.structuredData ?? {};
+  const submissionSections = useMemo(() => comprehensiveSubmissionSections(submission), [submission]);
   const selectedCustomerProperties = properties.filter((property) => property.customerId === customerId);
   const conflictMessage = (caught: unknown) => caught instanceof ApiError && caught.status === 409 ? 'This Quote changed or another decision was recorded. Refresh and review the current revision before continuing.' : caught instanceof ApiError ? caught.message : 'The request could not be completed because of a network failure.';
 
@@ -104,7 +158,9 @@ export function QuoteReview({ quoteId }: { quoteId: string }) {
     <section className={`quoteReadiness ${preflight?.eligibleForAcceptance ? 'ready' : 'blocked'}`} aria-labelledby="review-status-heading"><h3 id="review-status-heading">Review status</h3>
       {preflight?.eligibleForAcceptance ? <p><strong>Ready to accept</strong></p> : <><p><strong>Action is blocked</strong></p><ul>{preflight?.blockers.map((blocker) => <li key={blocker.code}>{blocker.message}</li>)}</ul></>}
     </section>
-    <section className="panel quoteSection"><div className="panelHeader"><h3>Customer request</h3></div><dl className="quoteFacts"><div><dt>Customer</dt><dd>{submission.customer?.fullName}</dd></div><div><dt>Contact</dt><dd>{submission.customer?.email}<br />{submission.customer?.mobile}</dd></div><div><dt>Property</dt><dd>{submission.property?.addressLine1}, {submission.property?.suburb}</dd></div><div><dt>Requested service</dt><dd>{submission.request?.primaryService?.canonicalService ?? submission.request?.primaryService?.websiteValue}</dd></div><div><dt>Frequency</dt><dd>{words(submission.request?.frequency)}</dd></div><div><dt>Preferred date</dt><dd>{submission.visit?.preferredDate}</dd></div></dl></section>
+    <section className="panel quoteSection"><div className="panelHeader"><div><h3>Complete customer submission</h3><p>Every supplied field from immutable revision {current.revisionNumber}. Field paths are shown so each pricing and operational input can be traced back to the captured website payload.</p></div></div>
+      {submissionSections.map((section) => <div className="quoteSubmissionGroup" key={section.key}><h4>{section.title}</h4><dl className="quoteFacts operationalFacts">{section.rows.map((row) => <div key={row.path}><dt>{row.label}<br /><small><code>{row.path}</code></small></dt><dd>{row.value}</dd></div>)}</dl></div>)}
+    </section>
     <form className="quoteResolutionGrid" onSubmit={saveResolution} aria-label="Customer and Property resolution">
       <section className="panel quoteSection"><div className="panelHeader"><h3>Customer resolution</h3></div><p className="resolutionState">Match result: <strong>{words(quote.resolution.customer.state)}</strong></p>
         <fieldset><legend>Customer decision</legend><label><input type="radio" name="customerDecision" checked={customerDecision === 'USE_EXISTING'} onChange={() => { setCustomerDecision('USE_EXISTING'); setPropertyDecision('CREATE_NEW'); setPropertyId(''); }} /> Use existing Customer</label><label><input type="radio" name="customerDecision" checked={customerDecision === 'CREATE_NEW'} onChange={() => { setCustomerDecision('CREATE_NEW'); setCustomerId(''); setPropertyDecision('CREATE_NEW'); setPropertyId(''); }} /> Create new Customer on acceptance</label></fieldset>
@@ -116,8 +172,7 @@ export function QuoteReview({ quoteId }: { quoteId: string }) {
         <button className="primaryButton" disabled={saving || (customerDecision === 'USE_EXISTING' && !customerId) || (propertyDecision === 'USE_EXISTING' && (!propertyId || !selectedCustomerProperties.some((item) => item.id === propertyId)))}>{saving ? 'Saving…' : 'Save resolution'}</button>
       </section>
     </form>
-    <section className="panel quoteSection"><div className="panelHeader"><h3>Service &amp; operational scope</h3></div><dl className="quoteFacts operationalFacts">{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{String(value)}</dd></div>)}</dl>{submission.request?.addOns?.length ? <div className="quoteAddOns"><h4>Selected add-ons</h4><ul>{submission.request.addOns.map((item: any, index: number) => <li key={`${item.canonicalService}-${index}`}>{item.canonicalService ?? item.websiteValue} × {item.quantity}</li>)}</ul></div> : null}</section>
-    <section className="panel quoteSection"><div className="panelHeader"><div><h3>Authoritative pricing</h3><p>Immutable revision {current.revisionNumber} snapshot — not recalculated.</p></div></div><div className="pricingLines">{current.lineItems.map((line) => <div key={line.id}><span>{line.label} {line.quantity > 1 ? `× ${line.quantity}` : ''}</span><strong>{money(line.lineTotalMinor, current.currency)}</strong></div>)}</div><dl className="pricingTotals"><div><dt>Subtotal</dt><dd>{money(current.subtotalMinor, current.currency)}</dd></div>{current.discountMinor ? <div><dt>Discount{current.discountReason ? ` — ${current.discountReason}` : ''}</dt><dd>{money(current.discountMinor, current.currency)}</dd></div> : null}{current.taxEnabled ? <div><dt>Tax</dt><dd>{money(current.taxMinor, current.currency)}</dd></div> : null}<div className="total"><dt>Total</dt><dd>{money(current.totalMinor, current.currency)}</dd></div></dl></section>
+    <section className="panel quoteSection"><div className="panelHeader"><div><h3>Authoritative pricing</h3><p>Immutable revision {current.revisionNumber} snapshot — not recalculated. Compare these line items with the complete captured submission above.</p></div></div><div className="pricingLines">{current.lineItems.map((line) => <div key={line.id}><span>{line.label} {line.quantity > 1 ? `× ${line.quantity}` : ''}</span><strong>{money(line.lineTotalMinor, current.currency)}</strong></div>)}</div><dl className="pricingTotals"><div><dt>Subtotal</dt><dd>{money(current.subtotalMinor, current.currency)}</dd></div>{current.discountMinor ? <div><dt>Discount{current.discountReason ? ` — ${current.discountReason}` : ''}</dt><dd>{money(current.discountMinor, current.currency)}</dd></div> : null}{current.taxEnabled ? <div><dt>Tax</dt><dd>{money(current.taxMinor, current.currency)}</dd></div> : null}<div className="total"><dt>Total</dt><dd>{money(current.totalMinor, current.currency)}</dd></div></dl></section>
     <section className="panel quoteSection"><div className="panelHeader"><div><h3>Customer Quote Photos</h3><p>Customer-supplied evidence, separate from cleaner Before/After photos.</p></div></div><div className="quoteEvidence">{quote.photos.filter((photo) => photo.source === 'CUSTOMER').map((photo) => <article key={photo.id}>{photo.url && photo.status === 'STORED' ? <a href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={photo.originalFileName} /></a> : <div className="photoPlaceholder" aria-label={`${photo.originalFileName}: ${words(photo.status)}`}>No preview</div>}<strong>{photo.originalFileName}</strong><span>{words(photo.status)}</span></article>)}{!quote.photos.some((photo) => photo.source === 'CUSTOMER') ? <p>No customer Quote photos were supplied.</p> : null}</div></section>
     <section className="panel quoteSection"><div className="panelHeader"><h3>Activity</h3></div><ol className="quoteTimeline">{quote.activities.map((activity) => <li key={activity.id}><strong>{activityLabel(activity.type, activity.previousStatus, activity.newStatus)}</strong><p>{actorName(activity.actorUserId)} · <time dateTime={activity.createdAt}>{new Date(activity.createdAt).toLocaleString('en-ZA')}</time></p>{activity.note ? <p>{activity.note}</p> : null}</li>)}</ol></section>
     {quote.status === 'ACCEPTED' ? <section className="panel quoteAccepted"><h3>Accepted operational records</h3><p>Accepted by {actorName(quote.acceptedByUserId)}{quote.acceptedAt ? ` on ${new Date(quote.acceptedAt).toLocaleString('en-ZA')}` : ''}.</p><div className="rowActions">{quote.customerId ? <Link href={`/customers?customerId=${quote.customerId}`}>View Customer</Link> : null}{quote.propertyId ? <Link href={`/properties?propertyId=${quote.propertyId}`}>View Property</Link> : null}{quote.recurringAgreementId ? <Link href={`/recurring-services?agreementId=${quote.recurringAgreementId}`}>View Recurring Agreement</Link> : null}{quote.workOrderId ? <Link className="primaryButton" href={`/work-orders/${quote.workOrderId}`}>View Initial Work Order</Link> : null}</div></section> : null}

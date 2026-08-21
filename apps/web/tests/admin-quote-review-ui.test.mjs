@@ -23,17 +23,29 @@ test('queue is responsive content with useful status, request, revision and filt
   assert.match(queue, /role="search"/);
 });
 
-test('detail presents authoritative blockers, resolutions, pricing, operations, evidence and activity', () => {
-  for (const value of ['Review status', 'Customer request', 'Customer resolution', 'Property resolution', 'Service &amp; operational scope', 'Authoritative pricing', 'Customer Quote Photos', 'Activity']) assert.match(detail, new RegExp(value));
+test('detail presents the complete immutable customer submission beside authoritative pricing and review state', () => {
+  for (const value of ['Review status', 'Complete customer submission', 'Customer resolution', 'Property resolution', 'Authoritative pricing', 'Customer Quote Photos', 'Activity']) assert.match(detail, new RegExp(value));
   assert.match(detail, /preflight\?\.blockers/);
   assert.match(detail, /Ready to accept/);
   assert.match(detail, /current\.lineItems\.map/);
   assert.match(detail, /money\(line\.lineTotalMinor, current\.currency\)/);
   assert.doesNotMatch(detail, /catalogue|defaultPrice|unitAmountMinor \*/);
-  assert.match(detail, /Laundry loads/);
-  assert.match(detail, /Ironing loads/);
-  assert.match(detail, /rows\.map/);
-  assert.match(detail, /filter\(\(\[, value\]\) => present\(value\)\)/);
+  assert.match(detail, /comprehensiveSubmissionSections/);
+  assert.match(detail, /Object\.entries\(submission\)/);
+  assert.match(detail, /collectSubmissionRows/);
+  assert.match(detail, /submissionSections\.map/);
+  assert.match(detail, /row\.path/);
+  assert.match(detail, /Binary upload payload/);
+  assert.match(detail, /intentionally not displayed in Admin review/);
+  assert.doesNotMatch(detail, /Service &amp; operational scope/);
+});
+
+test('comprehensive submission rendering preserves false and zero values and future nested fields', () => {
+  assert.match(detail, /value !== undefined && value !== null && value !== ''/);
+  assert.match(detail, /typeof value === 'boolean'/);
+  assert.match(detail, /Array\.isArray\(value\)/);
+  assert.match(detail, /Object\.entries\(value as Record<string, unknown>\)/);
+  assert.match(detail, /submissionSectionTitles\[key\] \?\? fieldLabel\(key\)/);
 });
 
 test('resolution submission is revision-safe and prevents cross-Customer Property selection', () => {
