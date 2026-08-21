@@ -32,7 +32,7 @@ export type UpdateCustomerContactInput = Partial<CreateCustomerContactInput> & {
   status?: CustomerContactStatus;
 };
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class CustomersService {
@@ -175,7 +175,14 @@ export class CustomersService {
   async update(id: string, input: UpdateCustomerInput) {
     const current = await this.prisma.customer.findUnique({
       where: { id },
-      select: { id: true, accountType: true, name: true },
+      select: {
+        id: true,
+        accountType: true,
+        name: true,
+        contactName: true,
+        email: true,
+        phone: true,
+      },
     });
     if (!current) throw new NotFoundException('Customer not found.');
 
@@ -186,22 +193,73 @@ export class CustomersService {
     }
 
     const nextAccountType = input.accountType ?? current.accountType ?? CustomerAccountType.INDIVIDUAL;
-    if (nextAccountType === CustomerAccountType.ORGANISATION && input.name !== undefined && !input.name.trim()) {
+    const nextContactName = input.contactName !== undefined
+      ? input.contactName.trim()
+      : current.contactName?.trim() || '';
+    if (nextAccountType === CustomerAccountType.INDIVIDUAL && !nextContactName) {
+      throw new BadRequestException('An individual Customer requires a contactName.');
+    }
+
+    const requestedName = input.name?.trim();
+    if (nextAccountType === CustomerAccountType.ORGANISATION && input.name !== undefined && !requestedName) {
       throw new BadRequestException('name is required for an organisation Customer.');
     }
 
-    return this.prisma.customer.update({
-      where: { id },
-      data: {
-        ...(input.accountType !== undefined ? { accountType: input.accountType } : {}),
-        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-        ...(input.contactName !== undefined ? { contactName: input.contactName.trim() } : {}),
-        ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() || null } : {}),
-        ...(input.phone !== undefined ? { phone: input.phone.trim() || null } : {}),
-        ...(input.notes !== undefined ? { notes: input.notes.trim() || null } : {}),
-        ...(input.status !== undefined ? { status: input.status } : {}),
-      },
-    });
+    const shouldSyncPrimary = input.contactName !== undefined || input.email !== undefined || input.phone !== undefined;
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.customer.update({
+        where: { id },
+        data: {
+          ...(input.accountType !== undefined ? { accountType: input.accountType } : {}),
+          ...(nextAccountType === CustomerAccountType.INDIVIDUAL && input.contactName !== undefined
+            ? { name: nextContactName }
+            : input.name !== undefined
+              ? { name: requestedName }
+              : {}),
+          ...(input.contactName !== undefined ? { contactName: nextContactName } : {}),
+          ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() || null } : {}),
+          ...(input.phone !== undefined ? { phone: input.phone.trim() || null } : {}),
+          ...(input.notes !== undefined ? { notes: input.notes.trim() || null } : {}),
+          ...(input.status !== undefined ? { status: input.status } : {}),
+        },
+      });
+
+      if (shouldSyncPrimary) {
+        const primary = await tx.customerContact.findFirst({
+          where: {
+            customerId: id,
+            status: CustomerContactStatus.ACTIVE,
+            isPrimary: true,
+          },
+          select: { id: true },
+        });
+
+        if (primary) {
+          await tx.customerContact.update({
+            where: { id: primary.id },
+            data: {
+              ...(input.contactName !== undefined ? { name: nextContactName } : {}),
+              ...(input.email !== undefined ? { email: input.email.trim().toLowerCase() || null } : {}),
+              ...(input.phone !== undefined ? { phone: input.phone.trim() || null } : {}),
+            },
+          });
+        } else if (nextContactName) {
+          await tx.customerContact.create({
+            data: {
+              customerId: id,
+              name: nextContactName,
+              relationship: nextAccountType === CustomerAccountType.INDIVIDUAL ? 'SELF' : 'PRIMARY_CONTACT',
+              email: input.email !== undefined ? input.email.trim().toLowerCase() || null : current.email,
+              phone: input.phone !== undefined ? input.phone.trim() || null : current.phone,
+              isPrimary: true,
+            },
+          });
+        }
+      }
+
+      return updated;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   selectorOptions(search?: string) {
@@ -372,24 +430,26 @@ export class CustomersService {
           select: {
             properties: true,
             workOrders: true,
+            quotes: true,
             messagingConversations: true,
-            contacts: true,
           },
         },
       },
     });
     if (!customer) throw new NotFoundException('Customer not found.');
-    if (customer._count.workOrders > 0) {
+
+    const messagingIdentityCount = await this.prisma.customerMessagingIdentity.count({
+      where: { contact: { customerId: id } },
+    });
+
+    if (customer._count.workOrders > 0 || customer._count.quotes > 0) {
       throw new ConflictException('This customer has operational history and cannot be permanently deleted.');
     }
     if (customer._count.properties > 0) {
       throw new ConflictException('This customer has linked properties and cannot be deleted.');
     }
-    if (customer._count.messagingConversations > 0) {
-      throw new ConflictException('This customer has messaging history and cannot be permanently deleted.');
-    }
-    if (customer._count.contacts > 0) {
-      throw new ConflictException('This customer has contact history and cannot be permanently deleted.');
+    if (customer._count.messagingConversations > 0 || messagingIdentityCount > 0) {
+      throw new ConflictException('This customer has messaging identity/history and cannot be permanently deleted.');
     }
     return this.prisma.customer.delete({ where: { id } });
   }
