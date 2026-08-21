@@ -28,7 +28,7 @@ export type AuthoritativeQuoteSubmissionInput = {
   submittedAt: string;
   pricingSubmission: WebsiteQuoteSubmission;
   structuredData: Prisma.InputJsonValue;
-  submittedActivityMetadata: Prisma.InputJsonValue;
+  submittedActivityMetadata: Prisma.InputJsonObject;
 };
 
 function johannesburgBusinessDate(now = new Date()): string {
@@ -157,7 +157,7 @@ export class QuoteSubmissionService {
                   type: QuoteActivityType.QUOTE_SUBMITTED,
                   newStatus: quoteStatus,
                   metadata: {
-                    submission: input.submittedActivityMetadata,
+                    ...input.submittedActivityMetadata,
                     operationalCostProvenance: costResolution.provenance,
                   } as Prisma.InputJsonValue,
                 },
