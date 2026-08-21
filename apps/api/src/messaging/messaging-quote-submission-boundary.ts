@@ -1,9 +1,11 @@
 import {
   WEBSITE_QUOTE_SCHEMA_VERSION_V2,
   validateWebsiteQuoteSubmissionV2,
-  type WebsiteQuoteContractError,
 } from '../quotes/website-quote-contract-v2';
-import { WEBSITE_QUOTE_SOURCE } from '../quotes/website-quote-contract';
+import {
+  WEBSITE_QUOTE_SOURCE,
+  type WebsiteQuoteContractError,
+} from '../quotes/website-quote-contract';
 import type { MessagingQuoteDraft } from './messaging-quote-draft';
 import { evaluateMessagingQuoteFlow } from './messaging-quote-flow';
 
