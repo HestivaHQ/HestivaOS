@@ -1,5 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { MessagingChannel, MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind, MessagingMessagePurpose } from '@prisma/client';
+import {
+  CustomerContactStatus,
+  MessagingChannel,
+  MessagingDeliveryStatus,
+  MessagingDirection,
+  MessagingIdentityTrustState,
+  MessagingMessageKind,
+  MessagingMessagePurpose,
+} from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
 
@@ -8,21 +16,25 @@ const MESSENGER_STANDARD_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export type ManualMessengerReplyInput = { requestId: string; text: string };
 
+function reviewKey(channel: MessagingChannel, provider: string, providerIdentityId: string) {
+  return `${channel}\u0000${provider}\u0000${providerIdentityId}`;
+}
+
 @Injectable()
 export class MessagingAdminReplyService {
   constructor(private readonly prisma: PrismaService, private readonly messaging: MessagingService) {}
 
-  async listMessengerConversations() {
+  async listConversations() {
     const rows = await this.prisma.messagingConversation.findMany({
-      where: { channel: MessagingChannel.MESSENGER },
       orderBy: { updatedAt: 'desc' },
       take: 50,
       select: {
         id: true,
         channel: true,
         provider: true,
+        providerIdentityId: true,
         customerId: true,
-        customer: { select: { id: true, name: true, contactName: true } },
+        customer: { select: { id: true, name: true, accountType: true, contactName: true } },
         messages: {
           where: { direction: MessagingDirection.INBOUND },
           orderBy: { occurredAt: 'desc' },
@@ -31,20 +43,89 @@ export class MessagingAdminReplyService {
         },
       },
     });
+
+    const identities = rows.length === 0
+      ? []
+      : await this.prisma.customerMessagingIdentity.findMany({
+          where: {
+            OR: rows.map((row) => ({
+              channel: row.channel,
+              provider: row.provider,
+              providerIdentityId: row.providerIdentityId,
+            })),
+          },
+          select: {
+            id: true,
+            channel: true,
+            provider: true,
+            providerIdentityId: true,
+            trustState: true,
+            retiredAt: true,
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                customerId: true,
+                customer: { select: { id: true, name: true, accountType: true, contactName: true } },
+              },
+            },
+          },
+        });
+
+    const identityByProviderKey = new Map(
+      identities.map((identity) => [
+        reviewKey(identity.channel, identity.provider, identity.providerIdentityId),
+        identity,
+      ]),
+    );
     const cutoff = Date.now() - MESSENGER_STANDARD_WINDOW_MS;
+
     return rows.map((row) => {
       const latestInbound = row.messages[0] ?? null;
+      const identity = identityByProviderKey.get(reviewKey(row.channel, row.provider, row.providerIdentityId)) ?? null;
+      let reviewState: 'UNLINKED' | 'UNVERIFIED' | 'TRUSTED' | 'BLOCKED' | 'RETIRED' | 'CONFLICT' = 'UNLINKED';
+      if (identity) {
+        if (identity.trustState === MessagingIdentityTrustState.BLOCKED) reviewState = 'BLOCKED';
+        else if (identity.retiredAt || identity.contact.status === CustomerContactStatus.RETIRED) reviewState = 'RETIRED';
+        else if (identity.trustState === MessagingIdentityTrustState.TRUSTED) {
+          reviewState = row.customerId && row.customerId !== identity.contact.customerId ? 'CONFLICT' : 'TRUSTED';
+        } else reviewState = 'UNVERIFIED';
+      }
+
       return {
         id: row.id,
         channel: row.channel,
         provider: row.provider,
         customer: row.customer,
         customerId: row.customerId,
-        replyEligible: !!latestInbound && latestInbound.occurredAt.getTime() >= cutoff,
+        identityReview: {
+          state: reviewState,
+          identityId: identity?.id ?? null,
+          trustState: identity?.trustState ?? null,
+          retiredAt: identity?.retiredAt ?? null,
+          contact: identity
+            ? {
+                id: identity.contact.id,
+                name: identity.contact.name,
+                status: identity.contact.status,
+                customerId: identity.contact.customerId,
+                customer: identity.contact.customer,
+              }
+            : null,
+        },
+        manualReplySupported: row.channel === MessagingChannel.MESSENGER,
+        replyEligible: row.channel === MessagingChannel.MESSENGER
+          && !!latestInbound
+          && latestInbound.occurredAt.getTime() >= cutoff,
         latestInboundAt: latestInbound?.occurredAt ?? null,
         latestMessage: latestInbound,
       };
     });
+  }
+
+  async listMessengerConversations() {
+    return (await this.listConversations()).filter((row) => row.channel === MessagingChannel.MESSENGER);
   }
 
   async reply(conversationId: string, input: ManualMessengerReplyInput) {
