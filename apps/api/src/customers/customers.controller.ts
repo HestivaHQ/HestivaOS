@@ -12,8 +12,10 @@ import {
 } from '@nestjs/common';
 import { CustomerStatus } from '@prisma/client';
 import {
+  CreateCustomerContactInput,
   CreateCustomerInput,
   CustomersService,
+  UpdateCustomerContactInput,
   UpdateCustomerInput,
 } from './customers.service';
 
@@ -52,6 +54,28 @@ export class CustomersController {
     @Body() input: UpdateCustomerInput,
   ) {
     return this.customers.update(id, input);
+  }
+
+  @Get(':id/contacts')
+  findContacts(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.customers.findContacts(id);
+  }
+
+  @Post(':id/contacts')
+  createContact(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: CreateCustomerContactInput,
+  ) {
+    return this.customers.createContact(id, input);
+  }
+
+  @Patch(':id/contacts/:contactId')
+  updateContact(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('contactId', new ParseUUIDPipe()) contactId: string,
+    @Body() input: UpdateCustomerContactInput,
+  ) {
+    return this.customers.updateContact(id, contactId, input);
   }
 
   @Delete(':id')
