@@ -30,7 +30,11 @@ The resolver does not substitute geometric/straight-line distance or the custome
 
 ## COIDA
 
-Labour requires a configured valid COIDA rate through `HESTIVA_COIDA_RATE`. The application does not infer an employer-specific rate from a generic public tariff. The production value used for the verified handoff is provisional for internal costing pending the authoritative Compensation Fund assessment and must be replaced when that assessment is known.
+Labour requires a configured valid COIDA rate through `HESTIVA_COIDA_RATE`. The application does not infer an employer-specific rate from a generic public tariff.
+
+As of 2026-08-21, the operator-verified production placeholder is **`HESTIVA_COIDA_RATE=0.01`**, which the costing model interprets as a **1% rate**. This value is a temporary internal costing assumption only; it is not represented as Hestiva's authoritative Compensation Fund assessment. It must be replaced when the business receives its authoritative assessed rate.
+
+The numeric placeholder is recorded here so the temporary production assumption is auditable without exposing credentials or relying on deployment-console memory. Any future replacement must preserve the distinction between the configured decimal rate and its percentage representation (for example, `0.01` = 1%).
 
 If the factual COIDA input is unavailable or invalid for an otherwise valid Website Quote submission, labour cost remains unresolved and the Quote is persisted as `NEEDS_ATTENTION`; the profitability-protected price is not treated as final until the cost input is corrected.
 
