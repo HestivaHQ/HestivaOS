@@ -7,6 +7,7 @@ import {
 import { OpenRouteServiceAllocatedRouteDistanceResolver } from './openrouteservice-allocated-route-distance-resolver';
 import { QUOTE_OPERATIONAL_COST_PROVIDER } from './quote-operational-cost-source';
 import { QuotePricingReviewService } from './quote-pricing-review.service';
+import { QuoteSubmissionService } from './quote-submission.service';
 import { WebsiteIntegrationHealthController } from './website-integration-health.controller';
 import { WebsiteQuoteIngestionController } from './website-quote-ingestion.controller';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
@@ -71,6 +72,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
     WebsiteQuoteIngestionService,
     QuoteReviewService,
     QuotePricingReviewService,
+    QuoteSubmissionService,
     {
       provide: QUOTE_OPERATIONAL_COST_PROVIDER,
       useFactory: () =>
@@ -80,5 +82,6 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
         }),
     },
   ],
+  exports: [QuoteSubmissionService],
 })
 export class QuotesModule {}
