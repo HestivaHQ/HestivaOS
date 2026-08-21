@@ -12,6 +12,22 @@ enum CustomerStatus {
   INACTIVE
 }
 
+enum CustomerAccountType {
+  INDIVIDUAL
+  ORGANISATION
+}
+
+enum CustomerContactStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum MessagingIdentityTrustState {
+  UNVERIFIED
+  TRUSTED
+  BLOCKED
+}
+
 enum TechnicianStatus {
   ACTIVE
   INACTIVE
@@ -404,12 +420,14 @@ model Customer {
   id String @id @default(uuid()) @db.Uuid
   ownerId String @map("owner_id") @db.Uuid
   name String
+  accountType CustomerAccountType? @map("account_type")
   contactName String? @map("contact_name")
   email String?
   phone String?
   notes String?
   status CustomerStatus @default(ACTIVE)
   owner User @relation("CustomerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  contacts CustomerContact[]
   properties Property[]
   workOrders WorkOrder[]
   quotes Quote[]
@@ -419,6 +437,47 @@ model Customer {
   @@index([ownerId])
   @@index([name])
   @@map("customers")
+}
+
+model CustomerContact {
+  id String @id @default(uuid()) @db.Uuid
+  customerId String @map("customer_id") @db.Uuid
+  name String
+  relationship String?
+  email String?
+  phone String?
+  isPrimary Boolean @default(false) @map("is_primary")
+  status CustomerContactStatus @default(ACTIVE)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messagingIdentities CustomerMessagingIdentity[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([customerId, status])
+  @@index([email])
+  @@index([phone])
+  @@map("customer_contacts")
+}
+
+model CustomerMessagingIdentity {
+  id String @id @default(uuid()) @db.Uuid
+  contactId String @map("contact_id") @db.Uuid
+  channel MessagingChannel
+  provider String
+  providerIdentityId String @map("provider_identity_id")
+  phoneNumber String? @map("phone_number")
+  displayName String? @map("display_name")
+  trustState MessagingIdentityTrustState @default(UNVERIFIED) @map("trust_state")
+  trustedAt DateTime? @map("trusted_at")
+  retiredAt DateTime? @map("retired_at")
+  contact CustomerContact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([channel, provider, providerIdentityId])
+  @@index([contactId, channel])
+  @@index([trustState, retiredAt])
+  @@map("customer_messaging_identities")
 }
 
 model Property {
