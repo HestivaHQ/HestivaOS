@@ -48,7 +48,9 @@ The ADMIN Messaging screen lists both WhatsApp and Messenger conversations and e
 
 For a reviewable identity, an administrator may select an existing Customer, select or create an active contact, or create a new individual/organisation Customer and its first contact. Trust still requires a separate explicit confirmation and the trusted-identity API action. Creating or selecting a Customer/contact alone does not authorize the provider identity.
 
-`BLOCKED`, `RETIRED`, `CONFLICT`, and already `TRUSTED` identities are not presented as ordinary trust-establishment candidates. Messenger manual replies remain subject to the existing 24-hour provider window. WhatsApp remains inbound-only in the current operational UI slice.
+This workflow extends the existing Messaging admin surface and existing linking/trust services; it does not introduce a new runtime component or provider boundary.
+
+`BLOCKED`, `RETIRED`, `CONFLICT`, and already `TRUSTED` identities are not presented as ordinary trust-establishment candidates. Messenger manual replies remain subject to the existing 24-hour provider window. WhatsApp remains inbound-only in this operational UI slice.
 
 ## Trusted identity resolution
 
