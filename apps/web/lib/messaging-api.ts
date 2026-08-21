@@ -11,8 +11,14 @@ export type MessagingConversationSummary = {
   provider: string;
   customerId: string | null;
   customer: { id: string; name: string; contactName: string | null } | null;
-  identityReviewState: MessagingIdentityReviewState;
-  trustedContact: { id: string; name: string } | null;
+  identityReview: {
+    state: MessagingIdentityReviewState;
+    identityId: string | null;
+    trustState: string | null;
+    retiredAt: string | null;
+    contact: { id: string; name: string; status: string; customerId: string } | null;
+  };
+  manualReplySupported: boolean;
   replyEligible: boolean;
   latestInboundAt: string | null;
   latestMessage: { id: string; direction: 'INBOUND' | 'OUTBOUND'; kind: string; contentText: string | null; occurredAt: string } | null;
@@ -63,22 +69,13 @@ export function createMessagingCustomerContact(accessToken: string, customerId: 
 }
 
 export function linkMessagingCustomer(accessToken: string, conversationId: string, customerId: string) {
-  return request(accessToken, `/messaging/conversations/${conversationId}/customer-link`, {
-    method: 'PUT',
-    body: JSON.stringify({ customerId }),
-  });
+  return request(accessToken, `/messaging/conversations/${conversationId}/customer-link`, { method: 'PUT', body: JSON.stringify({ customerId }) });
 }
 
 export function trustMessagingIdentity(accessToken: string, conversationId: string, contactId: string) {
-  return request(accessToken, `/messaging/conversations/${conversationId}/trusted-identity`, {
-    method: 'PUT',
-    body: JSON.stringify({ contactId }),
-  });
+  return request(accessToken, `/messaging/conversations/${conversationId}/trusted-identity`, { method: 'PUT', body: JSON.stringify({ contactId }) });
 }
 
 export function sendManualMessengerReply(accessToken: string, conversationId: string, input: { requestId: string; text: string }): Promise<ManualMessengerReplyResult> {
-  return request(accessToken, `/messaging/conversations/${conversationId}/manual-replies`, {
-    method: 'POST',
-    body: JSON.stringify(input),
-  });
+  return request(accessToken, `/messaging/conversations/${conversationId}/manual-replies`, { method: 'POST', body: JSON.stringify(input) });
 }
