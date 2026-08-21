@@ -26,6 +26,44 @@ function trustedIdentity(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function identityRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'identity-1',
+    contactId: 'contact-1',
+    trustState: 'TRUSTED',
+    trustedAt: new Date('2026-08-21T16:00:00Z'),
+    retiredAt: null,
+    ...overrides,
+  };
+}
+
+function trustPrisma(overrides: Record<string, any> = {}) {
+  const tx = {
+    messagingConversation: {
+      findUnique: jest.fn(async () => conversation()),
+      updateMany: jest.fn(async () => ({ count: 1 })),
+    },
+    customerContact: {
+      findUnique: jest.fn(async () => ({ id: 'contact-1', customerId: 'customer-1', status: 'ACTIVE' })),
+    },
+    customerMessagingIdentity: {
+      findUnique: jest.fn(async () => null),
+      create: jest.fn(async () => identityRecord()),
+      update: jest.fn(async () => identityRecord()),
+    },
+    messagingMessage: {
+      upsert: jest.fn(async () => ({ id: 'audit-message-1' })),
+    },
+    ...overrides,
+  };
+  return {
+    tx,
+    prisma: {
+      $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    },
+  };
+}
+
 describe('MessagingCustomerLinkingService', () => {
   it('automatically links an exact active TRUSTED provider identity', async () => {
     const prisma = {
@@ -135,6 +173,133 @@ describe('MessagingCustomerLinkingService', () => {
       requestedCustomerId: 'customer-2',
     });
     expect(link).not.toHaveBeenCalled();
+  });
+
+  it('establishes trust only from the exact persisted conversation identity and writes an admin audit message', async () => {
+    const { prisma, tx } = trustPrisma();
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    const result = await service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1');
+
+    expect(result).toMatchObject({
+      conversationId: 'conversation-1',
+      customerId: 'customer-1',
+      contactId: 'contact-1',
+      identityId: 'identity-1',
+      trustState: 'TRUSTED',
+      newlyTrusted: true,
+    });
+    expect(tx.customerMessagingIdentity.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        contactId: 'contact-1',
+        channel: 'MESSENGER',
+        provider: 'meta',
+        providerIdentityId: 'psid-1',
+        trustState: 'TRUSTED',
+      }),
+    }));
+    expect(tx.messagingConversation.updateMany).toHaveBeenCalledWith({
+      where: { id: 'conversation-1', customerId: null },
+      data: { customerId: 'customer-1' },
+    });
+    expect(tx.messagingMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        conversationId: 'conversation-1',
+        direction: 'OUTBOUND',
+        kind: 'SYSTEM',
+        attachmentMetadata: expect.objectContaining({
+          event: 'IDENTITY_TRUST_ESTABLISHED',
+          actorUserId: 'admin-1',
+          customerId: 'customer-1',
+          contactId: 'contact-1',
+          identityId: 'identity-1',
+        }),
+      }),
+    }));
+  });
+
+  it('upgrades an existing UNVERIFIED identity for the same active contact', async () => {
+    const { prisma, tx } = trustPrisma();
+    tx.customerMessagingIdentity.findUnique.mockResolvedValueOnce(identityRecord({
+      trustState: 'UNVERIFIED',
+      trustedAt: null,
+    }) as any);
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    const result = await service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1');
+
+    expect(result.newlyTrusted).toBe(true);
+    expect(tx.customerMessagingIdentity.create).not.toHaveBeenCalled();
+    expect(tx.customerMessagingIdentity.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'identity-1' },
+      data: expect.objectContaining({ trustState: 'TRUSTED' }),
+    }));
+    expect(tx.messagingMessage.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('is idempotent when the exact identity is already trusted for the same contact', async () => {
+    const { prisma, tx } = trustPrisma();
+    tx.customerMessagingIdentity.findUnique.mockResolvedValueOnce(identityRecord() as any);
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    const result = await service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1');
+
+    expect(result.newlyTrusted).toBe(false);
+    expect(tx.customerMessagingIdentity.create).not.toHaveBeenCalled();
+    expect(tx.customerMessagingIdentity.update).not.toHaveBeenCalled();
+    expect(tx.messagingMessage.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to move an existing provider identity to a different contact', async () => {
+    const { prisma, tx } = trustPrisma();
+    tx.customerMessagingIdentity.findUnique.mockResolvedValueOnce(identityRecord({ contactId: 'contact-2' }) as any);
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    await expect(service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.customerMessagingIdentity.update).not.toHaveBeenCalled();
+    expect(tx.messagingMessage.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to trust a blocked or retired identity implicitly', async () => {
+    const blocked = trustPrisma();
+    blocked.tx.customerMessagingIdentity.findUnique.mockResolvedValueOnce(identityRecord({ trustState: 'BLOCKED' }) as any);
+    const blockedService = new MessagingCustomerLinkingService(blocked.prisma as any);
+    await expect(blockedService.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+
+    const retired = trustPrisma();
+    retired.tx.customerMessagingIdentity.findUnique.mockResolvedValueOnce(identityRecord({ retiredAt: new Date() }) as any);
+    const retiredService = new MessagingCustomerLinkingService(retired.prisma as any);
+    await expect(retiredService.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('refuses to establish trust through a retired Customer contact', async () => {
+    const { prisma, tx } = trustPrisma({
+      customerContact: {
+        findUnique: jest.fn(async () => ({ id: 'contact-1', customerId: 'customer-1', status: 'RETIRED' })),
+      },
+    });
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    await expect(service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.customerMessagingIdentity.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses trust when the conversation already belongs to another Customer', async () => {
+    const { prisma, tx } = trustPrisma({
+      messagingConversation: {
+        findUnique: jest.fn(async () => conversation('customer-2')),
+        updateMany: jest.fn(async () => ({ count: 0 })),
+      },
+    });
+    const service = new MessagingCustomerLinkingService(prisma as any);
+
+    await expect(service.trustConversationIdentity('conversation-1', 'contact-1', 'admin-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(tx.customerMessagingIdentity.create).not.toHaveBeenCalled();
   });
 
   it('links an unlinked provider conversation to an existing Customer', async () => {
