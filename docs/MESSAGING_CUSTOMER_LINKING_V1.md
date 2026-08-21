@@ -57,6 +57,21 @@ If an exact trusted identity points to a different Customer from an existing com
 
 Existing historical conversation links are not converted into trusted identities automatically. Trust must be established deliberately in the new identity layer.
 
+## Inbound webhook integration
+
+After a WhatsApp or Messenger webhook has passed provider authentication/normalization and the inbound message has been durably persisted, the shared webhook path immediately runs trusted-identity resolution for that persisted conversation.
+
+This ordering is deliberate:
+
+1. provider authenticity and normalization happen first;
+2. the inbound message is durably stored with its exact provider conversation/identity facts;
+3. trusted-identity resolution runs against those durable facts; and
+4. only an already active exact `TRUSTED` identity may attach an unlinked conversation to a Customer.
+
+WhatsApp media securing continues after identity resolution and does not grant or alter identity trust. Provider status-only webhooks do not run Customer identity resolution because they do not represent a new inbound customer identity event.
+
+Webhook retries remain safe: inbound message persistence is idempotent, trusted resolution is deterministic, and replay cannot create trust or silently move an existing Customer link.
+
 ## Safety rules
 
 - the conversation must already exist;
