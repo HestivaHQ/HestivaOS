@@ -24,19 +24,19 @@ test('queue is responsive content with useful status, request, revision and filt
 });
 
 test('detail presents the complete immutable customer submission beside authoritative pricing and review state', () => {
-  for (const value of ['Review status', 'Complete customer submission', 'Customer resolution', 'Property resolution', 'Authoritative pricing', 'Customer Quote Photos', 'Activity']) assert.match(detail, new RegExp(value));
+  for (const value of ['What needs attention', 'Customer request', '10. Price breakdown', 'Customer photos', '11. Customer & property decision', 'Activity']) assert.match(detail, new RegExp(value));
   assert.match(detail, /preflight\?\.blockers/);
   assert.match(detail, /Ready to accept/);
   assert.match(detail, /current\.lineItems\.map/);
   assert.match(detail, /money\(line\.lineTotalMinor, current\.currency\)/);
   assert.doesNotMatch(detail, /catalogue|defaultPrice|unitAmountMinor \*/);
-  assert.match(detail, /comprehensiveSubmissionSections/);
+  assert.match(detail, /coherentSubmissionSections/);
   assert.match(detail, /Object\.entries\(submission\)/);
-  assert.match(detail, /collectSubmissionRows/);
-  assert.match(detail, /submissionSections\.map/);
-  assert.match(detail, /row\.path/);
-  assert.match(detail, /Binary upload payload/);
-  assert.match(detail, /intentionally not displayed in Admin review/);
+  assert.match(detail, /collectRows/);
+  assert.match(detail, /submissionSections\.primary\.map/);
+  assert.match(detail, /Field source paths/);
+  assert.match(detail, /Uploaded file data/);
+  assert.match(detail, /raw file data is not printed on this page/);
   assert.doesNotMatch(detail, /Service &amp; operational scope/);
 });
 
@@ -45,14 +45,16 @@ test('comprehensive submission rendering preserves false and zero values and fut
   assert.match(detail, /typeof value === 'boolean'/);
   assert.match(detail, /Array\.isArray\(value\)/);
   assert.match(detail, /Object\.entries\(value as Record<string, unknown>\)/);
-  assert.match(detail, /submissionSectionTitles\[key\] \?\? fieldLabel\(key\)/);
+  assert.match(detail, /Object\.entries\(submission\)\.filter/);
+  assert.match(detail, /Other captured details/);
+  assert.match(detail, /Technical submission details/);
 });
 
 test('resolution submission is revision-safe and prevents cross-Customer Property selection', () => {
   assert.match(detail, /expectedRevisionNumber: quote\.currentRevisionNumber/);
   assert.match(detail, /properties\.filter\(\(property\) => property\.customerId === customerId\)/);
   assert.match(detail, /selectedCustomerProperties\.some\(\(item\) => item\.id === propertyId\)/);
-  assert.match(detail, /Quote changed or another decision was recorded/);
+  assert.match(detail, /This Quote changed while you were working/);
 });
 
 test('acceptance is confirmed, preflight-refreshed, single-flight and recovers uncertain results', () => {
@@ -61,9 +63,9 @@ test('acceptance is confirmed, preflight-refreshed, single-flight and recovers u
   assert.match(detail, /if \(!quote \|\| saving\) return/);
   assert.match(detail, /api\.acceptQuote\(quote\.id, quote\.currentRevisionNumber\)/);
   assert.match(detail, /const current = await api\.quote\(quote\.id\)/);
-  assert.match(detail, /did not automatically repeat the decision request/);
-  assert.match(detail, /View Recurring Agreement/);
-  assert.match(detail, /View Initial Work Order/);
+  assert.match(detail, /did not automatically repeat the acceptance request/);
+  assert.match(detail, /View recurring service/);
+  assert.match(detail, /View work order/);
 });
 
 test('decline is confirmed with a meaningful reason and terminal Quotes hide decisions', () => {
