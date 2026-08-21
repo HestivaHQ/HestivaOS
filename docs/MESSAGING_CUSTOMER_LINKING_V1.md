@@ -42,6 +42,16 @@ Replaying the same trusted-identity action for an already trusted exact identity
 
 This slice does not provide an implicit unblock, unretire, reassignment or trust-revocation path. Those actions require their own explicit reviewed workflow rather than overloading trust establishment.
 
+## Admin identity review workflow
+
+The ADMIN Messaging screen lists both WhatsApp and Messenger conversations and exposes only a safe derived review state: `UNLINKED`, `UNVERIFIED`, `TRUSTED`, `BLOCKED`, `RETIRED`, or `CONFLICT`. Raw WhatsApp phone/provider identity IDs and Messenger PSIDs are not returned to the browser by this review projection.
+
+For a reviewable identity, an administrator may select an existing Customer, select or create an active contact, or create a new individual/organisation Customer and its first contact. Trust still requires a separate explicit confirmation and the trusted-identity API action. Creating or selecting a Customer/contact alone does not authorize the provider identity.
+
+This workflow extends the existing Messaging admin surface and existing linking/trust services; it does not introduce a new runtime component or provider boundary.
+
+`BLOCKED`, `RETIRED`, `CONFLICT`, and already `TRUSTED` identities are not presented as ordinary trust-establishment candidates. Messenger manual replies remain subject to the existing 24-hour provider window. WhatsApp remains inbound-only in this operational UI slice.
+
 ## Trusted identity resolution
 
 HestivaOS may automatically link an unlinked conversation only when the exact provider identity already has a durable `CustomerMessagingIdentity` record that is:
@@ -82,13 +92,13 @@ Webhook retries remain safe: inbound message persistence is idempotent, trusted 
 - a concurrent competing link fails closed unless it resolves to the same Customer;
 - provider identity, provider conversation identity and historical messages are never rewritten;
 - phone/name/email/address similarity is discovery information only and never automatic authority;
-- no fuzzy identity matching, automatic cross-channel merge, Customer auto-creation, unlink or silent reassignment is performed;
+- no fuzzy identity matching, automatic cross-channel merge, Customer auto-creation, unlink or silent reassignment is performed by inbound processing;
 - automatic linking is limited to an exact active trusted identity as described above.
 
-These operations do not themselves send a provider message, create a Quote, create a Customer, or change provider configuration.
+These operations do not themselves send a provider message, create a Quote, or change provider configuration.
 
 ## Follow-on use
 
-Customer-specific messaging features may use the trusted identity result before a conversation is used as a canonical Customer channel. New or unclear identities still require an identification or human-review workflow. Deterministic Quote/service conversation flows and human takeover remain separate Phase 3 slices.
+The human-review path now exists for establishing the trusted Customer/contact relationship needed by later customer-specific messaging features. Automatic Quote creation is still not enabled by this document or workflow; deterministic Quote/service conversation flows and human takeover remain separate Phase 3 slices.
 
 See ADR-0083, ADR-0087 and `MESSAGING_FOUNDATION_V1.md`.

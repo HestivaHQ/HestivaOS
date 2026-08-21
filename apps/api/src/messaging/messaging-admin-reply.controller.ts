@@ -10,7 +10,7 @@ export class MessagingAdminReplyController {
 
   @Get()
   list() {
-    return this.replies.listMessengerConversations();
+    return this.replies.listConversations();
   }
 
   @Post(':conversationId/manual-replies')
