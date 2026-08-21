@@ -1,4 +1,3 @@
-import { MessagingProvider } from '@prisma/client';
 import { messagingQuoteSubmissionKey, prepareMessagingQuoteCreation } from './messaging-quote-creation-input';
 
 const completeDraft = {
@@ -33,7 +32,7 @@ const completeDraft = {
 describe('Messaging Quote creation identity', () => {
   it('uses a stable retry-safe key for the same confirmed message', () => {
     const input = {
-      provider: MessagingProvider.WHATSAPP,
+      provider: 'meta',
       conversationId: 'conversation-123',
       confirmationMessageId: 'wamid.confirm-456',
     };
@@ -42,15 +41,21 @@ describe('Messaging Quote creation identity', () => {
     expect(messagingQuoteSubmissionKey(input)).toMatch(/^messaging:[0-9a-f]{64}$/);
   });
 
+  it('normalizes provider casing in the stable identity', () => {
+    const base = { conversationId: 'conversation-123', confirmationMessageId: 'wamid.confirm-456' };
+    expect(messagingQuoteSubmissionKey({ ...base, provider: 'META' }))
+      .toBe(messagingQuoteSubmissionKey({ ...base, provider: 'meta' }));
+  });
+
   it('changes identity when the confirmation message changes', () => {
-    const base = { provider: MessagingProvider.WHATSAPP, conversationId: 'conversation-123' };
+    const base = { provider: 'meta', conversationId: 'conversation-123' };
     expect(messagingQuoteSubmissionKey({ ...base, confirmationMessageId: 'one' }))
       .not.toBe(messagingQuoteSubmissionKey({ ...base, confirmationMessageId: 'two' }));
   });
 
   it('prepares only a confirmed valid draft and keeps messaging provenance', () => {
     const result = prepareMessagingQuoteCreation({
-      provider: MessagingProvider.WHATSAPP,
+      provider: 'meta',
       conversationId: 'conversation-123',
       confirmationMessageId: 'wamid.confirm-456',
       confirmedAt: new Date('2026-08-21T16:00:00.000Z'),
@@ -62,7 +67,7 @@ describe('Messaging Quote creation identity', () => {
     if (result.kind !== 'READY') return;
     expect(result.value.provenance).toEqual({
       channel: 'MESSAGING',
-      provider: MessagingProvider.WHATSAPP,
+      provider: 'meta',
       conversationId: 'conversation-123',
       confirmationMessageId: 'wamid.confirm-456',
     });
@@ -71,7 +76,7 @@ describe('Messaging Quote creation identity', () => {
 
   it('does not prepare an unconfirmed draft', () => {
     const result = prepareMessagingQuoteCreation({
-      provider: MessagingProvider.MESSENGER,
+      provider: 'meta',
       conversationId: 'conversation-123',
       confirmationMessageId: 'mid.confirm-456',
       confirmedAt: new Date('2026-08-21T16:00:00.000Z'),
