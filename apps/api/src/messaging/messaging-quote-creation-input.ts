@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { MessagingProvider } from '@prisma/client';
 import type { MessagingQuoteDraft } from './messaging-quote-draft';
 import { prepareMessagingQuoteSubmission } from './messaging-quote-submission-boundary';
 
 export type MessagingQuoteCreationInput = {
-  provider: MessagingProvider;
+  provider: string;
   conversationId: string;
   confirmationMessageId: string;
   confirmedAt: Date;
@@ -20,7 +19,7 @@ export type PreparedMessagingQuoteCreation = {
   draft: MessagingQuoteDraft;
   provenance: {
     channel: 'MESSAGING';
-    provider: MessagingProvider;
+    provider: string;
     conversationId: string;
     confirmationMessageId: string;
   };
@@ -33,12 +32,12 @@ export type PreparedMessagingQuoteCreation = {
  * second logical Quote creation attempt.
  */
 export function messagingQuoteSubmissionKey(input: {
-  provider: MessagingProvider;
+  provider: string;
   conversationId: string;
   confirmationMessageId: string;
 }): string {
   return `messaging:${createHash('sha256')
-    .update(`${input.provider}\n${input.conversationId}\n${input.confirmationMessageId}`)
+    .update(`${input.provider.trim().toLowerCase()}\n${input.conversationId}\n${input.confirmationMessageId}`)
     .digest('hex')}`;
 }
 
@@ -67,7 +66,7 @@ export function prepareMessagingQuoteCreation(
       draft: prepared.draft,
       provenance: {
         channel: 'MESSAGING',
-        provider: input.provider,
+        provider: input.provider.trim().toLowerCase(),
         conversationId: input.conversationId,
         confirmationMessageId: input.confirmationMessageId,
       },
