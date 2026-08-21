@@ -1,5 +1,6 @@
 import { Controller, Get, Headers, HttpCode, Post, Query, RawBodyRequest, Req, Res, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { Public } from '../users/public.decorator';
+import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
 import { MessagingService } from './messaging.service';
 import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 
@@ -9,7 +10,11 @@ type WebhookResponse = { status(code: number): WebhookResponse; type(contentType
 @Public()
 @Controller('messaging/webhooks/messenger')
 export class MessengerWebhookController {
-  constructor(private readonly adapter: MessengerPlatformAdapter, private readonly messaging: MessagingService) {}
+  constructor(
+    private readonly adapter: MessengerPlatformAdapter,
+    private readonly messaging: MessagingService,
+    private readonly customerLinking: MessagingCustomerLinkingService,
+  ) {}
 
   @Get()
   verify(
@@ -31,7 +36,10 @@ export class MessengerWebhookController {
     if (!request.rawBody) throw new ServiceUnavailableException('Raw webhook body is unavailable for signature verification.');
     const context = { receivedAt: new Date().toISOString(), headers, rawBody: request.rawBody };
     const events = await this.adapter.normalizeInboundWebhook(request.body, context);
-    for (const event of events) await this.messaging.persistInbound(event);
+    for (const event of events) {
+      const message = await this.messaging.persistInbound(event);
+      await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
+    }
     return { received: true, normalizedEvents: events.length };
   }
 }
