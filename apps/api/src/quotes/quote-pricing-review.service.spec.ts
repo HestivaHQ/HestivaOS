@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const service = readFileSync(new URL('./quote-pricing-review.service.ts', import.meta.url), 'utf8');
-const controller = readFileSync(new URL('./quote-review.controller.ts', import.meta.url), 'utf8');
+const service = readFileSync(join(__dirname, 'quote-pricing-review.service.ts'), 'utf8');
+const controller = readFileSync(join(__dirname, 'quote-review.controller.ts'), 'utf8');
 
 describe('Quote pricing review workflow', () => {
   it('is ADMIN-only through the existing Quote controller and uses revision-safe input', () => {
