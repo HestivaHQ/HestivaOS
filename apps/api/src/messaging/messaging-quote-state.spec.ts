@@ -4,6 +4,7 @@ import {
   initialMessagingQuoteState,
   markMessagingQuoteReviewPresented,
   markMessagingQuoteSubmitted,
+  parseMessagingQuoteStateSnapshot,
   setMessagingQuoteHumanReview,
   updateMessagingQuoteDraft,
   viewMessagingQuoteState,
@@ -28,13 +29,28 @@ const completeDraft = {
 };
 
 describe('Messaging Quote durable-state transitions', () => {
-  it('starts collecting and reaches review only when canonical fact groups exist', () => {
+  it('starts at persistence version zero and reaches review only when canonical fact groups exist', () => {
     const initial = initialMessagingQuoteState();
+    expect(initial.version).toBe(0);
     expect(viewMessagingQuoteState(initial).phase).toBe('COLLECTING');
 
     const complete = updateMessagingQuoteDraft(initial, completeDraft);
-    expect(complete.version).toBe(2);
+    expect(complete.version).toBe(1);
     expect(viewMessagingQuoteState(complete).phase).toBe('REVIEW');
+  });
+
+  it('treats a null payload plus version zero as a fresh resumable state', () => {
+    expect(parseMessagingQuoteStateSnapshot(null, 0)).toEqual(initialMessagingQuoteState());
+  });
+
+  it('fails closed when persisted JSON and the concurrency version disagree', () => {
+    const state = updateMessagingQuoteDraft(initialMessagingQuoteState(), completeDraft);
+    expect(() => parseMessagingQuoteStateSnapshot(state, 2)).toThrow(
+      'Messaging Quote state payload is inconsistent and requires recovery.',
+    );
+    expect(() => parseMessagingQuoteStateSnapshot(null, 1)).toThrow(
+      'Messaging Quote state payload is missing and requires recovery.',
+    );
   });
 
   it('requires a recorded review summary before customer confirmation', () => {
