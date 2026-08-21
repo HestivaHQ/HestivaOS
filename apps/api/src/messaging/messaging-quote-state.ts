@@ -18,7 +18,7 @@ export type MessagingQuoteStateView = MessagingQuoteStateSnapshot & {
 
 export function initialMessagingQuoteState(): MessagingQuoteStateSnapshot {
   return {
-    version: 1,
+    version: 0,
     draft: {},
     humanReviewRequired: false,
     reviewSummaryMessageId: null,
@@ -28,8 +28,53 @@ export function initialMessagingQuoteState(): MessagingQuoteStateSnapshot {
   };
 }
 
+function optionalString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+export function parseMessagingQuoteStateSnapshot(
+  value: unknown,
+  persistedVersion: number,
+): MessagingQuoteStateSnapshot {
+  if (!Number.isInteger(persistedVersion) || persistedVersion < 0) {
+    throw new ConflictException('Messaging Quote state version is invalid and requires recovery.');
+  }
+  if (value === null || value === undefined) {
+    if (persistedVersion !== 0) {
+      throw new ConflictException('Messaging Quote state payload is missing and requires recovery.');
+    }
+    return initialMessagingQuoteState();
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ConflictException('Messaging Quote state payload is invalid and requires recovery.');
+  }
+
+  const candidate = value as Record<string, unknown>;
+  if (
+    candidate.version !== persistedVersion ||
+    !Number.isInteger(candidate.version) ||
+    !candidate.draft || typeof candidate.draft !== 'object' || Array.isArray(candidate.draft) ||
+    typeof candidate.humanReviewRequired !== 'boolean' ||
+    !optionalString(candidate.reviewSummaryMessageId) ||
+    !optionalString(candidate.confirmationMessageId) ||
+    !optionalString(candidate.confirmedAt) ||
+    !optionalString(candidate.submittedQuoteId)
+  ) {
+    throw new ConflictException('Messaging Quote state payload is inconsistent and requires recovery.');
+  }
+
+  if ((candidate.confirmationMessageId === null) !== (candidate.confirmedAt === null)) {
+    throw new ConflictException('Messaging Quote confirmation state is inconsistent and requires recovery.');
+  }
+  if (candidate.confirmedAt && Number.isNaN(new Date(candidate.confirmedAt).getTime())) {
+    throw new ConflictException('Messaging Quote confirmation timestamp is invalid and requires recovery.');
+  }
+
+  return candidate as unknown as MessagingQuoteStateSnapshot;
+}
+
 function nextVersion(state: MessagingQuoteStateSnapshot): number {
-  if (!Number.isInteger(state.version) || state.version < 1) {
+  if (!Number.isInteger(state.version) || state.version < 0) {
     throw new ConflictException('Messaging Quote state version is invalid and requires recovery.');
   }
   return state.version + 1;
