@@ -1161,6 +1161,8 @@ model MessagingConversation {
   providerConversationId String? @map("provider_conversation_id")
   providerIdentityId String @map("provider_identity_id")
   customerId String? @map("customer_id") @db.Uuid
+  quoteState Json? @map("quote_state")
+  quoteStateVersion Int @default(0) @map("quote_state_version")
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   messages MessagingMessage[]
   accessRecoveries WorkOrderAccessRecovery[]
