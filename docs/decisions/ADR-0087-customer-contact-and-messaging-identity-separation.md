@@ -69,7 +69,11 @@ Phone number similarity, customer name similarity, email similarity, property ad
 6. Update Customer/Admin UI for individual/organisation accounts, contacts, identities, and multi-property management.
 7. Resume automatic Messaging Quote creation using resolved Customer/contact/property context.
 
-Until durable contact and messaging-identity persistence is merged, the existing direct `MessagingConversation.customerId` link remains a compatibility path only and must not be expanded into similarity-based automatic matching.
+## Implementation status
+
+The durable persistence slice adds nullable Customer account type, Customer contacts, and provider-specific messaging identities with trust and retirement state. Existing `contactName`, `email`, and `phone` fields remain unchanged, and existing contact data is copied into an initial primary contact record without guessing whether a historical Customer is an individual or organisation. No messaging identity is created or trusted automatically during this backfill.
+
+Until Messaging linking is migrated to the new identity layer, the existing direct `MessagingConversation.customerId` link remains a compatibility path only and must not be expanded into similarity-based automatic matching.
 
 ## Out of scope for this ADR
 
