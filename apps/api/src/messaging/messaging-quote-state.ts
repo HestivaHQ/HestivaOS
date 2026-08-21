@@ -50,23 +50,27 @@ export function parseMessagingQuoteStateSnapshot(
   }
 
   const candidate = value as Record<string, unknown>;
+  const reviewSummaryMessageId = candidate.reviewSummaryMessageId;
+  const confirmationMessageId = candidate.confirmationMessageId;
+  const confirmedAt = candidate.confirmedAt;
+  const submittedQuoteId = candidate.submittedQuoteId;
   if (
     candidate.version !== persistedVersion ||
     !Number.isInteger(candidate.version) ||
     !candidate.draft || typeof candidate.draft !== 'object' || Array.isArray(candidate.draft) ||
     typeof candidate.humanReviewRequired !== 'boolean' ||
-    !optionalString(candidate.reviewSummaryMessageId) ||
-    !optionalString(candidate.confirmationMessageId) ||
-    !optionalString(candidate.confirmedAt) ||
-    !optionalString(candidate.submittedQuoteId)
+    !optionalString(reviewSummaryMessageId) ||
+    !optionalString(confirmationMessageId) ||
+    !optionalString(confirmedAt) ||
+    !optionalString(submittedQuoteId)
   ) {
     throw new ConflictException('Messaging Quote state payload is inconsistent and requires recovery.');
   }
 
-  if ((candidate.confirmationMessageId === null) !== (candidate.confirmedAt === null)) {
+  if ((confirmationMessageId === null) !== (confirmedAt === null)) {
     throw new ConflictException('Messaging Quote confirmation state is inconsistent and requires recovery.');
   }
-  if (candidate.confirmedAt && Number.isNaN(new Date(candidate.confirmedAt).getTime())) {
+  if (confirmedAt !== null && Number.isNaN(new Date(confirmedAt).getTime())) {
     throw new ConflictException('Messaging Quote confirmation timestamp is invalid and requires recovery.');
   }
 
