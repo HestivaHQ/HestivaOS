@@ -69,6 +69,8 @@ Phone number similarity, customer name similarity, email similarity, property ad
 6. Update Customer/Admin UI for individual/organisation accounts, contacts, identities, and multi-property management.
 7. Resume automatic Messaging Quote creation using resolved Customer/contact/property context.
 
+Until durable contact and messaging-identity persistence is merged, the existing direct `MessagingConversation.customerId` link remains a compatibility path only and must not be expanded into similarity-based automatic matching.
+
 ## Out of scope for this ADR
 
 - Customer-record merge semantics and reversal rules.
