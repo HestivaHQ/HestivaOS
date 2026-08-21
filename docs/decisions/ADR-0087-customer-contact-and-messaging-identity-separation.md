@@ -71,9 +71,13 @@ Phone number similarity, customer name similarity, email similarity, property ad
 
 ## Implementation status
 
-The durable persistence slice adds nullable Customer account type, Customer contacts, and provider-specific messaging identities with trust and retirement state. Existing `contactName`, `email`, and `phone` fields remain unchanged, and existing contact data is copied into an initial primary contact record without guessing whether a historical Customer is an individual or organisation. No messaging identity is created or trusted automatically during this backfill, and existing Messaging conversations are not converted into trusted identities merely because they already carry a compatibility Customer link.
+The durable persistence layer now stores nullable Customer account type, Customer contacts, and provider-specific messaging identities with trust and retirement state. Historical `contactName`, `email`, and `phone` fields remain for compatibility, and historical contact data was copied into initial primary contacts without guessing whether older Customer records represent individuals or organisations.
 
-Until Messaging linking is migrated to the new identity layer, the existing direct `MessagingConversation.customerId` link remains a compatibility path only and must not be expanded into similarity-based automatic matching.
+Messaging now consumes the durable identity layer on live WhatsApp and Messenger inbound paths. Exact active `TRUSTED` identities can link an unlinked conversation automatically; new, UNVERIFIED, blocked, retired, inactive-contact, and conflicting identities fail closed. Trust itself can be established only through the authenticated administrator review action, and historical compatibility conversation links are not treated as proof of trust.
+
+The Customer API is being migrated to the same model: new individual and organisation accounts can be represented separately, new human contacts are stored in the canonical contact layer, contacts can be added/updated/retired without deleting their history, and Customer detail projections expose safe identity status metadata without exposing provider identity identifiers broadly. The legacy Customer fields remain temporarily for compatibility while the Admin UI migrates.
+
+Automatic Messaging Quote creation remains paused until the operational identification/review UI can select or create the correct Customer/contact and deliberately establish trust for UNLINKED identities.
 
 ## Out of scope for this ADR
 
