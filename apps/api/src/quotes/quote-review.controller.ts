@@ -2,12 +2,16 @@ import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Patch, Query
 import { QuoteStatus, User, UserRole } from '@prisma/client';
 import { CurrentUser } from '../users/current-user.decorator';
 import { Roles } from '../users/roles.decorator';
+import { QuotePricingReviewService, ReviewQuotePricingInput } from './quote-pricing-review.service';
 import { AcceptQuoteInput, DeclineQuoteInput, QuoteReviewService, RecordQuoteResolutionInput } from './quote-review.service';
 
 @Controller('quotes')
 @Roles(UserRole.ADMIN)
 export class QuoteReviewController {
-  constructor(private readonly quotes: QuoteReviewService) {}
+  constructor(
+    private readonly quotes: QuoteReviewService,
+    private readonly pricingReview: QuotePricingReviewService,
+  ) {}
 
   @Get()
   findAll(@Query('page', new ParseIntPipe({ optional: true })) page?: number, @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize?: number, @Query('search') search?: string, @Query('status') status?: QuoteStatus) {
@@ -17,6 +21,11 @@ export class QuoteReviewController {
   @Get(':id/preflight')
   preflight(@Param('id', new ParseUUIDPipe()) id: string, @Query('expectedRevisionNumber', ParseIntPipe) expectedRevisionNumber: number) {
     return this.quotes.preflight(id, expectedRevisionNumber);
+  }
+
+  @Patch(':id/review-pricing')
+  reviewPricing(@Param('id', new ParseUUIDPipe()) id: string, @Body() input: ReviewQuotePricingInput, @CurrentUser() user: User) {
+    return this.pricingReview.review(id, input, user.id);
   }
 
   @Patch(':id/decline')
