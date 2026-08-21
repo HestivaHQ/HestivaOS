@@ -42,9 +42,9 @@ describe('Messaging Quote creation identity', () => {
     expect(messagingQuoteSubmissionKey(input)).toMatch(/^messaging:[0-9a-f]{64}$/);
   });
 
-  it('normalizes provider casing in the stable identity', () => {
+  it('normalizes provider casing and whitespace in the stable identity', () => {
     const base = { conversationId: 'conversation-123', confirmationMessageId: 'wamid.confirm-456' };
-    expect(messagingQuoteSubmissionKey({ ...base, provider: 'META' }))
+    expect(messagingQuoteSubmissionKey({ ...base, provider: ' META ' }))
       .toBe(messagingQuoteSubmissionKey({ ...base, provider: 'meta' }));
   });
 
