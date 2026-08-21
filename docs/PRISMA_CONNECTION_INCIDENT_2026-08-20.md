@@ -10,17 +10,21 @@ Repository inspection established an application-side amplification path: `Prism
 
 The API now has one global `DatabaseModule` that owns and exports the sole process-local `PrismaService`. Feature modules consume that provider without re-registering it. A regression test prevents module-level `PrismaService` registrations from returning.
 
+`PrismaService` also does not eagerly call `$connect()` during Nest module initialization. Prisma opens the process-local pool lazily when the first database-backed operation runs. This keeps the process-only `/api/v1/health` endpoint available during a database outage and prevents a rolling Railway deployment from being unable to pass its healthcheck solely because the older revision is still holding exhausted database connections. `/api/v1/ready` remains the dependency-aware readiness endpoint and still fails closed when PostgreSQL is unavailable.
+
 No schema, migration, customer data, Supabase identity, credential, or authentication policy is changed by the correction.
 
 ## Production recovery verification
 
 After the corrected Railway API revision replaces all older API processes:
 
-1. Confirm Supabase Auth password-grant/user-fetch requests no longer fail with SQLSTATE 53300.
-2. Confirm `/api/v1/ready` is healthy.
-3. Confirm an existing authorized user can sign in with the unchanged credentials.
-4. Confirm a harmless authenticated API read succeeds.
-5. If connection exhaustion remains, inspect actual PostgreSQL sessions and other legitimate clients/replicas before changing database limits or connection strings.
+1. Confirm the Railway `/api/v1/health` healthcheck succeeds and the corrected revision becomes active.
+2. Confirm older API processes are retired so their previous Prisma pools are released.
+3. Confirm Supabase Auth password-grant/user-fetch requests no longer fail with SQLSTATE 53300.
+4. Confirm `/api/v1/ready` is healthy once PostgreSQL capacity has recovered.
+5. Confirm an existing authorized user can sign in with the unchanged credentials.
+6. Confirm a harmless authenticated API read succeeds.
+7. If connection exhaustion remains, inspect actual PostgreSQL sessions and other legitimate clients/replicas before changing database limits or connection strings.
 
 Do not reset user passwords or rewrite identity/application access state as a response to SQLSTATE 53300.
 
