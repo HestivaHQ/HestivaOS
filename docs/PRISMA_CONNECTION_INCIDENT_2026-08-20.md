@@ -12,6 +12,8 @@ The API now has one global `DatabaseModule` that owns and exports the sole proce
 
 `PrismaService` also does not eagerly call `$connect()` during Nest module initialization. Prisma opens the process-local pool lazily when the first database-backed operation runs. This keeps the process-only `/api/v1/health` endpoint available during a database outage and prevents a rolling Railway deployment from being unable to pass its healthcheck solely because the older revision is still holding exhausted database connections. `/api/v1/ready` remains the dependency-aware readiness endpoint and still fails closed when PostgreSQL is unavailable.
 
+This rollout note is incident-specific evidence and does not replace the repository's canonical recovery procedure.
+
 No schema, migration, customer data, Supabase identity, credential, or authentication policy is changed by the correction.
 
 ## Production recovery verification
