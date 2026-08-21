@@ -16,8 +16,31 @@ ADMIN-only routes:
 
 - `GET /api/v1/messaging/conversations/:conversationId/customer-link`
 - `PUT /api/v1/messaging/conversations/:conversationId/customer-link`
+- `PUT /api/v1/messaging/conversations/:conversationId/trusted-identity`
 
-The PUT body contains exactly the selected canonical `customerId`.
+The customer-link PUT body contains exactly the selected canonical `customerId`.
+
+The trusted-identity PUT body contains exactly the selected canonical `contactId`. It does not accept a provider identity from the caller. The channel, provider and provider identity ID are taken from the already-persisted conversation so an administrator cannot accidentally trust a different transport identity than the one being reviewed.
+
+## Deliberate trust establishment
+
+A messaging identity becomes `TRUSTED` only through the authenticated ADMIN-only trusted-identity action. An inbound webhook, customer-supplied name/number, display name, phone similarity, email similarity, property match or AI interpretation cannot establish trust.
+
+When an administrator establishes trust:
+
+- the conversation must already exist;
+- the selected Customer contact must already exist and be active;
+- the exact provider identity is taken from that persisted conversation;
+- an existing identity linked to another contact fails with conflict;
+- a blocked or retired identity fails closed and is not silently reactivated;
+- a conversation already linked to another Customer fails with conflict;
+- a new or same-contact `UNVERIFIED` identity may become `TRUSTED`;
+- the conversation is linked to the contact's Customer if it was previously unlinked; and
+- the trust establishment is recorded as an idempotent durable `SYSTEM` message containing the acting HestivaOS admin user ID, Customer ID, contact ID and messaging identity ID.
+
+Replaying the same trusted-identity action for an already trusted exact identity/contact relationship is idempotent and does not create another trust audit event.
+
+This slice does not provide an implicit unblock, unretire, reassignment or trust-revocation path. Those actions require their own explicit reviewed workflow rather than overloading trust establishment.
 
 ## Trusted identity resolution
 
@@ -47,7 +70,7 @@ Existing historical conversation links are not converted into trusted identities
 - no fuzzy identity matching, automatic cross-channel merge, Customer auto-creation, unlink or silent reassignment is performed;
 - automatic linking is limited to an exact active trusted identity as described above.
 
-This operation does not itself send a message, create a Quote, create a Customer, or change provider configuration.
+These operations do not themselves send a provider message, create a Quote, create a Customer, or change provider configuration.
 
 ## Follow-on use
 
