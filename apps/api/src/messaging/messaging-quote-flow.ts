@@ -10,6 +10,7 @@ export type MessagingQuoteFlowPhase =
   | 'COLLECTING'
   | 'REVIEW'
   | 'READY_TO_SUBMIT'
+  | 'SUBMITTING'
   | 'HUMAN_REVIEW'
   | 'SUBMITTED';
 
@@ -47,6 +48,7 @@ export function evaluateMessagingQuoteFlow(input: {
   draft: MessagingQuoteDraftProgress;
   humanReviewRequired?: boolean;
   customerConfirmed?: boolean;
+  submissionKey?: string | null;
   submittedQuoteId?: string | null;
 }): MessagingQuoteFlowState {
   const missingFactGroups = MESSAGING_QUOTE_REQUIRED_FACT_GROUPS.filter(
@@ -55,6 +57,10 @@ export function evaluateMessagingQuoteFlow(input: {
 
   if (input.submittedQuoteId) {
     return { phase: 'SUBMITTED', missingFactGroups, nextSection: null };
+  }
+
+  if (input.submissionKey) {
+    return { phase: 'SUBMITTING', missingFactGroups, nextSection: null };
   }
 
   if (input.humanReviewRequired) {
