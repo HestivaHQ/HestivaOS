@@ -6,7 +6,6 @@ export type MessagingGuidedPersonaliseQuestionId =
   | 'EXTRA_REFRIGERATOR_QUANTITY'
   | 'BALCONY_PATIO_QUANTITY'
   | 'ECO_FRIENDLY_PRODUCTS'
-  | 'LAUNDRY_CHOICE'
   | 'LAUNDRY_FACILITIES'
   | 'LAUNDRY_LOADS'
   | 'IRONING_LOADS';
@@ -68,18 +67,21 @@ function positiveInteger(text: string): number | null {
   return Number.isSafeInteger(value) && value >= 1 ? value : null;
 }
 
+function addOnQuestion(primaryService: string | null): string {
+  const laundryLines = isLaundryEligiblePrimary(primaryService)
+    ? '\n12. Laundry\n13. Ironing'
+    : '';
+  return `Would you like any add-ons? Reply with the numbers separated by commas, or 0 for none.\n1. Inside oven\n2. Inside fridge\n3. Inside cupboards\n4. Interior windows\n5. Bed making\n6. Linen change\n7. Balcony / patio cleaning\n8. Garage sweep\n9. Extra bathroom\n10. Extra refrigerator\n11. Pet-hair treatment${laundryLines}`;
+}
+
 export function nextMessagingGuidedPersonaliseQuestion(
   draft: MessagingQuoteDraftProgress,
 ): MessagingGuidedPersonaliseQuestion | null {
   const request = requestProgress(draft);
   const addOns = addOnsProgress(request);
+  const primary = primaryCanonical(request);
 
-  if (!addOns) {
-    return {
-      id: 'ADD_ONS',
-      text: 'Would you like any add-ons? Reply with the numbers separated by commas, or 0 for none.\n1. Inside oven\n2. Inside fridge\n3. Inside cupboards\n4. Interior windows\n5. Bed making\n6. Linen change\n7. Balcony / patio cleaning\n8. Garage sweep\n9. Extra bathroom\n10. Extra refrigerator\n11. Pet-hair treatment',
-    };
-  }
+  if (!addOns) return { id: 'ADD_ONS', text: addOnQuestion(primary) };
 
   const extraFridge = findAddOn(addOns, 'Extra Refrigerator');
   if (extraFridge && (!Number.isInteger(extraFridge.quantity) || extraFridge.quantity < 1)) {
@@ -93,16 +95,6 @@ export function nextMessagingGuidedPersonaliseQuestion(
 
   if (typeof request.ecoFriendlyProducts !== 'boolean') {
     return { id: 'ECO_FRIENDLY_PRODUCTS', text: 'Would you like eco-friendly cleaning products?\n1. Yes\n2. No\nReply with the number only.' };
-  }
-
-  const primary = primaryCanonical(request);
-  if (!isLaundryEligiblePrimary(primary)) return null;
-
-  if (!Object.prototype.hasOwnProperty.call(request, 'laundry')) {
-    return {
-      id: 'LAUNDRY_CHOICE',
-      text: 'Would you like laundry or ironing added?\n0. No\n1. Laundry only\n2. Ironing only\n3. Laundry and ironing\nReply with the number only.',
-    };
   }
 
   const laundry = laundryProgress(request);
@@ -149,8 +141,13 @@ export function applyMessagingGuidedPersonaliseAnswer(
     if (text === '0') return { kind: 'ACCEPTED', patch: { request: { addOns: [] } } };
     if (!/^\d+(?:\s*,\s*\d+)*$/.test(text)) return { kind: 'INVALID', question };
     const keys = [...new Set(text.split(',').map((part) => part.trim()))];
-    const selected = keys.map((key) => ADD_ONS[key as keyof typeof ADD_ONS]);
+    const primary = primaryCanonical(request);
+    const standardKeys = keys.filter((key) => key !== '12' && key !== '13');
+    const selected = standardKeys.map((key) => ADD_ONS[key as keyof typeof ADD_ONS]);
     if (selected.some((value) => !value)) return { kind: 'INVALID', question };
+    const wantsLaundry = keys.includes('12');
+    const wantsIroning = keys.includes('13');
+    if ((wantsLaundry || wantsIroning) && !isLaundryEligiblePrimary(primary)) return { kind: 'INVALID', question };
     return {
       kind: 'ACCEPTED',
       patch: {
@@ -159,6 +156,12 @@ export function applyMessagingGuidedPersonaliseAnswer(
             ...value,
             quantity: value.canonicalService === 'Extra Refrigerator' || value.canonicalService === 'Balcony / Patio Cleaning' ? 0 : 1,
           })),
+          ...((wantsLaundry || wantsIroning) ? {
+            laundry: {
+              ...(wantsLaundry ? { laundryLoads: 0 } : {}),
+              ...(wantsIroning ? { ironingLoads: 0 } : {}),
+            },
+          } : {}),
         },
       },
     };
@@ -177,22 +180,6 @@ export function applyMessagingGuidedPersonaliseAnswer(
   if (question.id === 'ECO_FRIENDLY_PRODUCTS') {
     if (text !== '1' && text !== '2') return { kind: 'INVALID', question };
     return { kind: 'ACCEPTED', patch: { request: { ecoFriendlyProducts: text === '1' } } };
-  }
-
-  if (question.id === 'LAUNDRY_CHOICE') {
-    if (!['0', '1', '2', '3'].includes(text)) return { kind: 'INVALID', question };
-    if (text === '0') return { kind: 'ACCEPTED', patch: { request: { laundry: undefined } } };
-    return {
-      kind: 'ACCEPTED',
-      patch: {
-        request: {
-          laundry: {
-            ...(text === '1' || text === '3' ? { laundryLoads: 0 } : {}),
-            ...(text === '2' || text === '3' ? { ironingLoads: 0 } : {}),
-          },
-        },
-      },
-    };
   }
 
   if (question.id === 'LAUNDRY_FACILITIES') {
