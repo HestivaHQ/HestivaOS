@@ -34,6 +34,8 @@ function postEventSubmission(overrides: Partial<PostEventFacts> = {}): QuotePric
       homeCondition: 'STANDARD',
       addOns: [],
       postEvent: {
+        eventType: 'PARTY_BIRTHDAY',
+        venueType: 'HOME',
         guestBand: 'FROM_51_TO_100',
         bathrooms: 2,
         kitchenSubstantiallyUsed: true,
