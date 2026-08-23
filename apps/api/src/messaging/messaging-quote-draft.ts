@@ -1,22 +1,33 @@
+import type { PostEventQuoteFacts } from '../quotes/quote-operational-cost-source';
 import type { WebsiteQuoteSubmissionV2 } from '../quotes/website-quote-contract-v2';
 
+type MessagingQuoteRequest = WebsiteQuoteSubmissionV2['request'] & {
+  postEvent?: PostEventQuoteFacts;
+};
+
 /**
- * Messaging collects the same business facts as the live Website Quote flow,
- * but does not reuse the Website transport envelope, provenance, submission ID,
- * authentication secret, or ingestion route.
+ * Messaging collects the same shared business facts as the live Website Quote
+ * flow, plus Messaging-only collection of approved internal Quote extensions
+ * such as structured Post-Event facts. It does not reuse the Website transport
+ * envelope, provenance, submission ID, authentication secret, or ingestion route.
  */
-export type MessagingQuoteDraft = Pick<
-  WebsiteQuoteSubmissionV2,
-  | 'customer'
-  | 'property'
-  | 'request'
-  | 'visit'
-  | 'access'
-  | 'household'
-  | 'safety'
-  | 'notes'
-  | 'photos'
->;
+export type MessagingQuoteDraft = Omit<
+  Pick<
+    WebsiteQuoteSubmissionV2,
+    | 'customer'
+    | 'property'
+    | 'request'
+    | 'visit'
+    | 'access'
+    | 'household'
+    | 'safety'
+    | 'notes'
+    | 'photos'
+  >,
+  'request'
+> & {
+  request: MessagingQuoteRequest;
+};
 
 type DeepPartial<T> = T extends Array<infer Item>
   ? Array<DeepPartial<Item>>
