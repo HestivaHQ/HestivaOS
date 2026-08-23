@@ -6,7 +6,9 @@ Implemented in the current Post-Event Messaging collection slice on top of the g
 
 The live WhatsApp/Messenger Quote conversation can select `Post-Event Cleaning`, enforces `ONE_TIME`, and deterministically collects the approved Post-Event event/venue context and workload/review facts.
 
-This slice does **not** claim Post-Event Messaging submission is complete. The current Messaging submission boundary still reuses Website Quote Contract v2 validation, and Website v2 does not yet recognize Post-Event Cleaning. A separate canonical validation/submission-boundary slice is required before a completed Post-Event Messaging draft can become an authoritative Quote.
+Post-Event Messaging submission now uses the shared channel-neutral Quote business-fact validator. A completed and confirmed Post-Event Messaging draft can therefore become an authoritative Quote without routing through Website transport validation or impersonating Website provenance.
+
+This is an internal validation-boundary implementation within the already-authoritative Quote domain; it does not change component/domain ownership, runtime topology, cross-domain authority, or the Website transport boundary.
 
 Coordination source: Issue #116.
 
@@ -61,8 +63,8 @@ The collector intentionally permits customers to state facts that later force re
 
 The existing Post-Event operating model remains authoritative for whether automatic pricing is allowed.
 
-## Remaining boundary
+## Submission boundary
 
-Before Post-Event Messaging can submit a canonical Quote, HestivaOS needs a channel-neutral business-fact validation path that accepts the approved internal Post-Event extension without broadening the existing Website v2 transport contract by accident.
+Messaging validates completed business facts through the channel-neutral Quote validation boundary. Ordinary Website-compatible facts continue to use the mature v2 field-validation rules internally, while Post-Event uses its approved canonical service mapping, once-off rule and structured fact validation.
 
-The follow-up must keep HestivaOS Quote validation/pricing authoritative and must not impersonate Website provenance or route Messaging through Website authentication.
+The Website v2 transport contract itself remains unchanged. Messaging does not use the Website route, Website bearer secret, Website submission identity or Website provenance, and HestivaOS remains the single Quote validation/pricing authority. The temporary validation-only projection used to reuse mature field checks is never persisted or exposed as transport identity.
