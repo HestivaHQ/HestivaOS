@@ -82,7 +82,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
     expect(createdText).toContain('What type of property is it?');
     expect(quoteState.updateDraft).not.toHaveBeenCalled();
     expect(messaging.send).toHaveBeenCalledTimes(1);
-    expect(result.phase).toBe('COLLECTING');
+    expect(result?.phase).toBe('COLLECTING');
   });
 
   it('accepts a bounded answer only after the exact current prompt was accepted', async () => {
