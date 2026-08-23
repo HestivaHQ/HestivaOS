@@ -10,11 +10,7 @@ export type MessagingGuidedPersonaliseQuestionId =
   | 'LAUNDRY_LOADS'
   | 'IRONING_LOADS';
 
-export type MessagingGuidedPersonaliseQuestion = {
-  id: MessagingGuidedPersonaliseQuestionId;
-  text: string;
-};
-
+export type MessagingGuidedPersonaliseQuestion = { id: MessagingGuidedPersonaliseQuestionId; text: string };
 type AddOn = { websiteValue: string; canonicalService: string; quantity: number };
 
 const ADD_ONS = {
@@ -33,66 +29,49 @@ const ADD_ONS = {
 
 function requestProgress(draft: MessagingQuoteDraftProgress): Record<string, unknown> {
   const value = draft.request;
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
-
 function primaryCanonical(request: Record<string, unknown>): string | null {
   const primary = request.primaryService;
   if (!primary || typeof primary !== 'object' || Array.isArray(primary)) return null;
   const value = (primary as Record<string, unknown>).canonicalService;
   return typeof value === 'string' ? value : null;
 }
-
 function addOnsProgress(request: Record<string, unknown>): AddOn[] | undefined {
   if (!Object.prototype.hasOwnProperty.call(request, 'addOns')) return undefined;
   return Array.isArray(request.addOns) ? request.addOns as AddOn[] : [];
 }
-
 function laundryProgress(request: Record<string, unknown>): Record<string, unknown> | undefined {
   const value = request.laundry;
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined;
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 }
-
 function findAddOn(addOns: AddOn[], canonicalService: string) {
   return addOns.find((item) => item.canonicalService === canonicalService);
 }
-
 function positiveInteger(text: string): number | null {
   if (!/^\d+$/.test(text)) return null;
   const value = Number(text);
   return Number.isSafeInteger(value) && value >= 1 ? value : null;
 }
-
 function addOnQuestion(primaryService: string | null): string {
-  const laundryLines = isLaundryEligiblePrimary(primaryService)
-    ? '\n12. Laundry\n13. Ironing'
-    : '';
+  const laundryLines = isLaundryEligiblePrimary(primaryService) ? '\n12. Laundry\n13. Ironing' : '';
   return `Would you like any add-ons? Reply with the numbers separated by commas, or 0 for none.\n1. Inside oven\n2. Inside fridge\n3. Inside cupboards\n4. Interior windows\n5. Bed making\n6. Linen change\n7. Balcony / patio cleaning\n8. Garage sweep\n9. Extra bathroom\n10. Extra refrigerator\n11. Pet-hair treatment${laundryLines}`;
 }
 
-export function nextMessagingGuidedPersonaliseQuestion(
-  draft: MessagingQuoteDraftProgress,
-): MessagingGuidedPersonaliseQuestion | null {
+export function nextMessagingGuidedPersonaliseQuestion(draft: MessagingQuoteDraftProgress): MessagingGuidedPersonaliseQuestion | null {
   const request = requestProgress(draft);
   const addOns = addOnsProgress(request);
   const primary = primaryCanonical(request);
-
   if (!addOns) return { id: 'ADD_ONS', text: addOnQuestion(primary) };
 
   const extraFridge = findAddOn(addOns, 'Extra Refrigerator');
   if (extraFridge && (!Number.isInteger(extraFridge.quantity) || extraFridge.quantity < 1)) {
     return { id: 'EXTRA_REFRIGERATOR_QUANTITY', text: 'How many extra refrigerators need cleaning? Reply with a whole number only.' };
   }
-
   const balcony = findAddOn(addOns, 'Balcony / Patio Cleaning');
   if (balcony && (!Number.isInteger(balcony.quantity) || balcony.quantity < 1)) {
     return { id: 'BALCONY_PATIO_QUANTITY', text: 'How many balcony or patio areas need cleaning? Reply with a whole number only.' };
   }
-
   if (typeof request.ecoFriendlyProducts !== 'boolean') {
     return { id: 'ECO_FRIENDLY_PRODUCTS', text: 'Would you like eco-friendly cleaning products?\n1. Yes\n2. No\nReply with the number only.' };
   }
@@ -101,24 +80,18 @@ export function nextMessagingGuidedPersonaliseQuestion(
   if (!laundry) return null;
   const wantsLaundry = Object.prototype.hasOwnProperty.call(laundry, 'laundryLoads');
   const wantsIroning = Object.prototype.hasOwnProperty.call(laundry, 'ironingLoads');
-
   if (wantsLaundry && !laundry.facilities) {
     return {
       id: 'LAUNDRY_FACILITIES',
-      text: 'What laundry facilities are available at the property?\n1. Washing machine and dryer\n2. Washing machine and clothes line / drying rack\n3. No working washing machine\nReply with the number only.',
+      text: 'Laundry requires a working washing machine at the property. Which setup is available?\n1. Washing machine and dryer\n2. Washing machine and clothes line / drying rack\nReply with the number only.',
     };
   }
-
-  if (wantsLaundry && laundry.facilities === 'NO_WASHER') return null;
-
   if (wantsLaundry && (!Number.isInteger(laundry.laundryLoads) || Number(laundry.laundryLoads) < 1)) {
     return { id: 'LAUNDRY_LOADS', text: 'How many laundry loads do you need? Reply with a whole number only.' };
   }
-
   if (wantsIroning && (!Number.isInteger(laundry.ironingLoads) || Number(laundry.ironingLoads) < 1)) {
     return { id: 'IRONING_LOADS', text: 'How many ironing loads do you need? Reply with a whole number only.' };
   }
-
   return null;
 }
 
@@ -171,19 +144,14 @@ export function applyMessagingGuidedPersonaliseAnswer(
     const quantity = positiveInteger(text);
     if (!quantity) return { kind: 'INVALID', question };
     const target = question.id === 'EXTRA_REFRIGERATOR_QUANTITY' ? 'Extra Refrigerator' : 'Balcony / Patio Cleaning';
-    return {
-      kind: 'ACCEPTED',
-      patch: { request: { addOns: addOns.map((item) => item.canonicalService === target ? { ...item, quantity } : item) } },
-    };
+    return { kind: 'ACCEPTED', patch: { request: { addOns: addOns.map((item) => item.canonicalService === target ? { ...item, quantity } : item) } } };
   }
-
   if (question.id === 'ECO_FRIENDLY_PRODUCTS') {
     if (text !== '1' && text !== '2') return { kind: 'INVALID', question };
     return { kind: 'ACCEPTED', patch: { request: { ecoFriendlyProducts: text === '1' } } };
   }
-
   if (question.id === 'LAUNDRY_FACILITIES') {
-    const facilities = { '1': 'WASHER_DRYER', '2': 'WASHER_LINE', '3': 'NO_WASHER' }[text];
+    const facilities = { '1': 'WASHER_DRYER', '2': 'WASHER_LINE' }[text];
     if (!facilities) return { kind: 'INVALID', question };
     return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), facilities } } } };
   }
