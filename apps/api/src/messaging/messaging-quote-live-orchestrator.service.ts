@@ -27,32 +27,57 @@ import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import type { MessagingQuoteStateView } from './messaging-quote-state';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
 
+const CORRECTION_MENU = [
+  'Which section would you like to change?',
+  '1. Home / property',
+  '2. Cleaning service and personalisation',
+  '3. Preferred visit',
+  '4. Access and household',
+  '5. Safety, notes and photos',
+  '6. Your customer details',
+  'Reply with the number only.',
+].join('\n');
+
 function reviewSummaryText(draft: Record<string, unknown>): string {
   const property = (draft.property ?? {}) as Record<string, unknown>;
   const request = (draft.request ?? {}) as Record<string, unknown>;
   const visit = (draft.visit ?? {}) as Record<string, unknown>;
+  const access = (draft.access ?? {}) as Record<string, unknown>;
+  const household = (draft.household ?? {}) as Record<string, unknown>;
   const customer = (draft.customer ?? {}) as Record<string, unknown>;
   const primary = (request.primaryService ?? {}) as Record<string, unknown>;
+  const addOns = Array.isArray(request.addOns) ? request.addOns : [];
 
   const values = [
     ['Service', primary.canonicalService ?? primary.websiteValue],
+    ['Frequency', request.frequency],
+    ['Home condition', request.homeCondition],
     ['Address', property.addressLine1],
     ['Suburb', property.suburb],
+    ['Property type', property.propertyType],
     ['Preferred date', visit.preferredDate],
     ['Preferred time', visit.preferredTime],
+    ['Complex access', access.complexAccess],
+    ['Someone present', typeof access.someonePresent === 'boolean' ? (access.someonePresent ? 'Yes' : 'No') : null],
+    ['Pets', typeof household.hasPets === 'boolean' ? (household.hasPets ? 'Yes' : 'No') : null],
     ['Name', customer.fullName],
+    ['Email', customer.email],
+    ['Mobile', customer.mobile],
+    ['Preferred contact', customer.preferredContact],
   ] as const;
 
   const lines = values
     .filter(([, value]) => typeof value === 'string' && value.trim())
     .map(([label, value]) => `${label}: ${String(value)}`);
 
+  if (addOns.length) lines.push(`Add-ons: ${addOns.length} selected`);
+
   return [
     'Please review your quote request:',
     ...lines,
     '',
     'Reply CONFIRM exactly to submit these details for pricing and quotation.',
-    'If anything is wrong, do not confirm. A correction flow will handle changes separately.',
+    'Reply CHANGE exactly if you need to correct a section first.',
   ].join('\n');
 }
 
@@ -123,17 +148,52 @@ export class MessagingQuoteLiveOrchestratorService {
       return state;
     }
 
-    const explicitConfirmation =
-      inbound.kind === MessagingMessageKind.TEXT && inbound.contentText?.trim() === 'CONFIRM';
-    if (!explicitConfirmation) return state;
+    const text = inbound.kind === MessagingMessageKind.TEXT ? inbound.contentText?.trim() ?? '' : '';
+    if (text === 'CONFIRM') {
+      state = await this.quoteState.confirmFromInboundMessage(
+        inbound.conversationId,
+        state.version,
+        inbound.id,
+      );
+      await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
+      return this.quoteState.get(inbound.conversationId);
+    }
 
-    state = await this.quoteState.confirmFromInboundMessage(
-      inbound.conversationId,
-      state.version,
-      inbound.id,
-    );
-    await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
-    return this.quoteState.get(inbound.conversationId);
+    const correctionKey = `messaging-quote-correction:${inbound.conversationId}:${state.version}`;
+    const correctionPrompt = await this.prisma.messagingMessage.findUnique({
+      where: { idempotencyKey: correctionKey },
+      include: { statusEvents: { where: { status: MessagingDeliveryStatus.ACCEPTED }, take: 1 } },
+    });
+
+    if (text === 'CHANGE') {
+      await this.sendDurableText(inbound, correctionKey, CORRECTION_MENU);
+      return state;
+    }
+
+    if (!correctionPrompt?.statusEvents.length) return state;
+
+    const patch = this.correctionPatch(text);
+    if (!patch) {
+      await this.sendDurableText(
+        inbound,
+        `messaging-quote-correction-retry:${inbound.id}`,
+        `Please choose the section to change using the requested number.\n\n${CORRECTION_MENU}`,
+      );
+      return state;
+    }
+
+    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, patch as any);
+    return this.handleGuidedCollection(inbound, updated);
+  }
+
+  private correctionPatch(selection: string): Record<string, unknown> | null {
+    if (selection === '1') return { property: null };
+    if (selection === '2') return { request: null };
+    if (selection === '3') return { visit: null };
+    if (selection === '4') return { access: null, household: null };
+    if (selection === '5') return { safety: null, notes: null, photos: null };
+    if (selection === '6') return { customer: null };
+    return null;
   }
 
   private async handleGuidedCollection(
@@ -286,6 +346,15 @@ export class MessagingQuoteLiveOrchestratorService {
         this.guidedPostEventPromptKey(inbound.conversationId, updated.version, nextQuestion),
         nextQuestion.text,
       );
+    } else {
+      const cleaningQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
+      if (cleaningQuestion) {
+        await this.sendDurableText(
+          inbound,
+          this.guidedCleaningPromptKey(inbound.conversationId, updated.version, cleaningQuestion),
+          cleaningQuestion.text,
+        );
+      }
     }
     return updated;
   }
