@@ -74,14 +74,6 @@ For a new or resumed chat doing cross-system work:
 
 This protocol is intended to reduce repeated decisions, stale assumptions and chat-to-chat drift while keeping the repositories as the durable implementation source of truth.
 
-## 2026-08-23 Post-Event Website Quote v2 checkpoint
-
-The approved Post-Event Cleaning service uses one canonical structured fact vocabulary across HestivaOS Quote pricing, Messaging collection/submission, and the Website Quote v2 transport. Website v2 may carry `Post-Event Cleaning` only with the exact canonical primary mapping, `ONE_TIME` frequency and structured `request.postEvent` facts defined in `WEBSITE_QUOTE_CONTRACT_V2.md` and `POST_EVENT_CLEANING_V1.md`.
-
-This is an additive Contract v2 extension; historical Website Quote v1 behavior remains unchanged. The Website collects and transports Post-Event facts but does not calculate authoritative Post-Event pricing. HestivaOS remains the pricing/review authority and may return `NEEDS_ATTENTION` for supported customer facts that cross the automatic-pricing boundary.
-
-Issue #73 is the coordination source for the Website implementation. Issue #116 remains the Messaging coordination source and does not need to own the Website UI work. Both channels must use the shared canonical fact vocabulary rather than defining channel-specific Post-Event semantics.
-
 ## 2026-08-19 Phase 3D Issue #116/#132 checkpoint
 
 The implemented HestivaOS boundary follows Issue #116's provider-neutral conversations, adapter-only authenticity/normalization/transport, provider-scoped identity, provenance, and idempotency decisions, plus Issue #132's human-triggered access request and reviewed candidate-ingestion scope. `WORK_ORDER_ACCESS_RECOVERY_V1.md` and ADR-0061 are the permanent contract. No live provider adapter, autonomous contact policy, Customer identity inference, lifecycle action, or Finance behavior was added.
