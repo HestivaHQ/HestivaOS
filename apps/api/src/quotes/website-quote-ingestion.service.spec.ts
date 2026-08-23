@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { QuoteActivityType, QuoteStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import type { QuoteOperationalCostProvider } from './quote-operational-cost-source';
+import { QuoteSubmissionService } from './quote-submission.service';
 import {
   WEBSITE_QUOTE_SCHEMA_VERSION,
   WEBSITE_QUOTE_SOURCE,
@@ -65,7 +66,7 @@ function validReviewRequiredPayload(): WebsiteQuoteSubmissionV1 {
 }
 
 describe('WebsiteQuoteIngestionService', () => {
-  it('persists a valid review-required quote instead of rejecting it when operational costs are incomplete', async () => {
+  it('persists a valid review-required quote through the shared Quote submission authority', async () => {
     let createdData: Record<string, unknown> | undefined;
 
     const transactionClient = {
@@ -108,7 +109,8 @@ describe('WebsiteQuoteIngestionService', () => {
       },
     };
 
-    const service = new WebsiteQuoteIngestionService(prisma, costProvider);
+    const quoteSubmissions = new QuoteSubmissionService(prisma, costProvider);
+    const service = new WebsiteQuoteIngestionService(prisma, quoteSubmissions);
     const result = await service.ingest(validReviewRequiredPayload());
 
     expect(result).toEqual(
@@ -134,6 +136,16 @@ describe('WebsiteQuoteIngestionService', () => {
           newStatus: QuoteStatus.NEEDS_ATTENTION,
         }),
       ]),
+    );
+
+    const submittedActivity = activities?.find(
+      (activity) => activity.type === QuoteActivityType.QUOTE_SUBMITTED,
+    );
+    expect(submittedActivity?.metadata).toEqual(
+      expect.objectContaining({
+        schemaVersion: WEBSITE_QUOTE_SCHEMA_VERSION,
+        submissionId: validReviewRequiredPayload().submissionId,
+      }),
     );
 
     const needsAttentionActivity = activities?.find(
