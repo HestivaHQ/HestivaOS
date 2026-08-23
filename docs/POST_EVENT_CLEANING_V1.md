@@ -4,7 +4,7 @@
 
 Approved product/business specification with the HestivaOS runtime, operational-scope, Messaging collection/submission and Website Quote v2 contract support implemented.
 
-The deterministic Quote-domain workload/preliminary-price resolver, shared Quote pricing and approved cleaner-hour operational-cost integration are implemented. The canonical active `Post-Event Cleaning` Service and published `Post-Event Cleaning v1` execution-scope template are implemented for Work Order/checklist use. WhatsApp/Messenger can collect and submit the approved structured Post-Event facts through the shared Quote business boundary. Website Quote Contract v2 accepts the same approved structured Post-Event facts; the remaining Website work is the customer-facing catalogue/service page and conditional quote-form UI that emits that contract.
+The deterministic Quote-domain workload/preliminary-price resolver, shared Quote pricing and approved cleaner-hour operational-cost integration are implemented. The canonical active `Post-Event Cleaning` Service and published `Post-Event Cleaning v1` execution-scope template are implemented for Work Order/checklist use. WhatsApp/Messenger can collect and submit the approved structured Post-Event facts through the shared Quote business boundary. Website Quote Contract v2 accepts the same approved structured Post-Event facts; the remaining Website work is the customer-facing catalogue/service page and conditional quote-form UI that emits that contract. **Contract support alone does not mean Post-Event Cleaning is already exposed on the public Website.**
 
 Decision date: 2026-08-23.
 
