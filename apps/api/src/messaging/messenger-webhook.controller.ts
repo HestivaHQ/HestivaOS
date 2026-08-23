@@ -1,6 +1,7 @@
 import { Controller, Get, Headers, HttpCode, Post, Query, RawBodyRequest, Req, Res, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { Public } from '../users/public.decorator';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
+import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 import { MessagingService } from './messaging.service';
 import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 
@@ -14,6 +15,7 @@ export class MessengerWebhookController {
     private readonly adapter: MessengerPlatformAdapter,
     private readonly messaging: MessagingService,
     private readonly customerLinking: MessagingCustomerLinkingService,
+    private readonly quoteOrchestrator: MessagingQuoteLiveOrchestratorService,
   ) {}
 
   @Get()
@@ -39,6 +41,7 @@ export class MessengerWebhookController {
     for (const event of events) {
       const message = await this.messaging.persistInbound(event);
       await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
+      await this.quoteOrchestrator.handleInbound(message.id);
     }
     return { received: true, normalizedEvents: events.length };
   }
