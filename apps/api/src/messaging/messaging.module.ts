@@ -5,6 +5,7 @@ import { MessagingAdminReplyController } from './messaging-admin-reply.controlle
 import { MessagingAdminReplyService } from './messaging-admin-reply.service';
 import { MessagingCustomerLinkingController } from './messaging-customer-linking.controller';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
+import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import { MessagingQuoteSubmissionService } from './messaging-quote-submission.service';
 import { MessagingService } from './messaging.service';
@@ -18,7 +19,7 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 @Module({
   imports: [QuotesModule],
   controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController],
-  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
-  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService],
+  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
+  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService],
 })
 export class MessagingModule {}
