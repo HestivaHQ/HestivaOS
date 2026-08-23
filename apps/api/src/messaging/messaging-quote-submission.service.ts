@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { QuoteSubmissionService } from '../quotes/quote-submission.service';
 import { prepareMessagingQuoteCreation } from './messaging-quote-creation-input';
+import type { MessagingQuoteDraft } from './messaging-quote-draft';
 import { resolveMessagingQuoteReplay } from './messaging-quote-replay-resolution';
 import {
   parseMessagingQuoteStateSnapshot,
@@ -12,11 +13,7 @@ import { MessagingQuoteStateService } from './messaging-quote-state.service';
 
 function structuredMessagingQuote(input: {
   submittedAt: string;
-  draft: ReturnType<typeof prepareMessagingQuoteCreation> extends { kind: 'READY'; value: infer TValue }
-    ? TValue extends { draft: infer TDraft }
-      ? TDraft
-      : never
-    : never;
+  draft: MessagingQuoteDraft;
   channel: string;
   provider: string;
   conversationId: string;
