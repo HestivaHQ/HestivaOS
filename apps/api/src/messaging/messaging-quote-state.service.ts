@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { MessagingDirection, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import type { MessagingQuoteDraft } from './messaging-quote-draft';
+import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
 import {
   beginMessagingQuoteSubmission,
   confirmMessagingQuoteReview,
@@ -32,7 +32,7 @@ export class MessagingQuoteStateService {
   async updateDraft(
     conversationId: string,
     expectedVersion: number,
-    patch: Partial<MessagingQuoteDraft>,
+    patch: MessagingQuoteDraftProgress,
   ) {
     return this.transition(conversationId, expectedVersion, (state) => updateMessagingQuoteDraft(state, patch));
   }
