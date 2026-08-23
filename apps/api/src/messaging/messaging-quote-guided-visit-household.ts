@@ -1,10 +1,23 @@
 import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
+import {
+  applyMessagingGuidedFinalDetailsAnswer,
+  nextMessagingGuidedFinalDetailsQuestion,
+  type MessagingGuidedFinalDetailsQuestion,
+} from './messaging-quote-guided-final-details';
 
 export type MessagingGuidedVisitHouseholdQuestionId =
   | 'PREFERRED_DATE' | 'ALTERNATIVE_DATE' | 'PREFERRED_TIME' | 'FLEXIBILITY' | 'URGENCY' | 'RECURRING_NOTES'
   | 'COMPLEX_ACCESS' | 'SECURITY_INSTRUCTIONS' | 'PARKING' | 'KEY_HANDOVER' | 'KEY_HANDOVER_DETAILS'
   | 'SOMEONE_PRESENT' | 'HAS_PETS' | 'PET_TYPE' | 'PET_TEMPERAMENT';
-export type MessagingGuidedVisitHouseholdQuestion = { id: MessagingGuidedVisitHouseholdQuestionId; text: string };
+export type MessagingGuidedVisitHouseholdQuestion =
+  | { id: MessagingGuidedVisitHouseholdQuestionId; text: string }
+  | MessagingGuidedFinalDetailsQuestion;
+
+const VISIT_HOUSEHOLD_QUESTION_IDS: readonly MessagingGuidedVisitHouseholdQuestionId[] = [
+  'PREFERRED_DATE', 'ALTERNATIVE_DATE', 'PREFERRED_TIME', 'FLEXIBILITY', 'URGENCY', 'RECURRING_NOTES',
+  'COMPLEX_ACCESS', 'SECURITY_INSTRUCTIONS', 'PARKING', 'KEY_HANDOVER', 'KEY_HANDOVER_DETAILS',
+  'SOMEONE_PRESENT', 'HAS_PETS', 'PET_TYPE', 'PET_TEMPERAMENT',
+];
 
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function nonEmpty(value: unknown): value is string { return typeof value === 'string' && Boolean(value.trim()); }
@@ -32,15 +45,22 @@ export function nextMessagingGuidedVisitHouseholdQuestion(draft: MessagingQuoteD
   if (typeof household.hasPets !== 'boolean') return { id: 'HAS_PETS', text: 'Are there pets at the property?\n1. Yes\n2. No\nReply with the number only.' };
   if (household.hasPets === true && !nonEmpty(household.petType)) return { id: 'PET_TYPE', text: 'What type of pet or pets are at the property? Your answer will be stored as written.' };
   if (household.hasPets === true && !nonEmpty(household.petTemperament)) return { id: 'PET_TEMPERAMENT', text: 'Briefly describe the pet temperament or anything the team should know. Your answer will be stored as written.' };
-  return null;
+  return nextMessagingGuidedFinalDetailsQuestion(draft);
 }
 
-export type MessagingGuidedVisitHouseholdAnswer = { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress } | { kind: 'INVALID'; question: MessagingGuidedVisitHouseholdQuestion } | { kind: 'COMPLETE' };
+export type MessagingGuidedVisitHouseholdAnswer =
+  | { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress }
+  | { kind: 'HUMAN_REVIEW'; reason: 'PHOTO_HANDOFF_REQUIRED'; question: MessagingGuidedFinalDetailsQuestion }
+  | { kind: 'INVALID'; question: MessagingGuidedVisitHouseholdQuestion }
+  | { kind: 'COMPLETE' };
 
 export function applyMessagingGuidedVisitHouseholdAnswer(draft: MessagingQuoteDraftProgress, rawText: string | null | undefined): MessagingGuidedVisitHouseholdAnswer {
   const question = nextMessagingGuidedVisitHouseholdQuestion(draft); if (!question) return { kind: 'COMPLETE' };
+  if (!VISIT_HOUSEHOLD_QUESTION_IDS.includes(question.id as MessagingGuidedVisitHouseholdQuestionId)) {
+    return applyMessagingGuidedFinalDetailsAnswer(draft, rawText);
+  }
   const text = rawText?.trim() ?? '';
-  const visit = record(draft.visit); const access = record(draft.access);
+  const access = record(draft.access);
   if (question.id === 'PREFERRED_DATE') { if (!calendarDate(text)) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { preferredDate: text } } }; }
   if (question.id === 'ALTERNATIVE_DATE') { if (text === '0') return { kind: 'ACCEPTED', patch: { visit: { alternativeDate: '' } } }; if (!calendarDate(text)) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { alternativeDate: text } } }; }
   if (question.id === 'PREFERRED_TIME') { const value = ({ '1':'MORNING','2':'MIDDAY','3':'AFTERNOON','4':'FLEXIBLE' } as const)[text as '1']; if (!value) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { preferredTime: value } } }; }
