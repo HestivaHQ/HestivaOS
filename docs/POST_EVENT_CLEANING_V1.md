@@ -4,7 +4,7 @@
 
 Approved product/business specification for implementation.
 
-The first runtime slice now implements the deterministic Quote-domain workload and preliminary-price resolver for the approved floor-size ladder, event workload modifiers and automatic-review boundaries. Structured Website/Messaging collection, canonical Quote-path wiring, service seeding, Work Order/checklist integration and customer-facing UI remain follow-up work and are not claimed as implemented by this slice.
+The first two runtime slices now implement the deterministic Quote-domain workload/preliminary-price resolver and integrate structured internal Post-Event facts into the shared Quote pricing and approved cleaner-hour operational-cost paths. External Website/Messaging collection, service seeding, Work Order/checklist integration and customer-facing UI remain follow-up work and are not claimed as implemented yet.
 
 Decision date: 2026-08-23.
 
