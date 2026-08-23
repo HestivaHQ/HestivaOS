@@ -13,10 +13,7 @@ import {
   type QuoteOperationalCostProvider,
   type QuotePricingSubmission,
 } from './quote-operational-cost-source';
-import {
-  calculateWebsiteQuotePricing,
-  type WebsiteQuoteSubmission,
-} from './website-quote-pricing';
+import { calculateWebsiteQuotePricing } from './website-quote-pricing';
 
 export type QuoteSubmissionReplayResolution =
   | { kind: 'NEW' }
@@ -81,13 +78,9 @@ export class QuoteSubmissionService {
       this.operationalCostProvider,
       input.pricingSubmission,
     );
-    // The pricing calculator predates the provider-neutral submission boundary and
-    // still carries a Website-shaped type name. Runtime pricing consumes only the
-    // canonical fact groups represented by QuotePricingSubmission.
-    const legacyPricingInput = input.pricingSubmission as WebsiteQuoteSubmission;
     const pricingResult = costResolution.kind === 'READY'
-      ? calculateWebsiteQuotePricing(legacyPricingInput, costResolution.costs)
-      : calculateWebsiteQuotePricing(legacyPricingInput);
+      ? calculateWebsiteQuotePricing(input.pricingSubmission, costResolution.costs)
+      : calculateWebsiteQuotePricing(input.pricingSubmission);
     const quoteStatus =
       costResolution.kind === 'NEEDS_ATTENTION' || pricingResult.attentionReasons.length
         ? QuoteStatus.NEEDS_ATTENTION
