@@ -3,15 +3,51 @@ import { evaluateMessagingQuoteFlow } from './messaging-quote-flow';
 import type { MessagingQuoteDraft } from './messaging-quote-draft';
 
 const completeDraft = (): MessagingQuoteDraft => ({
-  property: {} as MessagingQuoteDraft['property'],
-  request: {} as MessagingQuoteDraft['request'],
-  visit: {} as MessagingQuoteDraft['visit'],
-  access: {} as MessagingQuoteDraft['access'],
-  household: {} as MessagingQuoteDraft['household'],
-  safety: {} as MessagingQuoteDraft['safety'],
-  notes: {} as MessagingQuoteDraft['notes'],
-  customer: {} as MessagingQuoteDraft['customer'],
-  photos: [] as MessagingQuoteDraft['photos'],
+  customer: {
+    fullName: 'Test Customer',
+    email: 'test@example.com',
+    mobile: '+27821234567',
+    preferredContact: 'WHATSAPP',
+  },
+  property: {
+    propertyType: 'APARTMENT',
+    suburb: 'Rosebank',
+    addressLine1: '1 Example Street',
+    country: 'South Africa',
+    floorSize: 'FROM_60_TO_79',
+    bedrooms: 'TWO',
+    bathrooms: 'TWO',
+    livingAreas: 'ONE',
+    outdoorArea: 'BALCONY',
+    estateClassification: 'COMPLEX',
+    exactFloor: 3,
+    buildingAccess: 'ELEVATOR',
+  },
+  request: {
+    primaryService: {
+      websiteValue: 'Regular Home Cleaning',
+      canonicalService: 'Regular Home Cleaning',
+    },
+    frequency: 'WEEKLY',
+    homeCondition: 'STANDARD',
+    addOns: [],
+    ecoFriendlyProducts: false,
+  },
+  visit: {
+    preferredDate: '2026-08-25',
+    preferredTime: 'MORNING',
+    flexibility: 'Flexible by one day',
+    urgency: 'Normal',
+  },
+  access: {
+    complexAccess: 'VISITOR_SIGN_IN',
+    keyHandover: 'SOMEONE_WILL_OPEN',
+    someonePresent: true,
+  },
+  household: { hasPets: false },
+  safety: {},
+  notes: {},
+  photos: [],
 });
 
 describe('evaluateMessagingQuoteFlow', () => {
@@ -33,7 +69,7 @@ describe('evaluateMessagingQuoteFlow', () => {
     ]);
   });
 
-  it('moves to review only after every canonical fact group is present', () => {
+  it('moves to review only after every canonical fact group is valid and complete', () => {
     const result = evaluateMessagingQuoteFlow({ draft: completeDraft() });
 
     expect(result).toEqual({

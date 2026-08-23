@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { MessagingDirection, MessagingMessageKind } from '@prisma/client';
+import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 
@@ -38,7 +38,100 @@ function reviewState(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
+function collectingState(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 0,
+    phase: 'COLLECTING',
+    draft: {},
+    humanReviewRequired: false,
+    reviewSummaryMessageId: null,
+    confirmationMessageId: null,
+    confirmedAt: null,
+    submissionKey: null,
+    submittedQuoteId: null,
+    ...overrides,
+  } as any;
+}
+
 describe('MessagingQuoteLiveOrchestratorService', () => {
+  it('does not interpret a menu-like inbound value before the matching question was accepted', async () => {
+    let createdText = '';
+    const prisma = {
+      messagingMessage: {
+        findUnique: jest.fn(async (args: any) => args.where.id ? inbound('3') : null),
+      },
+      $transaction: jest.fn(async (callback: any) => callback({
+        messagingMessage: {
+          create: async (args: any) => {
+            createdText = args.data.contentText;
+            return { id: 'prompt-1', ...args.data };
+          },
+        },
+        messagingMessageStatusEvent: { create: async () => ({}) },
+      })),
+    } as unknown as PrismaService;
+    const messaging = { send: jest.fn(async () => ({ providerMessageId: 'wamid.prompt', acceptedAt: '2026-08-23T12:00:00.000Z' })) } as any;
+    const quoteState = {
+      get: jest.fn(async () => collectingState()),
+      updateDraft: jest.fn(),
+    } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+
+    const result = await service.handleInbound('message-inbound');
+
+    expect(createdText).toContain('What type of property is it?');
+    expect(quoteState.updateDraft).not.toHaveBeenCalled();
+    expect(messaging.send).toHaveBeenCalledTimes(1);
+    expect(result?.phase).toBe('COLLECTING');
+  });
+
+  it('accepts a bounded answer only after the exact current prompt was accepted', async () => {
+    const acceptedPrompt = {
+      id: 'prompt-1',
+      conversationId: 'conversation-1',
+      direction: MessagingDirection.OUTBOUND,
+      kind: MessagingMessageKind.TEXT,
+      contentText: 'What type of property is it?',
+      statusEvents: [{ status: MessagingDeliveryStatus.ACCEPTED }],
+    };
+    let lookupCount = 0;
+    let createdText = '';
+    const prisma = {
+      messagingMessage: {
+        findUnique: jest.fn(async (args: any) => {
+          if (args.where.id) return inbound('3');
+          lookupCount += 1;
+          if (lookupCount === 1) return acceptedPrompt;
+          return null;
+        }),
+      },
+      $transaction: jest.fn(async (callback: any) => callback({
+        messagingMessage: {
+          create: async (args: any) => {
+            createdText = args.data.contentText;
+            return { id: 'prompt-2', ...args.data };
+          },
+        },
+        messagingMessageStatusEvent: { create: async () => ({}) },
+      })),
+    } as unknown as PrismaService;
+    const messaging = { send: jest.fn(async () => ({ providerMessageId: 'wamid.prompt2', acceptedAt: '2026-08-23T12:01:00.000Z' })) } as any;
+    const updated = collectingState({ version: 1, draft: { property: { propertyType: 'HOUSE' } } });
+    const quoteState = {
+      get: jest.fn(async () => collectingState()),
+      updateDraft: jest.fn(async () => updated),
+    } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+
+    const result = await service.handleInbound('message-inbound');
+
+    expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 0, {
+      property: { propertyType: 'HOUSE' },
+    });
+    expect(createdText).toContain('What is the street address?');
+    expect(result).toBe(updated);
+  });
+
   it('sends and records one durable review summary when REVIEW has not been presented yet', async () => {
     const state = reviewState({ reviewSummaryMessageId: null });
     const outbound = {

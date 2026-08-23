@@ -6,7 +6,7 @@ Messaging Quote persistence and resumable state were merged through PR #195. The
 
 The Quote-domain submission authority was merged through PR #194. PR #197 connected a confirmed `READY_TO_SUBMIT` Messaging Quote to that shared authoritative Quote service without impersonating the Website integration.
 
-The current live-orchestration slice wires authenticated WhatsApp/Messenger inbound messages to the deterministic review/confirmation boundary. It does not interpret arbitrary free text into Quote facts.
+PR #199 wired authenticated WhatsApp/Messenger inbound messages to the deterministic review/confirmation boundary. The current guided-collection slice extends `COLLECTING` with bounded Home/Property questions only; it still does not infer canonical Quote facts from arbitrary free text.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -32,7 +32,7 @@ A conversation with `quote_state = NULL` and `quote_state_version = 0` is a vali
 The v1 snapshot stores:
 
 - `version` — must equal the separate persisted `quote_state_version`;
-- `draft` — partial `MessagingQuoteDraft`, which reuses the canonical Quote business-fact groups without reusing the Website transport envelope;
+- `draft` — partial canonical Quote business-fact progress; nested fact groups may themselves be partial while deterministic questions are still being answered;
 - `humanReviewRequired` — pauses Quote automation when deterministic processing is unsafe;
 - `reviewSummaryMessageId` — durable identity of the outbound review summary shown to the customer;
 - `confirmationMessageId` — durable identity of the inbound customer confirmation;
@@ -43,6 +43,27 @@ The v1 snapshot stores:
 Pre-reservation snapshots created by the already-merged v1 persistence slice do not contain `submissionKey`; they are read compatibly as `submissionKey = null`.
 
 The flow phase is derived from `evaluateMessagingQuoteFlow()` rather than stored independently. Its phases are `COLLECTING`, `REVIEW`, `READY_TO_SUBMIT`, `SUBMITTING`, `HUMAN_REVIEW`, and `SUBMITTED`.
+
+A fact group is no longer considered complete merely because its object exists. Completeness is derived from the canonical Quote v2 business-field validator, so partially collected or invalid nested groups remain in `COLLECTING` and cannot reach customer review as though they were complete.
+
+## Guided collection integrity
+
+Guided collection persists customer answers incrementally. Nested patches merge recursively with existing progress so a later answer cannot erase earlier facts in the same group.
+
+The initial live guided slice covers the `YOUR_HOME` / Property fact group. It asks deterministic questions for supported property type, street address, suburb, South Africa confirmation, floor-size band, bedroom count, bathroom count, living-area count, apartment floor/access where required, outdoor area and estate/complex classification.
+
+Safety rules are:
+
+1. bounded categorical questions accept only the explicitly listed menu value;
+2. street address and suburb are stored verbatim after trimming and are not semantically interpreted;
+3. `Studio` is accepted only for an Apartment;
+4. an Apartment floor must be an explicit whole number from 0 to 50;
+5. South Africa is stored only after the customer replies exact `YES` to the country question;
+6. a menu-like inbound answer is not interpreted unless the matching current question was already durably accepted by the provider;
+7. invalid or ambiguous replies do not mutate Quote state and receive a deterministic retry prompt;
+8. every prompt and retry uses a stable idempotency key and is persisted before provider delivery.
+
+The remaining `CLEANING_REQUIREMENTS`, `PREFERRED_VISIT`, `ACCESS_AND_HOUSEHOLD`, `PHOTOS_AND_NOTES`, and `YOUR_DETAILS` guided sections remain follow-up slices. Until each section is implemented, its facts cannot be guessed merely to advance the flow.
 
 ## Review and confirmation integrity
 
@@ -118,12 +139,13 @@ The operator attention surface and deliberate hand-back mechanism remain separat
 
 ## Current live-orchestration boundary
 
-Authenticated WhatsApp and Messenger inbound webhooks now call `MessagingQuoteLiveOrchestratorService` only after provider authentication, normalized durable inbound persistence, and trusted-identity resolution.
+Authenticated WhatsApp and Messenger inbound webhooks call `MessagingQuoteLiveOrchestratorService` only after provider authentication, normalized durable inbound persistence, and trusted-identity resolution.
 
-The live deterministic behavior is intentionally narrow:
+The live deterministic behavior is intentionally bounded:
 
-- `COLLECTING` does not interpret arbitrary inbound text into Quote facts;
-- when a previously collected deterministic draft reaches `REVIEW` and no review message has been recorded, HestivaOS persists and sends one idempotent text summary of selected canonical facts;
+- `COLLECTING` can now drive the implemented guided Home/Property questions described above;
+- arbitrary prose is not parsed into multiple Quote facts and AI is not used;
+- when all canonical fact groups have eventually been collected and validated, `REVIEW` persists and sends one idempotent text summary of selected canonical facts;
 - the summary explicitly instructs the customer to reply `CONFIRM` exactly;
 - only a persisted inbound TEXT message whose trimmed content is exactly uppercase `CONFIRM` is accepted as Quote submission authorization;
 - variants such as `confirm`, `yes`, `okay`, emojis, or longer sentences are not treated as authorization;
@@ -131,16 +153,15 @@ The live deterministic behavior is intentionally narrow:
 - if a prior attempt stopped after confirmation or during `SUBMITTING`, a later inbound event may safely resume the idempotent submission runtime;
 - `HUMAN_REVIEW` and `SUBMITTED` states do not perform new automated Quote actions.
 
-The review message is itself durably persisted before provider delivery and uses a stable idempotency key tied to the conversation and state version. Ambiguous provider-send outcomes remain pending reconciliation and do not create a second review message.
-
-This slice does not decide how ordinary customer sentences populate `COLLECTING` Quote facts. That requires a separate deterministic structured-input flow or an explicitly approved AI interpretation boundary. Until then, free text cannot silently become authoritative Quote data.
+The review and guided prompt messages are durably persisted before provider delivery and use stable idempotency keys. Ambiguous provider-send outcomes remain pending reconciliation rather than causing duplicate business actions.
 
 ## Non-goals
 
 This boundary does not:
 
 - introduce an AI provider or allow AI to authorize business actions;
-- interpret arbitrary free text into canonical Quote facts;
+- infer multiple structured facts from arbitrary free text;
+- claim that guided collection sections beyond Home/Property are implemented;
 - call the Website Quote ingestion route or use the Website integration secret, Website submission identity, or `HESTIVA_WEBSITE` provenance;
 - change Meta webhook authentication or provider adapters;
 - create Customers or Properties early;

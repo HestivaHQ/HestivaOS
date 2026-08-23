@@ -18,6 +18,21 @@ export type MessagingQuoteDraft = Pick<
   | 'photos'
 >;
 
+type DeepPartial<T> = T extends Array<infer Item>
+  ? Array<DeepPartial<Item>>
+  : T extends object
+    ? { [Key in keyof T]?: DeepPartial<T[Key]> }
+    : T;
+
+/**
+ * A Messaging conversation may persist part of a canonical fact group while it
+ * asks the remaining deterministic questions. This is workflow state only; the
+ * authoritative Quote boundary still requires a complete MessagingQuoteDraft.
+ */
+export type MessagingQuoteDraftProgress = {
+  [Key in keyof MessagingQuoteDraft]?: DeepPartial<MessagingQuoteDraft[Key]>;
+};
+
 export const MESSAGING_QUOTE_SECTIONS = [
   'YOUR_HOME',
   'CLEANING_REQUIREMENTS',

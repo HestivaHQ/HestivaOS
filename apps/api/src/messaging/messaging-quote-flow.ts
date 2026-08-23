@@ -1,10 +1,9 @@
 import {
-  MESSAGING_QUOTE_REQUIRED_FACT_GROUPS,
   type MessagingQuoteDraft,
+  type MessagingQuoteDraftProgress,
   type MessagingQuoteSection,
 } from './messaging-quote-draft';
-
-export type MessagingQuoteDraftProgress = Partial<MessagingQuoteDraft>;
+import { messagingQuoteIncompleteFactGroups } from './messaging-quote-draft-validation';
 
 export type MessagingQuoteFlowPhase =
   | 'COLLECTING'
@@ -32,17 +31,11 @@ const FACT_GROUP_SECTION: Record<keyof MessagingQuoteDraft, MessagingQuoteSectio
   photos: 'PHOTOS_AND_NOTES',
 };
 
-function hasFactGroup(
-  draft: MessagingQuoteDraftProgress,
-  key: keyof MessagingQuoteDraft,
-): boolean {
-  return Object.prototype.hasOwnProperty.call(draft, key) && draft[key] !== undefined && draft[key] !== null;
-}
-
 /**
- * Pure conversation orchestration only. This function never prices, validates,
- * creates, revises, or accepts a Quote. Those remain authoritative Quote-domain
- * responsibilities.
+ * Pure conversation orchestration only. This function never prices, creates,
+ * revises, or accepts a Quote. Completeness is derived from the canonical Quote
+ * field validator so a partially collected object can never masquerade as a
+ * complete fact group.
  */
 export function evaluateMessagingQuoteFlow(input: {
   draft: MessagingQuoteDraftProgress;
@@ -51,9 +44,7 @@ export function evaluateMessagingQuoteFlow(input: {
   submissionKey?: string | null;
   submittedQuoteId?: string | null;
 }): MessagingQuoteFlowState {
-  const missingFactGroups = MESSAGING_QUOTE_REQUIRED_FACT_GROUPS.filter(
-    (key) => !hasFactGroup(input.draft, key),
-  );
+  const missingFactGroups = messagingQuoteIncompleteFactGroups(input.draft);
 
   if (input.submittedQuoteId) {
     return { phase: 'SUBMITTED', missingFactGroups, nextSection: null };
