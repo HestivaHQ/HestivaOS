@@ -1,10 +1,10 @@
 import { ConflictException } from '@nestjs/common';
-import type { MessagingQuoteDraft } from './messaging-quote-draft';
+import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
 import { evaluateMessagingQuoteFlow, type MessagingQuoteFlowPhase } from './messaging-quote-flow';
 
 export type MessagingQuoteStateSnapshot = {
   version: number;
-  draft: Partial<MessagingQuoteDraft>;
+  draft: MessagingQuoteDraftProgress;
   humanReviewRequired: boolean;
   reviewSummaryMessageId: string | null;
   confirmationMessageId: string | null;
@@ -32,6 +32,20 @@ export function initialMessagingQuoteState(): MessagingQuoteStateSnapshot {
 
 function optionalString(value: unknown): value is string | null {
   return value === null || typeof value === 'string';
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mergeProgressValue(current: unknown, patch: unknown): unknown {
+  if (!isPlainObject(patch)) return patch;
+  const base = isPlainObject(current) ? current : {};
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    merged[key] = mergeProgressValue(base[key], value);
+  }
+  return merged;
 }
 
 export function parseMessagingQuoteStateSnapshot(
@@ -111,11 +125,12 @@ export function viewMessagingQuoteState(state: MessagingQuoteStateSnapshot): Mes
 /**
  * Persisted Quote facts are mutable only before canonical Quote creation. Any
  * customer-visible review/confirmation becomes stale when those facts change,
- * so draft mutation deliberately clears both markers.
+ * so draft mutation deliberately clears both markers. Nested partial groups are
+ * merged recursively so a guided answer cannot erase facts collected earlier.
  */
 export function updateMessagingQuoteDraft(
   state: MessagingQuoteStateSnapshot,
-  patch: Partial<MessagingQuoteDraft>,
+  patch: MessagingQuoteDraftProgress,
 ): MessagingQuoteStateSnapshot {
   if (state.submittedQuoteId) {
     throw new ConflictException('Submitted Messaging Quote facts must change through Quote revision, not draft mutation.');
@@ -127,7 +142,7 @@ export function updateMessagingQuoteDraft(
   return {
     ...state,
     version: nextVersion(state),
-    draft: { ...state.draft, ...patch },
+    draft: mergeProgressValue(state.draft, patch) as MessagingQuoteDraftProgress,
     reviewSummaryMessageId: null,
     confirmationMessageId: null,
     confirmedAt: null,
