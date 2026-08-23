@@ -50,7 +50,6 @@ export function nextMessagingGuidedVisitHouseholdQuestion(draft: MessagingQuoteD
 
 export type MessagingGuidedVisitHouseholdAnswer =
   | { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress }
-  | { kind: 'HUMAN_REVIEW'; reason: 'PHOTO_HANDOFF_REQUIRED'; question: MessagingGuidedFinalDetailsQuestion }
   | { kind: 'INVALID'; question: MessagingGuidedVisitHouseholdQuestion }
   | { kind: 'COMPLETE' };
 
@@ -60,7 +59,6 @@ export function applyMessagingGuidedVisitHouseholdAnswer(draft: MessagingQuoteDr
     return applyMessagingGuidedFinalDetailsAnswer(draft, rawText);
   }
   const text = rawText?.trim() ?? '';
-  const access = record(draft.access);
   if (question.id === 'PREFERRED_DATE') { if (!calendarDate(text)) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { preferredDate: text } } }; }
   if (question.id === 'ALTERNATIVE_DATE') { if (text === '0') return { kind: 'ACCEPTED', patch: { visit: { alternativeDate: '' } } }; if (!calendarDate(text)) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { alternativeDate: text } } }; }
   if (question.id === 'PREFERRED_TIME') { const value = ({ '1':'MORNING','2':'MIDDAY','3':'AFTERNOON','4':'FLEXIBLE' } as const)[text as '1']; if (!value) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { visit: { preferredTime: value } } }; }
