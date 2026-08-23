@@ -30,6 +30,8 @@ Selecting a section deliberately clears only the corresponding in-progress top-l
 
 For Cleaning service and personalisation, the complete `request` group is recollected so a changed primary service cannot retain incompatible frequency, add-on, Laundry/Ironing, or Post-Event facts from the prior choice.
 
+Correction-menu delivery evidence is tied to the current Quote-state version. A stale menu from an earlier review version cannot authorize mutation of a newer review snapshot.
+
 ## Safety and authority
 
 - No AI or arbitrary free-text semantic extraction is introduced.
