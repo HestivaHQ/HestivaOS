@@ -8,6 +8,11 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import {
+  applyMessagingGuidedCleaningAnswer,
+  nextMessagingGuidedCleaningQuestion,
+  type MessagingGuidedCleaningQuestion,
+} from './messaging-quote-guided-cleaning-requirements';
+import {
   applyMessagingGuidedHomeAnswer,
   nextMessagingGuidedHomeQuestion,
   type MessagingGuidedHomeQuestion,
@@ -95,7 +100,7 @@ export class MessagingQuoteLiveOrchestratorService {
     }
 
     if (state.phase === 'COLLECTING') {
-      return this.handleGuidedHome(inbound, state);
+      return this.handleGuidedCollection(inbound, state);
     }
 
     if (state.phase === 'READY_TO_SUBMIT' || state.phase === 'SUBMITTING') {
@@ -130,6 +135,19 @@ export class MessagingQuoteLiveOrchestratorService {
     return this.quoteState.get(inbound.conversationId);
   }
 
+  private async handleGuidedCollection(
+    inbound: InboundForOrchestration,
+    state: MessagingQuoteStateView,
+  ) {
+    if (nextMessagingGuidedHomeQuestion(state.draft)) {
+      return this.handleGuidedHome(inbound, state);
+    }
+    if (nextMessagingGuidedCleaningQuestion(state.draft)) {
+      return this.handleGuidedCleaningRequirements(inbound, state);
+    }
+    return state;
+  }
+
   private async handleGuidedHome(
     inbound: InboundForOrchestration,
     state: MessagingQuoteStateView,
@@ -148,9 +166,6 @@ export class MessagingQuoteLiveOrchestratorService {
       },
     });
 
-    // Never interpret a menu-like inbound value unless the matching question was
-    // durably accepted by the provider first. An initial or unsent customer text
-    // simply causes the current deterministic question to be presented.
     if (!prompt?.statusEvents.length) {
       await this.sendDurableText(inbound, promptKey, question.text);
       return state;
@@ -182,6 +197,68 @@ export class MessagingQuoteLiveOrchestratorService {
         this.guidedHomePromptKey(inbound.conversationId, updated.version, nextQuestion),
         nextQuestion.text,
       );
+    } else {
+      const cleaningQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
+      if (cleaningQuestion) {
+        await this.sendDurableText(
+          inbound,
+          this.guidedCleaningPromptKey(inbound.conversationId, updated.version, cleaningQuestion),
+          cleaningQuestion.text,
+        );
+      }
+    }
+    return updated;
+  }
+
+  private async handleGuidedCleaningRequirements(
+    inbound: InboundForOrchestration,
+    state: MessagingQuoteStateView,
+  ) {
+    const question = nextMessagingGuidedCleaningQuestion(state.draft);
+    if (!question) return state;
+
+    const promptKey = this.guidedCleaningPromptKey(inbound.conversationId, state.version, question);
+    const prompt = await this.prisma.messagingMessage.findUnique({
+      where: { idempotencyKey: promptKey },
+      include: {
+        statusEvents: {
+          where: { status: MessagingDeliveryStatus.ACCEPTED },
+          take: 1,
+        },
+      },
+    });
+
+    if (!prompt?.statusEvents.length) {
+      await this.sendDurableText(inbound, promptKey, question.text);
+      return state;
+    }
+
+    const answer = inbound.kind === MessagingMessageKind.TEXT
+      ? applyMessagingGuidedCleaningAnswer(state.draft, inbound.contentText)
+      : { kind: 'INVALID' as const, question };
+
+    if (answer.kind !== 'ACCEPTED') {
+      const retryText = `Please answer the current quote question using the requested format.\n\n${question.text}`;
+      await this.sendDurableText(
+        inbound,
+        `messaging-quote-cleaning-retry:${inbound.id}:${question.id}`,
+        retryText,
+      );
+      return state;
+    }
+
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      answer.patch,
+    );
+    const nextQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
+    if (nextQuestion) {
+      await this.sendDurableText(
+        inbound,
+        this.guidedCleaningPromptKey(inbound.conversationId, updated.version, nextQuestion),
+        nextQuestion.text,
+      );
     }
     return updated;
   }
@@ -192,6 +269,14 @@ export class MessagingQuoteLiveOrchestratorService {
     question: MessagingGuidedHomeQuestion,
   ) {
     return `messaging-quote-home:${conversationId}:${version}:${question.id}`;
+  }
+
+  private guidedCleaningPromptKey(
+    conversationId: string,
+    version: number,
+    question: MessagingGuidedCleaningQuestion,
+  ) {
+    return `messaging-quote-cleaning:${conversationId}:${version}:${question.id}`;
   }
 
   private async sendDurableText(
