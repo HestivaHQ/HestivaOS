@@ -32,7 +32,11 @@ export function nextMessagingGuidedCleaningQuestion(draft: MessagingQuoteDraftPr
   return nextMessagingGuidedPersonaliseQuestion(draft);
 }
 
-export type MessagingGuidedCleaningAnswer = { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress } | { kind: 'INVALID'; question: MessagingGuidedCleaningQuestion } | { kind: 'COMPLETE' };
+export type MessagingGuidedCleaningAnswer =
+  | { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress }
+  | { kind: 'HUMAN_REVIEW'; reason: 'PHOTO_HANDOFF_REQUIRED'; question: MessagingGuidedCleaningQuestion }
+  | { kind: 'INVALID'; question: MessagingGuidedCleaningQuestion }
+  | { kind: 'COMPLETE' };
 export function applyMessagingGuidedCleaningAnswer(draft: MessagingQuoteDraftProgress, rawText: string | null | undefined): MessagingGuidedCleaningAnswer {
   const question = nextMessagingGuidedCleaningQuestion(draft); if (!question) return { kind: 'COMPLETE' };
   if (!['PRIMARY_SERVICE', 'FREQUENCY', 'CUSTOM_FREQUENCY_NOTE', 'HOME_CONDITION'].includes(question.id)) return applyMessagingGuidedPersonaliseAnswer(draft, rawText);
