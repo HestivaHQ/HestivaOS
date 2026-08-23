@@ -1,6 +1,10 @@
 import type { WebsiteQuotePricingLineV1, WebsiteQuotePricingSnapshotV1, WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 import { resolveLaundryRequest } from './laundry-operating-model';
+import {
+  POST_EVENT_CLEANING_SERVICE,
+  resolvePostEventCleaning,
+} from './post-event-cleaning-operating-model';
 import type { QuotePricingSubmission } from './quote-operational-cost-source';
 import {
   applyQuoteProfitabilityFloor,
@@ -124,6 +128,47 @@ function addFloorPricedPrimary(
   }
 }
 
+function addPostEventCleaningPrimary(
+  submission: QuotePricingInput,
+  lines: WebsiteQuotePricingLineV1[],
+  attentionReasons: WebsiteQuotePricingAttentionReason[],
+) {
+  if (!('postEvent' in submission.request) || !submission.request.postEvent) {
+    attentionReasons.push(attention(
+      'POST_EVENT_FACTS_REQUIRED',
+      'request.postEvent',
+      'Structured Post-Event workload facts are required before authoritative pricing.',
+    ));
+    return;
+  }
+
+  const resolved = resolvePostEventCleaning({
+    floorSize: submission.property.floorSize,
+    ...submission.request.postEvent,
+  });
+
+  if (!resolved.automaticPricingAllowed || resolved.preliminaryPriceMinor === null) {
+    resolved.reviewReasons.forEach((reason) => {
+      attentionReasons.push(attention(reason.code, 'request.postEvent', reason.message));
+    });
+    if (!resolved.reviewReasons.length) {
+      attentionReasons.push(attention(
+        'POST_EVENT_PRICING_REVIEW',
+        'request.postEvent',
+        'Post-Event Cleaning could not be priced automatically from the supplied workload facts.',
+      ));
+    }
+    return;
+  }
+
+  lines.push(line(
+    'PRIMARY_POST_EVENT_CLEANING',
+    POST_EVENT_CLEANING_SERVICE,
+    1,
+    resolved.preliminaryPriceMinor,
+  ));
+}
+
 function addRoomServicePrimary(
   submission: QuotePricingInput,
   canonicalService: string,
@@ -214,6 +259,8 @@ export function calculateWebsiteQuotePricing(
 
   if (!primary) {
     attentionReasons.push(attention('PRIMARY_SERVICE_REVIEW', 'request.primaryService', 'The selected primary-service path requires Admin mapping/review.'));
+  } else if (primary === POST_EVENT_CLEANING_SERVICE) {
+    addPostEventCleaningPrimary(submission, lines, attentionReasons);
   } else if (FLOOR_PRICE_MINOR[primary]) {
     addFloorPricedPrimary(submission, primary, lines, attentionReasons);
   } else if (primary === 'Bathroom Sanitisation' || primary === 'Bedroom Cleaning' || primary === 'Living Area Cleaning') {
