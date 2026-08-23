@@ -6,7 +6,10 @@ import {
   WEBSITE_QUOTE_SOURCE,
   type WebsiteQuoteContractError,
 } from '../quotes/website-quote-contract';
-import type { MessagingQuoteDraft } from './messaging-quote-draft';
+import type {
+  MessagingQuoteDraft,
+  MessagingQuoteDraftProgress,
+} from './messaging-quote-draft';
 import { evaluateMessagingQuoteFlow } from './messaging-quote-flow';
 
 export type MessagingQuoteSubmissionBoundaryResult =
@@ -34,7 +37,7 @@ export type MessagingQuoteSubmissionBoundaryResult =
  * canonical Quote creation.
  */
 export function prepareMessagingQuoteSubmission(input: {
-  draft: Partial<MessagingQuoteDraft>;
+  draft: MessagingQuoteDraftProgress;
   customerConfirmed?: boolean;
   humanReviewRequired?: boolean;
   submittedQuoteId?: string | null;
