@@ -2,9 +2,9 @@
 
 ## Status
 
-Approved product/business specification for implementation.
+Approved product/business specification with the initial HestivaOS runtime and operational-scope slices implemented.
 
-The first two runtime slices now implement the deterministic Quote-domain workload/preliminary-price resolver and integrate structured internal Post-Event facts into the shared Quote pricing and approved cleaner-hour operational-cost paths. External Website/Messaging collection, service seeding, Work Order/checklist integration and customer-facing UI remain follow-up work and are not claimed as implemented yet.
+The deterministic Quote-domain workload/preliminary-price resolver, shared Quote pricing and approved cleaner-hour operational-cost integration are implemented. The canonical active `Post-Event Cleaning` Service and published `Post-Event Cleaning v1` execution-scope template are also implemented for Work Order/checklist use. External Website/Messaging collection and customer-facing UI remain follow-up work; quote-specific Post-Event facts are not yet automatically collected by those channels.
 
 Decision date: 2026-08-23.
 
@@ -172,7 +172,7 @@ No automatic overnight surcharge is approved in v1. Late-night/overnight request
 
 ## Cost-model integration
 
-Post-Event Cleaning must reuse the existing HestivaOS operational-cost architecture rather than introducing a second pricing engine. Once deterministic cleaner-hours resolve, existing cost buckets continue to apply, including:
+Post-Event Cleaning reuses the existing HestivaOS operational-cost architecture rather than introducing a second pricing engine. Once deterministic cleaner-hours resolve, existing cost buckets continue to apply, including:
 
 - cleaner labour, UIF and configured COIDA;
 - route/deployment cost;
@@ -183,6 +183,16 @@ Post-Event Cleaning must reuse the existing HestivaOS operational-cost architect
 
 Internal cost/margin detail remains hidden from the customer and operational supervisors under existing rules.
 
+## Work Order / execution-scope integration
+
+The canonical active `Post-Event Cleaning` Service has a published `Post-Event Cleaning v1` execution-scope template using the existing frozen Work Order execution-scope architecture.
+
+The v1 field checklist covers ordinary event waste and debris, accessible surfaces/furniture reset, floors, bathroom cleaning and sanitisation, kitchen/food-service surfaces, living/dining/entertainment areas, conditional outdoor event areas, and a final scope check. Bathroom sections repeat from the Work Order Property bathroom count. Conditional work such as kitchen/dishwashing or outdoor areas is marked `NOT_APPLICABLE` when it was not part of the accepted scope rather than silently expanding the job.
+
+Execution sections use `ON_EXCEPTION` evidence policy so ordinary completion does not require unnecessary evidence, while incomplete, unsafe, inaccessible, pre-existing-condition or scope-mismatch outcomes use the existing exception/evidence workflow. The checklist does not authorise off-site bulk-waste removal, hazardous/biohazard cleanup, specialist carpet/upholstery treatment, repairs, restoration or other excluded work.
+
+The accepted Quote remains the commercial/source-fact authority. The execution template does not recalculate price and must not be used to infer customer-approved extras that are absent from the accepted scope.
+
 ## Pilot and calibration
 
 The initial coefficients are approved launch assumptions calibrated against the existing Hestiva service/workload model and Johannesburg/Gauteng competitor pricing research. They are not treated as immutable facts.
@@ -191,8 +201,8 @@ After approximately the first **10–20 completed Post-Event jobs**, compare est
 
 ## Cross-system implementation sequence
 
-1. HestivaOS canonical service/Quote/workload implementation.
-2. Work Order/checklist and operational-scope integration.
+1. HestivaOS canonical service/Quote/workload implementation. **Implemented.**
+2. Work Order/checklist and operational-scope integration. **Initial canonical Service + published execution template implemented.**
 3. Messaging Quote-flow integration using the shared authoritative Quote boundary.
 4. Website catalogue/service page and conditional Quote fields.
 5. Production smoke tests and early-job calibration.
