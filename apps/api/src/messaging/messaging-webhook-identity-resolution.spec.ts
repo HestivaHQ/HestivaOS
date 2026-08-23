@@ -14,8 +14,8 @@ const inboundEvent = {
   text: 'Hello',
 };
 
-describe('webhook trusted identity orchestration', () => {
-  it('resolves trusted identity after durable WhatsApp inbound persistence', async () => {
+describe('webhook trusted identity and Quote orchestration', () => {
+  it('runs trusted identity and Quote orchestration after durable WhatsApp inbound persistence', async () => {
     const adapter = {
       normalizeInboundWebhook: jest.fn(async () => [inboundEvent]),
       normalizeStatusWebhook: jest.fn(async () => []),
@@ -30,11 +30,15 @@ describe('webhook trusted identity orchestration', () => {
     const customerLinking = {
       resolveAndLinkTrustedIdentity: jest.fn(async () => ({ kind: 'MATCHED' })),
     };
+    const quoteOrchestrator = {
+      handleInbound: jest.fn(async () => undefined),
+    };
     const controller = new WhatsAppWebhookController(
       adapter as any,
       messaging as any,
       inboundMedia as any,
       customerLinking as any,
+      quoteOrchestrator as any,
     );
 
     const result = await controller.receive(
@@ -46,9 +50,10 @@ describe('webhook trusted identity orchestration', () => {
     expect(messaging.persistInbound).toHaveBeenCalledWith(inboundEvent);
     expect(customerLinking.resolveAndLinkTrustedIdentity).toHaveBeenCalledWith('conversation-1');
     expect(inboundMedia.secureInboundMedia).toHaveBeenCalledWith('message-1', inboundEvent);
+    expect(quoteOrchestrator.handleInbound).toHaveBeenCalledWith('message-1');
   });
 
-  it('resolves trusted identity after durable Messenger inbound persistence', async () => {
+  it('runs trusted identity and Quote orchestration after durable Messenger inbound persistence', async () => {
     const messengerEvent = { ...inboundEvent, channel: 'MESSENGER' };
     const adapter = {
       normalizeInboundWebhook: jest.fn(async () => [messengerEvent]),
@@ -59,10 +64,14 @@ describe('webhook trusted identity orchestration', () => {
     const customerLinking = {
       resolveAndLinkTrustedIdentity: jest.fn(async () => ({ kind: 'UNLINKED' })),
     };
+    const quoteOrchestrator = {
+      handleInbound: jest.fn(async () => undefined),
+    };
     const controller = new MessengerWebhookController(
       adapter as any,
       messaging as any,
       customerLinking as any,
+      quoteOrchestrator as any,
     );
 
     const result = await controller.receive(
@@ -73,9 +82,10 @@ describe('webhook trusted identity orchestration', () => {
     expect(result).toEqual({ received: true, normalizedEvents: 1 });
     expect(messaging.persistInbound).toHaveBeenCalledWith(messengerEvent);
     expect(customerLinking.resolveAndLinkTrustedIdentity).toHaveBeenCalledWith('conversation-2');
+    expect(quoteOrchestrator.handleInbound).toHaveBeenCalledWith('message-2');
   });
 
-  it('does not run identity resolution for WhatsApp status-only webhooks', async () => {
+  it('does not run identity or Quote orchestration for WhatsApp status-only webhooks', async () => {
     const adapter = {
       normalizeInboundWebhook: jest.fn(async () => []),
       normalizeStatusWebhook: jest.fn(async () => [{ providerMessageId: 'provider-message-1' }]),
@@ -90,16 +100,21 @@ describe('webhook trusted identity orchestration', () => {
     const customerLinking = {
       resolveAndLinkTrustedIdentity: jest.fn(),
     };
+    const quoteOrchestrator = {
+      handleInbound: jest.fn(),
+    };
     const controller = new WhatsAppWebhookController(
       adapter as any,
       messaging as any,
       inboundMedia as any,
       customerLinking as any,
+      quoteOrchestrator as any,
     );
 
     await controller.receive({ body: {}, rawBody: Buffer.from('{}') } as any, {});
 
     expect(customerLinking.resolveAndLinkTrustedIdentity).not.toHaveBeenCalled();
+    expect(quoteOrchestrator.handleInbound).not.toHaveBeenCalled();
     expect(messaging.persistWhatsAppStatus).toHaveBeenCalledTimes(1);
   });
 });
