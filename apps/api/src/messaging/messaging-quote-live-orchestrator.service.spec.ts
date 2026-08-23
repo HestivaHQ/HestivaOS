@@ -95,10 +95,12 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       messagingMessage: { findUnique: jest.fn(async () => inbound('CONFIRM')) },
     } as unknown as PrismaService;
     const messaging = { send: jest.fn() } as any;
+    let getCount = 0;
     const quoteState = {
-      get: jest.fn()
-        .mockResolvedValueOnce(reviewState())
-        .mockResolvedValueOnce(submitted),
+      get: jest.fn(async () => {
+        getCount += 1;
+        return getCount === 1 ? reviewState() : submitted;
+      }),
       confirmFromInboundMessage: jest.fn(async () => ready),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn(async () => ({ quoteId: 'quote-1' })) } as any;
@@ -131,14 +133,17 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
 
   it('resumes a safely confirmed READY_TO_SUBMIT state after an interrupted prior attempt', async () => {
     const ready = reviewState({ version: 4, phase: 'READY_TO_SUBMIT' });
+    const submitted = { ...ready, phase: 'SUBMITTED', submittedQuoteId: 'quote-1' };
     const prisma = {
       messagingMessage: { findUnique: jest.fn(async () => inbound('anything')) },
     } as unknown as PrismaService;
     const messaging = { send: jest.fn() } as any;
+    let getCount = 0;
     const quoteState = {
-      get: jest.fn()
-        .mockResolvedValueOnce(ready)
-        .mockResolvedValueOnce({ ...ready, phase: 'SUBMITTED', submittedQuoteId: 'quote-1' }),
+      get: jest.fn(async () => {
+        getCount += 1;
+        return getCount === 1 ? ready : submitted;
+      }),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn(async () => ({ quoteId: 'quote-1' })) } as any;
     const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission);
