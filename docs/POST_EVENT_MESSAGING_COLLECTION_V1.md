@@ -67,4 +67,4 @@ The existing Post-Event operating model remains authoritative for whether automa
 
 Messaging validates completed business facts through the channel-neutral Quote validation boundary. Ordinary Website-compatible facts continue to use the mature v2 field-validation rules internally, while Post-Event uses its approved canonical service mapping, once-off rule and structured fact validation.
 
-The Website v2 transport contract itself remains unchanged. Messaging does not use the Website route, Website bearer secret, Website submission identity or Website provenance, and HestivaOS remains the single Quote validation/pricing authority.
+The Website v2 transport contract itself remains unchanged. Messaging does not use the Website route, Website bearer secret, Website submission identity or Website provenance, and HestivaOS remains the single Quote validation/pricing authority. The temporary validation-only projection used to reuse mature field checks is never persisted or exposed as transport identity.
