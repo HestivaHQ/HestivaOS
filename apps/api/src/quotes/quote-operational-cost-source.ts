@@ -1,8 +1,11 @@
 import type { QuoteOperationalCostSnapshot } from './quote-profitability';
+import type { PostEventCleaningRequest } from './post-event-cleaning-operating-model';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 
-export type QuotePricingSubmission = Pick<
+export type PostEventQuoteFacts = Omit<PostEventCleaningRequest, 'floorSize'>;
+
+type WebsiteQuoteBusinessFacts = Pick<
   WebsiteQuoteSubmissionV2,
   | 'customer'
   | 'property'
@@ -14,6 +17,17 @@ export type QuotePricingSubmission = Pick<
   | 'notes'
   | 'photos'
 >;
+
+/**
+ * Canonical Quote business facts consumed by pricing/costing. Post-Event facts
+ * are internal Quote-domain data for now; external Website/Messaging contracts
+ * must map into this shape in their own coordinated follow-up slices.
+ */
+export type QuotePricingSubmission = Omit<WebsiteQuoteBusinessFacts, 'request'> & {
+  request: WebsiteQuoteBusinessFacts['request'] & {
+    postEvent?: PostEventQuoteFacts;
+  };
+};
 
 /**
  * Backward-compatible type alias for existing Website-specific callers. The
