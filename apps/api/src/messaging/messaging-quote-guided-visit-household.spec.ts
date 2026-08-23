@@ -47,9 +47,9 @@ describe('guided Messaging visit and household details', () => {
     expect(applyMessagingGuidedVisitHouseholdAnswer(petDraft, '  two dogs  ')).toEqual({ kind:'ACCEPTED', patch:{ household:{ petType:'two dogs' } } });
   });
 
-  it('finishes only when visit, access and household required facts are complete', () => {
+  it('continues into Photos & Notes after visit, access and household facts are complete', () => {
     const draft = { visit:visitComplete(), access:{ complexAccess:'NOT_APPLICABLE', securityInstructions:'', parking:'', keyHandover:'SOMEONE_WILL_OPEN', someonePresent:true }, household:{ hasPets:false } } as any;
-    expect(nextMessagingGuidedVisitHouseholdQuestion(draft)).toBeNull();
-    expect(applyMessagingGuidedVisitHouseholdAnswer(draft, 'anything')).toEqual({ kind:'COMPLETE' });
+    expect(nextMessagingGuidedVisitHouseholdQuestion(draft)?.id).toBe('OFF_LIMITS_AREAS');
+    expect(applyMessagingGuidedVisitHouseholdAnswer(draft, '0')).toEqual({ kind:'ACCEPTED', patch:{ safety:{ offLimitsAreas:'' } } });
   });
 });
