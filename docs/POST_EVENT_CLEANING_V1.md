@@ -2,9 +2,9 @@
 
 ## Status
 
-Approved product/business specification with the initial HestivaOS runtime and operational-scope slices implemented.
+Approved product/business specification with the HestivaOS runtime, operational-scope, Messaging collection/submission and Website Quote v2 contract support implemented.
 
-The deterministic Quote-domain workload/preliminary-price resolver, shared Quote pricing and approved cleaner-hour operational-cost integration are implemented. The canonical active `Post-Event Cleaning` Service and published `Post-Event Cleaning v1` execution-scope template are also implemented for Work Order/checklist use. External Website/Messaging collection and customer-facing UI remain follow-up work; quote-specific Post-Event facts are not yet automatically collected by those channels.
+The deterministic Quote-domain workload/preliminary-price resolver, shared Quote pricing and approved cleaner-hour operational-cost integration are implemented. The canonical active `Post-Event Cleaning` Service and published `Post-Event Cleaning v1` execution-scope template are implemented for Work Order/checklist use. WhatsApp/Messenger can collect and submit the approved structured Post-Event facts through the shared Quote business boundary. Website Quote Contract v2 accepts the same approved structured Post-Event facts; the remaining Website work is the customer-facing catalogue/service page and conditional quote-form UI that emits that contract.
 
 Decision date: 2026-08-23.
 
@@ -193,6 +193,12 @@ Execution sections use `ON_EXCEPTION` evidence policy so ordinary completion doe
 
 The accepted Quote remains the commercial/source-fact authority. The execution template does not recalculate price and must not be used to infer customer-approved extras that are absent from the accepted scope.
 
+## Channel integration
+
+Messaging and Website use the same canonical structured Post-Event fact vocabulary. Messaging collection/submission is implemented through the channel-neutral Quote business validation boundary. Website Quote Contract v2 now accepts the same exact primary-service mapping, `ONE_TIME` frequency and structured `request.postEvent` facts.
+
+The Website transport remains server-to-server and protected by the existing dedicated Website integration secret. Extending Website v2 does not give the Website pricing authority and does not alter Messaging authentication/provenance. Post-Event facts attached to another primary service fail closed.
+
 ## Pilot and calibration
 
 The initial coefficients are approved launch assumptions calibrated against the existing Hestiva service/workload model and Johannesburg/Gauteng competitor pricing research. They are not treated as immutable facts.
@@ -202,9 +208,10 @@ After approximately the first **10–20 completed Post-Event jobs**, compare est
 ## Cross-system implementation sequence
 
 1. HestivaOS canonical service/Quote/workload implementation. **Implemented.**
-2. Work Order/checklist and operational-scope integration. **Initial canonical Service + published execution template implemented.**
-3. Messaging Quote-flow integration using the shared authoritative Quote boundary.
-4. Website catalogue/service page and conditional Quote fields.
-5. Production smoke tests and early-job calibration.
+2. Work Order/checklist and operational-scope integration. **Implemented.**
+3. Messaging Quote-flow integration using the shared authoritative Quote boundary. **Implemented.**
+4. Website Quote v2 transport support for structured Post-Event facts. **Implemented.**
+5. Website catalogue/service page and conditional Quote fields. **Next coordinated slice.**
+6. Production smoke tests and early-job calibration.
 
 The Website must not become pricing authority. Messaging must not create a second Quote/pricing authority. Both channels present/collect structured facts for the canonical HestivaOS Quote domain.
