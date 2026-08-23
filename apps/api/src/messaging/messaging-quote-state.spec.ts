@@ -73,7 +73,7 @@ describe('Messaging Quote durable-state transitions', () => {
     const confirmed = confirmMessagingQuoteReview(reviewed, 'message-confirm', new Date('2026-08-21T17:00:00.000Z'));
 
     const changed = updateMessagingQuoteDraft(confirmed, {
-      notes: { customerNote: 'Please focus on the kitchen.' },
+      notes: { additionalNotes: 'Please focus on the kitchen.' },
     });
     expect(changed.reviewSummaryMessageId).toBeNull();
     expect(changed.confirmationMessageId).toBeNull();
