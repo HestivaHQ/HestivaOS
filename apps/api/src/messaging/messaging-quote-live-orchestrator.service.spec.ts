@@ -208,7 +208,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
 
   it('does not treat conversational variants as confirmation', async () => {
     const prisma = {
-      messagingMessage: { findUnique: jest.fn(async () => inbound('confirm')) },
+      messagingMessage: { findUnique: jest.fn(async (args: any) => args.where.id ? inbound('confirm') : null) },
     } as unknown as PrismaService;
     const messaging = { send: jest.fn() } as any;
     const quoteState = {
