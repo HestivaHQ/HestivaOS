@@ -3,7 +3,9 @@ import { resolveApprovedCleanerHours } from './approved-quote-cost-model';
 import type { QuotePricingSubmission } from './quote-operational-cost-source';
 import { calculateWebsiteQuotePricing } from './website-quote-pricing';
 
-function postEventSubmission(overrides: Partial<QuotePricingSubmission['request']['postEvent']> = {}): QuotePricingSubmission {
+type PostEventFacts = NonNullable<QuotePricingSubmission['request']['postEvent']>;
+
+function postEventSubmission(overrides: Partial<PostEventFacts> = {}): QuotePricingSubmission {
   return {
     customer: {
       fullName: 'Test Customer',
