@@ -22,6 +22,8 @@ import {
   nextMessagingGuidedPostEventQuestion,
   type MessagingGuidedPostEventQuestion,
 } from './messaging-quote-guided-post-event';
+import { messagingQuoteMediaAssetIds } from './messaging-quote-draft';
+import { securedInboundQuoteImageAssetIds } from './messaging-quote-media-bridge';
 import { MessagingQuoteSubmissionService } from './messaging-quote-submission.service';
 import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import type { MessagingQuoteStateView } from './messaging-quote-state';
@@ -47,6 +49,9 @@ function reviewSummaryText(draft: Record<string, unknown>): string {
   const customer = (draft.customer ?? {}) as Record<string, unknown>;
   const primary = (request.primaryService ?? {}) as Record<string, unknown>;
   const addOns = Array.isArray(request.addOns) ? request.addOns : [];
+  const photoCount = Array.isArray(draft.messagingMediaAssetIds)
+    ? new Set(draft.messagingMediaAssetIds.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))).size
+    : 0;
 
   const values = [
     ['Service', primary.canonicalService ?? primary.websiteValue],
@@ -71,6 +76,7 @@ function reviewSummaryText(draft: Record<string, unknown>): string {
     .map(([label, value]) => `${label}: ${String(value)}`);
 
   if (addOns.length) lines.push(`Add-ons: ${addOns.length} selected`);
+  lines.push(`Photos: ${photoCount > 0 ? `${photoCount} selected` : 'None'}`);
 
   return [
     'Please review your quote request:',
@@ -191,7 +197,7 @@ export class MessagingQuoteLiveOrchestratorService {
     if (selection === '2') return { request: null };
     if (selection === '3') return { visit: null };
     if (selection === '4') return { access: null, household: null };
-    if (selection === '5') return { safety: null, notes: null, photos: null };
+    if (selection === '5') return { safety: null, notes: null, photos: null, messagingMediaAssetIds: [] };
     if (selection === '6') return { customer: null };
     return null;
   }
@@ -271,6 +277,36 @@ export class MessagingQuoteLiveOrchestratorService {
     if (!prompt?.statusEvents.length) {
       await this.sendDurableText(inbound, promptKey, question.text);
       return state;
+    }
+
+    if (question.id === 'PHOTOS' && inbound.kind === MessagingMessageKind.MEDIA) {
+      const assetIds = inbound.conversation.channel === MessagingChannel.WHATSAPP
+        ? await securedInboundQuoteImageAssetIds(this.prisma, inbound.id, inbound.conversationId)
+        : [];
+      if (!assetIds.length) {
+        await this.sendDurableText(
+          inbound,
+          `messaging-quote-photo-retry:${inbound.id}`,
+          `Only secured WhatsApp images can be attached to this quote right now.\n\n${question.text}`,
+        );
+        return state;
+      }
+
+      const selected = [...new Set([...messagingQuoteMediaAssetIds(state.draft), ...assetIds])];
+      const updated = await this.quoteState.updateDraft(
+        inbound.conversationId,
+        state.version,
+        { messagingMediaAssetIds: selected },
+      );
+      const nextQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
+      if (nextQuestion) {
+        await this.sendDurableText(
+          inbound,
+          this.guidedCleaningPromptKey(inbound.conversationId, updated.version, nextQuestion),
+          nextQuestion.text,
+        );
+      }
+      return updated;
     }
 
     const answer = inbound.kind === MessagingMessageKind.TEXT
