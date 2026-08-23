@@ -1,6 +1,7 @@
 import type { WebsiteQuotePricingLineV1, WebsiteQuotePricingSnapshotV1, WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 import { resolveLaundryRequest } from './laundry-operating-model';
+import type { QuotePricingSubmission } from './quote-operational-cost-source';
 import {
   applyQuoteProfitabilityFloor,
   type QuoteOperationalCostSnapshot,
@@ -8,6 +9,7 @@ import {
 } from './quote-profitability';
 
 export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
+type QuotePricingInput = WebsiteQuoteSubmission | QuotePricingSubmission;
 
 export type WebsiteQuotePricingAttentionReason = {
   code: string;
@@ -94,7 +96,7 @@ function attention(code: string, path: string, message: string): WebsiteQuotePri
 }
 
 function addFloorPricedPrimary(
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingInput,
   canonicalService: string,
   lines: WebsiteQuotePricingLineV1[],
   attentionReasons: WebsiteQuotePricingAttentionReason[],
@@ -123,7 +125,7 @@ function addFloorPricedPrimary(
 }
 
 function addRoomServicePrimary(
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingInput,
   canonicalService: string,
   lines: WebsiteQuotePricingLineV1[],
   attentionReasons: WebsiteQuotePricingAttentionReason[],
@@ -166,11 +168,11 @@ function addRoomServicePrimary(
 }
 
 function addStructuredLaundry(
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingInput,
   lines: WebsiteQuotePricingLineV1[],
   attentionReasons: WebsiteQuotePricingAttentionReason[],
 ) {
-  if (submission.schemaVersion !== '2.0' || !submission.request.laundry) return;
+  if (!('schemaVersion' in submission) || submission.schemaVersion !== '2.0' || !submission.request.laundry) return;
 
   const resolved = resolveLaundryRequest({
     primaryService: submission.request.primaryService.canonicalService,
@@ -203,7 +205,7 @@ function addStructuredLaundry(
 }
 
 export function calculateWebsiteQuotePricing(
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingInput,
   operationalCosts?: QuoteOperationalCostSnapshot,
 ): WebsiteQuotePricingResult {
   const lines: WebsiteQuotePricingLineV1[] = [];

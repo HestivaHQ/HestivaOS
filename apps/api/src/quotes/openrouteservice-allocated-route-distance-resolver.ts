@@ -2,7 +2,7 @@ import type {
   AllocatedRouteDistanceResolver,
   AllocatedRouteDistanceResult,
 } from './approved-quote-operational-cost-provider';
-import type { WebsiteQuoteSubmission } from './quote-operational-cost-source';
+import type { QuotePricingSubmission } from './quote-operational-cost-source';
 
 export type OpenRouteServiceAllocatedRouteDistanceResolverOptions = {
   apiKey: string;
@@ -43,7 +43,7 @@ export class OpenRouteServiceAllocatedRouteDistanceResolver implements Allocated
   }
 
   private async resolveDestination(
-    submission: WebsiteQuoteSubmission,
+    submission: QuotePricingSubmission,
   ): Promise<{ latitude: number; longitude: number; provenance: string } | null> {
     const supplied = submission.property.location;
     if (supplied) {
@@ -98,7 +98,7 @@ export class OpenRouteServiceAllocatedRouteDistanceResolver implements Allocated
     return { latitude, longitude, provenance: 'destination=address-geocode' };
   }
 
-  async resolve(submission: WebsiteQuoteSubmission): Promise<AllocatedRouteDistanceResult> {
+  async resolve(submission: QuotePricingSubmission): Promise<AllocatedRouteDistanceResult> {
     if (
       !validCoordinate(this.options.deploymentBaseLatitude, -90, 90) ||
       !validCoordinate(this.options.deploymentBaseLongitude, -180, 180)

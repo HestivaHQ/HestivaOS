@@ -2,6 +2,24 @@ import type { QuoteOperationalCostSnapshot } from './quote-profitability';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 
+export type QuotePricingSubmission = Pick<
+  WebsiteQuoteSubmissionV2,
+  | 'customer'
+  | 'property'
+  | 'request'
+  | 'visit'
+  | 'access'
+  | 'household'
+  | 'safety'
+  | 'notes'
+  | 'photos'
+>;
+
+/**
+ * Backward-compatible type alias for existing Website-specific callers. The
+ * authoritative pricing/cost boundary itself consumes only canonical Quote
+ * business facts, not Website transport identity or provenance.
+ */
 export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
 
 export const QUOTE_OPERATIONAL_COST_PROVIDER = 'QUOTE_OPERATIONAL_COST_PROVIDER' as const;
@@ -43,7 +61,7 @@ export type QuoteOperationalCostResolution =
  * deployment, consumables, reserve, overhead and contribution subsystems.
  */
 export interface QuoteOperationalCostProvider {
-  resolve(submission: WebsiteQuoteSubmission): Promise<QuoteOperationalCostCandidate | null>;
+  resolve(submission: QuotePricingSubmission): Promise<QuoteOperationalCostCandidate | null>;
 }
 
 function validMinorUnitAmount(value: unknown): value is number {
@@ -86,7 +104,7 @@ export function validateOperationalCostCandidate(
 
 export async function resolveQuoteOperationalCosts(
   provider: QuoteOperationalCostProvider,
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingSubmission,
 ): Promise<QuoteOperationalCostResolution> {
   return validateOperationalCostCandidate(await provider.resolve(submission));
 }

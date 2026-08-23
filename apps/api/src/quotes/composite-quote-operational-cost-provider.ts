@@ -2,7 +2,7 @@ import type {
   QuoteOperationalCostCandidate,
   QuoteOperationalCostComponent,
   QuoteOperationalCostProvider,
-  WebsiteQuoteSubmission,
+  QuotePricingSubmission,
 } from './quote-operational-cost-source';
 
 export type QuoteOperationalCostComponentResult = {
@@ -11,7 +11,7 @@ export type QuoteOperationalCostComponentResult = {
 };
 
 export type QuoteOperationalCostComponentResolver = (
-  submission: WebsiteQuoteSubmission,
+  submission: QuotePricingSubmission,
 ) => Promise<QuoteOperationalCostComponentResult> | QuoteOperationalCostComponentResult;
 
 export type QuoteOperationalCostResolvers = Record<
@@ -28,7 +28,7 @@ export type QuoteOperationalCostResolvers = Record<
 export class CompositeQuoteOperationalCostProvider implements QuoteOperationalCostProvider {
   constructor(private readonly resolvers: QuoteOperationalCostResolvers) {}
 
-  async resolve(submission: WebsiteQuoteSubmission): Promise<QuoteOperationalCostCandidate> {
+  async resolve(submission: QuotePricingSubmission): Promise<QuoteOperationalCostCandidate> {
     const entries = await Promise.all(
       Object.entries(this.resolvers).map(async ([component, resolver]) => {
         const result = await resolver(submission);

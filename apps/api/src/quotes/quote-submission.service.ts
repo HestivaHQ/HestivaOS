@@ -11,7 +11,7 @@ import {
   QUOTE_OPERATIONAL_COST_PROVIDER,
   resolveQuoteOperationalCosts,
   type QuoteOperationalCostProvider,
-  type WebsiteQuoteSubmission,
+  type QuotePricingSubmission,
 } from './quote-operational-cost-source';
 import { calculateWebsiteQuotePricing } from './website-quote-pricing';
 
@@ -26,7 +26,7 @@ export type QuoteSubmissionReplayResolver = () => Promise<QuoteSubmissionReplayR
 export type AuthoritativeQuoteSubmissionInput = {
   submissionKey: string;
   submittedAt: string;
-  pricingSubmission: WebsiteQuoteSubmission;
+  pricingSubmission: QuotePricingSubmission;
   structuredData: Prisma.InputJsonValue;
   submittedActivityMetadata: Prisma.InputJsonObject;
 };

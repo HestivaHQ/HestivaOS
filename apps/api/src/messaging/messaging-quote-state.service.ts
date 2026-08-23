@@ -3,6 +3,7 @@ import { MessagingDirection, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import type { MessagingQuoteDraft } from './messaging-quote-draft';
 import {
+  beginMessagingQuoteSubmission,
   confirmMessagingQuoteReview,
   markMessagingQuoteReviewPresented,
   markMessagingQuoteSubmitted,
@@ -67,6 +68,14 @@ export class MessagingQuoteStateService {
       conversationId,
       expectedVersion,
       (state) => confirmMessagingQuoteReview(state, confirmationMessageId, message.occurredAt),
+    );
+  }
+
+  async beginSubmission(conversationId: string, expectedVersion: number, submissionKey: string) {
+    return this.transition(
+      conversationId,
+      expectedVersion,
+      (state) => beginMessagingQuoteSubmission(state, submissionKey),
     );
   }
 

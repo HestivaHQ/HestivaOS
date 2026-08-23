@@ -1,7 +1,4 @@
-import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
-import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
-
-export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
+import type { QuotePricingSubmission } from './quote-operational-cost-source';
 
 export const CLEANER_WAGE_MINOR_PER_HOUR = 3_327;
 export const EMPLOYER_UIF_RATE = 0.01;
@@ -67,7 +64,7 @@ export type CleanerHoursResolution =
   | { kind: 'READY'; cleanerHours: number; provenance: string }
   | { kind: 'NEEDS_ATTENTION'; reason: string; provenance: string };
 
-export function resolveApprovedCleanerHours(submission: WebsiteQuoteSubmission): CleanerHoursResolution {
+export function resolveApprovedCleanerHours(submission: QuotePricingSubmission): CleanerHoursResolution {
   const service = submission.request.primaryService.canonicalService;
   const floorSize = submission.property.floorSize;
 

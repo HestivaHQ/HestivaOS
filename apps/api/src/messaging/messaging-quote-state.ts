@@ -9,6 +9,7 @@ export type MessagingQuoteStateSnapshot = {
   reviewSummaryMessageId: string | null;
   confirmationMessageId: string | null;
   confirmedAt: string | null;
+  submissionKey: string | null;
   submittedQuoteId: string | null;
 };
 
@@ -24,6 +25,7 @@ export function initialMessagingQuoteState(): MessagingQuoteStateSnapshot {
     reviewSummaryMessageId: null,
     confirmationMessageId: null,
     confirmedAt: null,
+    submissionKey: null,
     submittedQuoteId: null,
   };
 }
@@ -53,6 +55,7 @@ export function parseMessagingQuoteStateSnapshot(
   const reviewSummaryMessageId = candidate.reviewSummaryMessageId;
   const confirmationMessageId = candidate.confirmationMessageId;
   const confirmedAt = candidate.confirmedAt;
+  const submissionKey = candidate.submissionKey === undefined ? null : candidate.submissionKey;
   const submittedQuoteId = candidate.submittedQuoteId;
   if (
     candidate.version !== persistedVersion ||
@@ -62,6 +65,7 @@ export function parseMessagingQuoteStateSnapshot(
     !optionalString(reviewSummaryMessageId) ||
     !optionalString(confirmationMessageId) ||
     !optionalString(confirmedAt) ||
+    !optionalString(submissionKey) ||
     !optionalString(submittedQuoteId)
   ) {
     throw new ConflictException('Messaging Quote state payload is inconsistent and requires recovery.');
@@ -74,7 +78,10 @@ export function parseMessagingQuoteStateSnapshot(
     throw new ConflictException('Messaging Quote confirmation timestamp is invalid and requires recovery.');
   }
 
-  return candidate as unknown as MessagingQuoteStateSnapshot;
+  return {
+    ...(candidate as unknown as Omit<MessagingQuoteStateSnapshot, 'submissionKey'>),
+    submissionKey,
+  };
 }
 
 function nextVersion(state: MessagingQuoteStateSnapshot): number {
@@ -95,6 +102,7 @@ export function viewMessagingQuoteState(state: MessagingQuoteStateSnapshot): Mes
       draft: state.draft,
       humanReviewRequired: state.humanReviewRequired,
       customerConfirmed: customerConfirmed(state),
+      submissionKey: state.submissionKey,
       submittedQuoteId: state.submittedQuoteId,
     }).phase,
   };
@@ -111,6 +119,9 @@ export function updateMessagingQuoteDraft(
 ): MessagingQuoteStateSnapshot {
   if (state.submittedQuoteId) {
     throw new ConflictException('Submitted Messaging Quote facts must change through Quote revision, not draft mutation.');
+  }
+  if (state.submissionKey) {
+    throw new ConflictException('Messaging Quote submission has started; reload the canonical Quote before changing facts.');
   }
 
   return {
@@ -129,6 +140,9 @@ export function setMessagingQuoteHumanReview(
 ): MessagingQuoteStateSnapshot {
   if (state.submittedQuoteId && required) {
     throw new ConflictException('A submitted Messaging Quote cannot be returned to draft human review.');
+  }
+  if (state.submissionKey) {
+    throw new ConflictException('Messaging Quote submission has started and cannot be moved back to draft human review.');
   }
 
   return {
@@ -184,6 +198,29 @@ export function confirmMessagingQuoteReview(
   };
 }
 
+export function beginMessagingQuoteSubmission(
+  state: MessagingQuoteStateSnapshot,
+  submissionKey: string,
+): MessagingQuoteStateSnapshot {
+  const key = submissionKey.trim();
+  if (!key) throw new ConflictException('Messaging Quote submission identity is required.');
+
+  const phase = viewMessagingQuoteState(state).phase;
+  if (phase === 'SUBMITTING') {
+    if (state.submissionKey === key) return state;
+    throw new ConflictException('Messaging Quote submission is already reserved with a different identity.');
+  }
+  if (phase !== 'READY_TO_SUBMIT') {
+    throw new ConflictException('Messaging Quote submission can start only after explicit customer confirmation.');
+  }
+
+  return {
+    ...state,
+    version: nextVersion(state),
+    submissionKey: key,
+  };
+}
+
 export function markMessagingQuoteSubmitted(
   state: MessagingQuoteStateSnapshot,
   quoteId: string,
@@ -195,8 +232,8 @@ export function markMessagingQuoteSubmitted(
     if (state.submittedQuoteId === canonicalQuoteId) return state;
     throw new ConflictException('Messaging Quote state is already linked to a different canonical Quote.');
   }
-  if (phase !== 'READY_TO_SUBMIT') {
-    throw new ConflictException('Messaging Quote can be linked only after explicit customer confirmation.');
+  if (phase !== 'SUBMITTING' || !state.submissionKey) {
+    throw new ConflictException('Messaging Quote can be linked only after a reserved submission starts.');
   }
 
   return {
