@@ -1,0 +1,86 @@
+import { describe, expect, it } from '@jest/globals';
+import {
+  applyMessagingGuidedCleaningAnswer,
+  nextMessagingGuidedCleaningQuestion,
+} from './messaging-quote-guided-cleaning-requirements';
+
+function withRequest(request: Record<string, unknown>) {
+  return { request } as any;
+}
+
+describe('guided Messaging cleaning requirements', () => {
+  it('starts with the bounded primary service question', () => {
+    const question = nextMessagingGuidedCleaningQuestion({});
+    expect(question?.id).toBe('PRIMARY_SERVICE');
+    expect(question?.text).toContain('14. Not sure');
+  });
+
+  it('stores the approved primary service mapping rather than interpreting prose', () => {
+    expect(applyMessagingGuidedCleaningAnswer({}, '2')).toEqual({
+      kind: 'ACCEPTED',
+      patch: {
+        request: {
+          primaryService: {
+            websiteValue: 'Deep Cleaning',
+            canonicalService: 'Deep Cleaning',
+          },
+        },
+      },
+    });
+    expect(applyMessagingGuidedCleaningAnswer({}, 'deep clean please').kind).toBe('INVALID');
+  });
+
+  it('offers only frequencies allowed by the canonical service rules', () => {
+    const moveIn = withRequest({
+      primaryService: { websiteValue: 'Move-In Cleaning', canonicalService: 'Move-In Cleaning' },
+    });
+    const question = nextMessagingGuidedCleaningQuestion(moveIn);
+    expect(question?.id).toBe('FREQUENCY');
+    expect(question?.text).toContain('1. One time');
+    expect(question?.text).not.toContain('2. Weekly');
+    expect(applyMessagingGuidedCleaningAnswer(moveIn, '2').kind).toBe('INVALID');
+    expect(applyMessagingGuidedCleaningAnswer(moveIn, '1')).toEqual({
+      kind: 'ACCEPTED',
+      patch: { request: { frequency: 'ONE_TIME' } },
+    });
+  });
+
+  it('requires a verbatim schedule note for custom frequency', () => {
+    const draft = withRequest({
+      primaryService: { websiteValue: 'Regular Home Cleaning', canonicalService: 'Regular Home Cleaning' },
+      frequency: 'CUSTOM',
+    });
+    expect(nextMessagingGuidedCleaningQuestion(draft)?.id).toBe('CUSTOM_FREQUENCY_NOTE');
+    expect(applyMessagingGuidedCleaningAnswer(draft, '  every third Friday morning  ')).toEqual({
+      kind: 'ACCEPTED',
+      patch: { request: { customFrequencyNote: 'every third Friday morning' } },
+    });
+  });
+
+  it('collects the bounded home condition and then stops before Personalise Service', () => {
+    const draft = withRequest({
+      primaryService: { websiteValue: 'Regular Home Cleaning', canonicalService: 'Regular Home Cleaning' },
+      frequency: 'WEEKLY',
+    });
+    expect(nextMessagingGuidedCleaningQuestion(draft)?.id).toBe('HOME_CONDITION');
+    expect(applyMessagingGuidedCleaningAnswer(draft, '4')).toEqual({
+      kind: 'ACCEPTED',
+      patch: { request: { homeCondition: 'HEAVY_BUILDUP' } },
+    });
+    expect(nextMessagingGuidedCleaningQuestion(withRequest({
+      ...draft.request,
+      homeCondition: 'HEAVY_BUILDUP',
+    }))).toBeNull();
+  });
+
+  it('preserves Not sure as the existing canonical null mapping', () => {
+    expect(applyMessagingGuidedCleaningAnswer({}, '14')).toEqual({
+      kind: 'ACCEPTED',
+      patch: {
+        request: {
+          primaryService: { websiteValue: 'Not sure', canonicalService: null },
+        },
+      },
+    });
+  });
+});
