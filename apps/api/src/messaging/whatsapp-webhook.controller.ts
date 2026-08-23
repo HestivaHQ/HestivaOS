@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { Public } from '../users/public.decorator';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
+import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 import { MessagingService } from './messaging.service';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
 import { WhatsAppInboundMediaService } from './whatsapp-inbound-media.service';
@@ -32,6 +33,7 @@ export class WhatsAppWebhookController {
     private readonly messaging: MessagingService,
     private readonly inboundMedia: WhatsAppInboundMediaService,
     private readonly customerLinking: MessagingCustomerLinkingService,
+    private readonly quoteOrchestrator: MessagingQuoteLiveOrchestratorService,
   ) {}
 
   @Get()
@@ -63,6 +65,7 @@ export class WhatsAppWebhookController {
       const message = await this.messaging.persistInbound(event);
       await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
       await this.inboundMedia.secureInboundMedia(message.id, event);
+      await this.quoteOrchestrator.handleInbound(message.id);
     }
     for (const event of statusEvents) await this.messaging.persistWhatsAppStatus(event);
     return { received: true, normalizedEvents: events.length, normalizedStatusEvents: statusEvents.length };
