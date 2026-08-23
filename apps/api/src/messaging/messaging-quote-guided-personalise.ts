@@ -48,8 +48,8 @@ export function applyMessagingGuidedPersonaliseAnswer(draft: MessagingQuoteDraft
   }
   if (question.id === 'EXTRA_REFRIGERATOR_QUANTITY' || question.id === 'BALCONY_PATIO_QUANTITY') { const quantity = positiveInteger(text); if (!quantity) return { kind: 'INVALID', question }; const target = question.id === 'EXTRA_REFRIGERATOR_QUANTITY' ? 'Extra Refrigerator' : 'Balcony / Patio Cleaning'; return { kind: 'ACCEPTED', patch: { request: { addOns: addOns.map((item) => item.canonicalService === target ? { ...item, quantity } : item) } } }; }
   if (question.id === 'ECO_FRIENDLY_PRODUCTS') { if (text !== '1' && text !== '2') return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { request: { ecoFriendlyProducts: text === '1' } } }; }
-  if (question.id === 'LAUNDRY_FACILITIES') { const facilities = LAUNDRY_FACILITIES[text]; if (!facilities) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), facilities } } }; }
+  if (question.id === 'LAUNDRY_FACILITIES') { const facilities = LAUNDRY_FACILITIES[text]; if (!facilities) return { kind: 'INVALID', question }; return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), facilities } } } }; }
   const quantity = positiveInteger(text); if (!quantity) return { kind: 'INVALID', question };
   if (question.id === 'LAUNDRY_LOADS') return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), laundryLoads: quantity } } } };
-  return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), ironingLoads: quantity } } };
+  return { kind: 'ACCEPTED', patch: { request: { laundry: { ...laundryProgress(request), ironingLoads: quantity } } } };
 }
