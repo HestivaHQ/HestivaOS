@@ -1,32 +1,9 @@
 import type { QuoteOperationalCostSnapshot } from './quote-profitability';
-import type { PostEventCleaningRequest } from './post-event-cleaning-operating-model';
+import type { PostEventQuoteFacts } from './post-event-cleaning-quote-facts';
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 
-export type PostEventEventType =
-  | 'PARTY_BIRTHDAY'
-  | 'WEDDING_RECEPTION'
-  | 'FAMILY_GATHERING'
-  | 'CORPORATE_EVENT'
-  | 'FUNERAL_MEMORIAL'
-  | 'OTHER';
-
-export type PostEventVenueType =
-  | 'HOME'
-  | 'APARTMENT'
-  | 'BUSINESS_PREMISES'
-  | 'EVENT_VENUE'
-  | 'OTHER';
-
-/**
- * Canonical Post-Event Quote facts. Event and venue type are retained as
- * non-pricing customer context; the remaining fields feed the approved
- * deterministic workload model.
- */
-export type PostEventQuoteFacts = Omit<PostEventCleaningRequest, 'floorSize'> & {
-  eventType: PostEventEventType;
-  venueType: PostEventVenueType;
-};
+export type { PostEventEventType, PostEventQuoteFacts, PostEventVenueType } from './post-event-cleaning-quote-facts';
 
 type WebsiteQuoteBusinessFacts = Pick<
   WebsiteQuoteSubmissionV2,
@@ -41,11 +18,7 @@ type WebsiteQuoteBusinessFacts = Pick<
   | 'photos'
 >;
 
-/**
- * Canonical Quote business facts consumed by pricing/costing. Post-Event facts
- * are internal Quote-domain data for now; external Website/Messaging contracts
- * must map into this shape in their own coordinated follow-up slices.
- */
+/** Canonical Quote business facts consumed by pricing/costing. */
 export type QuotePricingSubmission = Omit<WebsiteQuoteBusinessFacts, 'request'> & {
   request: WebsiteQuoteBusinessFacts['request'] & {
     postEvent?: PostEventQuoteFacts;
