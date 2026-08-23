@@ -3,7 +3,30 @@ import type { PostEventCleaningRequest } from './post-event-cleaning-operating-m
 import type { WebsiteQuoteSubmissionV1 } from './website-quote-contract';
 import type { WebsiteQuoteSubmissionV2 } from './website-quote-contract-v2';
 
-export type PostEventQuoteFacts = Omit<PostEventCleaningRequest, 'floorSize'>;
+export type PostEventEventType =
+  | 'PARTY_BIRTHDAY'
+  | 'WEDDING_RECEPTION'
+  | 'FAMILY_GATHERING'
+  | 'CORPORATE_EVENT'
+  | 'FUNERAL_MEMORIAL'
+  | 'OTHER';
+
+export type PostEventVenueType =
+  | 'HOME'
+  | 'APARTMENT'
+  | 'BUSINESS_PREMISES'
+  | 'EVENT_VENUE'
+  | 'OTHER';
+
+/**
+ * Canonical Post-Event Quote facts. Event and venue type are retained as
+ * non-pricing customer context; the remaining fields feed the approved
+ * deterministic workload model.
+ */
+export type PostEventQuoteFacts = Omit<PostEventCleaningRequest, 'floorSize'> & {
+  eventType: PostEventEventType;
+  venueType: PostEventVenueType;
+};
 
 type WebsiteQuoteBusinessFacts = Pick<
   WebsiteQuoteSubmissionV2,

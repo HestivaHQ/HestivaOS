@@ -1,3 +1,4 @@
+import { POST_EVENT_CLEANING_SERVICE } from '../quotes/post-event-cleaning-operating-model';
 import { allowedFrequenciesForCanonicalService } from '../quotes/website-quote-contract';
 import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
 
@@ -26,7 +27,8 @@ const PRIMARY_SERVICES = {
   '11': { websiteValue: 'Laundry Folding', canonicalService: 'Laundry Folding' },
   '12': { websiteValue: 'Eco-Friendly Cleaning', canonicalService: 'Eco-Conscious Cleaning' },
   '13': { websiteValue: 'Post-Renovation Cleaning', canonicalService: 'Post-Renovation Cleaning' },
-  '14': { websiteValue: 'Not sure', canonicalService: null },
+  '14': { websiteValue: POST_EVENT_CLEANING_SERVICE, canonicalService: POST_EVENT_CLEANING_SERVICE },
+  '15': { websiteValue: 'Not sure', canonicalService: null },
 } as const;
 
 const FREQUENCIES = {
@@ -76,6 +78,7 @@ function nonEmptyString(value: unknown): value is string {
 }
 
 function allowedFrequencyValues(canonicalService: string | null): readonly FrequencyValue[] {
+  if (canonicalService === POST_EVENT_CLEANING_SERVICE) return ['ONE_TIME'];
   return allowedFrequenciesForCanonicalService(canonicalService) ?? Object.values(FREQUENCIES);
 }
 
@@ -99,7 +102,7 @@ export function nextMessagingGuidedCleaningQuestion(
   if (!Object.prototype.hasOwnProperty.call(primary, 'canonicalService') || !nonEmptyString(primary.websiteValue)) {
     return {
       id: 'PRIMARY_SERVICE',
-      text: 'Which cleaning service do you need?\n1. Regular Home Cleaning\n2. Deep Cleaning\n3. Move-In Cleaning\n4. Move-Out Cleaning\n5. Apartment Cleaning\n6. Kitchen Cleaning\n7. Bathroom Sanitisation\n8. Bedroom Cleaning\n9. Living Area Cleaning\n10. Interior Window Cleaning\n11. Laundry Folding\n12. Eco-Friendly Cleaning\n13. Post-Renovation Cleaning\n14. Not sure\nReply with the number only.',
+      text: 'Which cleaning service do you need?\n1. Regular Home Cleaning\n2. Deep Cleaning\n3. Move-In Cleaning\n4. Move-Out Cleaning\n5. Apartment Cleaning\n6. Kitchen Cleaning\n7. Bathroom Sanitisation\n8. Bedroom Cleaning\n9. Living Area Cleaning\n10. Interior Window Cleaning\n11. Laundry Folding\n12. Eco-Friendly Cleaning\n13. Post-Renovation Cleaning\n14. Post-Event Cleaning\n15. Not sure\nReply with the number only.',
     };
   }
 

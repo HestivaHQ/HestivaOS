@@ -12,7 +12,8 @@ describe('guided Messaging cleaning requirements', () => {
   it('starts with the bounded primary service question', () => {
     const question = nextMessagingGuidedCleaningQuestion({});
     expect(question?.id).toBe('PRIMARY_SERVICE');
-    expect(question?.text).toContain('14. Not sure');
+    expect(question?.text).toContain('14. Post-Event Cleaning');
+    expect(question?.text).toContain('15. Not sure');
   });
 
   it('stores the approved primary service mapping rather than interpreting prose', () => {
@@ -45,6 +46,18 @@ describe('guided Messaging cleaning requirements', () => {
     });
   });
 
+  it('keeps Post-Event Cleaning once-off only', () => {
+    const selected = applyMessagingGuidedCleaningAnswer({}, '14');
+    expect(selected).toEqual({
+      kind: 'ACCEPTED',
+      patch: { request: { primaryService: { websiteValue: 'Post-Event Cleaning', canonicalService: 'Post-Event Cleaning' } } },
+    });
+    const draft = withRequest({ primaryService: { websiteValue: 'Post-Event Cleaning', canonicalService: 'Post-Event Cleaning' } });
+    expect(nextMessagingGuidedCleaningQuestion(draft)?.text).toContain('1. One time');
+    expect(nextMessagingGuidedCleaningQuestion(draft)?.text).not.toContain('2. Weekly');
+    expect(applyMessagingGuidedCleaningAnswer(draft, '2').kind).toBe('INVALID');
+  });
+
   it('requires a verbatim schedule note for custom frequency', () => {
     const draft = withRequest({
       primaryService: { websiteValue: 'Regular Home Cleaning', canonicalService: 'Regular Home Cleaning' },
@@ -67,20 +80,13 @@ describe('guided Messaging cleaning requirements', () => {
       kind: 'ACCEPTED',
       patch: { request: { homeCondition: 'HEAVY_BUILDUP' } },
     });
-    expect(nextMessagingGuidedCleaningQuestion(withRequest({
-      ...draft.request,
-      homeCondition: 'HEAVY_BUILDUP',
-    }))).toBeNull();
+    expect(nextMessagingGuidedCleaningQuestion(withRequest({ ...draft.request, homeCondition: 'HEAVY_BUILDUP' }))).toBeNull();
   });
 
   it('preserves Not sure as the existing canonical null mapping', () => {
-    expect(applyMessagingGuidedCleaningAnswer({}, '14')).toEqual({
+    expect(applyMessagingGuidedCleaningAnswer({}, '15')).toEqual({
       kind: 'ACCEPTED',
-      patch: {
-        request: {
-          primaryService: { websiteValue: 'Not sure', canonicalService: null },
-        },
-      },
+      patch: { request: { primaryService: { websiteValue: 'Not sure', canonicalService: null } } },
     });
   });
 });
