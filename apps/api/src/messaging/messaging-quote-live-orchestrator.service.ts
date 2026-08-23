@@ -17,6 +17,11 @@ import {
   nextMessagingGuidedHomeQuestion,
   type MessagingGuidedHomeQuestion,
 } from './messaging-quote-guided-home';
+import {
+  applyMessagingGuidedPostEventAnswer,
+  nextMessagingGuidedPostEventQuestion,
+  type MessagingGuidedPostEventQuestion,
+} from './messaging-quote-guided-post-event';
 import { MessagingQuoteSubmissionService } from './messaging-quote-submission.service';
 import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import type { MessagingQuoteStateView } from './messaging-quote-state';
@@ -95,13 +100,9 @@ export class MessagingQuoteLiveOrchestratorService {
 
     let state = await this.quoteState.get(inbound.conversationId);
 
-    if (state.phase === 'SUBMITTED' || state.phase === 'HUMAN_REVIEW') {
-      return state;
-    }
+    if (state.phase === 'SUBMITTED' || state.phase === 'HUMAN_REVIEW') return state;
 
-    if (state.phase === 'COLLECTING') {
-      return this.handleGuidedCollection(inbound, state);
-    }
+    if (state.phase === 'COLLECTING') return this.handleGuidedCollection(inbound, state);
 
     if (state.phase === 'READY_TO_SUBMIT' || state.phase === 'SUBMITTING') {
       await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
@@ -139,31 +140,20 @@ export class MessagingQuoteLiveOrchestratorService {
     inbound: InboundForOrchestration,
     state: MessagingQuoteStateView,
   ) {
-    if (nextMessagingGuidedHomeQuestion(state.draft)) {
-      return this.handleGuidedHome(inbound, state);
-    }
-    if (nextMessagingGuidedCleaningQuestion(state.draft)) {
-      return this.handleGuidedCleaningRequirements(inbound, state);
-    }
+    if (nextMessagingGuidedHomeQuestion(state.draft)) return this.handleGuidedHome(inbound, state);
+    if (nextMessagingGuidedCleaningQuestion(state.draft)) return this.handleGuidedCleaningRequirements(inbound, state);
+    if (nextMessagingGuidedPostEventQuestion(state.draft)) return this.handleGuidedPostEvent(inbound, state);
     return state;
   }
 
-  private async handleGuidedHome(
-    inbound: InboundForOrchestration,
-    state: MessagingQuoteStateView,
-  ) {
+  private async handleGuidedHome(inbound: InboundForOrchestration, state: MessagingQuoteStateView) {
     const question = nextMessagingGuidedHomeQuestion(state.draft);
     if (!question) return state;
 
     const promptKey = this.guidedHomePromptKey(inbound.conversationId, state.version, question);
     const prompt = await this.prisma.messagingMessage.findUnique({
       where: { idempotencyKey: promptKey },
-      include: {
-        statusEvents: {
-          where: { status: MessagingDeliveryStatus.ACCEPTED },
-          take: 1,
-        },
-      },
+      include: { statusEvents: { where: { status: MessagingDeliveryStatus.ACCEPTED }, take: 1 } },
     });
 
     if (!prompt?.statusEvents.length) {
@@ -176,20 +166,15 @@ export class MessagingQuoteLiveOrchestratorService {
       : { kind: 'INVALID' as const, question };
 
     if (answer.kind !== 'ACCEPTED') {
-      const retryText = `Please answer the current quote question using the requested format.\n\n${question.text}`;
       await this.sendDurableText(
         inbound,
         `messaging-quote-home-retry:${inbound.id}:${question.id}`,
-        retryText,
+        `Please answer the current quote question using the requested format.\n\n${question.text}`,
       );
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(
-      inbound.conversationId,
-      state.version,
-      answer.patch,
-    );
+    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
     const nextQuestion = nextMessagingGuidedHomeQuestion(updated.draft);
     if (nextQuestion) {
       await this.sendDurableText(
@@ -220,12 +205,7 @@ export class MessagingQuoteLiveOrchestratorService {
     const promptKey = this.guidedCleaningPromptKey(inbound.conversationId, state.version, question);
     const prompt = await this.prisma.messagingMessage.findUnique({
       where: { idempotencyKey: promptKey },
-      include: {
-        statusEvents: {
-          where: { status: MessagingDeliveryStatus.ACCEPTED },
-          take: 1,
-        },
-      },
+      include: { statusEvents: { where: { status: MessagingDeliveryStatus.ACCEPTED }, take: 1 } },
     });
 
     if (!prompt?.statusEvents.length) {
@@ -238,20 +218,15 @@ export class MessagingQuoteLiveOrchestratorService {
       : { kind: 'INVALID' as const, question };
 
     if (answer.kind !== 'ACCEPTED') {
-      const retryText = `Please answer the current quote question using the requested format.\n\n${question.text}`;
       await this.sendDurableText(
         inbound,
         `messaging-quote-cleaning-retry:${inbound.id}:${question.id}`,
-        retryText,
+        `Please answer the current quote question using the requested format.\n\n${question.text}`,
       );
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(
-      inbound.conversationId,
-      state.version,
-      answer.patch,
-    );
+    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
     const nextQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
     if (nextQuestion) {
       await this.sendDurableText(
@@ -259,24 +234,72 @@ export class MessagingQuoteLiveOrchestratorService {
         this.guidedCleaningPromptKey(inbound.conversationId, updated.version, nextQuestion),
         nextQuestion.text,
       );
+    } else {
+      const postEventQuestion = nextMessagingGuidedPostEventQuestion(updated.draft);
+      if (postEventQuestion) {
+        await this.sendDurableText(
+          inbound,
+          this.guidedPostEventPromptKey(inbound.conversationId, updated.version, postEventQuestion),
+          postEventQuestion.text,
+        );
+      }
     }
     return updated;
   }
 
-  private guidedHomePromptKey(
-    conversationId: string,
-    version: number,
-    question: MessagingGuidedHomeQuestion,
+  private async handleGuidedPostEvent(
+    inbound: InboundForOrchestration,
+    state: MessagingQuoteStateView,
   ) {
+    const question = nextMessagingGuidedPostEventQuestion(state.draft);
+    if (!question) return state;
+
+    const promptKey = this.guidedPostEventPromptKey(inbound.conversationId, state.version, question);
+    const prompt = await this.prisma.messagingMessage.findUnique({
+      where: { idempotencyKey: promptKey },
+      include: { statusEvents: { where: { status: MessagingDeliveryStatus.ACCEPTED }, take: 1 } },
+    });
+
+    if (!prompt?.statusEvents.length) {
+      await this.sendDurableText(inbound, promptKey, question.text);
+      return state;
+    }
+
+    const answer = inbound.kind === MessagingMessageKind.TEXT
+      ? applyMessagingGuidedPostEventAnswer(state.draft, inbound.contentText)
+      : { kind: 'INVALID' as const, question };
+
+    if (answer.kind !== 'ACCEPTED') {
+      await this.sendDurableText(
+        inbound,
+        `messaging-quote-post-event-retry:${inbound.id}:${question.id}`,
+        `Please answer the current quote question using the requested format.\n\n${question.text}`,
+      );
+      return state;
+    }
+
+    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
+    const nextQuestion = nextMessagingGuidedPostEventQuestion(updated.draft);
+    if (nextQuestion) {
+      await this.sendDurableText(
+        inbound,
+        this.guidedPostEventPromptKey(inbound.conversationId, updated.version, nextQuestion),
+        nextQuestion.text,
+      );
+    }
+    return updated;
+  }
+
+  private guidedHomePromptKey(conversationId: string, version: number, question: MessagingGuidedHomeQuestion) {
     return `messaging-quote-home:${conversationId}:${version}:${question.id}`;
   }
 
-  private guidedCleaningPromptKey(
-    conversationId: string,
-    version: number,
-    question: MessagingGuidedCleaningQuestion,
-  ) {
+  private guidedCleaningPromptKey(conversationId: string, version: number, question: MessagingGuidedCleaningQuestion) {
     return `messaging-quote-cleaning:${conversationId}:${version}:${question.id}`;
+  }
+
+  private guidedPostEventPromptKey(conversationId: string, version: number, question: MessagingGuidedPostEventQuestion) {
+    return `messaging-quote-post-event:${conversationId}:${version}:${question.id}`;
   }
 
   private async sendDurableText(
