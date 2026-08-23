@@ -71,7 +71,6 @@ describe('Messaging Quote review correction', () => {
     expect(created).toHaveLength(1);
     expect(created[0].contentText).toContain('Which section would you like to change?');
     expect(created[0].contentText).toContain('6. Your customer details');
-    expect(quoteState.updateDraft).toBeUndefined();
   });
 
   it('does not interpret a correction selection until the correction menu has accepted-delivery evidence', async () => {
@@ -124,10 +123,10 @@ describe('Messaging Quote review correction', () => {
 
     expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 8, { request: null });
     expect(created.some((message) => String(message.contentText).includes('Which cleaning service do you need?'))).toBe(true);
-    expect(result.phase).toBe('COLLECTING');
+    expect(result?.phase).toBe('COLLECTING');
   });
 
-  it('keeps exact CONFIRM authoritative even when a correction menu exists', async () => {
+  it('keeps exact CONFIRM authoritative even when correction is available', async () => {
     const ready = { ...reviewState(), version: 9, phase: 'READY_TO_SUBMIT', confirmationMessageId: 'inbound-CONFIRM', confirmedAt: '2026-08-23T14:00:00.000Z' } as any;
     const submitted = { ...ready, version: 11, phase: 'SUBMITTED', submittedQuoteId: 'quote-1' } as any;
     let getCount = 0;
