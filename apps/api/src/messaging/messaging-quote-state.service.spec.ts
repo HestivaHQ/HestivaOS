@@ -105,6 +105,7 @@ describe('MessagingQuoteStateService', () => {
       reviewSummaryMessageId: 'message-review',
       confirmationMessageId: null,
       confirmedAt: null,
+      submissionKey: null,
       submittedQuoteId: null,
     };
     const holder = prismaFor(
@@ -116,5 +117,27 @@ describe('MessagingQuoteStateService', () => {
     expect(result.confirmationMessageId).toBe('message-confirm');
     expect(result.confirmedAt).toBe('2026-08-21T17:00:00.000Z');
     expect(result.phase).toBe('READY_TO_SUBMIT');
+  });
+
+  it('persists a submission reservation with optimistic version advancement', async () => {
+    const initial = {
+      version: 3,
+      draft: completeDraft,
+      humanReviewRequired: false,
+      reviewSummaryMessageId: 'message-review',
+      confirmationMessageId: 'message-confirm',
+      confirmedAt: '2026-08-21T17:00:00.000Z',
+      submissionKey: null,
+      submittedQuoteId: null,
+    };
+    const holder = prismaFor({ quoteState: initial, quoteStateVersion: 3 });
+    const service = new MessagingQuoteStateService(holder.prisma);
+    const result = await service.beginSubmission('conversation-1', 3, 'messaging:abc');
+    expect(result).toEqual(expect.objectContaining({
+      version: 4,
+      submissionKey: 'messaging:abc',
+      phase: 'SUBMITTING',
+    }));
+    expect(holder.read().quoteStateVersion).toBe(4);
   });
 });
