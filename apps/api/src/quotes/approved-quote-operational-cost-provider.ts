@@ -10,7 +10,7 @@ import {
 import type {
   QuoteOperationalCostCandidate,
   QuoteOperationalCostProvider,
-  WebsiteQuoteSubmission,
+  QuotePricingSubmission,
 } from './quote-operational-cost-source';
 
 export type AllocatedRouteDistanceResult = {
@@ -19,7 +19,7 @@ export type AllocatedRouteDistanceResult = {
 };
 
 export type AllocatedRouteDistanceResolver = {
-  resolve(submission: WebsiteQuoteSubmission): Promise<AllocatedRouteDistanceResult> | AllocatedRouteDistanceResult;
+  resolve(submission: QuotePricingSubmission): Promise<AllocatedRouteDistanceResult> | AllocatedRouteDistanceResult;
 };
 
 export type ApprovedQuoteOperationalCostProviderOptions = {
@@ -35,7 +35,7 @@ export type ApprovedQuoteOperationalCostProviderOptions = {
 export class ApprovedQuoteOperationalCostProvider implements QuoteOperationalCostProvider {
   constructor(private readonly options: ApprovedQuoteOperationalCostProviderOptions) {}
 
-  async resolve(submission: WebsiteQuoteSubmission): Promise<QuoteOperationalCostCandidate> {
+  async resolve(submission: QuotePricingSubmission): Promise<QuoteOperationalCostCandidate> {
     const cleanerHours = resolveApprovedCleanerHours(submission);
     const route = await this.options.routeDistanceResolver.resolve(submission);
     const candidate: QuoteOperationalCostCandidate = { provenance: {} };
