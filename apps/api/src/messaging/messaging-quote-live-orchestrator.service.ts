@@ -6,8 +6,14 @@ import {
   MessagingMessagePurpose,
 } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import {
+  applyMessagingGuidedHomeAnswer,
+  nextMessagingGuidedHomeQuestion,
+  type MessagingGuidedHomeQuestion,
+} from './messaging-quote-guided-home';
 import { MessagingQuoteSubmissionService } from './messaging-quote-submission.service';
 import { MessagingQuoteStateService } from './messaging-quote-state.service';
+import type { MessagingQuoteStateView } from './messaging-quote-state';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
 
 function reviewSummaryText(draft: Record<string, unknown>): string {
@@ -38,6 +44,19 @@ function reviewSummaryText(draft: Record<string, unknown>): string {
     'If anything is wrong, do not confirm. A correction flow will handle changes separately.',
   ].join('\n');
 }
+
+type InboundForOrchestration = {
+  id: string;
+  conversationId: string;
+  direction: MessagingDirection;
+  kind: MessagingMessageKind;
+  contentText: string | null;
+  conversation: {
+    channel: string;
+    provider: string;
+    providerIdentityId: string;
+  };
+};
 
 @Injectable()
 export class MessagingQuoteLiveOrchestratorService {
@@ -70,8 +89,12 @@ export class MessagingQuoteLiveOrchestratorService {
 
     let state = await this.quoteState.get(inbound.conversationId);
 
-    if (state.phase === 'SUBMITTED' || state.phase === 'HUMAN_REVIEW' || state.phase === 'COLLECTING') {
+    if (state.phase === 'SUBMITTED' || state.phase === 'HUMAN_REVIEW') {
       return state;
+    }
+
+    if (state.phase === 'COLLECTING') {
+      return this.handleGuidedHome(inbound, state);
     }
 
     if (state.phase === 'READY_TO_SUBMIT' || state.phase === 'SUBMITTING') {
@@ -81,53 +104,9 @@ export class MessagingQuoteLiveOrchestratorService {
 
     if (!state.reviewSummaryMessageId) {
       const idempotencyKey = `messaging-quote-review:${inbound.conversationId}:${state.version}`;
-      let outbound = await this.prisma.messagingMessage.findUnique({ where: { idempotencyKey } });
       const text = reviewSummaryText(state.draft as Record<string, unknown>);
-
-      if (outbound) {
-        if (
-          outbound.conversationId !== inbound.conversationId ||
-          outbound.direction !== MessagingDirection.OUTBOUND ||
-          outbound.kind !== MessagingMessageKind.TEXT ||
-          outbound.contentText !== text
-        ) {
-          throw new ConflictException('Messaging Quote review identity is bound to different immutable message data.');
-        }
-      } else {
-        outbound = await this.prisma.$transaction(async (tx) => {
-          const created = await tx.messagingMessage.create({
-            data: {
-              conversationId: inbound.conversationId,
-              direction: MessagingDirection.OUTBOUND,
-              kind: MessagingMessageKind.TEXT,
-              purpose: MessagingMessagePurpose.GENERAL,
-              idempotencyKey,
-              contentText: text,
-              occurredAt: new Date(),
-            },
-          });
-          await tx.messagingMessageStatusEvent.create({
-            data: { messageId: created.id, status: MessagingDeliveryStatus.PENDING },
-          });
-          return created;
-        });
-      }
-
-      try {
-        await this.messaging.send({
-          channel: inbound.conversation.channel,
-          provider: inbound.conversation.provider,
-          providerIdentityId: inbound.conversation.providerIdentityId,
-          conversationId: inbound.conversationId,
-          causationMessageId: inbound.id,
-          idempotencyKey,
-          kind: 'TEXT',
-          text,
-        });
-      } catch (error) {
-        if (error instanceof MessagingOutcomePendingReconciliationError) return state;
-        throw error;
-      }
+      const outbound = await this.sendDurableText(inbound, idempotencyKey, text);
+      if (!outbound) return state;
 
       state = await this.quoteState.recordReviewPresented(
         inbound.conversationId,
@@ -148,5 +127,123 @@ export class MessagingQuoteLiveOrchestratorService {
     );
     await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
     return this.quoteState.get(inbound.conversationId);
+  }
+
+  private async handleGuidedHome(
+    inbound: InboundForOrchestration,
+    state: MessagingQuoteStateView,
+  ) {
+    const question = nextMessagingGuidedHomeQuestion(state.draft);
+    if (!question) return state;
+
+    const promptKey = this.guidedHomePromptKey(inbound.conversationId, state.version, question);
+    const prompt = await this.prisma.messagingMessage.findUnique({
+      where: { idempotencyKey: promptKey },
+      include: {
+        statusEvents: {
+          where: { status: MessagingDeliveryStatus.ACCEPTED },
+          take: 1,
+        },
+      },
+    });
+
+    // Never interpret a menu-like inbound value unless the matching question was
+    // durably accepted by the provider first. An initial or unsent customer text
+    // simply causes the current deterministic question to be presented.
+    if (!prompt?.statusEvents.length) {
+      await this.sendDurableText(inbound, promptKey, question.text);
+      return state;
+    }
+
+    const answer = inbound.kind === MessagingMessageKind.TEXT
+      ? applyMessagingGuidedHomeAnswer(state.draft, inbound.contentText)
+      : { kind: 'INVALID' as const, question };
+
+    if (answer.kind !== 'ACCEPTED') {
+      const retryText = `Please answer the current quote question using the requested format.\n\n${question.text}`;
+      await this.sendDurableText(
+        inbound,
+        `messaging-quote-home-retry:${inbound.id}:${question.id}`,
+        retryText,
+      );
+      return state;
+    }
+
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      answer.patch,
+    );
+    const nextQuestion = nextMessagingGuidedHomeQuestion(updated.draft);
+    if (nextQuestion) {
+      await this.sendDurableText(
+        inbound,
+        this.guidedHomePromptKey(inbound.conversationId, updated.version, nextQuestion),
+        nextQuestion.text,
+      );
+    }
+    return updated;
+  }
+
+  private guidedHomePromptKey(
+    conversationId: string,
+    version: number,
+    question: MessagingGuidedHomeQuestion,
+  ) {
+    return `messaging-quote-home:${conversationId}:${version}:${question.id}`;
+  }
+
+  private async sendDurableText(
+    inbound: InboundForOrchestration,
+    idempotencyKey: string,
+    text: string,
+  ) {
+    let outbound = await this.prisma.messagingMessage.findUnique({ where: { idempotencyKey } });
+
+    if (outbound) {
+      if (
+        outbound.conversationId !== inbound.conversationId ||
+        outbound.direction !== MessagingDirection.OUTBOUND ||
+        outbound.kind !== MessagingMessageKind.TEXT ||
+        outbound.contentText !== text
+      ) {
+        throw new ConflictException('Messaging Quote outbound identity is bound to different immutable message data.');
+      }
+    } else {
+      outbound = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.messagingMessage.create({
+          data: {
+            conversationId: inbound.conversationId,
+            direction: MessagingDirection.OUTBOUND,
+            kind: MessagingMessageKind.TEXT,
+            purpose: MessagingMessagePurpose.GENERAL,
+            idempotencyKey,
+            contentText: text,
+            occurredAt: new Date(),
+          },
+        });
+        await tx.messagingMessageStatusEvent.create({
+          data: { messageId: created.id, status: MessagingDeliveryStatus.PENDING },
+        });
+        return created;
+      });
+    }
+
+    try {
+      await this.messaging.send({
+        channel: inbound.conversation.channel,
+        provider: inbound.conversation.provider,
+        providerIdentityId: inbound.conversation.providerIdentityId,
+        conversationId: inbound.conversationId,
+        causationMessageId: inbound.id,
+        idempotencyKey,
+        kind: 'TEXT',
+        text,
+      });
+      return outbound;
+    } catch (error) {
+      if (error instanceof MessagingOutcomePendingReconciliationError) return null;
+      throw error;
+    }
   }
 }
