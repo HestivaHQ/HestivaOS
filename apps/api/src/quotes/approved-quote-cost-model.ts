@@ -1,4 +1,8 @@
 import type { QuotePricingSubmission } from './quote-operational-cost-source';
+import {
+  POST_EVENT_CLEANING_SERVICE,
+  resolvePostEventCleaning,
+} from './post-event-cleaning-operating-model';
 
 export const CLEANER_WAGE_MINOR_PER_HOUR = 3_327;
 export const EMPLOYER_UIF_RATE = 0.01;
@@ -70,6 +74,37 @@ export function resolveApprovedCleanerHours(submission: QuotePricingSubmission):
 
   if (!service) {
     return { kind: 'NEEDS_ATTENTION', reason: 'Primary service is not canonically resolved.', provenance: 'approved-cost-model:v1' };
+  }
+
+  if (service === POST_EVENT_CLEANING_SERVICE) {
+    if (!submission.request.postEvent) {
+      return {
+        kind: 'NEEDS_ATTENTION',
+        reason: 'Structured Post-Event workload facts are required before cleaner-hours can be resolved.',
+        provenance: 'post-event-cleaning-operating-model:v1',
+      };
+    }
+
+    const resolved = resolvePostEventCleaning({
+      floorSize,
+      ...submission.request.postEvent,
+    });
+
+    if (!resolved.automaticPricingAllowed || resolved.totalCleanerHours === null) {
+      return {
+        kind: 'NEEDS_ATTENTION',
+        reason: resolved.reviewReasons.length
+          ? resolved.reviewReasons.map((item) => `${item.code}: ${item.message}`).join('; ')
+          : 'Post-Event workload could not be resolved safely.',
+        provenance: 'post-event-cleaning-operating-model:v1',
+      };
+    }
+
+    return {
+      kind: 'READY',
+      cleanerHours: resolved.totalCleanerHours,
+      provenance: 'post-event-cleaning-operating-model:v1',
+    };
   }
 
   if (floorSize === 'FROM_300_UP' && FLOOR_CLEANER_HOURS[service]) {
