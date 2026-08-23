@@ -4,7 +4,9 @@
 
 Messaging Quote persistence and resumable state were merged through PR #195. The current state boundary stores a resumable Quote draft, review/confirmation evidence and optimistic-concurrency version on `MessagingConversation`.
 
-The Quote-domain submission authority was merged through PR #194. The runtime described here connects a confirmed `READY_TO_SUBMIT` Messaging Quote to that shared authoritative Quote service without impersonating the Website integration.
+The Quote-domain submission authority was merged through PR #194. PR #197 connected a confirmed `READY_TO_SUBMIT` Messaging Quote to that shared authoritative Quote service without impersonating the Website integration.
+
+The current live-orchestration slice wires authenticated WhatsApp/Messenger inbound messages to the deterministic review/confirmation boundary. It does not interpret arbitrary free text into Quote facts.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -116,15 +118,29 @@ The operator attention surface and deliberate hand-back mechanism remain separat
 
 ## Current live-orchestration boundary
 
-The provider adapters and authenticated WhatsApp/Messenger inbound webhooks already exist. Trusted provider identities can resolve to canonical Customers through the existing identity layer.
+Authenticated WhatsApp and Messenger inbound webhooks now call `MessagingQuoteLiveOrchestratorService` only after provider authentication, normalized durable inbound persistence, and trusted-identity resolution.
 
-The durable Quote-state and authoritative submission services are deterministic internal boundaries. A later conversation-orchestration slice must still decide when normalized inbound customer responses update draft facts, when the final review summary is sent/recorded, and when an inbound confirmation invokes the submission runtime. This document does not claim that free-text/provider webhook input already performs those steps automatically.
+The live deterministic behavior is intentionally narrow:
+
+- `COLLECTING` does not interpret arbitrary inbound text into Quote facts;
+- when a previously collected deterministic draft reaches `REVIEW` and no review message has been recorded, HestivaOS persists and sends one idempotent text summary of selected canonical facts;
+- the summary explicitly instructs the customer to reply `CONFIRM` exactly;
+- only a persisted inbound TEXT message whose trimmed content is exactly uppercase `CONFIRM` is accepted as Quote submission authorization;
+- variants such as `confirm`, `yes`, `okay`, emojis, or longer sentences are not treated as authorization;
+- after exact confirmation, the durable confirmation transition runs and the authoritative Quote submission runtime is invoked;
+- if a prior attempt stopped after confirmation or during `SUBMITTING`, a later inbound event may safely resume the idempotent submission runtime;
+- `HUMAN_REVIEW` and `SUBMITTED` states do not perform new automated Quote actions.
+
+The review message is itself durably persisted before provider delivery and uses a stable idempotency key tied to the conversation and state version. Ambiguous provider-send outcomes remain pending reconciliation and do not create a second review message.
+
+This slice does not decide how ordinary customer sentences populate `COLLECTING` Quote facts. That requires a separate deterministic structured-input flow or an explicitly approved AI interpretation boundary. Until then, free text cannot silently become authoritative Quote data.
 
 ## Non-goals
 
 This boundary does not:
 
 - introduce an AI provider or allow AI to authorize business actions;
+- interpret arbitrary free text into canonical Quote facts;
 - call the Website Quote ingestion route or use the Website integration secret, Website submission identity, or `HESTIVA_WEBSITE` provenance;
 - change Meta webhook authentication or provider adapters;
 - create Customers or Properties early;
