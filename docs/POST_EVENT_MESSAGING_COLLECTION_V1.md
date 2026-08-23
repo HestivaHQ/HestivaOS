@@ -2,11 +2,11 @@
 
 ## Status
 
-Implemented in the current Post-Event Messaging collection slice on top of the generic guided Cleaning Requirements flow from PR #204.
+Implemented on top of the generic guided Cleaning Requirements flow from PR #204 and the live Post-Event collection merged through PR #205.
 
 The live WhatsApp/Messenger Quote conversation can select `Post-Event Cleaning`, enforces `ONE_TIME`, and deterministically collects the approved Post-Event event/venue context and workload/review facts.
 
-This slice does **not** claim Post-Event Messaging submission is complete. The current Messaging submission boundary still reuses Website Quote Contract v2 validation, and Website v2 does not yet recognize Post-Event Cleaning. A separate canonical validation/submission-boundary slice is required before a completed Post-Event Messaging draft can become an authoritative Quote.
+The canonical submission blocker identified during PR #205 is now resolved by a channel-neutral Quote business-fact validator. Messaging no longer needs to pretend a Post-Event draft is a Website-supported service in order to determine completeness or submit it. Website Quote Contract v2 remains unchanged and continues to govern Website transport exactly as before.
 
 Coordination source: Issue #116.
 
@@ -61,8 +61,10 @@ The collector intentionally permits customers to state facts that later force re
 
 The existing Post-Event operating model remains authoritative for whether automatic pricing is allowed.
 
-## Remaining boundary
+## Canonical submission boundary
 
-Before Post-Event Messaging can submit a canonical Quote, HestivaOS needs a channel-neutral business-fact validation path that accepts the approved internal Post-Event extension without broadening the existing Website v2 transport contract by accident.
+`validateQuoteBusinessFacts` is the channel-neutral validation entry point for Messaging Quote business facts.
 
-The follow-up must keep HestivaOS Quote validation/pricing authoritative and must not impersonate Website provenance or route Messaging through Website authentication.
+Existing Website-compatible facts still reuse the mature Website v2 field-validation surface. For Post-Event Cleaning, common customer/property/request/visit/access/household/safety/notes/photo facts are validated through a validation-only projection, while the real Post-Event service identity, once-off frequency and structured Post-Event facts are validated explicitly. The projection is never returned, persisted, priced or treated as provenance.
+
+Messaging completeness and final submission both use this same boundary. A complete confirmed Post-Event draft can therefore reach the authoritative Quote submission service without broadening Website v2, impersonating Website provenance or routing through Website authentication.
