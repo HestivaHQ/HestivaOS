@@ -1,5 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import {
+  MessagingChannel,
   MessagingDeliveryStatus,
   MessagingDirection,
   MessagingMessageKind,
@@ -52,7 +53,7 @@ type InboundForOrchestration = {
   kind: MessagingMessageKind;
   contentText: string | null;
   conversation: {
-    channel: string;
+    channel: MessagingChannel;
     provider: string;
     providerIdentityId: string;
   };
