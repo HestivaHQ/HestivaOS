@@ -23,7 +23,6 @@ export type MessagingGuidedFinalDetailsQuestion = {
 
 export type MessagingGuidedFinalDetailsAnswer =
   | { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress }
-  | { kind: 'HUMAN_REVIEW'; reason: 'PHOTO_HANDOFF_REQUIRED'; question: MessagingGuidedFinalDetailsQuestion }
   | { kind: 'INVALID'; question: MessagingGuidedFinalDetailsQuestion }
   | { kind: 'COMPLETE' };
 
@@ -73,7 +72,7 @@ export function nextMessagingGuidedFinalDetailsQuestion(
   if (!Array.isArray(draft.photos)) {
     return {
       id: 'PHOTOS',
-      text: 'Would you like to continue without attaching quote photos?\n1. Yes, continue without photos\n2. I want to provide photos\nReply with the number only.',
+      text: 'Quote photos are optional. Reply 0 to continue without photos. Secure photo-to-Quote attachment is handled separately and is not yet automated in this guided flow.',
     };
   }
 
@@ -127,9 +126,8 @@ export function applyMessagingGuidedFinalDetailsAnswer(
   }
 
   if (question.id === 'PHOTOS') {
-    if (text === '1') return { kind: 'ACCEPTED', patch: { photos: [] } };
-    if (text === '2') return { kind: 'HUMAN_REVIEW', reason: 'PHOTO_HANDOFF_REQUIRED', question };
-    return { kind: 'INVALID', question };
+    if (text !== '0') return { kind: 'INVALID', question };
+    return { kind: 'ACCEPTED', patch: { photos: [] } };
   }
 
   if (question.id === 'FULL_NAME') {
