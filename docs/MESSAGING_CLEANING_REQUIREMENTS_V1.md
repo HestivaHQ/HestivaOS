@@ -2,7 +2,7 @@
 
 ## Status
 
-This document records the current deterministic Messaging Quote collection boundary for the base `CLEANING_REQUIREMENTS` section. It is a focused companion to `MESSAGING_QUOTE_STATE_V1.md` and Issue #116.
+This document records the current deterministic Messaging Quote collection boundary for the base `CLEANING_REQUIREMENTS` section. It is a focused current-state companion to `MESSAGING_QUOTE_STATE_V1.md` and Issue #116. Once this slice is merged, any older Home-only wording in `MESSAGING_QUOTE_STATE_V1.md` about the extent of live guided collection is superseded by this focused document; the persistence, review, confirmation, submission and recovery rules in that document remain authoritative.
 
 The implemented slice follows the merged Home/Property guided collection from PR #201. It does not replace HestivaOS Quote validation or pricing and does not create a Messaging-specific service catalogue.
 
