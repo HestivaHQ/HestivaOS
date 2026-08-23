@@ -1,8 +1,9 @@
 import { isLaundryEligiblePrimary, type LaundryFacilities } from '../quotes/laundry-operating-model';
 import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
+import { applyMessagingGuidedVisitHouseholdAnswer, nextMessagingGuidedVisitHouseholdQuestion, type MessagingGuidedVisitHouseholdQuestion } from './messaging-quote-guided-visit-household';
 
 export type MessagingGuidedPersonaliseQuestionId = 'ADD_ONS' | 'EXTRA_REFRIGERATOR_QUANTITY' | 'BALCONY_PATIO_QUANTITY' | 'ECO_FRIENDLY_PRODUCTS' | 'LAUNDRY_FACILITIES' | 'LAUNDRY_LOADS' | 'IRONING_LOADS';
-export type MessagingGuidedPersonaliseQuestion = { id: MessagingGuidedPersonaliseQuestionId; text: string };
+export type MessagingGuidedPersonaliseQuestion = { id: MessagingGuidedPersonaliseQuestionId; text: string } | MessagingGuidedVisitHouseholdQuestion;
 type AddOn = { websiteValue: string; canonicalService: string; quantity: number };
 
 const ADD_ONS = {
@@ -24,17 +25,20 @@ export function nextMessagingGuidedPersonaliseQuestion(draft: MessagingQuoteDraf
   const extraFridge = findAddOn(addOns, 'Extra Refrigerator'); if (extraFridge && (!Number.isInteger(extraFridge.quantity) || extraFridge.quantity < 1)) return { id: 'EXTRA_REFRIGERATOR_QUANTITY', text: 'How many extra refrigerators need cleaning? Reply with a whole number only.' };
   const balcony = findAddOn(addOns, 'Balcony / Patio Cleaning'); if (balcony && (!Number.isInteger(balcony.quantity) || balcony.quantity < 1)) return { id: 'BALCONY_PATIO_QUANTITY', text: 'How many balcony or patio areas need cleaning? Reply with a whole number only.' };
   if (typeof request.ecoFriendlyProducts !== 'boolean') return { id: 'ECO_FRIENDLY_PRODUCTS', text: 'Would you like eco-friendly cleaning products?\n1. Yes\n2. No\nReply with the number only.' };
-  const laundry = laundryProgress(request); if (!laundry) return null;
-  const wantsLaundry = Object.prototype.hasOwnProperty.call(laundry, 'laundryLoads'); const wantsIroning = Object.prototype.hasOwnProperty.call(laundry, 'ironingLoads');
-  if (wantsLaundry && !laundry.facilities) return { id: 'LAUNDRY_FACILITIES', text: 'Laundry requires a working washing machine at the property. Which setup is available?\n1. Washing machine and dryer\n2. Washing machine and clothes line / drying rack\nReply with the number only.' };
-  if (wantsLaundry && (!Number.isInteger(laundry.laundryLoads) || Number(laundry.laundryLoads) < 1)) return { id: 'LAUNDRY_LOADS', text: 'How many laundry loads do you need? Reply with a whole number only.' };
-  if (wantsIroning && (!Number.isInteger(laundry.ironingLoads) || Number(laundry.ironingLoads) < 1)) return { id: 'IRONING_LOADS', text: 'How many ironing loads do you need? Reply with a whole number only.' };
-  return null;
+  const laundry = laundryProgress(request);
+  if (laundry) {
+    const wantsLaundry = Object.prototype.hasOwnProperty.call(laundry, 'laundryLoads'); const wantsIroning = Object.prototype.hasOwnProperty.call(laundry, 'ironingLoads');
+    if (wantsLaundry && !laundry.facilities) return { id: 'LAUNDRY_FACILITIES', text: 'Laundry requires a working washing machine at the property. Which setup is available?\n1. Washing machine and dryer\n2. Washing machine and clothes line / drying rack\nReply with the number only.' };
+    if (wantsLaundry && (!Number.isInteger(laundry.laundryLoads) || Number(laundry.laundryLoads) < 1)) return { id: 'LAUNDRY_LOADS', text: 'How many laundry loads do you need? Reply with a whole number only.' };
+    if (wantsIroning && (!Number.isInteger(laundry.ironingLoads) || Number(laundry.ironingLoads) < 1)) return { id: 'IRONING_LOADS', text: 'How many ironing loads do you need? Reply with a whole number only.' };
+  }
+  return nextMessagingGuidedVisitHouseholdQuestion(draft);
 }
 
 export type MessagingGuidedPersonaliseAnswer = { kind: 'ACCEPTED'; patch: MessagingQuoteDraftProgress } | { kind: 'INVALID'; question: MessagingGuidedPersonaliseQuestion } | { kind: 'COMPLETE' };
 export function applyMessagingGuidedPersonaliseAnswer(draft: MessagingQuoteDraftProgress, rawText: string | null | undefined): MessagingGuidedPersonaliseAnswer {
   const question = nextMessagingGuidedPersonaliseQuestion(draft); if (!question) return { kind: 'COMPLETE' };
+  if (!['ADD_ONS','EXTRA_REFRIGERATOR_QUANTITY','BALCONY_PATIO_QUANTITY','ECO_FRIENDLY_PRODUCTS','LAUNDRY_FACILITIES','LAUNDRY_LOADS','IRONING_LOADS'].includes(question.id)) return applyMessagingGuidedVisitHouseholdAnswer(draft, rawText);
   const text = rawText?.trim() ?? ''; const request = requestProgress(draft); const addOns = addOnsProgress(request) ?? [];
   if (question.id === 'ADD_ONS') {
     if (text === '0') return { kind: 'ACCEPTED', patch: { request: { addOns: [] } } }; if (!/^\d+(?:\s*,\s*\d+)*$/.test(text)) return { kind: 'INVALID', question };
