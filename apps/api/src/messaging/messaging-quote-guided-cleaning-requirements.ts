@@ -1,6 +1,11 @@
 import { POST_EVENT_CLEANING_SERVICE } from '../quotes/post-event-cleaning-operating-model';
 import { allowedFrequenciesForCanonicalService } from '../quotes/website-quote-contract';
 import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
+import {
+  applyMessagingGuidedPersonaliseAnswer,
+  nextMessagingGuidedPersonaliseQuestion,
+  type MessagingGuidedPersonaliseQuestion,
+} from './messaging-quote-guided-personalise';
 
 export type MessagingGuidedCleaningQuestionId =
   | 'PRIMARY_SERVICE'
@@ -8,10 +13,9 @@ export type MessagingGuidedCleaningQuestionId =
   | 'CUSTOM_FREQUENCY_NOTE'
   | 'HOME_CONDITION';
 
-export type MessagingGuidedCleaningQuestion = {
-  id: MessagingGuidedCleaningQuestionId;
-  text: string;
-};
+export type MessagingGuidedCleaningQuestion =
+  | { id: MessagingGuidedCleaningQuestionId; text: string }
+  | MessagingGuidedPersonaliseQuestion;
 
 const PRIMARY_SERVICES = {
   '1': { websiteValue: 'Regular Home Cleaning', canonicalService: 'Regular Home Cleaning' },
@@ -123,7 +127,7 @@ export function nextMessagingGuidedCleaningQuestion(
     };
   }
 
-  return null;
+  return nextMessagingGuidedPersonaliseQuestion(draft);
 }
 
 export type MessagingGuidedCleaningAnswer =
@@ -137,6 +141,10 @@ export function applyMessagingGuidedCleaningAnswer(
 ): MessagingGuidedCleaningAnswer {
   const question = nextMessagingGuidedCleaningQuestion(draft);
   if (!question) return { kind: 'COMPLETE' };
+
+  if (!['PRIMARY_SERVICE', 'FREQUENCY', 'CUSTOM_FREQUENCY_NOTE', 'HOME_CONDITION'].includes(question.id)) {
+    return applyMessagingGuidedPersonaliseAnswer(draft, rawText);
+  }
 
   const text = rawText?.trim() ?? '';
   const request = requestProgress(draft);
