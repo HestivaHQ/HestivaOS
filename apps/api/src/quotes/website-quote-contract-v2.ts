@@ -9,6 +9,13 @@ import {
   resolveLaundryRequest,
   type LaundryFacilities,
 } from './laundry-operating-model';
+import {
+  isPostEventPrimaryService,
+  isRecord,
+  validateNoStrayPostEventFacts,
+  validatePostEventRequestFacts,
+  type PostEventQuoteFacts,
+} from './post-event-cleaning-quote-facts';
 
 export const WEBSITE_QUOTE_SCHEMA_VERSION_V2 = '2.0' as const;
 
@@ -21,6 +28,7 @@ export type WebsiteLaundryRequestV2 = {
 export type ServiceRequestInputV2 = Omit<ServiceRequestInput, 'addOns'> & {
   addOns: ServiceRequestInput['addOns'];
   laundry?: WebsiteLaundryRequestV2;
+  postEvent?: PostEventQuoteFacts;
 };
 
 export type WebsiteQuoteSubmissionV2 = Omit<WebsiteQuoteSubmissionV1, 'schemaVersion' | 'request'> & {
@@ -38,10 +46,6 @@ const V2_FULL_RECURRING_FREQUENCIES = new Set([
   'CUSTOM',
 ]);
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function isLaundryFacilities(value: unknown): value is LaundryFacilities {
   return value === 'WASHER_DRYER' || value === 'WASHER_LINE' || value === 'NO_WASHER';
 }
@@ -52,6 +56,12 @@ function isLaundryFacilities(value: unknown): value is LaundryFacilities {
  * Laundry and Ironing are intentionally removed from the v1 generic add-on pass:
  * v2 owns them through request.laundry so facilities and quantities cannot be
  * reconstructed from display labels or free text.
+ *
+ * Post-Event Cleaning is a v2-only primary service. Common Quote fields continue
+ * through the mature v1-compatible validation surface, while the exact canonical
+ * Post-Event mapping, once-off rule and structured event/workload facts are
+ * validated by the shared Post-Event fact validator. Historical v1 behavior is
+ * not broadened.
  *
  * Contract v2 also corrects the property-layout model for Townhouses. Exact
  * floor/building-access data remains required for Apartments, while Townhouses
@@ -78,6 +88,7 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
   const property = isRecord(payload.property) ? payload.property : undefined;
   const townhouse = property?.propertyType === 'TOWNHOUSE';
   const request = isRecord(payload.request) ? payload.request : undefined;
+  const postEventSelected = isPostEventPrimaryService(request);
   const addOns = request?.addOns;
   const primary = isRecord(request?.primaryService) ? request.primaryService.canonicalService : null;
   const frequency = request?.frequency;
@@ -88,13 +99,15 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
     V2_FULL_RECURRING_FREQUENCIES.has(frequency);
 
   // Reuse v1 validation for every unchanged field and unchanged generic add-on.
+  // Post-Event itself is projected to the existing review-safe pseudo choice only
+  // for this validation pass so v1 remains historically unchanged.
   const v1CompatiblePayload: Record<string, unknown> = {
     ...payload,
     schemaVersion: WEBSITE_QUOTE_SCHEMA_VERSION,
   };
 
   if (request) {
-    v1CompatiblePayload.request = {
+    const v1CompatibleRequest: Record<string, unknown> = {
       ...request,
       addOns: Array.isArray(addOns)
         ? addOns.filter((rawAddOn) => {
@@ -103,6 +116,11 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
           })
         : addOns,
     };
+    if (postEventSelected) {
+      v1CompatibleRequest.primaryService = { websiteValue: 'Not sure', canonicalService: null };
+      v1CompatibleRequest.frequency = 'ONE_TIME';
+    }
+    v1CompatiblePayload.request = v1CompatibleRequest;
   }
 
   errors.push(
@@ -126,6 +144,12 @@ export function validateWebsiteQuoteSubmissionV2(payload: unknown): WebsiteQuote
   );
 
   if (!request) return errors;
+
+  errors.push(
+    ...(postEventSelected
+      ? validatePostEventRequestFacts(request)
+      : validateNoStrayPostEventFacts(request)),
+  );
 
   if (Array.isArray(addOns)) {
     addOns.forEach((rawAddOn, index) => {
