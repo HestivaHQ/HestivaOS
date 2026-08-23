@@ -122,7 +122,8 @@ describe('Messaging Quote review correction', () => {
     const result = await service.handleInbound('inbound-2');
 
     expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 8, { request: null });
-    expect(created.some((message) => String(message.contentText).includes('Which cleaning service do you need?'))).toBe(true);
+    expect(created).toHaveLength(1);
+    expect(created[0].contentText).toContain('What type of property is it?');
     expect(result?.phase).toBe('COLLECTING');
   });
 
