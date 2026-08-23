@@ -4,6 +4,7 @@ import { MessagingAdminReplyController } from './messaging-admin-reply.controlle
 import { MessagingAdminReplyService } from './messaging-admin-reply.service';
 import { MessagingCustomerLinkingController } from './messaging-customer-linking.controller';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
+import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import { MessagingService } from './messaging.service';
 import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 import { MessengerWebhookController } from './messenger-webhook.controller';
@@ -14,7 +15,7 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 @Global()
 @Module({
   controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController],
-  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
-  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService],
+  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
+  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService],
 })
 export class MessagingModule {}
