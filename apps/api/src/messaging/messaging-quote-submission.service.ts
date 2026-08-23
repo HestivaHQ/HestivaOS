@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { QuoteSubmissionService } from '../quotes/quote-submission.service';
 import { prepareMessagingQuoteCreation } from './messaging-quote-creation-input';
-import type { MessagingQuoteDraft } from './messaging-quote-draft';
+import { messagingQuoteMediaAssetIds, type MessagingQuoteDraft } from './messaging-quote-draft';
+import { messagingQuotePhotoTransfers } from './messaging-quote-media-bridge';
 import { resolveMessagingQuoteReplay } from './messaging-quote-replay-resolution';
 import {
   parseMessagingQuoteStateSnapshot,
@@ -18,6 +19,7 @@ function structuredMessagingQuote(input: {
   provider: string;
   conversationId: string;
   confirmationMessageId: string;
+  quotePhotoTransferKeys: string[];
 }): Prisma.InputJsonValue {
   return {
     schemaVersion: 'MESSAGING_QUOTE_V1',
@@ -29,6 +31,7 @@ function structuredMessagingQuote(input: {
       provider: input.provider,
       conversationId: input.conversationId,
       confirmationMessageId: input.confirmationMessageId,
+      quotePhotoTransferKeys: input.quotePhotoTransferKeys,
     },
   } as unknown as Prisma.InputJsonValue;
 }
@@ -118,6 +121,12 @@ export class MessagingQuoteSubmissionService {
       throw new ConflictException('Messaging Quote submission reservation does not match confirmed provenance.');
     }
 
+    const photoTransfers = await messagingQuotePhotoTransfers(
+      this.prisma,
+      conversation.id,
+      messagingQuoteMediaAssetIds(state.draft),
+    );
+
     let reservedVersion = expectedVersion;
     if (phase === 'READY_TO_SUBMIT') {
       const reserved = await this.quoteState.beginSubmission(
@@ -135,6 +144,7 @@ export class MessagingQuoteSubmissionService {
       provider: prepared.value.provenance.provider,
       conversationId: conversation.id,
       confirmationMessageId: state.confirmationMessageId,
+      quotePhotoTransferKeys: photoTransfers.map((photo) => photo.transferKey),
     });
 
     const result = await this.quoteSubmissions.submit(
@@ -149,7 +159,9 @@ export class MessagingQuoteSubmissionService {
           provider: prepared.value.provenance.provider,
           conversationId: conversation.id,
           confirmationMessageId: state.confirmationMessageId,
+          quotePhotoCount: photoTransfers.length,
         },
+        photos: photoTransfers,
       },
       () => resolveMessagingQuoteReplay(
         this.prisma,
