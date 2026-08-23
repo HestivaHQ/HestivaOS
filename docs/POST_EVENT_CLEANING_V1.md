@@ -4,6 +4,8 @@
 
 Approved product/business specification for implementation.
 
+The first runtime slice now implements the deterministic Quote-domain workload and preliminary-price resolver for the approved floor-size ladder, event workload modifiers and automatic-review boundaries. Structured Website/Messaging collection, canonical Quote-path wiring, service seeding, Work Order/checklist integration and customer-facing UI remain follow-up work and are not claimed as implemented by this slice.
+
 Decision date: 2026-08-23.
 
 This document defines the first Homent Post-Event Cleaning offering. It supplements `CANONICAL_SERVICE_SCOPE_PRICING_V1.md` and is the current authority for Post-Event Cleaning until the next canonical service-spec reconciliation incorporates it directly.
