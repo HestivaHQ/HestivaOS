@@ -37,7 +37,9 @@ const FREQUENCIES = {
   '5': 'CUSTOM',
 } as const;
 
-const FREQUENCY_LABELS: Record<(typeof FREQUENCIES)[keyof typeof FREQUENCIES], string> = {
+type FrequencyValue = (typeof FREQUENCIES)[keyof typeof FREQUENCIES];
+
+const FREQUENCY_LABELS: Record<FrequencyValue, string> = {
   ONE_TIME: 'One time',
   WEEKLY: 'Weekly',
   EVERY_TWO_WEEKS: 'Every two weeks',
@@ -73,8 +75,12 @@ function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
 }
 
+function allowedFrequencyValues(canonicalService: string | null): readonly FrequencyValue[] {
+  return allowedFrequenciesForCanonicalService(canonicalService) ?? Object.values(FREQUENCIES);
+}
+
 function frequencyQuestion(canonicalService: string | null): MessagingGuidedCleaningQuestion {
-  const allowed = allowedFrequenciesForCanonicalService(canonicalService) ?? [];
+  const allowed = allowedFrequencyValues(canonicalService);
   const lines = Object.entries(FREQUENCIES)
     .filter(([, value]) => allowed.includes(value))
     .map(([number, value]) => `${number}. ${FREQUENCY_LABELS[value]}`);
@@ -143,8 +149,8 @@ export function applyMessagingGuidedCleaningAnswer(
   if (question.id === 'FREQUENCY') {
     const value = FREQUENCIES[text as keyof typeof FREQUENCIES];
     const canonicalService = typeof primary.canonicalService === 'string' ? primary.canonicalService : null;
-    const allowed = allowedFrequenciesForCanonicalService(canonicalService);
-    if (!value || !allowed?.includes(value)) return { kind: 'INVALID', question };
+    const allowed = allowedFrequencyValues(canonicalService);
+    if (!value || !allowed.includes(value)) return { kind: 'INVALID', question };
     return { kind: 'ACCEPTED', patch: { request: { frequency: value } } };
   }
 
