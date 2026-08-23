@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import type { MessagingQuoteDraft } from './messaging-quote-draft';
+import type {
+  MessagingQuoteDraft,
+  MessagingQuoteDraftProgress,
+} from './messaging-quote-draft';
 import { prepareMessagingQuoteSubmission } from './messaging-quote-submission-boundary';
 
 export type MessagingQuoteCreationInput = {
@@ -7,7 +10,7 @@ export type MessagingQuoteCreationInput = {
   conversationId: string;
   confirmationMessageId: string;
   confirmedAt: Date;
-  draft: Partial<MessagingQuoteDraft>;
+  draft: MessagingQuoteDraftProgress;
   customerConfirmed?: boolean;
   humanReviewRequired?: boolean;
   submittedQuoteId?: string | null;
