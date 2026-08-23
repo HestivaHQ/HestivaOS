@@ -2,7 +2,9 @@
 
 ## Status
 
-This document describes the durable HestivaOS state boundary for an in-progress Messaging Quote conversation. The implementation is currently proposed on the stacked `feat/messaging-durable-quote-state` lane behind PR #194. It is not live or merged until the parent Quote-authority work and this slice both pass the repository merge process.
+Messaging Quote persistence and resumable state were merged through PR #195. The current state boundary stores a resumable Quote draft, review/confirmation evidence and optimistic-concurrency version on `MessagingConversation`.
+
+The Quote-domain submission authority was merged through PR #194. The runtime described here connects a confirmed `READY_TO_SUBMIT` Messaging Quote to that shared authoritative Quote service without impersonating the Website integration.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
@@ -28,14 +30,17 @@ A conversation with `quote_state = NULL` and `quote_state_version = 0` is a vali
 The v1 snapshot stores:
 
 - `version` — must equal the separate persisted `quote_state_version`;
-- `draft` — partial `MessagingQuoteDraft`, which reuses the canonical Website Quote v2 business-fact groups without reusing the Website transport envelope;
+- `draft` — partial `MessagingQuoteDraft`, which reuses the canonical Quote business-fact groups without reusing the Website transport envelope;
 - `humanReviewRequired` — pauses Quote automation when deterministic processing is unsafe;
 - `reviewSummaryMessageId` — durable identity of the outbound review summary shown to the customer;
 - `confirmationMessageId` — durable identity of the inbound customer confirmation;
 - `confirmedAt` — occurrence time of that persisted inbound confirmation message;
+- `submissionKey` — stable Messaging Quote submission reservation once authoritative creation starts;
 - `submittedQuoteId` — canonical HestivaOS Quote identity after successful Quote-domain creation.
 
-The flow phase is derived from the existing deterministic `evaluateMessagingQuoteFlow()` function rather than stored independently. Its current phases are `COLLECTING`, `REVIEW`, `READY_TO_SUBMIT`, `HUMAN_REVIEW`, and `SUBMITTED`.
+Pre-reservation snapshots created by the already-merged v1 persistence slice do not contain `submissionKey`; they are read compatibly as `submissionKey = null`.
+
+The flow phase is derived from `evaluateMessagingQuoteFlow()` rather than stored independently. Its phases are `COLLECTING`, `REVIEW`, `READY_TO_SUBMIT`, `SUBMITTING`, `HUMAN_REVIEW`, and `SUBMITTED`.
 
 ## Review and confirmation integrity
 
@@ -50,19 +55,48 @@ The durable transition rules are:
 5. `confirmedAt` comes from the immutable inbound message `occurredAt`, not from a caller-supplied current clock;
 6. any draft fact change after review clears the prior review and confirmation markers, forcing the changed facts to be reviewed and confirmed again;
 7. entering human review also clears stale review/confirmation evidence;
-8. a canonical Quote can be linked only from `READY_TO_SUBMIT` after explicit confirmation.
+8. authoritative creation begins only from `READY_TO_SUBMIT` after explicit confirmation;
+9. creation first reserves a stable `submissionKey` and moves the conversation to `SUBMITTING`;
+10. the canonical Quote is linked only after that reserved submission creates or safely replays the authoritative Quote.
 
-These rules prevent an old customer confirmation from authorizing a materially different draft.
+These rules prevent an old customer confirmation from authorizing a materially different draft and prevent the draft from changing while a Quote is being created.
 
-## Concurrency and retry safety
+## Submission identity and authoritative creation
+
+`MessagingQuoteSubmissionService` is the internal runtime boundary for a durable confirmed Messaging Quote.
+
+The stable submission identity is derived from the normalized provider, HestivaOS conversation ID and immutable customer-confirmation message ID. The same confirmed conversation therefore produces the same key across retries.
+
+The runtime sequence is:
+
+1. load the exact persisted Quote state and require the caller's current `quote_state_version`;
+2. require `READY_TO_SUBMIT` or a retryable `SUBMITTING` state;
+3. re-run the deterministic Messaging Quote submission validation against the durable facts;
+4. reserve the stable `submissionKey` before authoritative Quote creation;
+5. call the shared `QuoteSubmissionService` with the canonical Quote fact groups;
+6. use Messaging-specific replay resolution to distinguish a safe replay from conflicting immutable data;
+7. record the returned canonical Quote ID in the Messaging state.
+
+The Quote revision stores `source = HOMENT_MESSAGING`, `schemaVersion = MESSAGING_QUOTE_V1`, the canonical business facts, the confirmed submission time and Messaging provenance. It does not forge a Website submission ID, Website bearer credential or `HESTIVA_WEBSITE` provenance.
+
+Pricing and operational-cost resolution remain owned by the existing Quote domain. The shared pricing/cost boundary consumes canonical Quote business facts rather than requiring a Website transport envelope.
+
+## Concurrency, crash recovery and retry safety
 
 Every state-changing operation requires an expected `quote_state_version`.
 
 `MessagingQuoteStateService` re-reads the current state inside a serializable transaction and uses a compare-and-swap update constrained by the same expected version. A stale caller or concurrent writer receives a conflict and must reload rather than silently overwriting newer conversation facts.
 
-Recording the same already-linked canonical Quote is idempotent. Attempting to link a different Quote after submission conflicts.
+The `SUBMITTING` reservation closes the gap between customer confirmation and canonical Quote linkage. Once a reservation exists:
 
-Quote creation itself retains the separate stable Messaging submission identity introduced by the parent Quote-authority slice. This state slice does not weaken or replace Quote-domain idempotency.
+- draft mutation is rejected;
+- returning the Quote to draft human review is rejected;
+- the same submission key may safely resume after a process/network failure;
+- a different submission key conflicts;
+- Quote-domain uniqueness/replay handling prevents duplicate canonical Quotes;
+- after canonical creation/replay succeeds, the same Quote ID is linked into the conversation state.
+
+An already `SUBMITTED` conversation returns its linked canonical Quote rather than creating another one. A missing or conflicting canonical linkage fails closed for recovery.
 
 ## Immutable history boundary
 
@@ -76,16 +110,21 @@ Once `submittedQuoteId` is present, draft mutation is rejected. Customer-request
 
 ## Human review
 
-`humanReviewRequired` moves the deterministic Messaging Quote flow to `HUMAN_REVIEW`. This state prevents the draft from becoming ready for automatic submission and deliberately invalidates stale review/confirmation evidence.
+`humanReviewRequired` moves the deterministic Messaging Quote flow to `HUMAN_REVIEW`. This state prevents the draft from becoming ready for submission and deliberately invalidates stale review/confirmation evidence.
 
-The operator attention surface and the deliberate hand-back mechanism remain separate implementation work. No unsupported fact, price, availability or business decision may be guessed merely to leave human review.
+The operator attention surface and deliberate hand-back mechanism remain separate implementation work. No unsupported fact, price, availability or business decision may be guessed merely to leave human review.
 
-## Non-goals of this slice
+## Current live-orchestration boundary
 
-This slice does not:
+The provider adapters and authenticated WhatsApp/Messenger inbound webhooks already exist. Trusted provider identities can resolve to canonical Customers through the existing identity layer.
 
-- automatically interpret inbound free text or introduce an AI provider;
-- automatically create a canonical Quote from a webhook;
+The durable Quote-state and authoritative submission services are deterministic internal boundaries. A later conversation-orchestration slice must still decide when normalized inbound customer responses update draft facts, when the final review summary is sent/recorded, and when an inbound confirmation invokes the submission runtime. This document does not claim that free-text/provider webhook input already performs those steps automatically.
+
+## Non-goals
+
+This boundary does not:
+
+- introduce an AI provider or allow AI to authorize business actions;
 - call the Website Quote ingestion route or use the Website integration secret, Website submission identity, or `HESTIVA_WEBSITE` provenance;
 - change Meta webhook authentication or provider adapters;
 - create Customers or Properties early;
@@ -93,9 +132,3 @@ This slice does not:
 - implement a general operator inbox or broad human takeover UI.
 
 Those capabilities must cross their own bounded implementation and safety gates.
-
-## Dependency and rollout
-
-This slice is intentionally stacked on PR #194, which extracts the internal authoritative Quote submission service. It must not be merged independently ahead of that parent work.
-
-After the parent PR merges, this lane must be synchronized with current `main`, migration/global-identifier collisions rechecked, the complete diff reviewed, and all required repository quality gates rerun on the exact final head before merge.
