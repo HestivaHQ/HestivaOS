@@ -82,7 +82,7 @@ Public API fetches use `cache: no-store`, `credentials: omit` and `referrerPolic
 
 The existing secure resolve projection now includes one coarse customer-facing response state derived from the resolved access grant, exact Quote/revision response evidence and canonical Quote state:
 
-- `NO_RESPONSE` — no durable customer response exists and the canonical Quote may remain actionable;
+- `NO_RESPONSE` — no durable customer response exists; response actions are shown only when the canonical Quote is also still actionable;
 - `ACCEPTED_CONVERTED` — exact-revision customer acceptance exists and canonical acceptance/conversion completed;
 - `ACCEPTED_PENDING_INTERNAL_COMPLETION` — exact-revision customer acceptance exists but canonical conversion has not completed;
 - `DECLINED` — exact-revision customer decline exists.
@@ -93,7 +93,7 @@ The projection does not expose response/event IDs, idempotency identities, inter
 
 The customer Quote presentation continues to render public business fields, Quote reference, validity, selected service/request/property/visit facts, stored line items, subtotal, stored discount/adjustment, stored tax and stored total. The browser formats minor-unit amounts for display but does not recalculate Quote pricing or line totals. Internal IDs, internal cost/profitability data, unrestricted notes and unrelated customer/property data are not requested or rendered.
 
-On reload, `ACCEPTED_CONVERTED` displays Accepted. `ACCEPTED_PENDING_INTERNAL_COMPLETION` displays “Your acceptance has been received. Our team will complete the remaining setup.” and does not show Accept/Decline controls. `DECLINED` displays Declined. Only a genuine `NO_RESPONSE` with a canonically actionable Quote presents response actions. Expired, revoked, superseded, stale-revision and unknown capabilities continue to converge on the same generic unavailable screen.
+On reload, `ACCEPTED_CONVERTED` displays Accepted. `ACCEPTED_PENDING_INTERNAL_COMPLETION` displays “Your acceptance has been received. Our team will complete the remaining setup.” and does not show Accept/Decline controls. `DECLINED` displays Declined. Canonical `ACCEPTED`/`DECLINED` terminal states also remain customer-friendly read-only states if they arose through another canonical path without a customer-response row. Only `NO_RESPONSE` plus a canonically actionable Quote presents response actions. Expired, revoked, superseded, stale-revision and unknown capabilities continue to converge on the same generic unavailable screen.
 
 ### View confirmation client behavior
 
