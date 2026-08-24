@@ -102,6 +102,26 @@ function mediaReference(url: string | undefined, mediaId: string | undefined) {
   if (parsed.protocol !== 'https:') throw new UnprocessableEntityException('WhatsApp media URL must use HTTPS.');
   return { link: parsed.toString() };
 }
+function flowInteractivePayload(value: Readonly<Record<string, unknown>> | undefined): Record<string, unknown> {
+  const interactive = asObject(value);
+  const action = asObject(interactive?.action);
+  const parameters = asObject(action?.parameters);
+  const actionPayload = asObject(parameters?.flow_action_payload);
+  if (
+    interactive?.type !== 'flow' ||
+    action?.name !== 'flow' ||
+    parameters?.flow_message_version !== '3' ||
+    parameters?.flow_action !== 'navigate' ||
+    !asString(parameters?.flow_token) ||
+    !asString(parameters?.flow_id) ||
+    !asString(parameters?.flow_cta) ||
+    !asString(actionPayload?.screen)
+  ) {
+    throw new UnprocessableEntityException('WhatsApp Flow command does not match the reviewed static Flow launch shape.');
+  }
+  if ((parameters.flow_cta as string).length > 20) throw new UnprocessableEntityException('WhatsApp Flow CTA is too long.');
+  return interactive!;
+}
 function outboundBody(command: OutboundMessagingCommand): Record<string, unknown> {
   const base: Record<string, unknown> = {
     messaging_product: 'whatsapp',
@@ -113,7 +133,10 @@ function outboundBody(command: OutboundMessagingCommand): Record<string, unknown
     if (!command.text?.trim()) throw new UnprocessableEntityException('WhatsApp text commands require non-empty text.');
     return { ...base, type: 'text', text: { preview_url: false, body: command.text.trim() } };
   }
-  if (command.kind !== 'MEDIA') throw new UnprocessableEntityException('WhatsApp Cloud API v1 transport currently supports text and bounded media commands only.');
+  if (command.kind === 'INTERACTIVE') {
+    return { ...base, type: 'interactive', interactive: flowInteractivePayload(command.interactivePayload) };
+  }
+  if (command.kind !== 'MEDIA') throw new UnprocessableEntityException('WhatsApp Cloud API v1 transport supports text, reviewed Flow interactive messages, and bounded media commands only.');
   if (!command.media || command.media.length !== 1) throw new UnprocessableEntityException('WhatsApp media commands require exactly one media item.');
   const media = command.media[0];
   const type = media.mimeType ? outboundMediaType(media.mimeType) : undefined;
