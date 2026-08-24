@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createAuthenticatedApi } from '../../../lib/api-server';
 import { AppFrame } from '../../components/app-frame';
 import { QuoteReview } from './quote-review';
+import { QuoteSendSharePanel } from './quote-send-share-panel';
 
 export default async function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const appUser = await (await createAuthenticatedApi()).syncUser();
@@ -10,6 +11,7 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   return <AppFrame active="/quotes" email={appUser.email} user={appUser}>
     <div className="quoteWorkspace"><div className="rowActions"><Link className="primaryButton" href={`/quotes/${id}/pricing-review`}>Resolve pricing review</Link></div></div>
+    <QuoteSendSharePanel quoteId={id} />
     <QuoteReview quoteId={id} />
   </AppFrame>;
 }

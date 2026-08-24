@@ -18,6 +18,18 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (supported API fallback where existing API code requires the anonymous client credential)
 - `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS` — required positive integer maximum lifetime for newly issued secure customer Quote capabilities. The effective expiry is always the earlier of this configured lifetime and the canonical Quote `validUntil`. There is intentionally no source-code default; issuance fails closed if the value is missing or invalid.
 
+### Quote email / Resend runtime
+
+Quote Send + Tracking V1 reuses the existing Homent Resend account and verified Homent domain, but HestivaOS must have its own independently rotatable API credential. All values below are API-only Railway runtime configuration; none belongs in Cloudflare/browser variables or source control.
+
+- `RESEND_API_KEY` — dedicated HestivaOS Resend API key. Do not reuse or move the Website key.
+- `RESEND_WEBHOOK_SIGNING_SECRET` — signing secret for the HestivaOS Resend webhook endpoint; separate from the API key.
+- `HESTIVA_CORRESPONDENCE_QUOTE_FROM` — Quote-purpose From identity; production value is `Homent Quotes <quotes@homent.co.za>`.
+- `HESTIVA_CORRESPONDENCE_QUOTE_REPLY_TO` — Quote-purpose reply mailbox; production value is `quotes@homent.co.za`.
+- `HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN` — canonical HTTPS origin only, with no path/query/fragment, that serves the existing `/quote` customer page.
+
+The public provider callback is `POST /api/v1/correspondence/webhooks/resend`. HestivaOS verifies the exact raw request body with `svix-id`, `svix-timestamp`, and `svix-signature` before trusting provider evidence. Never log either Resend secret or the secure Quote capability. Quote bearer values are injected into outbound email only at the transport boundary and are not persisted in Correspondence snapshots, provider tags, provider-event metadata, analytics, or application logs. See `RESEND_QUOTE_PROVIDER_CONFIGURATION_V1.md` and ADR-0090.
+
 The verified production signing configuration is asymmetric ECC P-256 / ES256. The API authentication guard intentionally accepts ES256 only. Do not rotate production to another JWT signing algorithm without reviewing the guard, tests, ADR-0033, recovery procedure, and deployment verification first. The public JWKS contains verification keys only; never configure or commit a Supabase private signing key in HestivaOS.
 
 ### WhatsApp Cloud API provider runtime
@@ -95,6 +107,11 @@ GitHub Actions has no frontend deployment workflow and owns no Cloudflare produc
 - `NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET`
 - `NEXT_PUBLIC_SUPABASE_WORK_ORDER_PHOTOS_BUCKET`
 - `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS`
+- `RESEND_API_KEY`
+- `RESEND_WEBHOOK_SIGNING_SECRET`
+- `HESTIVA_CORRESPONDENCE_QUOTE_FROM`
+- `HESTIVA_CORRESPONDENCE_QUOTE_REPLY_TO`
+- `HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN`
 
 Use ignored local environment files and placeholder-only tracked examples.
 
