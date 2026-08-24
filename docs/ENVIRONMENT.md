@@ -28,6 +28,8 @@ The direct Meta WhatsApp Business Platform adapter remains inert unless the requ
 - `META_WHATSAPP_ACCESS_TOKEN` — API-only Meta access token used for authorized WhatsApp sends.
 - `META_WHATSAPP_PHONE_NUMBER_ID` — Meta phone-number ID used as the `/messages` endpoint target.
 - `META_GRAPH_API_VERSION` — explicit Graph API version such as `vXX.X`; do not hard-code or silently upgrade it without current Meta verification.
+- `META_WHATSAPP_QUOTE_FLOW_ID` — deployment-owned ID of the exact published Meta Flow artifact used for `HOMENT_QUOTE_REQUEST_V1`. Do not hard-code a value; configure it in the Railway API runtime only after the reviewed provider artifact exists.
+- `META_WHATSAPP_QUOTE_FLOW_ENABLED` — explicit Flow-launch gate. Set to `true` only for a reviewed/published artifact that is ready for controlled or production use; unset/false keeps the guided WhatsApp Quote collector available as fallback.
 
 Production onboarding also requires the corresponding Meta business portfolio, WhatsApp Business Account and registered business phone number. Do not reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET` or any Website integration identity for messaging.
 
@@ -35,12 +37,14 @@ The public webhook route is `/api/v1/messaging/webhooks/whatsapp`. It intentiona
 
 WhatsApp outbound is registered only when the access token, phone-number ID and explicit Graph API version are all present. Each outbound text send carries the durable HestivaOS idempotency key as Meta `biz_opaque_callback_data`, and authenticated provider status webhooks reconcile ambiguous send outcomes before another provider call is allowed. Network failures, provider 5xx responses and malformed success responses are not treated as safe-to-retry failures. If no resolving provider status arrives, HestivaOS remains fail-closed rather than blindly resending.
 
+The Quote Flow launch boundary additionally requires both Quote Flow variables above. The provider Flow ID is not a credential, but it is still deployment configuration rather than source code. Do not enable the Flow gate until Meta-side validation/publishing has completed for the intended artifact. See `WHATSAPP_QUOTE_FLOW_RUNTIME_V1.md` and `WHATSAPP_QUOTE_FLOW_NON_PHOTO_PILOT_V1.md`.
+
 ### Messenger Platform runtime
 
 Messenger inbound uses the existing Meta app-secret authenticity boundary.
 
 - `META_MESSENGER_WEBHOOK_VERIFY_TOKEN` — private random value chosen by Homent and configured identically in the Meta Page webhook subscription and Railway API runtime. It is used only for the GET subscription challenge.
-- `META_APP_SECRET` — shared Meta app secret used to validate the Messenger POST `X-Hub-Signature-256` HMAC over the exact raw request bytes.
+- `META_APP_SECRET` — shared Meta app secret used to validate the Messenger POST `X-Hub-Signature-256` HMAC over the exact raw webhook request bytes.
 
 Guarded outbound standard-window text replies additionally require:
 
