@@ -13,6 +13,8 @@ import {
 type Decision = 'CUSTOMER_ACCEPTED' | 'CUSTOMER_DECLINED';
 type ResultState = 'CONVERTED' | 'PENDING_INTERNAL_COMPLETION' | 'DECLINED' | null;
 
+const TAB_CAPABILITY_KEY = 'homent.quoteCapability.v1';
+
 function money(minor: number, currency: string) {
   return new Intl.NumberFormat('en-ZA', { style: 'currency', currency }).format(minor / 100);
 }
@@ -33,6 +35,65 @@ function detailRows(source: Record<string, unknown>, keys: Array<[string, string
   return keys.flatMap(([key, title]) => source[key] == null || source[key] === '' ? [] : [{ title, value: label(source[key]) }]);
 }
 
+function clearVisibleFragment() {
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
+}
+
+function clearTabCapability() {
+  try {
+    window.sessionStorage.removeItem(TAB_CAPABILITY_KEY);
+  } catch {
+    // Some hardened browser contexts can disable storage. The current in-memory
+    // capability still works; the page simply cannot offer reload continuity.
+  }
+}
+
+function storeTabCapability(capability: string) {
+  try {
+    window.sessionStorage.setItem(TAB_CAPABILITY_KEY, capability);
+  } catch {
+    // See clearTabCapability: do not weaken transport merely to gain persistence.
+  }
+}
+
+function recoverTabCapability(): string | null {
+  try {
+    const stored = window.sessionStorage.getItem(TAB_CAPABILITY_KEY);
+    if (!stored) return null;
+    const valid = capabilityFromFragment(`#${stored}`);
+    if (!valid) clearTabCapability();
+    return valid;
+  } catch {
+    return null;
+  }
+}
+
+function acquireCapabilityForThisTab(): string | null {
+  const fragmentSupplied = window.location.hash.length > 0;
+  if (fragmentSupplied) {
+    const fromFragment = capabilityFromFragment(window.location.hash);
+    clearVisibleFragment();
+    if (!fromFragment) {
+      // Never fall back to a previously cached Quote when a new supplied fragment
+      // is malformed. The new navigation intentionally replaces prior tab context.
+      clearTabCapability();
+      return null;
+    }
+    storeTabCapability(fromFragment);
+    return fromFragment;
+  }
+  return recoverTabCapability();
+}
+
+function projectedResultState(projection: PublicQuoteProjection): ResultState {
+  switch (projection.quote.customerResponseState) {
+    case 'ACCEPTED_CONVERTED': return 'CONVERTED';
+    case 'ACCEPTED_PENDING_INTERNAL_COMPLETION': return 'PENDING_INTERNAL_COMPLETION';
+    case 'DECLINED': return 'DECLINED';
+    default: return null;
+  }
+}
+
 export function PublicQuotePage() {
   const [capability, setCapability] = useState<string | null>(null);
   const [projection, setProjection] = useState<PublicQuoteProjection | null>(null);
@@ -46,11 +107,15 @@ export function PublicQuotePage() {
   const started = useRef(false);
   const viewStarted = useRef(false);
 
+  const markUnavailable = () => {
+    clearTabCapability();
+    setUnavailable(true);
+  };
+
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const token = capabilityFromFragment(window.location.hash);
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    const token = acquireCapabilityForThisTab();
     if (!token) {
       setUnavailable(true);
       setLoading(false);
@@ -59,9 +124,10 @@ export function PublicQuotePage() {
     setCapability(token);
     resolvePublicQuote(token).then((value) => {
       setProjection(value);
+      setResultState(projectedResultState(value));
       setNetworkError(false);
     }).catch((error: Error & { status?: number }) => {
-      if (error.status === 404 || error.status === 400 || error.status === 409) setUnavailable(true);
+      if (error.status === 404) markUnavailable();
       else setNetworkError(true);
     }).finally(() => setLoading(false));
   }, []);
@@ -107,8 +173,11 @@ export function PublicQuotePage() {
     if (!capability) return;
     setLoading(true);
     setNetworkError(false);
-    resolvePublicQuote(capability).then(setProjection).catch((error: Error & { status?: number }) => {
-      if (error.status === 404 || error.status === 400 || error.status === 409) setUnavailable(true);
+    resolvePublicQuote(capability).then((value) => {
+      setProjection(value);
+      setResultState(projectedResultState(value));
+    }).catch((error: Error & { status?: number }) => {
+      if (error.status === 404) markUnavailable();
       else setNetworkError(true);
     }).finally(() => setLoading(false));
   };
@@ -125,16 +194,25 @@ export function PublicQuotePage() {
       const result = await respondToQuote(capability, decision, idempotencyKey);
       setResultState(result.state);
       setDecision(null);
-      if (result.state !== 'PENDING_INTERNAL_COMPLETION') {
-        const refreshed = await resolvePublicQuote(capability).catch(() => null);
-        if (refreshed) setProjection(refreshed);
+      const refreshed = await resolvePublicQuote(capability).catch(() => null);
+      if (refreshed) {
+        setProjection(refreshed);
+        setResultState(projectedResultState(refreshed));
       }
     } catch (error) {
       const status = (error as Error & { status?: number }).status;
-      if (status === 400 || status === 404 || status === 409) {
+      if (status === 404) {
+        setDecision(null);
+        markUnavailable();
+      } else if (status === 400 || status === 409) {
         setDecision(null);
         const refreshed = await resolvePublicQuote(capability).catch(() => null);
-        if (refreshed) setProjection(refreshed); else setUnavailable(true);
+        if (refreshed) {
+          setProjection(refreshed);
+          setResultState(projectedResultState(refreshed));
+        } else {
+          setNetworkError(true);
+        }
       } else {
         setNetworkError(true);
       }
@@ -154,7 +232,9 @@ export function PublicQuotePage() {
     ...detailRows(quote.property, [['propertyType', 'Property type'], ['suburb', 'Area'], ['floorSize', 'Floor size'], ['bedrooms', 'Bedrooms'], ['bathrooms', 'Bathrooms'], ['livingAreas', 'Living areas'], ['storeys', 'Storeys'], ['outdoorArea', 'Outdoor area']]),
     ...detailRows(quote.visit, [['preferredDate', 'Preferred date'], ['alternativeDate', 'Alternative date'], ['preferredTime', 'Preferred time'], ['flexibility', 'Flexibility'], ['urgency', 'Urgency'], ['recurringNotes', 'Recurring details']]),
   ];
-  const status = resultState === 'PENDING_INTERNAL_COMPLETION' ? 'Acceptance received' : quote.status === 'ACCEPTED' || resultState === 'CONVERTED' ? 'Accepted' : quote.status === 'DECLINED' || resultState === 'DECLINED' ? 'Declined' : 'Ready for your response';
+  const durableResultState = projectedResultState(projection);
+  const effectiveResultState = durableResultState ?? resultState;
+  const status = effectiveResultState === 'PENDING_INTERNAL_COMPLETION' ? 'Acceptance received' : effectiveResultState === 'CONVERTED' ? 'Accepted' : effectiveResultState === 'DECLINED' ? 'Declined' : 'Ready for your response';
 
   return <main className="customerQuoteShell">
     <article className="customerQuoteCard">
@@ -163,9 +243,9 @@ export function PublicQuotePage() {
         <span className="quoteStatus">{status}</span>
       </header>
 
-      {resultState === 'CONVERTED' && <div className="quoteSuccess" role="status"><strong>Your quote has been accepted.</strong><span>Thank you. We’ll take it from here.</span></div>}
-      {resultState === 'PENDING_INTERNAL_COMPLETION' && <div className="quoteSuccess" role="status"><strong>Your acceptance has been received.</strong><span>Our team will complete the remaining setup. You do not need to accept again.</span></div>}
-      {resultState === 'DECLINED' && <div className="quoteNotice" role="status"><strong>Your quote has been declined.</strong></div>}
+      {effectiveResultState === 'CONVERTED' && <div className="quoteSuccess" role="status"><strong>Your quote has been accepted.</strong><span>Thank you. We’ll take it from here.</span></div>}
+      {effectiveResultState === 'PENDING_INTERNAL_COMPLETION' && <div className="quoteSuccess" role="status"><strong>Your acceptance has been received.</strong><span>Our team will complete the remaining setup. You do not need to accept again.</span></div>}
+      {effectiveResultState === 'DECLINED' && <div className="quoteNotice" role="status"><strong>Your quote has been declined.</strong></div>}
       {networkError && projection && <div className="quoteWarning" role="alert">We couldn’t complete the last request. If you were accepting or declining, your decision may already have been received. Please retry the same action.</div>}
 
       <section className="quoteHero" aria-labelledby="quote-reference">
@@ -178,7 +258,7 @@ export function PublicQuotePage() {
 
       <section className="quoteSection"><h2>Pricing</h2><div className="quoteLines">{quote.pricing.lineItems.map((item, index) => <div className="quoteLine" key={`${item.type}-${index}`}><div><strong>{item.label}</strong>{item.description && <span>{item.description}</span>}<small>Qty {item.quantity}</small></div><strong>{money(item.lineTotalMinor, quote.pricing.currency)}</strong></div>)}</div><dl className="quoteTotals"><div><dt>Subtotal</dt><dd>{money(quote.pricing.subtotalMinor, quote.pricing.currency)}</dd></div>{quote.pricing.discountMinor !== 0 && <div><dt>Discount / adjustment</dt><dd>-{money(Math.abs(quote.pricing.discountMinor), quote.pricing.currency)}</dd></div>}{quote.pricing.taxEnabled && <div><dt>Tax</dt><dd>{money(quote.pricing.taxMinor, quote.pricing.currency)}</dd></div>}<div className="grandTotal"><dt>Total</dt><dd>{money(quote.pricing.totalMinor, quote.pricing.currency)}</dd></div></dl></section>
 
-      {quote.actionable && !resultState && <section className="quoteActions" aria-label="Quote actions"><button className="quotePrimaryButton" onClick={() => openConfirmation('CUSTOMER_ACCEPTED')}>Accept Quote</button><button className="quoteSecondaryButton" onClick={() => openConfirmation('CUSTOMER_DECLINED')}>Decline Quote</button></section>}
+      {quote.actionable && !effectiveResultState && <section className="quoteActions" aria-label="Quote actions"><button className="quotePrimaryButton" onClick={() => openConfirmation('CUSTOMER_ACCEPTED')}>Accept Quote</button><button className="quoteSecondaryButton" onClick={() => openConfirmation('CUSTOMER_DECLINED')}>Decline Quote</button></section>}
 
       <footer className="quoteFooter">{business.contactNumber && <span>{business.contactNumber}</span>}{business.businessEmail && <span>{business.businessEmail}</span>}{business.website && <span>{business.website}</span>}</footer>
     </article>
