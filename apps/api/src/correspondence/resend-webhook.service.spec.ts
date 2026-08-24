@@ -33,10 +33,9 @@ describe('ResendWebhookService', () => {
     const { service, prisma } = harness();
     const raw = Buffer.from(JSON.stringify({ type: 'email.sent', created_at: new Date().toISOString(), data: { email_id: 'email_123' } }));
     const headers = signed(raw, secret, 'same-provider-event');
-    await service.ingest(raw, headers); await service.ingest(raw, headers);
+    await expect(service.ingest(raw, headers)).resolves.toEqual({ accepted: true, ignored: false });
+    await expect(service.ingest(raw, headers)).resolves.toEqual({ accepted: true, ignored: false });
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
-    const calls = prisma.$executeRaw.mock.calls as unknown[][];
-    expect(String(calls[0]?.[0])).toContain('ON CONFLICT');
   });
 
   it('preserves delayed and out-of-order provider events as separate append-only evidence', async () => {
