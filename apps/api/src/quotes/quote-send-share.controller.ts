@@ -18,6 +18,15 @@ export class QuoteSendShareController {
     return this.sendShare.sendEmail(quoteId, expectedRevisionNumber, user);
   }
 
+  @Post(':id/send-share/email/reconcile')
+  recoverEmail(
+    @Param('id', new ParseUUIDPipe()) quoteId: string,
+    @Body('expectedRevisionNumber', ParseIntPipe) expectedRevisionNumber: number,
+    @CurrentUser() user: User,
+  ) {
+    return this.sendShare.recoverEmail(quoteId, expectedRevisionNumber, user);
+  }
+
   @Post(':id/send-share/whatsapp-composer')
   openWhatsApp(
     @Param('id', new ParseUUIDPipe()) quoteId: string,
