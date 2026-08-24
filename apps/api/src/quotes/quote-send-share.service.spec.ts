@@ -33,7 +33,7 @@ describe('QuoteSendShareService', () => {
       createDeliveryAttempt: jest.fn().mockResolvedValue({ id: '44444444-4444-4444-8444-444444444444' }),
       recordDeliveryOutcome: jest.fn(),
     };
-    const email = { send: jest.fn().mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' }) };
+    const email = { assertConfigured: jest.fn(), send: jest.fn().mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' }) };
     const service = new QuoteSendShareService(prisma as never, access as never, engagement as never, responses as never, correspondence as never, email as never);
     return { service, prisma, access, correspondence, email };
   }
@@ -56,6 +56,15 @@ describe('QuoteSendShareService', () => {
     }));
   });
 
+  it('blocks a new email and new capability while the previous provider outcome is unreconciled', async () => {
+    const { service, prisma, access, correspondence, email } = harness();
+    prisma.$queryRaw.mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555' }]);
+    await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toThrow('previous Quote email outcome is still uncertain');
+    expect(access.issue).not.toHaveBeenCalled();
+    expect(correspondence.materialize).not.toHaveBeenCalled();
+    expect(email.send).not.toHaveBeenCalled();
+  });
+
   it('records only composer-open evidence for manual WhatsApp preparation', async () => {
     const { service, prisma } = harness();
     const result = await service.openWhatsApp('11111111-1111-4111-8111-111111111111', 2, actor);
@@ -73,10 +82,11 @@ describe('QuoteSendShareService', () => {
     await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('requires the published Quote Correspondence template', async () => {
-    const { service, prisma } = harness();
+  it('requires the published Quote Correspondence template before rotating customer access', async () => {
+    const { service, prisma, access } = harness();
     prisma.correspondenceTemplateVersion.findFirst.mockResolvedValue(null);
     await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toThrow('Published Quote correspondence template is not available.');
     expect(prisma.correspondenceTemplateVersion.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: CorrespondenceTemplateVersionStatus.PUBLISHED }) }));
+    expect(access.issue).not.toHaveBeenCalled();
   });
 });
