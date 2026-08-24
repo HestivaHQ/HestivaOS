@@ -41,8 +41,8 @@ describe('QuoteSendShareService', () => {
     const issue = jest.fn<() => Promise<AccessIssueResult>>();
     issue.mockResolvedValue({ token: 'a'.repeat(43), quoteReference: 'Q-001', revisionNumber: 2, expiresAt: new Date('2026-08-25T00:00:00Z') });
     const access = { issue };
-    const engagement = { engagementSummary: jest.fn() };
-    const responses = { summary: jest.fn() };
+    const engagement = { engagementSummary: jest.fn<() => Promise<unknown>>() };
+    const responses = { summary: jest.fn<() => Promise<unknown>>() };
     const materialize = jest.fn<() => Promise<MaterializedRecord>>();
     materialize.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333', subject: 'Your Homent Quote is ready', body: 'Review: {{SECURE_QUOTE_LINK}}' });
     const createDeliveryAttempt = jest.fn<() => Promise<DeliveryAttempt>>();
