@@ -56,10 +56,15 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
   useEffect(() => { void load(); }, [load]);
   const emailAttempts = useMemo(() => tracking ? new Map(tracking.email.map((row) => [row.attempt_id, row])).size : 0, [tracking]);
   const latestEmail = tracking?.email[0] ?? null;
-  const providerEvents = tracking?.email.filter((row) => row.event_type).map((row) => row.event_type as string) ?? [];
-  const emailState = providerEvents.includes('email.delivered') ? 'Delivered to recipient mail server' :
-    providerEvents.some((event) => ['email.failed', 'email.bounced', 'email.suppressed', 'email.complained'].includes(event)) ? 'Provider delivery failed' :
-    providerEvents.includes('email.sent') ? 'Sent by Resend' :
+  const latestProviderEvents = latestEmail
+    ? tracking?.email.filter((row) => row.attempt_id === latestEmail.attempt_id && row.event_type).map((row) => row.event_type as string) ?? []
+    : [];
+  const emailState = latestProviderEvents.includes('email.complained') ? 'Recipient complaint received' :
+    latestProviderEvents.includes('email.delivered') ? 'Delivered to recipient mail server' :
+    latestProviderEvents.includes('email.bounced') ? 'Recipient mail server rejected the email (bounced)' :
+    latestProviderEvents.includes('email.failed') || latestProviderEvents.includes('email.suppressed') ? 'Provider submission failed' :
+    latestProviderEvents.includes('email.delivery_delayed') ? 'Delivery delayed by recipient mail system' :
+    latestProviderEvents.includes('email.sent') ? 'Sent by Resend' :
     latestEmail?.attempt_status === 'ACCEPTED' ? 'Accepted by Resend' : latestEmail?.attempt_status === 'FAILED' ? 'Send failed' : latestEmail ? 'Outcome uncertain' : 'Not sent';
 
   async function sendEmail() {
@@ -78,7 +83,7 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await request<RecoveryResult>(`/quotes/${quote.id}/send-share/email/reconcile`, { method: 'POST', body: JSON.stringify({ expectedRevisionNumber: quote.currentRevisionNumber }) });
-      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Authenticated Resend evidence confirms the original email was accepted/sent. No new Quote link was created.' : result.state === 'PROVIDER_FAILED' ? 'Authenticated Resend evidence confirms the original attempt failed. A reviewed resend is now permitted.' : result.message ?? 'The original email remains genuinely unresolved. Do not resend yet.');
+      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Authenticated Resend evidence confirms the original email submission was accepted. No new Quote link was created.' : result.state === 'PROVIDER_FAILED' ? 'Authenticated Resend evidence confirms the original submission failed. A reviewed resend is now permitted.' : result.message ?? 'The original email remains genuinely unresolved. Do not resend yet.');
       await load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Quote email recovery could not be completed.'); }
     finally { setBusy(false); }
