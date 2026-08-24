@@ -3,6 +3,20 @@ import { ConflictException } from '@nestjs/common';
 import { CorrespondenceDeliveryAttemptStatus, CorrespondenceTemplateVersionStatus, QuoteStatus } from '@prisma/client';
 import { QuoteSendShareService } from './quote-send-share.service';
 
+type QuoteFixture = {
+  id: string;
+  reference: string;
+  status: QuoteStatus;
+  currentRevisionNumber: number;
+  customer: { name: string; contactName: string; email: string; phone: string } | null;
+  revisions: Array<{ structuredData: Record<string, never> }>;
+};
+
+type AccessIssueResult = { token: string; quoteReference: string; revisionNumber: number; expiresAt: Date };
+type MaterializedRecord = { id: string; subject: string; body: string };
+type DeliveryAttempt = { id: string };
+type EmailAccepted = { outcome: 'ACCEPTED'; providerReference: string };
+
 describe('QuoteSendShareService', () => {
   const originalOrigin = process.env.HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN;
   const actor = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' } as never;
@@ -15,25 +29,37 @@ describe('QuoteSendShareService', () => {
   });
 
   function harness() {
+    const quoteFindUnique = jest.fn<() => Promise<QuoteFixture | null>>();
+    quoteFindUnique.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111', reference: 'Q-001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 2,
+      customer: { name: 'Customer', contactName: 'Customer', email: 'customer@example.com', phone: '0821234567' },
+      revisions: [{ structuredData: {} }],
+    });
+    const templateFindFirst = jest.fn<() => Promise<{ id: string } | null>>();
+    templateFindFirst.mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222' });
+    const executeRaw = jest.fn<() => Promise<number>>();
+    executeRaw.mockResolvedValue(1);
+    const queryRaw = jest.fn<() => Promise<Array<{ attempt_id: string }>>>();
+    queryRaw.mockResolvedValue([]);
     const prisma = {
-      quote: { findUnique: jest.fn().mockResolvedValue({
-        id: '11111111-1111-4111-8111-111111111111', reference: 'Q-001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 2,
-        customer: { name: 'Customer', contactName: 'Customer', email: 'customer@example.com', phone: '0821234567' },
-        revisions: [{ structuredData: {} }],
-      }) },
-      correspondenceTemplateVersion: { findFirst: jest.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222' }) },
-      $executeRaw: jest.fn().mockResolvedValue(1),
-      $queryRaw: jest.fn().mockResolvedValue([]),
+      quote: { findUnique: quoteFindUnique },
+      correspondenceTemplateVersion: { findFirst: templateFindFirst },
+      $executeRaw: executeRaw,
+      $queryRaw: queryRaw,
     };
-    const access = { issue: jest.fn().mockResolvedValue({ token: 'a'.repeat(43), quoteReference: 'Q-001', revisionNumber: 2, expiresAt: new Date('2026-08-25T00:00:00Z') }) };
+    const issue = jest.fn<() => Promise<AccessIssueResult>>();
+    issue.mockResolvedValue({ token: 'a'.repeat(43), quoteReference: 'Q-001', revisionNumber: 2, expiresAt: new Date('2026-08-25T00:00:00Z') });
+    const access = { issue };
     const engagement = { engagementSummary: jest.fn() };
     const responses = { summary: jest.fn() };
-    const correspondence = {
-      materialize: jest.fn().mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333', subject: 'Your Homent Quote is ready', body: 'Review: {{SECURE_QUOTE_LINK}}' }),
-      createDeliveryAttempt: jest.fn().mockResolvedValue({ id: '44444444-4444-4444-8444-444444444444' }),
-      recordDeliveryOutcome: jest.fn(),
-    };
-    const email = { assertConfigured: jest.fn(), send: jest.fn().mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' }) };
+    const materialize = jest.fn<() => Promise<MaterializedRecord>>();
+    materialize.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333', subject: 'Your Homent Quote is ready', body: 'Review: {{SECURE_QUOTE_LINK}}' });
+    const createDeliveryAttempt = jest.fn<() => Promise<DeliveryAttempt>>();
+    createDeliveryAttempt.mockResolvedValue({ id: '44444444-4444-4444-8444-444444444444' });
+    const correspondence = { materialize, createDeliveryAttempt, recordDeliveryOutcome: jest.fn() };
+    const send = jest.fn<() => Promise<EmailAccepted>>();
+    send.mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' });
+    const email = { assertConfigured: jest.fn(), send };
     const service = new QuoteSendShareService(prisma as never, access as never, engagement as never, responses as never, correspondence as never, email as never);
     return { service, prisma, access, correspondence, email };
   }
