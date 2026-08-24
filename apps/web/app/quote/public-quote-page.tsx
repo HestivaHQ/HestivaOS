@@ -90,7 +90,10 @@ function projectedResultState(projection: PublicQuoteProjection): ResultState {
     case 'ACCEPTED_CONVERTED': return 'CONVERTED';
     case 'ACCEPTED_PENDING_INTERNAL_COMPLETION': return 'PENDING_INTERNAL_COMPLETION';
     case 'DECLINED': return 'DECLINED';
-    default: return null;
+    default:
+      if (projection.quote.status === 'ACCEPTED') return 'CONVERTED';
+      if (projection.quote.status === 'DECLINED') return 'DECLINED';
+      return null;
   }
 }
 
