@@ -31,6 +31,11 @@ def cond(screen,expr,current):
     if not expr:return None
     if expr=="resolved_frequency == CUSTOM":
         return "("+ref(screen,"frequency_full",current)+" == 'CUSTOM') || ("+ref(screen,"frequency_deep",current)+" == 'CUSTOM') || ("+ref(screen,"frequency_simple",current)+" == 'CUSTOM')"
+    if expr=="resolved_frequency != ONE_TIME":
+        terms=[]
+        for field,values in (("frequency_full",("WEEKLY","EVERY_TWO_WEEKS","MONTHLY","CUSTOM")),("frequency_deep",("MONTHLY","CUSTOM")),("frequency_simple",("CUSTOM",))):
+            terms.extend(ref(screen,field,current)+" == '"+value+"'" for value in values)
+        return " || ".join(terms)
     if expr.startswith("add_ons contains "): return None
     m=re.fullmatch(r"(\w+) in \[([^\]]+)\]",expr)
     if m:
@@ -105,6 +110,7 @@ def validate(flow,contract):
     if flow["version"]!="7.3":e.append("Flow version is not 7.3")
     if [s["id"] for s in flow["screens"]]!=ORDER:e.append("Screen order drifted")
     if "PhotoPicker" in txt or "quote_photos" in txt:e.append("Non-photo artifact contains PhotoPicker")
+    if "resolved_frequency" in txt:e.append("Artifact contains unresolved synthetic frequency reference")
     expected={f["id"] for s in contract["screens"] for f in s["fields"] if f["id"]!="quote_photos"}
     actual={c["name"] for s in flow["screens"] for c in walk(s["layout"]) if c.get("name") and c["type"]!="Form"}
     if expected!=actual:e.append("Field IDs drifted")
