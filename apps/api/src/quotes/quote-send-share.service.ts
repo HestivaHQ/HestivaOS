@@ -14,9 +14,15 @@ const WHATSAPP_COMPOSER_OPENED = 'WHATSAPP_COMPOSER_OPENED';
 type ContactSnapshot = { name: string; email: string | null; phone: string | null };
 
 function publicOrigin(): string {
-  const value = process.env.HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN?.trim().replace(/\/+$/, '');
-  if (!value || !/^https:\/\//i.test(value)) throw new ServiceUnavailableException('HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN is not configured.');
-  return value;
+  const configured = process.env.HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN?.trim();
+  if (!configured) throw new ServiceUnavailableException('HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN is not configured.');
+  let url: URL;
+  try { url = new URL(configured); }
+  catch { throw new ServiceUnavailableException('HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN is invalid.'); }
+  if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new ServiceUnavailableException('HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN must be an HTTPS origin only.');
+  }
+  return url.origin;
 }
 
 function field(source: unknown, key: string): string | null {
@@ -81,6 +87,32 @@ export class QuoteSendShareService {
     return { ...grant, url: `${publicOrigin()}/quote#${grant.token}` };
   }
 
+  private async assertNoUnreconciledEmailAttempt(quoteId: string, expectedRevisionNumber: number) {
+    const rows = await this.prisma.$queryRaw<Array<{ attempt_id: string }>>(Prisma.sql`
+      SELECT a.id AS attempt_id
+      FROM correspondence_records r
+      JOIN correspondence_delivery_attempts a ON a.correspondence_record_id = r.id
+      WHERE r.provenance->>'purpose' = 'QUOTE'
+        AND r.provenance->>'quoteId' = ${quoteId}
+        AND r.provenance->>'revisionNumber' = ${String(expectedRevisionNumber)}
+        AND a.route_snapshot->>'provider' = 'RESEND'
+        AND EXISTS (
+          SELECT 1 FROM correspondence_delivery_attempt_events e
+          WHERE e.attempt_id = a.id AND e.status = 'PENDING'::"CorrespondenceDeliveryAttemptStatus"
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM correspondence_delivery_attempt_events e
+          WHERE e.attempt_id = a.id AND e.status IN ('ACCEPTED', 'FAILED')
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM correspondence_provider_events pe WHERE pe.attempt_id = a.id
+        )
+      ORDER BY a.created_at DESC
+      LIMIT 1
+    `);
+    if (rows[0]) throw new ConflictException('The previous Quote email outcome is still uncertain. Reconcile it before resending.');
+  }
+
   async openWhatsApp(quoteId: string, expectedRevisionNumber: number, actor: User) {
     const quote = await this.quoteContext(quoteId, expectedRevisionNumber);
     if (!quote.contact.phone) throw new ConflictException('Customer mobile number is not available.');
@@ -102,18 +134,21 @@ export class QuoteSendShareService {
   async sendEmail(quoteId: string, expectedRevisionNumber: number, actor: User) {
     const quote = await this.quoteContext(quoteId, expectedRevisionNumber);
     if (!quote.contact.email) throw new ConflictException('Customer email address is not available.');
-    const link = await this.secureLink(quoteId, expectedRevisionNumber, actor);
     const version = await this.prisma.correspondenceTemplateVersion.findFirst({
       where: { template: { key: QUOTE_TEMPLATE_KEY }, status: CorrespondenceTemplateVersionStatus.PUBLISHED },
       orderBy: { version: 'desc' }, select: { id: true },
     });
     if (!version) throw new ServiceUnavailableException('Published Quote correspondence template is not available.');
+    this.email.assertConfigured('QUOTE');
+    publicOrigin();
+    await this.assertNoUnreconciledEmailAttempt(quoteId, expectedRevisionNumber);
 
     const record = await this.correspondence.materialize(actor, {
       templateVersionId: version.id,
       recipientSnapshot: { purpose: 'QUOTE', email: quote.contact.email, displayName: quote.contact.name },
       provenance: { purpose: 'QUOTE', quoteId, revisionNumber: expectedRevisionNumber, secureLinkInjectedAtTransport: true },
     });
+    const link = await this.secureLink(quoteId, expectedRevisionNumber, actor);
     const attempt = await this.correspondence.createDeliveryAttempt(actor, record.id, {
       routeSnapshot: { provider: 'RESEND', channel: 'EMAIL', purpose: 'QUOTE', recipient: quote.contact.email },
     });
@@ -167,6 +202,7 @@ export class QuoteSendShareService {
     const whatsapp = await this.prisma.$queryRaw<Array<{ created_at: Date; metadata: Prisma.JsonValue }>>(Prisma.sql`
       SELECT created_at, metadata FROM quote_activities
       WHERE quote_id = ${quoteId}::uuid AND type = ${WHATSAPP_COMPOSER_OPENED}::"QuoteActivityType"
+        AND metadata->>'revisionNumber' = ${String(expectedRevisionNumber)}
       ORDER BY created_at DESC LIMIT 20
     `);
     return {
