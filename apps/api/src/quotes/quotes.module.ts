@@ -13,6 +13,11 @@ import { WebsiteQuoteIngestionController } from './website-quote-ingestion.contr
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
 import { QuoteReviewController } from './quote-review.controller';
 import { QuoteReviewService } from './quote-review.service';
+import {
+  QuoteCustomerAccessAdminController,
+  QuoteCustomerAccessPublicController,
+} from './quote-customer-access.controller';
+import { QuoteCustomerAccessService } from './quote-customer-access.service';
 
 function configuredCoidaRate(): number | null {
   const raw = process.env.HESTIVA_COIDA_RATE;
@@ -67,12 +72,19 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
 }
 
 @Module({
-  controllers: [QuoteReviewController, WebsiteIntegrationHealthController, WebsiteQuoteIngestionController],
+  controllers: [
+    QuoteReviewController,
+    QuoteCustomerAccessAdminController,
+    QuoteCustomerAccessPublicController,
+    WebsiteIntegrationHealthController,
+    WebsiteQuoteIngestionController,
+  ],
   providers: [
     WebsiteQuoteIngestionService,
     QuoteReviewService,
     QuotePricingReviewService,
     QuoteSubmissionService,
+    QuoteCustomerAccessService,
     {
       provide: QUOTE_OPERATIONAL_COST_PROVIDER,
       useFactory: () =>
@@ -82,6 +94,6 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
         }),
     },
   ],
-  exports: [QuoteSubmissionService],
+  exports: [QuoteSubmissionService, QuoteCustomerAccessService],
 })
 export class QuotesModule {}
