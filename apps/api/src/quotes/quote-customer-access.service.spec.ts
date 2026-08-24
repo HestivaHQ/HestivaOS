@@ -173,6 +173,18 @@ describe('QuoteCustomerAccessService resolution', () => {
     expect(projection.business).not.toHaveProperty('registeredName');
   });
 
+  it.each([QuoteStatus.ACCEPTED, QuoteStatus.DECLINED])('keeps terminal %s Quotes readable but non-actionable while the exact grant remains valid', async (status) => {
+    const projection = await resolutionHarness({}, { status }).resolve(validToken);
+    expect(projection.quote.status).toBe(status);
+    expect(projection.quote.actionable).toBe(false);
+  });
+
+  it.each([QuoteStatus.NEEDS_ATTENTION, QuoteStatus.EXPIRED])('fails closed for non-customer-readable canonical status %s', async (status) => {
+    await expect(resolutionHarness({}, { status }).resolve(validToken)).rejects.toMatchObject({
+      response: { message: QUOTE_CUSTOMER_ACCESS_SECURITY.unavailableMessage },
+    });
+  });
+
   it.each([
     ['expired grant', { expires_at: new Date(Date.now() - 1) }],
     ['revoked grant', { revoked_at: new Date() }],
