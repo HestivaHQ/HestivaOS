@@ -70,7 +70,7 @@ export class QuoteSendShareService {
     private readonly email: ResendEmailTransport,
   ) {}
 
-  private async quoteContext(quoteId: string, expectedRevisionNumber: number) {
+  private async quoteContext(quoteId: string, expectedRevisionNumber: number, requireCustomerOffer = true) {
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
       select: {
@@ -81,7 +81,7 @@ export class QuoteSendShareService {
     });
     if (!quote) throw new NotFoundException('Quote not found.');
     if (quote.currentRevisionNumber !== expectedRevisionNumber || !quote.revisions[0]) throw new ConflictException(`Quote changed. Current revision is ${quote.currentRevisionNumber}.`);
-    if (quote.status !== QuoteStatus.SUBMITTED) throw new ConflictException(`${quote.status} Quote cannot be sent as a customer offer.`);
+    if (requireCustomerOffer && quote.status !== QuoteStatus.SUBMITTED) throw new ConflictException(`${quote.status} Quote cannot be sent as a customer offer.`);
     const fallback = fallbackContact(quote.revisions[0].structuredData);
     return {
       ...quote,
@@ -218,7 +218,7 @@ export class QuoteSendShareService {
   }
 
   async recoverEmail(quoteId: string, expectedRevisionNumber: number, actor: User) {
-    const quote = await this.quoteContext(quoteId, expectedRevisionNumber);
+    const quote = await this.quoteContext(quoteId, expectedRevisionNumber, false);
     this.email.assertConfigured('QUOTE');
     const attempt = await this.unreconciledEmailAttempt(quoteId, expectedRevisionNumber);
     if (!attempt) throw new ConflictException('There is no uncertain Quote email attempt to reconcile.');
