@@ -48,7 +48,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 | Recurring services | `RECURRING_LIFECYCLE_REVIEW_V1.md`, relevant Architecture current section | recurring-service-agreements API/web | ADR-0026, ADR-0066 |
 | Website Quote integration | Quote contract/mapping/current-state docs | Quote/integration modules | Issue #73 + relevant Quote ADRs |
 | Website enquiries | `WEBSITE_ENQUIRY_REFERENCE_AUTHORITY.md` | enquiries/integration modules | Issue #73 and applicable Website-integration ADRs |
-| Messaging / WhatsApp / Messenger | `MESSAGING_FOUNDATION_V1.md`, `MESSAGING_QUOTE_STATE_V1.md`, current messaging contract docs | messaging modules/adapters | ADR-0048–0052 and later relevant messaging ADRs; Issue #116 |
+| Messaging / WhatsApp / Messenger | `MESSAGING_FOUNDATION_V1.md`, `MESSAGING_QUOTE_STATE_V1.md`, `MESSAGING_WHATSAPP_QUOTE_FLOW_V1.md`, `contracts/HOMENT_QUOTE_REQUEST_V1.json` | messaging modules/adapters | ADR-0048–0052, ADR-0078–0084, ADR-0088; Issue #116 |
 | Work Order access recovery | `WORK_ORDER_ACCESS_OPERATIONS_V1.md`, `WORK_ORDER_ACCESS_RECOVERY_V1.md` | Work Order access + messaging recovery | ADR-0058–0061; Issue #116 when provider/shared messaging changes |
 | Needs Attention / Supervisor operations | Needs Attention and Supervisor focused docs; Architecture current section | attention/dashboard/supervisor modules and UI | ADR-0053, ADR-0063 |
 | Finance | `FINANCIAL_ARCHITECTURE.md` and `financial/` policy documents | Finance runtime when implemented | financial ADRs/policy authority; provider decision when applicable |
