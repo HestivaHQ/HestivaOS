@@ -10,8 +10,11 @@ import { QuoteCustomerResponseService } from './quote-customer-response.service'
 const QUOTE_TEMPLATE_KEY = 'quote_customer_ready_v1';
 const SECURE_LINK_MARKER = '{{SECURE_QUOTE_LINK}}';
 const WHATSAPP_COMPOSER_OPENED = 'WHATSAPP_COMPOSER_OPENED';
+const PROVIDER_FAILURE_EVENTS = new Set(['email.failed', 'email.bounced', 'email.suppressed', 'email.complained']);
+const PROVIDER_ACCEPTANCE_EVENTS = new Set(['email.sent', 'email.delivered', 'email.delivery_delayed']);
 
 type ContactSnapshot = { name: string; email: string | null; phone: string | null };
+type UnreconciledAttempt = { attempt_id: string; record_id: string; subject: string | null; body: string; recipient_email: string | null };
 
 function publicOrigin(): string {
   const configured = process.env.HESTIVA_QUOTE_CUSTOMER_PUBLIC_ORIGIN?.trim();
@@ -87,9 +90,10 @@ export class QuoteSendShareService {
     return { ...grant, url: `${publicOrigin()}/quote#${grant.token}` };
   }
 
-  private async assertNoUnreconciledEmailAttempt(quoteId: string, expectedRevisionNumber: number) {
-    const rows = await this.prisma.$queryRaw<Array<{ attempt_id: string }>>(Prisma.sql`
-      SELECT a.id AS attempt_id
+  private async unreconciledEmailAttempt(quoteId: string, expectedRevisionNumber: number): Promise<UnreconciledAttempt | null> {
+    const rows = await this.prisma.$queryRaw<UnreconciledAttempt[]>(Prisma.sql`
+      SELECT a.id AS attempt_id, r.id AS record_id, r.subject, r.body,
+        NULLIF(r.recipient_snapshot->>'email', '') AS recipient_email
       FROM correspondence_records r
       JOIN correspondence_delivery_attempts a ON a.correspondence_record_id = r.id
       WHERE r.provenance->>'purpose' = 'QUOTE'
@@ -104,13 +108,16 @@ export class QuoteSendShareService {
           SELECT 1 FROM correspondence_delivery_attempt_events e
           WHERE e.attempt_id = a.id AND e.status IN ('ACCEPTED', 'FAILED')
         )
-        AND NOT EXISTS (
-          SELECT 1 FROM correspondence_provider_events pe WHERE pe.attempt_id = a.id
-        )
       ORDER BY a.created_at DESC
       LIMIT 1
     `);
-    if (rows[0]) throw new ConflictException('The previous Quote email outcome is still uncertain. Reconcile it before resending.');
+    return rows[0] ?? null;
+  }
+
+  private async assertNoUnreconciledEmailAttempt(quoteId: string, expectedRevisionNumber: number) {
+    if (await this.unreconciledEmailAttempt(quoteId, expectedRevisionNumber)) {
+      throw new ConflictException('The previous Quote email outcome is still uncertain. Reconcile it before resending.');
+    }
   }
 
   async openWhatsApp(quoteId: string, expectedRevisionNumber: number, actor: User) {
@@ -180,6 +187,63 @@ export class QuoteSendShareService {
     return { revisionNumber: expectedRevisionNumber, correspondenceRecordId: record.id, attemptId: attempt.id, state: 'PENDING_RECONCILIATION' };
   }
 
+  async recoverEmail(quoteId: string, expectedRevisionNumber: number, actor: User) {
+    const quote = await this.quoteContext(quoteId, expectedRevisionNumber);
+    this.email.assertConfigured('QUOTE');
+    const attempt = await this.unreconciledEmailAttempt(quoteId, expectedRevisionNumber);
+    if (!attempt) throw new ConflictException('There is no uncertain Quote email attempt to reconcile.');
+
+    const providerEvents = await this.prisma.$queryRaw<Array<{ event_type: string; provider_reference: string; occurred_at: Date }>>(Prisma.sql`
+      SELECT event_type, provider_reference, occurred_at
+      FROM correspondence_provider_events
+      WHERE attempt_id = ${attempt.attempt_id}::uuid
+      ORDER BY occurred_at ASC, created_at ASC
+    `);
+    const failure = [...providerEvents].reverse().find((event) => PROVIDER_FAILURE_EVENTS.has(event.event_type));
+    if (failure) {
+      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
+        status: CorrespondenceDeliveryAttemptStatus.FAILED,
+        providerReference: failure.provider_reference,
+        failureCode: failure.event_type,
+        failureMessage: 'Authenticated Resend provider evidence confirmed that the original Quote email did not complete successfully.',
+        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_FAILURE_EVIDENCE' },
+      });
+      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_FAILED', retryPermitted: true };
+    }
+    const accepted = [...providerEvents].reverse().find((event) => PROVIDER_ACCEPTANCE_EVENTS.has(event.event_type));
+    if (accepted) {
+      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
+        status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
+        providerReference: accepted.provider_reference,
+        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_EVIDENCE_NOT_CUSTOMER_VIEW' },
+      });
+      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_ACCEPTED', retryPermitted: false };
+    }
+
+    const recipient = attempt.recipient_email?.trim() || quote.contact.email;
+    if (!recipient) throw new ConflictException('The original Quote email recipient cannot be recovered safely.');
+    const grantRows = await this.prisma.$queryRaw<Array<{ token_fingerprint: string }>>(Prisma.sql`
+      SELECT token_fingerprint FROM quote_customer_access_grants
+      WHERE quote_id = ${quoteId}::uuid AND revision_number = ${expectedRevisionNumber}
+        AND revoked_at IS NULL AND superseded_at IS NULL AND expires_at > CURRENT_TIMESTAMP
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    if (!grantRows[0]) {
+      throw new ConflictException('The original Quote link is no longer active. Do not replay the uncertain send; prepare a new reviewed send instead.');
+    }
+
+    // The raw capability is intentionally unrecoverable from storage. An exact provider replay is
+    // therefore possible only while the original request is still recoverable in process memory.
+    // After a process boundary, signed provider evidence is required before a fresh capability may be issued.
+    return {
+      revisionNumber: expectedRevisionNumber,
+      attemptId: attempt.attempt_id,
+      state: 'PENDING_RECONCILIATION',
+      retryPermitted: false,
+      message: 'No authenticated provider outcome has arrived yet. The existing secure link remains active; do not rotate it or send a new email.',
+    };
+  }
+
   async tracking(quoteId: string, expectedRevisionNumber: number) {
     const engagement = await this.engagement.engagementSummary(quoteId, expectedRevisionNumber);
     const response = await this.responses.summary(quoteId, expectedRevisionNumber);
@@ -205,10 +269,12 @@ export class QuoteSendShareService {
         AND metadata->>'revisionNumber' = ${String(expectedRevisionNumber)}
       ORDER BY created_at DESC LIMIT 20
     `);
+    const unreconciled = await this.unreconciledEmailAttempt(quoteId, expectedRevisionNumber);
     return {
       revisionNumber: expectedRevisionNumber,
       access: engagement,
       response: response.response,
+      recovery: unreconciled ? { state: 'PENDING_RECONCILIATION', attemptId: unreconciled.attempt_id, action: 'RECONCILE_OR_WAIT' } : null,
       email: emailRows.map((row) => ({ ...row, attempt_created_at: row.attempt_created_at.toISOString(), provider_occurred_at: row.provider_occurred_at?.toISOString() ?? null })),
       whatsappComposerOpened: whatsapp.map((event) => ({ occurredAt: event.created_at.toISOString(), metadata: event.metadata })),
     };
