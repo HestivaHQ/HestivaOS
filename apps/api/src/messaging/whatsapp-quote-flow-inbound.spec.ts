@@ -16,10 +16,11 @@ describe('WhatsAppQuoteFlowInboundService', () => {
   it('captures a valid nfm_reply and keeps it out of guided Quote collection', async () => {
     const response = { flow_token: 'opaque', homent_contract: 'HOMENT_QUOTE_REQUEST_V1', homent_mapping_version: 'HOMENT_QUOTE_REQUEST_MAPPING_V1', homent_completion_version: 'HOMENT_QUOTE_REQUEST_COMPLETION_V1', property_type: 'HOUSE' };
     const prisma = { messagingMessage: { findUnique: jest.fn(async () => message({ type: 'nfm_reply', nfm_reply: { response_json: JSON.stringify(response) } })) } };
-    const sessions = { captureCompletion: jest.fn(async () => ({ completed: true })), hasActiveUnresolvedSession: jest.fn() };
+    const sessions = { captureCompletion: jest.fn(async () => ({ completed: true })), hasActiveUnresolvedSession: jest.fn(async () => true) };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any);
 
     await expect(service.handleInbound('message-1')).resolves.toBe(true);
+    expect(sessions.hasActiveUnresolvedSession).toHaveBeenCalledWith('conversation-1');
     expect(sessions.captureCompletion).toHaveBeenCalledWith(
       { id: 'message-1', conversationId: 'conversation-1', providerEventKey: 'msg_evt_1' },
       { flowToken: 'opaque', response: expect.objectContaining({ property_type: 'HOUSE' }) },
@@ -47,5 +48,13 @@ describe('WhatsAppQuoteFlowInboundService', () => {
     const sessions = { captureCompletion: jest.fn(), hasActiveUnresolvedSession: jest.fn(async () => false) };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any);
     await expect(service.handleInbound('message-1')).resolves.toBe(false);
+  });
+
+  it('promotes a reconciled accepted launch and deliberately falls back on definite provider failure', async () => {
+    const execute = jest.fn(async () => 1);
+    const service = new WhatsAppQuoteFlowInboundService({ $executeRaw: execute } as any, {} as any);
+    await service.reconcileLaunchStatus('33333333-3333-4333-8333-333333333333', 'delivered');
+    await service.reconcileLaunchStatus('33333333-3333-4333-8333-333333333333', 'failed');
+    expect(execute).toHaveBeenCalledTimes(2);
   });
 });
