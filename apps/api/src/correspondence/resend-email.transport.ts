@@ -84,4 +84,13 @@ export class ResendEmailTransport {
     }
     throw new BadGatewayException('Resend returned a malformed success response.');
   }
+
+  /**
+   * Replays the exact immutable attempt with the same Resend idempotency key.
+   * Resend therefore recovers the original logical submission instead of creating
+   * a new HestivaOS Correspondence attempt or rotating the customer capability.
+   */
+  recover(input: ResendSendInput): Promise<ResendSendResult> {
+    return this.send(input);
+  }
 }
