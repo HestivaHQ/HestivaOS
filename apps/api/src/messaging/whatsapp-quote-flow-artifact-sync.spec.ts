@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { describe, expect, it } from '@jest/globals';
 
 type ContractField = {
   id: string;
@@ -80,6 +81,7 @@ describe('HOMENT_QUOTE_REQUEST_V1 non-photo Meta artifact', () => {
     expect(actual).toEqual(expected);
     expect(JSON.stringify(flow)).not.toContain('PhotoPicker');
     expect(JSON.stringify(flow)).not.toContain('quote_photos');
+    expect(JSON.stringify(flow)).not.toContain('resolved_frequency');
   });
 
   it('keeps every frozen option ID on the matching generated component', () => {
