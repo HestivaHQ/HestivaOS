@@ -123,6 +123,7 @@ export class QuoteSendShareService {
       purpose: 'QUOTE', to: quote.contact.email, subject,
       text: safeBody.replaceAll(SECURE_LINK_MARKER, link.url),
       idempotencyKey: `correspondence-attempt/${attempt.id}`,
+      correspondenceAttemptId: attempt.id,
     });
 
     if (result.outcome === 'ACCEPTED') {
