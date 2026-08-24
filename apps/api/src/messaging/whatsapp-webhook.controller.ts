@@ -70,7 +70,10 @@ export class WhatsAppWebhookController {
       const flowOwned = await this.quoteFlowInbound.handleInbound(message.id);
       if (!flowOwned) await this.quoteOrchestrator.handleInbound(message.id);
     }
-    for (const event of statusEvents) await this.messaging.persistWhatsAppStatus(event);
+    for (const event of statusEvents) {
+      const message = await this.messaging.persistWhatsAppStatus(event);
+      if (message) await this.quoteFlowInbound.reconcileLaunchStatus(message.id, event.providerStatus);
+    }
     return { received: true, normalizedEvents: events.length, normalizedStatusEvents: statusEvents.length };
   }
 }
