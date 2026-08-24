@@ -14,7 +14,7 @@ ADR-0089 remains the durable customer-access authority. Slices B/C provide exact
 
 ## Access and view foundation
 
-Raw capability/challenge material is never stored, grants bind one exact revision, stale/revoked/superseded/expired grants fail closed, public API responses use private/no-store/noindex/no-referrer headers, and HTTP resolve alone is not `VIEW_CONFIRMED`.
+The server never durably stores a raw customer capability or raw view challenge. Grants bind one exact revision; stale/revoked/superseded/expired grants fail closed; public API responses use private/no-store/noindex/no-referrer headers; and HTTP resolve alone is not `VIEW_CONFIRMED`. The customer browser may retain the raw capability only in the narrowly scoped tab-session mechanism documented below so an already-open valid Quote can survive ordinary reloads.
 
 ## Customer response evidence
 
@@ -58,13 +58,42 @@ The distinction remains invariant: **Customer decides. HestivaOS executes.** `CU
 
 The public browser route is `/quote`. It is intentionally a fixed route with no capability in the server-visible path or query string.
 
-Customer links use the fragment transport `/quote#<opaque-capability>`. URL fragments are handled by browser JavaScript and are not sent as part of the HTTP request path to Next.js/Cloudflare. The client validates the 43-character opaque capability, immediately removes the fragment from visible browser history with `history.replaceState`, retains the capability only in component memory, and sends it to the existing fixed public API endpoints through `Authorization: QuoteCapability <token>`.
+Customer links use the fragment transport `/quote#<opaque-capability>`. URL fragments are handled by browser JavaScript and are not sent as part of the HTTP request path to Next.js/Cloudflare. On first navigation the client validates the 43-character opaque capability, places the validated value into one fixed `sessionStorage` key for the current origin/tab session, and immediately removes the fragment from the visible URL/history with `history.replaceState`. API calls then send the capability only through `Authorization: QuoteCapability <token>`.
 
-The page never writes the capability to localStorage/sessionStorage, DOM text, metadata or analytics. Public API fetches use `cache: no-store`, `credentials: omit` and `referrerPolicy: no-referrer`. Page metadata also declares noindex/nofollow/nocache and no-referrer. No third-party analytics or customer authentication is introduced.
+### Tab-session continuity and threat trade-off
 
-The customer projection is rendered directly from the existing exact immutable revision response: public business fields, Quote reference, validity, selected service/request/property/visit facts, stored line items, subtotal, stored discount/adjustment, stored tax and stored total. The browser formats minor-unit amounts for display but does not recalculate Quote pricing or line totals. Internal IDs, internal cost/profitability data, unrestricted notes and unrelated customer/property data are not requested or rendered.
+The tab-session key exists solely so ordinary browser reload, connectivity reload and tab restoration can reopen the same still-valid Quote after the fragment has been scrubbed. `sessionStorage` is chosen instead of cookies, query/path values or `localStorage` because it is browser-side, origin-scoped, tied to the top-level tab/session, not sent automatically with network requests, and normally destroyed when the tab session ends. Browsers may preserve a tab session across crash/session restore, and a newly opened same-origin tab created with an opener can receive an initial copy under browser session-storage semantics; therefore this is not treated as permanent secret storage or an identity boundary. The capability already exists in browser memory while the Quote is open, and the bounded tab continuity is accepted as the smallest increase in exposure that avoids making routine reloads destroy a valid customer experience.
 
-Customer-facing canonical states are translated into plain language. `SUBMITTED` is actionable, while canonical `ACCEPTED` and `DECLINED` are read-only. Expired, revoked, superseded, stale-revision and unknown capabilities deliberately converge on the same generic unavailable screen because the backend fails them closed without enumeration. `PENDING_INTERNAL_COMPLETION` is shown distinctly when returned by the response operation. A later enhancement may add a safe public response-state projection if persistent pending-state display across a fresh browser reload is required; this slice does not weaken the existing non-enumerating resolve contract to infer it.
+The raw capability is never written to `localStorage`, cookies, URL path/query, DOM text, page metadata, analytics or application logs by this implementation. Storage access failures do not trigger a weaker transport: the current in-memory capability remains usable, but reload continuity is unavailable in that hardened browser context.
+
+First visit semantics:
+
+1. a supplied fragment always takes precedence over any previous tab-session value;
+2. a valid fragment replaces the tab-session capability, is scrubbed from visible history, then resolves normally;
+3. an invalid/malformed supplied fragment is scrubbed and clears any previous tab-session capability — it never falls back to a different cached Quote;
+4. `/quote` with no fragment recovers only a valid capability already present in this tab session;
+5. `/quote` with neither a fragment nor a tab-session capability shows the generic unavailable state.
+
+A definitively unavailable capability response clears the tab-session value where practical. Network/internal failures do not clear it, preserving safe retry/reload continuity without claiming the grant is invalid.
+
+Public API fetches use `cache: no-store`, `credentials: omit` and `referrerPolicy: no-referrer`. Page metadata declares noindex/nofollow/nocache and no-referrer. No third-party analytics or customer authentication is introduced.
+
+### Exact-revision public response state
+
+The existing secure resolve projection now includes one coarse customer-facing response state derived from the resolved access grant, exact Quote/revision response evidence and canonical Quote state:
+
+- `NO_RESPONSE` — no durable customer response exists and the canonical Quote may remain actionable;
+- `ACCEPTED_CONVERTED` — exact-revision customer acceptance exists and canonical acceptance/conversion completed;
+- `ACCEPTED_PENDING_INTERNAL_COMPLETION` — exact-revision customer acceptance exists but canonical conversion has not completed;
+- `DECLINED` — exact-revision customer decline exists.
+
+The response lookup is constrained by the resolved `grant_id`, `quote_id` and `revision_number`. It cannot inherit response evidence from a newer/other revision. Contradictory durable response/canonical terminal states fail closed rather than being guessed through.
+
+The projection does not expose response/event IDs, idempotency identities, internal blockers, system actor identity, internal notes or conversion failure details. `actionable` is false whenever exact-revision customer response evidence exists, even if canonical recovery is still pending. This is a projection over the existing append-only response evidence, not a second response state system.
+
+The customer Quote presentation continues to render public business fields, Quote reference, validity, selected service/request/property/visit facts, stored line items, subtotal, stored discount/adjustment, stored tax and stored total. The browser formats minor-unit amounts for display but does not recalculate Quote pricing or line totals. Internal IDs, internal cost/profitability data, unrestricted notes and unrelated customer/property data are not requested or rendered.
+
+On reload, `ACCEPTED_CONVERTED` displays Accepted. `ACCEPTED_PENDING_INTERNAL_COMPLETION` displays “Your acceptance has been received. Our team will complete the remaining setup.” and does not show Accept/Decline controls. `DECLINED` displays Declined. Only a genuine `NO_RESPONSE` with a canonically actionable Quote presents response actions. Expired, revoked, superseded, stale-revision and unknown capabilities continue to converge on the same generic unavailable screen.
 
 ### View confirmation client behavior
 
@@ -74,7 +103,7 @@ After a valid projection has rendered, the client issues one server view challen
 
 Accept and Decline are separate large mobile actions and neither commits on first tap. Each opens an accessible confirmation dialog showing the Quote reference and stored total. The explicit confirmation sends the canonical decision, `confirmed: true`, and a browser-generated UUID idempotency key.
 
-The idempotency identity is generated when the explicit action is opened and retained for retries of that same action. `CONVERTED` shows a completed acceptance message. `PENDING_INTERNAL_COMPLETION` tells the customer that acceptance was received and that no second acceptance is needed. `DECLINED` shows the completed decline state. On an unexpected network/internal failure the page does not claim that a potentially durable decision was lost; it tells the customer that the decision may already have been received and permits retry using the same action identity. Stale/conflict/unavailable responses re-resolve the canonical projection where possible.
+The idempotency identity is generated when the explicit action is opened and retained for retries of that same action. `CONVERTED` shows a completed acceptance message. `PENDING_INTERNAL_COMPLETION` tells the customer that acceptance was received and that no second acceptance is needed. `DECLINED` shows the completed decline state. After a successful response, the page re-resolves the exact public projection so durable response state becomes the UI authority. On an unexpected network/internal failure the page does not claim that a potentially durable decision was lost; it tells the customer that the decision may already have been received and permits retry using the same action identity. A later reload reconstructs the durable response from the server projection rather than React memory.
 
 ### Mobile and accessibility behavior
 
