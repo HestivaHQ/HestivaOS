@@ -63,7 +63,7 @@ export function resolvePublicQuote(capability: string) {
 }
 
 export function issueViewChallenge(capability: string) {
-  return request<{ challenge: string }>('view-challenge', capability);
+  return request<{ challenge: string; expiresAt: string; minimumVisibleDwellMs: number }>('view-challenge', capability);
 }
 
 export function confirmQuoteView(capability: string, challenge: string) {
