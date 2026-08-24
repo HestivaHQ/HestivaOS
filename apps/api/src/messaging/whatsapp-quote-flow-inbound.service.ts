@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { MessagingDirection, MessagingMessageKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { WhatsAppQuoteFlowSessionService } from './whatsapp-quote-flow-session.service';
+import { WhatsAppQuoteFlowSubmissionService } from './whatsapp-quote-flow-submission.service';
 
 function asObject(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -14,6 +15,7 @@ export class WhatsAppQuoteFlowInboundService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sessions: WhatsAppQuoteFlowSessionService,
+    private readonly submissions: WhatsAppQuoteFlowSubmissionService,
   ) {}
 
   /**
@@ -54,18 +56,16 @@ export class WhatsAppQuoteFlowInboundService {
       if (!object || typeof object.flow_token !== 'string' || !object.flow_token.trim()) {
         throw new ConflictException('WhatsApp Flow completion is missing its correlation token.');
       }
-      // Persist any due local expiry before completion eligibility is checked.
       await this.sessions.hasActiveUnresolvedSession(message.conversationId);
       const { flow_token: flowToken, ...businessResponse } = object;
-      await this.sessions.captureCompletion(
+      const completion = await this.sessions.captureCompletion(
         { id: message.id, conversationId: message.conversationId, providerEventKey: message.providerEventKey },
         { flowToken, response: businessResponse },
       );
+      await this.submissions.processCompletedSession(completion.sessionId);
       return true;
     }
 
-    // While Flow remains unresolved, ordinary text/media/interactive traffic is
-    // normal WhatsApp conversation/help. It must not mutate guided Quote state.
     return this.sessions.hasActiveUnresolvedSession(message.conversationId);
   }
 
