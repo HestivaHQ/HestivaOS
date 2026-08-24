@@ -8,6 +8,7 @@ export type ResendSendInput = {
   subject: string;
   text: string;
   idempotencyKey: string;
+  correspondenceAttemptId: string;
 };
 export type ResendSendResult =
   | { outcome: 'ACCEPTED'; providerReference: string }
@@ -55,6 +56,10 @@ export class ResendEmailTransport {
           reply_to: sender.replyTo,
           subject: input.subject,
           text: input.text,
+          tags: [
+            { name: 'purpose', value: input.purpose.toLowerCase() },
+            { name: 'correspondence_attempt', value: input.correspondenceAttemptId },
+          ],
         }),
       });
     } catch {
