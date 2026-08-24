@@ -10,14 +10,16 @@ import { QuoteCustomerResponseService } from './quote-customer-response.service'
 const QUOTE_TEMPLATE_KEY = 'quote_customer_ready_v1';
 const SECURE_LINK_MARKER = '{{SECURE_QUOTE_LINK}}';
 const WHATSAPP_COMPOSER_OPENED = 'WHATSAPP_COMPOSER_OPENED';
-const PROVIDER_SUBMISSION_FAILURE_EVENTS = new Set(['email.failed', 'email.suppressed']);
-const PROVIDER_SUBMISSION_ACCEPTANCE_EVENTS = new Set([
+const PROVIDER_PROCESSING_EVENTS = new Set([
   'email.sent',
   'email.delivered',
   'email.delivery_delayed',
   'email.bounced',
   'email.complained',
+  'email.failed',
+  'email.suppressed',
 ]);
+const DELIVERY_FAILURE_EVENTS = new Set(['email.bounced', 'email.failed', 'email.suppressed']);
 
 type ContactSnapshot = { name: string; email: string | null; phone: string | null };
 type UnreconciledAttempt = { attempt_id: string; record_id: string; subject: string | null; body: string; recipient_email: string | null };
@@ -126,6 +128,28 @@ export class QuoteSendShareService {
     }
   }
 
+  private async recordRecoveredAcceptance(actor: User, attemptId: string, providerReference: string) {
+    try {
+      await this.correspondence.recordDeliveryOutcome(actor, attemptId, {
+        status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
+        providerReference,
+        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_EVIDENCE_NOT_CUSTOMER_VIEW' },
+      });
+    } catch (error) {
+      if (!(error instanceof ConflictException)) throw error;
+      const existing = await this.prisma.$queryRaw<Array<{ status: string; provider_reference: string | null }>>(Prisma.sql`
+        SELECT status::text, provider_reference
+        FROM correspondence_delivery_attempt_events
+        WHERE attempt_id = ${attemptId}::uuid
+          AND status IN ('ACCEPTED', 'FAILED')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+      if (existing[0]?.status === CorrespondenceDeliveryAttemptStatus.ACCEPTED && existing[0].provider_reference === providerReference) return;
+      throw error;
+    }
+  }
+
   async openWhatsApp(quoteId: string, expectedRevisionNumber: number, actor: User) {
     const quote = await this.quoteContext(quoteId, expectedRevisionNumber);
     if (!quote.contact.phone) throw new ConflictException('Customer mobile number is not available.');
@@ -205,25 +229,16 @@ export class QuoteSendShareService {
       WHERE attempt_id = ${attempt.attempt_id}::uuid
       ORDER BY occurred_at ASC, created_at ASC
     `);
-    const accepted = [...providerEvents].reverse().find((event) => PROVIDER_SUBMISSION_ACCEPTANCE_EVENTS.has(event.event_type));
-    if (accepted) {
-      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
-        status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
-        providerReference: accepted.provider_reference,
-        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_EVIDENCE_NOT_CUSTOMER_VIEW' },
-      });
-      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_ACCEPTED', retryPermitted: false };
-    }
-    const failure = [...providerEvents].reverse().find((event) => PROVIDER_SUBMISSION_FAILURE_EVENTS.has(event.event_type));
-    if (failure) {
-      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
-        status: CorrespondenceDeliveryAttemptStatus.FAILED,
-        providerReference: failure.provider_reference,
-        failureCode: failure.event_type,
-        failureMessage: 'Authenticated Resend provider evidence confirmed that the original Quote email submission did not complete successfully.',
-        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_SUBMISSION_FAILURE_EVIDENCE' },
-      });
-      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_FAILED', retryPermitted: true };
+    const evidence = [...providerEvents].reverse().find((event) => PROVIDER_PROCESSING_EVENTS.has(event.event_type));
+    if (evidence) {
+      await this.recordRecoveredAcceptance(actor, attempt.attempt_id, evidence.provider_reference);
+      const deliveryFailed = providerEvents.some((event) => DELIVERY_FAILURE_EVENTS.has(event.event_type));
+      return {
+        revisionNumber: expectedRevisionNumber,
+        attemptId: attempt.attempt_id,
+        state: deliveryFailed ? 'DELIVERY_FAILED' : 'PROVIDER_ACCEPTED',
+        retryPermitted: deliveryFailed,
+      };
     }
 
     const recipient = attempt.recipient_email?.trim() || quote.contact.email;
