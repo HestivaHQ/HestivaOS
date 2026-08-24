@@ -43,9 +43,13 @@ A response transaction locks and rechecks grant + Quote state. Expired, revoked,
 
 `CUSTOMER_ACCEPTED` means only: **the holder of a valid exact-revision customer capability accepted that offer**. It is persisted before operational conversion is attempted.
 
-After evidence exists, HestivaOS runs canonical acceptance preflight. If ready, the existing `QuoteReviewService.accept()` transaction performs the normal Customer/Property resolution, Work Order creation, recurring-agreement creation and canonical Quote transition. If preflight or conversion cannot safely complete, the customer decision remains durable and the response returns `PENDING_INTERNAL_COMPLETION`; no fake Work Order or Quote acceptance is claimed.
+After evidence exists, HestivaOS runs canonical acceptance preflight. If preflight proves an expected business/readiness blocker, the response is `PENDING_INTERNAL_COMPLETION`; the durable customer decision remains intact and no operational success is claimed.
 
-A later retry/internal completion may reuse the preserved customer response; another customer click is not required to establish the customer decision again.
+If preflight is ready, the existing `QuoteReviewService.accept()` transaction performs the normal Customer/Property resolution, Work Order creation, recurring-agreement creation and canonical Quote transition. The canonical service remains the sole conversion authority. It already runs `SERIALIZABLE`, uses an exact-revision conditional Quote transition, retries PostgreSQL serialization conflicts, rolls back losing transactional writes, and recovers an already-complete exact accepted result without creating another Work Order/agreement/activity.
+
+A conflict that occurs after a ready preflight is not automatically converted into `PENDING_INTERNAL_COMPLETION`. The response boundary re-runs canonical preflight. It returns pending only if that fresh canonical preflight now proves a genuine blocker. If another conversion has won, the response boundary asks canonical `accept()` to verify/recover the exact already-accepted result. An unexplained conflict remains a conflict.
+
+Unexpected programming, database, infrastructure or other internal exceptions are never disguised as normal pending business state. Customer acceptance evidence remains durable, while the public request fails with a generic server error that does not expose the underlying exception text. A later replay with the same response/idempotency identity reuses the existing `CUSTOMER_ACCEPTED` evidence and retries canonical conversion safely; the customer does not need to accept again.
 
 ## Reserved CUSTOMER_SELF_SERVICE system actor
 
@@ -73,6 +77,8 @@ This is documented here as an implementation convention under ADR-0089's already
 ## Customer DECLINE
 
 `CUSTOMER_DECLINED` is likewise exact-revision append-only evidence. The dedicated response boundary then reuses `QuoteReviewService.decline()` rather than duplicating decline lifecycle logic. The same reserved execution actor satisfies canonical User-backed audit fields; it identifies HestivaOS execution, not customer identity.
+
+Canonical decline uses a `SERIALIZABLE` transaction, exact expected revision, conditional status transition and identical same-actor/revision recovery. Concurrent incompatible state changes remain conflicts and are not reported as successful declines. Unexpected canonical decline failures become generic internal failures while the durable `CUSTOMER_DECLINED` evidence remains available for recovery. A same-idempotency replay reuses that evidence and retries canonical decline where the Quote still permits it; no reversal semantics are invented.
 
 ## ADMIN response summary
 
