@@ -1,233 +1,114 @@
 # Secure Customer Quote Access V1
 
-Status: **SLICE C IMPLEMENTED / CUSTOMER RESPONSE AND DELIVERY SLICES DEFERRED** — 2026-08-24.
+Status: **SLICE D IMPLEMENTED — SECURE CUSTOMER RESPONSE FOUNDATION** — 2026-08-24.
 
-ADR-0089 is the durable decision authority. This document is the focused current-state contract for secure customer Quote access. Slice B implements access-grant persistence and exact-revision public read projection. Slice C adds append-only `VIEW_CONFIRMED` evidence, short-lived view challenges and an ADMIN engagement summary. Customer Accept/Decline, email transport, WhatsApp composer UI, Send/Share UI and the customer-facing web page remain unimplemented.
+ADR-0089 remains the durable customer-access authority. Slices B/C provide exact-revision bearer access and bot-resistant `VIEW_CONFIRMED` evidence. Slice D adds exact-revision customer ACCEPT/DECLINE evidence and the approved hybrid conversion path. Customer-facing page UI, email transport, WhatsApp composer/Send-Share UI, Meta delivery, PhotoPicker and accounting/ERP remain deferred.
 
 ## Authority boundaries
 
-- `Quote` + the exact immutable `QuoteRevision` remain authoritative for commercial state, stored pricing and lifecycle.
-- Customer access is a bearer capability over a deliberately limited projection; it is not a customer account and does not prove legal identity.
-- Public customer response endpoints must never expose/call ADMIN controllers directly.
-- Existing canonical Quote acceptance/preflight/conversion and decline authority must be reused/refactored, not cloned.
-- Correspondence remains authoritative for immutable rendered correspondence and provider-neutral email delivery attempts.
-- Messaging remains authoritative for actual provider WhatsApp/Messenger messages. Opening a manual WhatsApp composer does not create a Messaging outbound message.
-- `QuoteStatus` remains the business lifecycle. Engagement/view evidence is orthogonal and append-only.
+- `Quote` + exact immutable `QuoteRevision` remain commercial authority.
+- A capability proves possession, not legal identity.
+- Public response routes use a dedicated service boundary and never call ADMIN controllers.
+- Canonical `QuoteReviewService.preflight`, `accept` and `decline` remain operational lifecycle authority; Slice D does not implement a second acceptance/decline engine.
+- Customer response evidence is append-only and separate from operational actor attribution.
 
-## Slice B access-grant persistence
+## Access and view foundation
 
-Migration `20260824074500_secure_quote_customer_access_grants` adds `quote_customer_access_grants` as the bounded persistence model for customer Quote capabilities.
+The Slice B/C contracts remain unchanged: raw capability/challenge material is never stored, grants bind one exact revision, stale/revoked/superseded/expired grants fail closed, public responses use private/no-store/noindex/no-referrer headers, and HTTP resolve alone is not `VIEW_CONFIRMED`.
 
-Each grant stores one canonical Quote UUID, one exact immutable Quote revision number, a unique SHA-256 token fingerprint, effective expiry, revocation/supersession evidence, creator/revoker identity and timestamps. There is no raw-token column.
+## Slice D customer response evidence
 
-A partial unique index allows at most one unresolved non-revoked/non-superseded grant per Quote. Issuance serializes per Quote with a PostgreSQL transaction advisory lock. Re-issuance rotates the bearer token and atomically supersedes the prior unresolved grant before creating its successor.
+PostgreSQL requires newly-added enum labels to commit before later constraints/data can use them. Slice D therefore deliberately uses two ordered migrations:
 
-`QuoteCustomerAccessService` generates exactly 32 random bytes (256 bits) with Node cryptographic randomness and base64url-encodes them. Only `SHA-256(raw token)` is stored.
+- `20260824114000_quote_customer_response_evidence` — enum-only addition of `CUSTOMER_ACCEPTED` and `CUSTOMER_DECLINED` to `QuoteCustomerEngagementEventType`;
+- `20260824114100_quote_customer_response_records` — creates `quote_customer_responses` and its enum-backed decision constraint after the enum migration has committed.
 
-ADMIN issuance:
+The response table is the durable response/idempotency projection. Each response binds exactly one grant, Quote and immutable revision and links to its append-only engagement event.
 
-`POST /api/v1/quotes/:id/customer-access`
+Public response endpoint:
 
-ADMIN revocation:
+`POST /api/v1/public/quote-access/respond`
 
-`POST /api/v1/quotes/:id/customer-access/revoke`
+with `Authorization: QuoteCapability <opaque-token>` and body fields:
 
-Public exact-revision resolution:
+- `decision`: `CUSTOMER_ACCEPTED` or `CUSTOMER_DECLINED`;
+- `idempotencyKey`: opaque caller-generated 8–128 character replay identity;
+- `confirmed: true`: mandatory explicit confirmation of the irreversible response.
 
-`POST /api/v1/public/quote-access/resolve`
+The endpoint is limited to 10 attempts per observed transport peer per minute and retains private/no-store/noindex/no-referrer response headers. The capability, Quote UUID and revision are not accepted from client body/query data as authoritative identifiers.
 
-with:
+A response transaction locks and rechecks grant + Quote state. Expired, revoked, superseded or stale-revision grants fail closed. A grant cannot be changed from ACCEPT to DECLINE or vice versa after a response is durably recorded. Retries with the same response return the existing evidence instead of creating another response event.
 
-`Authorization: QuoteCapability <opaque-token>`
+## Hybrid customer ACCEPT
 
-The capability is not placed in the API URL path or query string. HestivaOS request logging records the fixed route path, not Authorization/body contents. Upstream logging must likewise not persist Authorization values.
+`CUSTOMER_ACCEPTED` means only: **the holder of a valid exact-revision customer capability accepted that offer**. It is persisted before operational conversion is attempted.
 
-Malformed, unknown, expired, revoked, superseded, stale-revision and otherwise unavailable capabilities use the same generic public unavailable response.
+After evidence exists, HestivaOS runs canonical acceptance preflight. If preflight proves an expected business/readiness blocker, the response is `PENDING_INTERNAL_COMPLETION`; the durable customer decision remains intact and no operational success is claimed.
 
-## Expiry configuration
+If preflight is ready, the existing `QuoteReviewService.accept()` transaction performs the normal Customer/Property resolution, Work Order creation, recurring-agreement creation and canonical Quote transition. The canonical service remains the sole conversion authority. It already runs `SERIALIZABLE`, uses an exact-revision conditional Quote transition, retries PostgreSQL serialization conflicts, rolls back losing transactional writes, and recovers an already-complete exact accepted result without creating another Work Order/agreement/activity.
 
-`HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS` is a required API runtime value and has no source-code default.
+A conflict that occurs after a ready preflight is not automatically converted into `PENDING_INTERNAL_COMPLETION`. The response boundary re-runs canonical preflight. It returns pending only if that fresh canonical preflight now proves a genuine blocker. If another conversion has won, the response boundary asks canonical `accept()` to verify/recover the exact already-accepted result. An unexplained conflict remains a conflict.
 
-At issuance:
+Unexpected programming, database, infrastructure or other internal exceptions are never disguised as normal pending business state. Customer acceptance evidence remains durable, while the public request fails with a generic server error that does not expose the underlying exception text. A later replay with the same response/idempotency identity reuses the existing `CUSTOMER_ACCEPTED` evidence and retries canonical conversion safely; the customer does not need to accept again.
 
-`effective expiry = min(Quote.validUntil, now + configured maximum customer-link lifetime)`.
+## Reserved CUSTOMER_SELF_SERVICE system actor
 
-Resolution independently checks the stored grant expiry, current Quote validity, exact current revision and customer-readable Quote state.
+Automatic operational conversion needs a valid `User.id` because existing canonical audit/foreign-key fields such as `Quote.acceptedByUserId`, `WorkOrder.createdById`, Customer owner and activity actor are User-backed. Slice D therefore introduces one deterministic reserved non-human row through `20260824113000_customer_self_service_system_actor`:
 
-## Revision and supersession behavior
+- semantic identity: `CUSTOMER_SELF_SERVICE`;
+- display name: `HestivaOS Customer Self-Service`;
+- stable reserved UUIDs committed by migration, never environment-random;
+- reserved `.invalid` email used only to satisfy the existing unique User shape;
+- `UserStatus.INACTIVE`;
+- no Supabase Auth account/password/session is created.
 
-A grant resolves only its stored exact revision and never follows `Quote.currentRevisionNumber` to newer pricing. A newly issued customer-facing offer supersedes the prior unresolved grant for the Quote in the same serialized transaction.
+The migration is fail-closed on identity collisions. If the reserved application User ID already exists, its reserved auth UUID/email/display name/role/status must match exactly; otherwise migration fails instead of silently accepting a different identity. Normal unique constraints also reject a different User occupying the reserved auth UUID or email.
 
-Revoked, superseded, expired and stale-revision capabilities are non-actionable. Old links never silently expose a newer revision.
+The existing `SupabaseAuthGuard` resolves interactive sessions by a verified Supabase `authUserId` and separately rejects INACTIVE application Users. The reserved row therefore cannot operate as a normal staff login and must not be provisioned in Supabase Auth. Its role value is structural only and grants no session capability.
 
-## Exact public Quote projection
+The distinction is invariant:
 
-A valid capability returns a server-derived projection from the exact persisted `QuoteRevision` and stored `QuoteLineItem` rows. No pricing calculation runs in the public boundary.
+**Customer decides. HestivaOS executes.**
 
-The projection includes only public Business Profile fields permitted by existing share flags, Quote public reference, exact revision/status/actionability/validity, selected customer-useful property/request/visit facts and exact stored pricing/line items.
+`CUSTOMER_ACCEPTED` is the customer-capability-holder decision. The reserved system actor on `acceptedByUserId`, `createdById` or activities means only that HestivaOS executed the resulting canonical operation. It must never be rendered as an employee/customer personally accepting the Quote. Safe response-event metadata records only `source: PUBLIC_QUOTE_CAPABILITY`; no raw bearer material is stored.
 
-It excludes Customer name/email/mobile, street address, access/security/key information, household/safety details, general/internal notes, Customer/Property resolution state, User/auth identities, database UUIDs, line-item internal codes, provider configuration, token fingerprints, operational-cost provenance, internal profitability/margins and newer revision data.
+This is documented here as an implementation convention under ADR-0089's already-approved hybrid acceptance/audit architecture. No new ADR is required because it does not change bearer semantics, Quote authority, authentication authority or canonical conversion rules.
 
-## Slice C engagement persistence
+## Customer DECLINE
 
-Migration `20260824095000_quote_customer_view_engagement` adds two bounded structures:
+`CUSTOMER_DECLINED` is likewise exact-revision append-only evidence. The dedicated response boundary then reuses `QuoteReviewService.decline()` rather than duplicating decline lifecycle logic. The same reserved execution actor satisfies canonical User-backed audit fields; it identifies HestivaOS execution, not customer identity.
 
-- `quote_customer_view_challenges` — short-lived challenge state bound to one access grant, Quote and exact revision. It stores only a SHA-256 challenge fingerprint, issue/expiry time and eventual confirmation/event linkage. The raw challenge is never stored.
-- `quote_customer_engagement_events` — append-only engagement evidence. Slice C defines the database event type `VIEW_CONFIRMED`; future evidence types may be added deliberately without adding mutable communication timestamps to `Quote`.
+Canonical decline uses a `SERIALIZABLE` transaction, exact expected revision, conditional status transition and identical same-actor/revision recovery. Concurrent incompatible state changes remain conflicts and are not reported as successful declines. Unexpected canonical decline failures become generic internal failures while the durable `CUSTOMER_DECLINED` evidence remains available for recovery. A same-idempotency replay reuses that evidence and retries canonical decline where the Quote still permits it; no reversal semantics are invented.
 
-Each engagement event binds to access grant, Quote and exact immutable revision and stores event type, server occurrence time, unique idempotency identity and safe metadata only. Slice C metadata records only protocol identity (`visible-dwell-v1`); it does not store IP/device fingerprints, raw capability/challenge values or customer PII.
+## ADMIN response summary
 
-Routine view evidence is not copied into `QuoteStatus` and does not flood `QuoteActivity`.
+ADMIN-only response projection:
 
-## Human-view protocol implemented in Slice C
+`GET /api/v1/quotes/:id/customer-access/response?expectedRevisionNumber=<n>`
 
-Initial capability resolution does **not** create `VIEW_CONFIRMED`. A link preview, security scanner or simple HTTP client that only resolves/fetches the Quote therefore creates no view evidence.
+returns the exact revision and, when present, the durable customer decision, server response time and `PUBLIC_QUOTE_CAPABILITY` source. It does not expose capability material or pretend that operational conversion necessarily succeeded.
 
-A future rendered customer page uses two separate fixed-path API calls after successfully resolving a capability:
-
-1. `POST /api/v1/public/quote-access/view-challenge`
-2. `POST /api/v1/public/quote-access/view-confirm`
-
-Both continue to present the capability only through:
-
-`Authorization: QuoteCapability <opaque-token>`
-
-### Challenge issuance
-
-A challenge is issued only after the Slice B access resolver proves that the capability currently resolves to a customer-readable exact revision.
-
-- Raw challenge entropy: exactly 32 cryptographically random bytes (256 bits), base64url encoded.
-- Durable storage: SHA-256 fingerprint only.
-- Maximum technical lifetime: **5 minutes**.
-- Effective challenge expiry: `min(issue time + 5 minutes, access-grant expiry)`.
-- Challenge issuance itself creates no engagement event and is not a view.
-
-### Browser evidence boundary
-
-The confirmation request supplies only:
-
-- the raw opaque challenge returned by the challenge endpoint; and
-- `pageVisible: true` while the rendered document is actually visible.
-
-The browser does **not** supply an authoritative viewed-at timestamp, dwell duration, Quote ID or revision number. Server challenge issue time and server confirmation time determine dwell.
-
-The minimum visible dwell threshold is **2 seconds**. This is deliberately small enough not to distort the customer experience while preventing immediate resolve/unfurl requests from qualifying.
-
-A future customer-page implementation must wait until the document is visible and at least the server-advertised `minimumVisibleDwellMs` has elapsed before calling confirmation. The server remains authoritative and rejects confirmation before its own 2-second threshold even if the client calls early.
-
-### Confirmation transaction
-
-Confirmation re-resolves the capability and then transactionally locks/rechecks the challenge, grant and Quote before writing evidence. It fails closed if, before confirmation, any of the following becomes true:
-
-- challenge expired;
-- access grant expired;
-- access grant revoked;
-- access grant superseded;
-- canonical Quote expired;
-- exact revision became stale;
-- Quote state is no longer customer-readable;
-- challenge belongs to a different grant/Quote/revision.
-
-A challenge issued before revocation or supersession therefore cannot be used afterward.
-
-On the first eligible confirmation, one append-only `VIEW_CONFIRMED` event is written with server occurrence time. The challenge is linked to that event in the same SERIALIZABLE transaction.
-
-The event idempotency identity is derived from the internal challenge UUID (`view-challenge:<challenge-id>`), never from the raw challenge. A duplicate confirmation of the same confirmed challenge returns the existing occurrence with `replayed: true` and creates no additional event.
-
-Distinct successfully confirmed challenges may create distinct view events, which allows later genuine revisits to increment the view count without refresh/retry duplication.
-
-## Bot and preview resistance
-
-The signal is intentionally stronger than URL retrieval:
-
-- Quote resolution alone produces no view event;
-- challenge issuance produces no view event;
-- a confirmation must use a valid one-time/replay-safe challenge after server-measured dwell;
-- the browser must explicitly state that the page is visible;
-- stale/revoked/superseded access fails during confirmation, not merely at challenge issuance.
-
-This prevents ordinary link unfurlers and security scanners that only fetch/resolve resources from producing `VIEW_CONFIRMED`.
-
-It does **not** cryptographically prove that a legal person or human eyeball read the Quote. A sophisticated JavaScript-capable automation that deliberately follows the full protocol could still satisfy the operational signal. ADMIN UI may display this evidence as **Viewed**, but documentation and product semantics must retain this limitation.
-
-No device fingerprinting, invasive tracking, analytics or IP-as-customer-identity mechanism is introduced.
-
-## Public-route abuse controls
-
-Slice B resolution remains limited to 30 attempts per observed transport peer per minute.
-
-Slice C adds separate process-local fixed-window limits:
-
-- challenge issuance: **10 attempts per observed transport peer per minute**;
-- confirmation: **30 attempts per observed transport peer per minute**.
-
-The observed transport peer is an abuse-control key only; it is not persisted as engagement evidence and is not treated as customer identity. These process-local controls are a minimum API boundary, not a distributed/WAF guarantee.
-
-All Slice C public endpoints retain `private, no-store`, `Pragma: no-cache`, `X-Robots-Tag: noindex, nofollow, noarchive` and `Referrer-Policy: no-referrer` response posture.
-
-## ADMIN engagement summary
-
-ADMIN-only summary:
-
-`GET /api/v1/quotes/:id/customer-access/engagement?expectedRevisionNumber=<n>`
-
-The summary is a projection over append-only view evidence and current access-grant/Quote state. It returns:
-
-- exact `revisionNumber`;
-- `firstViewedAt` — minimum `VIEW_CONFIRMED.occurred_at` for the exact Quote revision;
-- `lastViewedAt` — maximum occurrence time;
-- `viewCount` — count of distinct persisted `VIEW_CONFIRMED` events;
-- derived `accessState` for that revision (`NONE`, `ACTIVE`, `REVOKED`, `SUPERSEDED`, `STALE_REVISION`, `EXPIRED`, or `QUOTE_UNAVAILABLE`).
-
-No mutable `firstViewedAt`/`lastViewedAt`/`viewCount` fields are added to `Quote`.
+The existing engagement summary remains independently available for view/access evidence.
 
 ## Frozen evidence vocabulary
 
 | Evidence | Meaning | Must not be presented as |
 | --- | --- | --- |
 | `ACCESS_ISSUED` | Exact-revision capability created | sent, delivered, viewed |
-| `EMAIL_DELIVERY_INITIATED` | Authorized email delivery attempt started | provider accepted, delivered, read |
-| `EMAIL_PROVIDER_ACCEPTED` | Real future email adapter/provider accepted the attempt at its boundary | customer read/viewed |
-| `EMAIL_DELIVERY_FAILED` | Defensible adapter/provider failure evidence | customer rejection |
 | `WHATSAPP_COMPOSER_OPENED` | Prefilled click-to-chat composer opened | sent, delivered, read |
-| `VIEW_CONFIRMED` | Separate short-lived browser challenge confirmed after visible dwell | legal identity proof |
-| `CUSTOMER_ACCEPTED` | Holder of valid exact-revision capability accepted that offer | operational conversion succeeded unless canonical conversion actually committed |
-| `CUSTOMER_DECLINED` | Holder of valid exact-revision capability declined that offer | decline of any later revision |
+| `VIEW_CONFIRMED` | Browser challenge confirmed after visible dwell | legal identity proof |
+| `CUSTOMER_ACCEPTED` | Valid exact-revision capability holder accepted | operational conversion succeeded unless canonical conversion committed |
+| `CUSTOMER_DECLINED` | Valid exact-revision capability holder declined | decline of a later revision |
 | `ACCESS_REVOKED` | Grant explicitly disabled | Quote deleted |
-| `ACCESS_SUPERSEDED` | Newer revision became customer-facing and old grant became non-actionable | old link redirected to new pricing |
+| `ACCESS_SUPERSEDED` | Old customer-facing grant became non-actionable | old link follows new pricing |
 
-`WHATSAPP_COMPOSER_OPENED != SENT`, `EMAIL_PROVIDER_ACCEPTED != READ`, and HTTP resolve/fetch `!= VIEW_CONFIRMED` remain invariant.
+`CUSTOMER_ACCEPTED != system actor`. `WHATSAPP_COMPOSER_OPENED != SENT`. HTTP resolve/fetch `!= VIEW_CONFIRMED`.
 
-## Behavioral fixtures/current behavior
+## Out of scope after Slice D
 
-| Fixture | Behavior |
-| --- | --- |
-| Valid access | Resolve only exact bound revision; resolution creates no view evidence. |
-| Unknown/expired/revoked/superseded capability | Safe generic failure. |
-| Stale revision | Never resolve/confirm against the newer revision. |
-| Bot/simple resolve | No `VIEW_CONFIRMED`. |
-| Valid challenge | 256-bit raw challenge returned once; fingerprint only persisted. |
-| Challenge before 2-second dwell | Confirmation rejected; no event. |
-| Challenge after 2-second visible dwell | One `VIEW_CONFIRMED` event. |
-| Duplicate confirmation | Returns existing event as replay; count does not increment. |
-| Distinct later valid challenge | Creates a later distinct `VIEW_CONFIRMED`; first view remains original, last view/count advance. |
-| Challenge then grant revoked/superseded/expired | Confirmation fails closed. |
-| Forwarded valid link | Holder can still exercise bearer capability; no verified-identity claim. |
-| Customer Accept/Decline | Deferred to Slice D+; no response runtime exists in Slice C. |
-| WhatsApp composer/email provider | Deferred; no delivery semantics added by Slice C. |
-
-## Customer response contract — deferred
-
-Accept/Decline must bind to the exact valid grant, Quote and immutable revision with durable idempotent response identity.
-
-For Accept, later runtime must preserve valid customer acceptance evidence, run/reuse canonical acceptance preflight and use the existing authoritative conversion service when ready. If conversion cannot safely complete, it must retain customer acceptance evidence and surface internal completion without pretending operational conversion succeeded.
-
-Decline must use the dedicated customer-response boundary and reuse/refactor canonical Quote decline authority. Public routes must never call ADMIN controllers.
-
-## Manual WhatsApp and email delivery — deferred
-
-Initial WhatsApp delivery will prepare standard click-to-chat/deep-link content and record only truthful composer-open evidence. Email transport will reuse Correspondence and may claim provider acceptance only from real provider evidence. Neither is implemented in Slice C.
-
-## Implementation sequencing guardrail
-
-The next slice may implement only the separately approved customer-response foundation. Customer-facing Quote UI, email transport, WhatsApp composer/Send-Share UI, Meta delivery, PhotoPicker and accounting/ERP remain outside Slice C and require their own approved scope.
+- customer-facing Quote page beyond these minimal APIs;
+- email provider/transport;
+- WhatsApp composer and Send/Share UI;
+- Meta delivery/Flow/PhotoPicker work;
+- accounting/ERP;
+- PR #214 changes.
