@@ -16,6 +16,7 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 - `SUPABASE_ANON_KEY` — retained for API features/readiness that still use the Supabase client credential; local bearer-token verification does not send this key to the JWKS endpoint
 - `NEXT_PUBLIC_SUPABASE_URL` (supported API fallback for the project URL)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (supported API fallback where existing API code requires the anonymous client credential)
+- `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS` — required positive integer maximum lifetime for newly issued secure customer Quote capabilities. The effective expiry is always the earlier of this configured lifetime and the canonical Quote `validUntil`. There is intentionally no source-code default; issuance fails closed if the value is missing or invalid.
 
 The verified production signing configuration is asymmetric ECC P-256 / ES256. The API authentication guard intentionally accepts ES256 only. Do not rotate production to another JWT signing algorithm without reviewing the guard, tests, ADR-0033, recovery procedure, and deployment verification first. The public JWKS contains verification keys only; never configure or commit a Supabase private signing key in HestivaOS.
 
@@ -93,6 +94,7 @@ GitHub Actions has no frontend deployment workflow and owns no Cloudflare produc
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET`
 - `NEXT_PUBLIC_SUPABASE_WORK_ORDER_PHOTOS_BUCKET`
+- `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS`
 
 Use ignored local environment files and placeholder-only tracked examples.
 
