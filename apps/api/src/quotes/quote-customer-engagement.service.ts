@@ -28,6 +28,7 @@ type GrantIdentityRow = {
   id: string;
   quote_id: string;
   revision_number: number;
+  expires_at: Date;
 };
 
 type ChallengeConfirmationRow = {
@@ -89,7 +90,7 @@ export class QuoteCustomerEngagementService {
   private async resolveGrantIdentity(rawCapability: string): Promise<GrantIdentityRow> {
     const projection = await this.access.resolve(rawCapability);
     const rows = await this.prisma.$queryRaw<GrantIdentityRow[]>(Prisma.sql`
-      SELECT id, quote_id, revision_number
+      SELECT id, quote_id, revision_number, expires_at
       FROM quote_customer_access_grants
       WHERE token_fingerprint = ${fingerprint(rawCapability)}
       LIMIT 1
@@ -102,7 +103,8 @@ export class QuoteCustomerEngagementService {
   async issueViewChallenge(rawCapability: string) {
     const grant = await this.resolveGrantIdentity(rawCapability);
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + CHALLENGE_LIFETIME_MS);
+    const expiresAt = new Date(Math.min(now.getTime() + CHALLENGE_LIFETIME_MS, grant.expires_at.getTime()));
+    if (expiresAt.getTime() <= now.getTime()) throw unavailable();
     const rawChallenge = randomBytes(CHALLENGE_BYTES).toString('base64url');
     const challengeFingerprint = fingerprint(rawChallenge);
 
