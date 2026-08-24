@@ -23,10 +23,11 @@ describe('ResendWebhookService', () => {
   });
 
   it('accepts a correctly signed delivery event and persists provider evidence against the matching Correspondence attempt', async () => {
-    const prisma = {
-      $queryRaw: jest.fn().mockResolvedValue([{ attempt_id: '11111111-1111-1111-1111-111111111111' }]),
-      $executeRaw: jest.fn().mockResolvedValue(1),
-    };
+    const queryRaw = jest.fn<() => Promise<Array<{ attempt_id: string }>>>();
+    queryRaw.mockResolvedValue([{ attempt_id: '11111111-1111-1111-1111-111111111111' }]);
+    const executeRaw = jest.fn<() => Promise<number>>();
+    executeRaw.mockResolvedValue(1);
+    const prisma = { $queryRaw: queryRaw, $executeRaw: executeRaw };
     const service = new ResendWebhookService(prisma as never);
     const raw = Buffer.from(JSON.stringify({ type: 'email.delivered', created_at: new Date().toISOString(), data: { email_id: 'email_123', to: ['customer@example.com'] } }));
 
