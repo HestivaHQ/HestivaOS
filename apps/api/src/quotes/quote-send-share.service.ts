@@ -10,8 +10,14 @@ import { QuoteCustomerResponseService } from './quote-customer-response.service'
 const QUOTE_TEMPLATE_KEY = 'quote_customer_ready_v1';
 const SECURE_LINK_MARKER = '{{SECURE_QUOTE_LINK}}';
 const WHATSAPP_COMPOSER_OPENED = 'WHATSAPP_COMPOSER_OPENED';
-const PROVIDER_FAILURE_EVENTS = new Set(['email.failed', 'email.bounced', 'email.suppressed', 'email.complained']);
-const PROVIDER_ACCEPTANCE_EVENTS = new Set(['email.sent', 'email.delivered', 'email.delivery_delayed']);
+const PROVIDER_SUBMISSION_FAILURE_EVENTS = new Set(['email.failed', 'email.suppressed']);
+const PROVIDER_SUBMISSION_ACCEPTANCE_EVENTS = new Set([
+  'email.sent',
+  'email.delivered',
+  'email.delivery_delayed',
+  'email.bounced',
+  'email.complained',
+]);
 
 type ContactSnapshot = { name: string; email: string | null; phone: string | null };
 type UnreconciledAttempt = { attempt_id: string; record_id: string; subject: string | null; body: string; recipient_email: string | null };
@@ -199,18 +205,7 @@ export class QuoteSendShareService {
       WHERE attempt_id = ${attempt.attempt_id}::uuid
       ORDER BY occurred_at ASC, created_at ASC
     `);
-    const failure = [...providerEvents].reverse().find((event) => PROVIDER_FAILURE_EVENTS.has(event.event_type));
-    if (failure) {
-      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
-        status: CorrespondenceDeliveryAttemptStatus.FAILED,
-        providerReference: failure.provider_reference,
-        failureCode: failure.event_type,
-        failureMessage: 'Authenticated Resend provider evidence confirmed that the original Quote email did not complete successfully.',
-        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_FAILURE_EVIDENCE' },
-      });
-      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_FAILED', retryPermitted: true };
-    }
-    const accepted = [...providerEvents].reverse().find((event) => PROVIDER_ACCEPTANCE_EVENTS.has(event.event_type));
+    const accepted = [...providerEvents].reverse().find((event) => PROVIDER_SUBMISSION_ACCEPTANCE_EVENTS.has(event.event_type));
     if (accepted) {
       await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
         status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
@@ -218,6 +213,17 @@ export class QuoteSendShareService {
         metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_EVIDENCE_NOT_CUSTOMER_VIEW' },
       });
       return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_ACCEPTED', retryPermitted: false };
+    }
+    const failure = [...providerEvents].reverse().find((event) => PROVIDER_SUBMISSION_FAILURE_EVENTS.has(event.event_type));
+    if (failure) {
+      await this.correspondence.recordDeliveryOutcome(actor, attempt.attempt_id, {
+        status: CorrespondenceDeliveryAttemptStatus.FAILED,
+        providerReference: failure.provider_reference,
+        failureCode: failure.event_type,
+        failureMessage: 'Authenticated Resend provider evidence confirmed that the original Quote email submission did not complete successfully.',
+        metadata: { provider: 'RESEND', semantics: 'RECOVERED_FROM_SIGNED_PROVIDER_SUBMISSION_FAILURE_EVIDENCE' },
+      });
+      return { revisionNumber: expectedRevisionNumber, attemptId: attempt.attempt_id, state: 'PROVIDER_FAILED', retryPermitted: true };
     }
 
     const recipient = attempt.recipient_email?.trim() || quote.contact.email;
@@ -232,9 +238,6 @@ export class QuoteSendShareService {
       throw new ConflictException('The original Quote link is no longer active. Do not replay the uncertain send; prepare a new reviewed send instead.');
     }
 
-    // The raw capability is intentionally unrecoverable from storage. An exact provider replay is
-    // therefore possible only while the original request is still recoverable in process memory.
-    // After a process boundary, signed provider evidence is required before a fresh capability may be issued.
     return {
       revisionNumber: expectedRevisionNumber,
       attemptId: attempt.attempt_id,
