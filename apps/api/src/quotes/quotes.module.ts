@@ -18,6 +18,11 @@ import {
   QuoteCustomerAccessPublicController,
 } from './quote-customer-access.controller';
 import { QuoteCustomerAccessService } from './quote-customer-access.service';
+import {
+  QuoteCustomerEngagementAdminController,
+  QuoteCustomerEngagementPublicController,
+} from './quote-customer-engagement.controller';
+import { QuoteCustomerEngagementService } from './quote-customer-engagement.service';
 
 function configuredCoidaRate(): number | null {
   const raw = process.env.HESTIVA_COIDA_RATE;
@@ -76,6 +81,8 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
     QuoteReviewController,
     QuoteCustomerAccessAdminController,
     QuoteCustomerAccessPublicController,
+    QuoteCustomerEngagementAdminController,
+    QuoteCustomerEngagementPublicController,
     WebsiteIntegrationHealthController,
     WebsiteQuoteIngestionController,
   ],
@@ -85,6 +92,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
     QuotePricingReviewService,
     QuoteSubmissionService,
     QuoteCustomerAccessService,
+    QuoteCustomerEngagementService,
     {
       provide: QUOTE_OPERATIONAL_COST_PROVIDER,
       useFactory: () =>
