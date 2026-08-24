@@ -35,9 +35,9 @@ Because the raw token is intentionally not recoverable, an already `OFFERED` com
 
 ## One unresolved session
 
-A database partial unique index prevents parallel `PREPARED`/`OFFERED` sessions for the same conversation + Flow contract + mapping + provider artifact. Creation is additionally serialized with a transaction advisory lock. Due sessions are locally expired before active-session checks.
+A database partial unique index prevents parallel `PREPARED`/`OFFERED` sessions for the same conversation + Flow contract + mapping, including across a deployment Flow-artifact change. Creation is additionally serialized with a transaction advisory lock. Due sessions are locally expired before active-session checks.
 
-Repeated offer requests reuse an already `OFFERED` compatible session. They do not mint another session or another Quote.
+Repeated offer requests reuse an already `OFFERED` compatible session for the configured artifact. If deployment changes the configured artifact while an older V1 session remains unresolved, the database refuses a parallel session; orchestration must deliberately finish, expire or transition the older session before launching the replacement.
 
 ## Launch path
 
@@ -55,7 +55,7 @@ Launch is:
 
 The reviewed provider message uses `interactive.type=flow`, `flow_message_version=3`, `flow_action=navigate`, the session raw `flow_token`, configured `flow_id`, CTA `Request a quote`, and start screen `YOUR_HOME`. The adapter accepts only this reviewed static Flow interactive shape; it does not broadly enable arbitrary WhatsApp interactive sends.
 
-The existing outbound ambiguity boundary is preserved. Network/5xx/malformed-success outcomes remain pending reconciliation and are not blindly resent. `OFFERED` is written only after the existing send boundary returns accepted provider identity.
+The existing outbound ambiguity boundary is preserved. Network/5xx/malformed-success outcomes remain pending reconciliation and are not blindly resent. `OFFERED` is written only after the existing send boundary returns accepted provider identity or a later authenticated provider status proves sent/delivered/read. A definite provider failure transitions the prepared session to deliberate `FALLBACK` rather than silently feeding the failed launch into guided state.
 
 ## Completion path
 
