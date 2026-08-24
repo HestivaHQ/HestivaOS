@@ -38,7 +38,7 @@ CREATE UNIQUE INDEX "messaging_quote_flow_sessions_token_fingerprint_key" ON "me
 CREATE UNIQUE INDEX "messaging_quote_flow_sessions_launch_message_key" ON "messaging_quote_flow_sessions"("launch_message_id") WHERE "launch_message_id" IS NOT NULL;
 CREATE UNIQUE INDEX "messaging_quote_flow_sessions_completion_message_key" ON "messaging_quote_flow_sessions"("completion_message_id") WHERE "completion_message_id" IS NOT NULL;
 CREATE UNIQUE INDEX "messaging_quote_flow_sessions_provider_completion_key" ON "messaging_quote_flow_sessions"("provider_completion_event_key") WHERE "provider_completion_event_key" IS NOT NULL;
-CREATE UNIQUE INDEX "messaging_quote_flow_sessions_one_unresolved_key" ON "messaging_quote_flow_sessions"("conversation_id", "flow_contract_id", "mapping_version", "provider_flow_artifact_id") WHERE "status" IN ('PREPARED','OFFERED');
+CREATE UNIQUE INDEX "messaging_quote_flow_sessions_one_unresolved_key" ON "messaging_quote_flow_sessions"("conversation_id", "flow_contract_id", "mapping_version") WHERE "status" IN ('PREPARED','OFFERED');
 CREATE INDEX "messaging_quote_flow_sessions_conversation_status_idx" ON "messaging_quote_flow_sessions"("conversation_id", "status", "created_at");
 CREATE INDEX "messaging_quote_flow_sessions_expiry_idx" ON "messaging_quote_flow_sessions"("status", "expires_at");
 
