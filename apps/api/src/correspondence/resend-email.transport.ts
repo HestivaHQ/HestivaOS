@@ -38,6 +38,11 @@ export class CorrespondenceSenderResolver {
 export class ResendEmailTransport {
   constructor(private readonly senders: CorrespondenceSenderResolver) {}
 
+  assertConfigured(purpose: CorrespondencePurpose): void {
+    required('RESEND_API_KEY');
+    this.senders.resolve(purpose);
+  }
+
   async send(input: ResendSendInput): Promise<ResendSendResult> {
     const apiKey = required('RESEND_API_KEY');
     const sender = this.senders.resolve(input.purpose);
