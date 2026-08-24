@@ -92,6 +92,17 @@ function unavailable(): NotFoundException {
   return new NotFoundException(UNAVAILABLE_MESSAGE);
 }
 
+function isCustomerReadableQuoteStatus(status: QuoteStatus): boolean {
+  switch (status) {
+    case QuoteStatus.SUBMITTED:
+    case QuoteStatus.ACCEPTED:
+    case QuoteStatus.DECLINED:
+      return true;
+    default:
+      return false;
+  }
+}
+
 @Injectable()
 export class QuoteCustomerAccessService {
   constructor(private readonly prisma: PrismaService) {}
@@ -255,7 +266,7 @@ export class QuoteCustomerAccessService {
     if (!quote || !revision) throw unavailable();
     if (quote.currentRevisionNumber !== grant.revision_number) throw unavailable();
     if (quote.validUntil.getTime() <= now.getTime()) throw unavailable();
-    if (![QuoteStatus.SUBMITTED, QuoteStatus.ACCEPTED, QuoteStatus.DECLINED].includes(quote.status)) throw unavailable();
+    if (!isCustomerReadableQuoteStatus(quote.status)) throw unavailable();
 
     const structured = revision.structuredData as StructuredQuoteData;
     const profile = await this.prisma.businessProfile.findUnique({ where: { id: 'hestiva' } });
