@@ -13,13 +13,15 @@ import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 import { MessengerWebhookController } from './messenger-webhook.controller';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
 import { WhatsAppInboundMediaService } from './whatsapp-inbound-media.service';
+import { WhatsAppQuoteFlowInboundService } from './whatsapp-quote-flow-inbound.service';
+import { WhatsAppQuoteFlowSessionService } from './whatsapp-quote-flow-session.service';
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 
 @Global()
 @Module({
   imports: [QuotesModule],
   controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController],
-  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, MessengerPlatformAdapter],
-  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService],
+  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, WhatsAppQuoteFlowSessionService, WhatsAppQuoteFlowInboundService, MessengerPlatformAdapter],
+  exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppQuoteFlowSessionService],
 })
 export class MessagingModule {}
