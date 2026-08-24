@@ -10,6 +10,7 @@ import {
 const ENV = QUOTE_CUSTOMER_ACCESS_SECURITY.maximumLifetimeEnv;
 
 type SqlLike = { values?: unknown[] };
+type ResponseDecision = 'CUSTOMER_ACCEPTED' | 'CUSTOMER_DECLINED' | null;
 
 afterEach(() => {
   delete process.env[ENV];
@@ -112,7 +113,11 @@ describe('QuoteCustomerAccessService issuance', () => {
 });
 
 describe('QuoteCustomerAccessService resolution', () => {
-  function resolutionHarness(grantOverrides: Record<string, unknown> = {}, quoteOverrides: Record<string, unknown> = {}) {
+  function resolutionHarness(
+    grantOverrides: Record<string, unknown> = {},
+    quoteOverrides: Record<string, unknown> = {},
+    responseDecision: ResponseDecision = null,
+  ) {
     const now = Date.now();
     const grant = {
       id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -150,37 +155,86 @@ describe('QuoteCustomerAccessService resolution', () => {
       }],
       ...quoteOverrides,
     };
+    const queryCalls: SqlLike[] = [];
+    let queryNumber = 0;
     const prisma = {
-      $queryRaw: jest.fn(async () => [grant]),
+      $queryRaw: jest.fn(async (query: SqlLike) => {
+        queryCalls.push(query);
+        queryNumber += 1;
+        if (queryNumber === 1) return [grant];
+        return responseDecision ? [{ decision: responseDecision }] : [];
+      }),
       quote: { findUnique: jest.fn(async () => quote) },
       businessProfile: { findUnique: jest.fn(async () => ({ tradingName: 'Homent', shareTradingName: true, registeredName: 'Hestiva (Pty) Ltd', shareRegisteredName: false, registrationNumber: null, shareRegistrationNumber: true, contactNumber: '0100000000', shareContactNumber: true, businessEmail: 'hello@example.com', shareBusinessEmail: true, website: 'https://example.com', shareWebsite: true })) },
     } as unknown as PrismaService;
-    return new QuoteCustomerAccessService(prisma);
+    return { service: new QuoteCustomerAccessService(prisma), queryCalls };
   }
 
   const validToken = 'A'.repeat(43);
 
   it('returns only the exact revision stored projection and stored pricing', async () => {
-    const projection = await resolutionHarness().resolve(validToken);
+    const { service } = resolutionHarness();
+    const projection = await service.resolve(validToken);
     expect(projection.quote.revisionNumber).toBe(2);
     expect(projection.quote.pricing.totalMinor).toBe(120000);
     expect(projection.quote.pricing.lineItems[0].label).toBe('Deep Cleaning');
     expect(projection.quote.property.suburb).toBe('Orange Farm');
     expect(projection.quote.property).not.toHaveProperty('addressLine1');
+    expect(projection.quote.customerResponseState).toBe('NO_RESPONSE');
+    expect(projection.quote.actionable).toBe(true);
     expect(JSON.stringify(projection)).not.toContain('private@example.com');
     expect(JSON.stringify(projection)).not.toContain('Private street');
     expect(JSON.stringify(projection)).not.toContain('internalCost');
+    expect(JSON.stringify(projection)).not.toContain('event_id');
+    expect(JSON.stringify(projection)).not.toContain('systemActor');
     expect(projection.business).not.toHaveProperty('registeredName');
   });
 
+  it('reconstructs accepted-and-converted state from exact response evidence plus canonical acceptance', async () => {
+    const { service } = resolutionHarness({}, { status: QuoteStatus.ACCEPTED }, 'CUSTOMER_ACCEPTED');
+    const projection = await service.resolve(validToken);
+    expect(projection.quote.customerResponseState).toBe('ACCEPTED_CONVERTED');
+    expect(projection.quote.actionable).toBe(false);
+  });
+
+  it('reconstructs durable pending acceptance while canonical Quote remains submitted', async () => {
+    const { service } = resolutionHarness({}, {}, 'CUSTOMER_ACCEPTED');
+    const projection = await service.resolve(validToken);
+    expect(projection.quote.customerResponseState).toBe('ACCEPTED_PENDING_INTERNAL_COMPLETION');
+    expect(projection.quote.actionable).toBe(false);
+  });
+
+  it('reconstructs durable decline and hides actions even if canonical decline recovery is still pending', async () => {
+    const { service } = resolutionHarness({}, {}, 'CUSTOMER_DECLINED');
+    const projection = await service.resolve(validToken);
+    expect(projection.quote.customerResponseState).toBe('DECLINED');
+    expect(projection.quote.actionable).toBe(false);
+  });
+
+  it('binds response lookup to the resolved grant, Quote and exact revision', async () => {
+    const { service, queryCalls } = resolutionHarness({}, {}, 'CUSTOMER_ACCEPTED');
+    await service.resolve(validToken);
+    const responseLookupValues = queryCalls[1]?.values ?? [];
+    expect(responseLookupValues).toContain('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    expect(responseLookupValues).toContain('11111111-1111-4111-8111-111111111111');
+    expect(responseLookupValues).toContain(2);
+  });
+
+  it('fails closed on response/canonical-state contradictions', async () => {
+    const { service } = resolutionHarness({}, { status: QuoteStatus.DECLINED }, 'CUSTOMER_ACCEPTED');
+    await expect(service.resolve(validToken)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it.each([QuoteStatus.ACCEPTED, QuoteStatus.DECLINED])('keeps terminal %s Quotes readable but non-actionable while the exact grant remains valid', async (status) => {
-    const projection = await resolutionHarness({}, { status }).resolve(validToken);
+    const { service } = resolutionHarness({}, { status });
+    const projection = await service.resolve(validToken);
     expect(projection.quote.status).toBe(status);
     expect(projection.quote.actionable).toBe(false);
   });
 
   it.each([QuoteStatus.NEEDS_ATTENTION, QuoteStatus.EXPIRED])('fails closed for non-customer-readable canonical status %s', async (status) => {
-    await expect(resolutionHarness({}, { status }).resolve(validToken)).rejects.toMatchObject({
+    const { service } = resolutionHarness({}, { status });
+    await expect(service.resolve(validToken)).rejects.toMatchObject({
       response: { message: QUOTE_CUSTOMER_ACCESS_SECURITY.unavailableMessage },
     });
   });
@@ -190,21 +244,24 @@ describe('QuoteCustomerAccessService resolution', () => {
     ['revoked grant', { revoked_at: new Date() }],
     ['superseded grant', { superseded_at: new Date() }],
   ])('rejects a %s with the same safe public error', async (_name, overrides) => {
-    await expect(resolutionHarness(overrides).resolve(validToken)).rejects.toMatchObject({
+    const { service } = resolutionHarness(overrides);
+    await expect(service.resolve(validToken)).rejects.toMatchObject({
       response: { message: QUOTE_CUSTOMER_ACCESS_SECURITY.unavailableMessage },
     });
   });
 
-  it('rejects an old revision instead of exposing the newer current revision', async () => {
-    await expect(resolutionHarness({}, { currentRevisionNumber: 3 }).resolve(validToken)).rejects.toBeInstanceOf(NotFoundException);
+  it('rejects an old revision instead of exposing the newer current revision or its response', async () => {
+    const { service } = resolutionHarness({}, { currentRevisionNumber: 3 }, 'CUSTOMER_ACCEPTED');
+    await expect(service.resolve(validToken)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('rejects when the canonical Quote expires before the access grant', async () => {
-    await expect(resolutionHarness({}, { validUntil: new Date(Date.now() - 1) }).resolve(validToken)).rejects.toBeInstanceOf(NotFoundException);
+    const { service } = resolutionHarness({}, { validUntil: new Date(Date.now() - 1) });
+    await expect(service.resolve(validToken)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('uses the same safe public failure for malformed and unknown tokens', async () => {
-    const service = resolutionHarness();
+    const { service } = resolutionHarness();
     await expect(service.resolve('not-a-capability')).rejects.toMatchObject({ response: { message: QUOTE_CUSTOMER_ACCESS_SECURITY.unavailableMessage } });
     const unknownPrisma = {
       $queryRaw: jest.fn(async () => []),
