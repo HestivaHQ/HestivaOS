@@ -18,7 +18,12 @@ The Slice B/C contracts remain unchanged: raw capability/challenge material is n
 
 ## Slice D customer response evidence
 
-Migration `20260824114000_quote_customer_response_evidence` extends the append-only evidence vocabulary with `CUSTOMER_ACCEPTED` and `CUSTOMER_DECLINED` and adds `quote_customer_responses` as the durable response/idempotency projection. Each response binds exactly one grant, Quote and immutable revision and links to its append-only engagement event.
+PostgreSQL requires newly-added enum labels to commit before later constraints/data can use them. Slice D therefore deliberately uses two ordered migrations:
+
+- `20260824114000_quote_customer_response_evidence` — enum-only addition of `CUSTOMER_ACCEPTED` and `CUSTOMER_DECLINED` to `QuoteCustomerEngagementEventType`;
+- `20260824114100_quote_customer_response_records` — creates `quote_customer_responses` and its enum-backed decision constraint after the enum migration has committed.
+
+The response table is the durable response/idempotency projection. Each response binds exactly one grant, Quote and immutable revision and links to its append-only engagement event.
 
 Public response endpoint:
 
@@ -44,7 +49,7 @@ A later retry/internal completion may reuse the preserved customer response; ano
 
 ## Reserved CUSTOMER_SELF_SERVICE system actor
 
-Automatic operational conversion needs a valid `User.id` because existing canonical audit/foreign-key fields such as `Quote.acceptedByUserId`, `WorkOrder.createdById`, Customer owner and activity actor are User-backed. Slice D therefore introduces one deterministic reserved non-human row:
+Automatic operational conversion needs a valid `User.id` because existing canonical audit/foreign-key fields such as `Quote.acceptedByUserId`, `WorkOrder.createdById`, Customer owner and activity actor are User-backed. Slice D therefore introduces one deterministic reserved non-human row through `20260824113000_customer_self_service_system_actor`:
 
 - semantic identity: `CUSTOMER_SELF_SERVICE`;
 - display name: `HestivaOS Customer Self-Service`;
@@ -53,7 +58,9 @@ Automatic operational conversion needs a valid `User.id` because existing canoni
 - `UserStatus.INACTIVE`;
 - no Supabase Auth account/password/session is created.
 
-The existing `SupabaseAuthGuard` resolves interactive sessions by a verified Supabase `authUserId` and rejects INACTIVE application Users. The reserved row therefore cannot operate as a normal staff login and must not be provisioned in Supabase Auth. Its role value is structural only and grants no session capability.
+The migration is fail-closed on identity collisions. If the reserved application User ID already exists, its reserved auth UUID/email/display name/role/status must match exactly; otherwise migration fails instead of silently accepting a different identity. Normal unique constraints also reject a different User occupying the reserved auth UUID or email.
+
+The existing `SupabaseAuthGuard` resolves interactive sessions by a verified Supabase `authUserId` and separately rejects INACTIVE application Users. The reserved row therefore cannot operate as a normal staff login and must not be provisioned in Supabase Auth. Its role value is structural only and grants no session capability.
 
 The distinction is invariant:
 
