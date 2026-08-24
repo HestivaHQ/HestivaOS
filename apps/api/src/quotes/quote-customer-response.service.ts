@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { Prisma, QuoteStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
@@ -16,6 +16,9 @@ type ExistingResponse = { decision: Decision; event_id: string; created_at: Date
 
 function fingerprint(value: string) { return createHash('sha256').update(value, 'utf8').digest('hex'); }
 function unavailable() { return new NotFoundException(QUOTE_CUSTOMER_ACCESS_SECURITY.unavailableMessage); }
+function internalFailure(error: unknown) {
+  return new InternalServerErrorException('Quote response could not be completed safely. Please retry.', { cause: error });
+}
 
 @Injectable()
 export class QuoteCustomerResponseService {
@@ -92,23 +95,63 @@ export class QuoteCustomerResponseService {
     if (decision === DECLINED) {
       const quote = await this.prisma.quote.findUnique({ where: { id: grant.quote_id }, select: { status: true } });
       if (quote?.status !== QuoteStatus.DECLINED) {
-        await this.review.decline(grant.quote_id, { expectedRevisionNumber: grant.revision_number }, CUSTOMER_SELF_SERVICE_SYSTEM_ACTOR.userId);
+        try {
+          await this.review.decline(grant.quote_id, { expectedRevisionNumber: grant.revision_number }, CUSTOMER_SELF_SERVICE_SYSTEM_ACTOR.userId);
+        } catch (error) {
+          if (error instanceof ConflictException) throw error;
+          throw internalFailure(error);
+        }
       }
       return { decision, state: 'DECLINED', revisionNumber: grant.revision_number, ...evidence };
     }
 
     const quote = await this.prisma.quote.findUnique({ where: { id: grant.quote_id }, select: { status: true } });
-    if (quote?.status === QuoteStatus.ACCEPTED) return { decision, state: 'CONVERTED', revisionNumber: grant.revision_number, ...evidence };
+    if (quote?.status === QuoteStatus.ACCEPTED) {
+      try {
+        await this.review.accept(grant.quote_id, { expectedRevisionNumber: grant.revision_number }, CUSTOMER_SELF_SERVICE_SYSTEM_ACTOR.userId);
+      } catch (error) {
+        if (error instanceof ConflictException) throw error;
+        throw internalFailure(error);
+      }
+      return { decision, state: 'CONVERTED', revisionNumber: grant.revision_number, ...evidence };
+    }
 
-    const preflight = await this.review.preflight(grant.quote_id, grant.revision_number);
+    let preflight;
+    try {
+      preflight = await this.review.preflight(grant.quote_id, grant.revision_number);
+    } catch (error) {
+      throw internalFailure(error);
+    }
     if (!preflight.eligibleForAcceptance) {
       return { decision, state: 'PENDING_INTERNAL_COMPLETION', revisionNumber: grant.revision_number, blockers: preflight.blockers, ...evidence };
     }
+
     try {
       await this.review.accept(grant.quote_id, { expectedRevisionNumber: grant.revision_number }, CUSTOMER_SELF_SERVICE_SYSTEM_ACTOR.userId);
       return { decision, state: 'CONVERTED', revisionNumber: grant.revision_number, ...evidence };
     } catch (error) {
-      return { decision, state: 'PENDING_INTERNAL_COMPLETION', revisionNumber: grant.revision_number, blockers: [{ code: 'CONVERSION_REQUIRES_ATTENTION', message: error instanceof Error ? error.message : 'Canonical conversion requires internal completion.' }], ...evidence };
+      if (!(error instanceof ConflictException)) throw internalFailure(error);
+
+      let afterConflict;
+      try {
+        afterConflict = await this.review.preflight(grant.quote_id, grant.revision_number);
+      } catch (recoveryError) {
+        throw internalFailure(recoveryError);
+      }
+      if (!afterConflict.eligibleForAcceptance) {
+        const alreadyAccepted = afterConflict.blockers.some((blocker) => blocker.code === 'ALREADY_ACCEPTED');
+        if (alreadyAccepted) {
+          try {
+            await this.review.accept(grant.quote_id, { expectedRevisionNumber: grant.revision_number }, CUSTOMER_SELF_SERVICE_SYSTEM_ACTOR.userId);
+            return { decision, state: 'CONVERTED', revisionNumber: grant.revision_number, ...evidence };
+          } catch (recoveryError) {
+            if (recoveryError instanceof ConflictException) throw recoveryError;
+            throw internalFailure(recoveryError);
+          }
+        }
+        return { decision, state: 'PENDING_INTERNAL_COMPLETION', revisionNumber: grant.revision_number, blockers: afterConflict.blockers, ...evidence };
+      }
+      throw error;
     }
   }
 
