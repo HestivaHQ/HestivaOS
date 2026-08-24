@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach, jest } from '@jest/globals';
-import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { ConflictException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { QuoteStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import {
@@ -16,11 +16,21 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function issuanceHarness(validUntil: Date, revisionNumber = 2) {
+function issuanceHarness(validUntil: Date, revisionNumber = 2, withActionableGrant = false) {
   const executeCalls: SqlLike[] = [];
+  const existingGrant = {
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    quote_id: '11111111-1111-4111-8111-111111111111',
+    revision_number: revisionNumber,
+    token_fingerprint: 'f'.repeat(64),
+    expires_at: validUntil,
+    revoked_at: null,
+    superseded_at: null,
+    created_at: new Date(),
+  };
   const tx = {
     $executeRaw: jest.fn(async (query: SqlLike) => { executeCalls.push(query); return 1; }),
-    $queryRaw: jest.fn(async () => []),
+    $queryRaw: jest.fn(async () => withActionableGrant ? [existingGrant] : []),
     quote: {
       findUnique: jest.fn(async () => ({
         id: '11111111-1111-4111-8111-111111111111',
@@ -35,7 +45,7 @@ function issuanceHarness(validUntil: Date, revisionNumber = 2) {
   const prisma = {
     $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
-  return { service: new QuoteCustomerAccessService(prisma), executeCalls };
+  return { service: new QuoteCustomerAccessService(prisma), executeCalls, tx };
 }
 
 function flattenValues(calls: SqlLike[]): unknown[] {
@@ -80,6 +90,24 @@ describe('QuoteCustomerAccessService issuance', () => {
   it('fails closed instead of inventing a maximum lifetime default', async () => {
     const { service } = issuanceHarness(new Date(Date.now() + 86_400_000));
     await expect(service.issue({ quoteId: '11111111-1111-4111-8111-111111111111', expectedRevisionNumber: 2, actorUserId: '33333333-3333-4333-8333-333333333333' })).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('rejects issuance against a stale revision', async () => {
+    process.env[ENV] = '3600';
+    const { service } = issuanceHarness(new Date(Date.now() + 86_400_000), 3);
+    await expect(service.issue({ quoteId: '11111111-1111-4111-8111-111111111111', expectedRevisionNumber: 2, actorUserId: '33333333-3333-4333-8333-333333333333' })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rotates a repeated issuance by superseding the existing unresolved grant before inserting its successor', async () => {
+    process.env[ENV] = '3600';
+    const { service, executeCalls } = issuanceHarness(new Date(Date.now() + 86_400_000), 2, true);
+    const result = await service.issue({ quoteId: '11111111-1111-4111-8111-111111111111', expectedRevisionNumber: 2, actorUserId: '33333333-3333-4333-8333-333333333333' });
+
+    expect(result.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(executeCalls).toHaveLength(3);
+    const values = flattenValues(executeCalls);
+    expect(values).toContain('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+    expect(values).not.toContain(result.token);
   });
 });
 
