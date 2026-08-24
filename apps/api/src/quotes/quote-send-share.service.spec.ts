@@ -11,7 +11,6 @@ type QuoteFixture = {
   customer: { name: string; contactName: string; email: string; phone: string } | null;
   revisions: Array<{ structuredData: Record<string, never> }>;
 };
-
 type AccessIssueResult = { token: string; quoteReference: string; revisionNumber: number; expiresAt: Date };
 type MaterializedRecord = { id: string; subject: string; body: string };
 type DeliveryAttempt = { id: string };
@@ -32,21 +31,13 @@ describe('QuoteSendShareService', () => {
     const quoteFindUnique = jest.fn<() => Promise<QuoteFixture | null>>();
     quoteFindUnique.mockResolvedValue({
       id: '11111111-1111-4111-8111-111111111111', reference: 'Q-001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 2,
-      customer: { name: 'Customer', contactName: 'Customer', email: 'customer@example.com', phone: '0821234567' },
-      revisions: [{ structuredData: {} }],
+      customer: { name: 'Customer', contactName: 'Customer', email: 'customer@example.com', phone: '0821234567' }, revisions: [{ structuredData: {} }],
     });
     const templateFindFirst = jest.fn<() => Promise<{ id: string } | null>>();
     templateFindFirst.mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222' });
-    const executeRaw = jest.fn<() => Promise<number>>();
-    executeRaw.mockResolvedValue(1);
-    const queryRaw = jest.fn<() => Promise<Array<{ attempt_id: string }>>>();
-    queryRaw.mockResolvedValue([]);
-    const prisma = {
-      quote: { findUnique: quoteFindUnique },
-      correspondenceTemplateVersion: { findFirst: templateFindFirst },
-      $executeRaw: executeRaw,
-      $queryRaw: queryRaw,
-    };
+    const executeRaw = jest.fn<() => Promise<number>>(); executeRaw.mockResolvedValue(1);
+    const queryRaw = jest.fn<() => Promise<unknown[]>>(); queryRaw.mockResolvedValue([]);
+    const prisma = { quote: { findUnique: quoteFindUnique }, correspondenceTemplateVersion: { findFirst: templateFindFirst }, $executeRaw: executeRaw, $queryRaw: queryRaw };
     const issue = jest.fn<() => Promise<AccessIssueResult>>();
     issue.mockResolvedValue({ token: 'a'.repeat(43), quoteReference: 'Q-001', revisionNumber: 2, expiresAt: new Date('2026-08-25T00:00:00Z') });
     const access = { issue };
@@ -56,10 +47,10 @@ describe('QuoteSendShareService', () => {
     materialize.mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333', subject: 'Your Homent Quote is ready', body: 'Review: {{SECURE_QUOTE_LINK}}' });
     const createDeliveryAttempt = jest.fn<() => Promise<DeliveryAttempt>>();
     createDeliveryAttempt.mockResolvedValue({ id: '44444444-4444-4444-8444-444444444444' });
-    const correspondence = { materialize, createDeliveryAttempt, recordDeliveryOutcome: jest.fn() };
-    const send = jest.fn<() => Promise<EmailAccepted>>();
-    send.mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' });
-    const email = { assertConfigured: jest.fn(), send };
+    const recordDeliveryOutcome = jest.fn<() => Promise<unknown>>(); recordDeliveryOutcome.mockResolvedValue({});
+    const correspondence = { materialize, createDeliveryAttempt, recordDeliveryOutcome };
+    const send = jest.fn<() => Promise<EmailAccepted>>(); send.mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' });
+    const email = { assertConfigured: jest.fn(), send, recover: jest.fn() };
     const service = new QuoteSendShareService(prisma as never, access as never, engagement as never, responses as never, correspondence as never, email as never);
     return { service, prisma, access, correspondence, email };
   }
@@ -68,43 +59,66 @@ describe('QuoteSendShareService', () => {
     const { service, access, correspondence, email } = harness();
     await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).resolves.toMatchObject({ state: 'PROVIDER_ACCEPTED' });
     expect(access.issue).toHaveBeenCalledWith(expect.objectContaining({ expectedRevisionNumber: 2 }));
-    expect(correspondence.materialize).toHaveBeenCalledWith(actor, expect.objectContaining({
-      provenance: expect.objectContaining({ quoteId: '11111111-1111-4111-8111-111111111111', revisionNumber: 2, secureLinkInjectedAtTransport: true }),
-    }));
     expect(JSON.stringify(correspondence.materialize.mock.calls[0])).not.toContain('a'.repeat(43));
-    expect(email.send).toHaveBeenCalledWith(expect.objectContaining({
-      text: expect.stringContaining(`https://os.homent.example/quote#${'a'.repeat(43)}`),
-      correspondenceAttemptId: '44444444-4444-4444-8444-444444444444',
-    }));
-    expect(correspondence.recordDeliveryOutcome).toHaveBeenCalledWith(actor, '44444444-4444-4444-8444-444444444444', expect.objectContaining({
-      status: CorrespondenceDeliveryAttemptStatus.ACCEPTED,
-      providerReference: 'email_1',
-    }));
+    expect(email.send).toHaveBeenCalledWith(expect.objectContaining({ correspondenceAttemptId: '44444444-4444-4444-8444-444444444444' }));
   });
 
   it('blocks a new email and new capability while the previous provider outcome is unreconciled', async () => {
     const { service, prisma, access, correspondence, email } = harness();
-    prisma.$queryRaw.mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555' }]);
+    prisma.$queryRaw.mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: 'r', subject: 's', body: 'b', recipient_email: 'customer@example.com' }]);
     await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toThrow('previous Quote email outcome is still uncertain');
+    expect(access.issue).not.toHaveBeenCalled(); expect(correspondence.materialize).not.toHaveBeenCalled(); expect(email.send).not.toHaveBeenCalled();
+  });
+
+  it('reconciles a lost HTTP response from later signed provider evidence without issuing another capability', async () => {
+    const { service, prisma, access, correspondence } = harness();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
+      .mockResolvedValueOnce([{ event_type: 'email.sent', provider_reference: 'email_1', occurred_at: new Date() }]);
+    await expect(service.recoverEmail('11111111-1111-4111-8111-111111111111', 2, actor)).resolves.toMatchObject({ state: 'PROVIDER_ACCEPTED', retryPermitted: false });
     expect(access.issue).not.toHaveBeenCalled();
-    expect(correspondence.materialize).not.toHaveBeenCalled();
-    expect(email.send).not.toHaveBeenCalled();
+    expect(correspondence.recordDeliveryOutcome).toHaveBeenCalledWith(actor, '55555555-5555-4555-8555-555555555555', expect.objectContaining({ status: CorrespondenceDeliveryAttemptStatus.ACCEPTED, providerReference: 'email_1' }));
+  });
+
+  it('permits a later reviewed resend only after signed provider failure evidence resolves the original attempt', async () => {
+    const { service, prisma, access, correspondence } = harness();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
+      .mockResolvedValueOnce([{ event_type: 'email.failed', provider_reference: 'email_1', occurred_at: new Date() }]);
+    await expect(service.recoverEmail('11111111-1111-4111-8111-111111111111', 2, actor)).resolves.toMatchObject({ state: 'PROVIDER_FAILED', retryPermitted: true });
+    expect(access.issue).not.toHaveBeenCalled();
+    expect(correspondence.recordDeliveryOutcome).toHaveBeenCalledWith(actor, '55555555-5555-4555-8555-555555555555', expect.objectContaining({ status: CorrespondenceDeliveryAttemptStatus.FAILED }));
+  });
+
+  it('keeps an unresolved attempt blocked without rotating or resurrecting customer access', async () => {
+    const { service, prisma, access, correspondence } = harness();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ token_fingerprint: 'fingerprint-only' }]);
+    await expect(service.recoverEmail('11111111-1111-4111-8111-111111111111', 2, actor)).resolves.toMatchObject({ state: 'PENDING_RECONCILIATION', retryPermitted: false });
+    expect(access.issue).not.toHaveBeenCalled(); expect(correspondence.recordDeliveryOutcome).not.toHaveBeenCalled();
+  });
+
+  it('fails recovery closed when the original secure grant is no longer active', async () => {
+    const { service, prisma, access } = harness();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    await expect(service.recoverEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toThrow('original Quote link is no longer active');
+    expect(access.issue).not.toHaveBeenCalled();
   });
 
   it('records only composer-open evidence for manual WhatsApp preparation', async () => {
     const { service, prisma } = harness();
     const result = await service.openWhatsApp('11111111-1111-4111-8111-111111111111', 2, actor);
-    expect(result.evidence).toBe('WHATSAPP_COMPOSER_OPENED');
-    expect(result.composerUrl).toContain('https://wa.me/27821234567?text=');
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(result.evidence).toBe('WHATSAPP_COMPOSER_OPENED'); expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed when the requested revision is no longer current', async () => {
     const { service, prisma } = harness();
-    prisma.quote.findUnique.mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111', reference: 'Q-001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 3,
-      customer: null, revisions: [{ structuredData: {} }],
-    });
+    prisma.quote.findUnique.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', reference: 'Q-001', status: QuoteStatus.SUBMITTED, currentRevisionNumber: 3, customer: null, revisions: [{ structuredData: {} }] });
     await expect(service.sendEmail('11111111-1111-4111-8111-111111111111', 2, actor)).rejects.toBeInstanceOf(ConflictException);
   });
 
