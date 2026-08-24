@@ -73,14 +73,20 @@ export class ResendWebhookService {
     const attempts = await this.prisma.$queryRaw<Array<{ attempt_id: string }>>(Prisma.sql`
       SELECT a.id AS attempt_id
       FROM correspondence_delivery_attempts a
-      WHERE (
-        ${taggedAttempt}::uuid IS NOT NULL AND a.id = ${taggedAttempt}::uuid
-      ) OR EXISTS (
-        SELECT 1 FROM correspondence_delivery_attempt_events e
-        WHERE e.attempt_id = a.id
-          AND e.status = 'ACCEPTED'::"CorrespondenceDeliveryAttemptStatus"
-          AND e.provider_reference = ${providerReference}
-      )
+      JOIN correspondence_records r ON r.id = a.correspondence_record_id
+      WHERE a.route_snapshot->>'provider' = 'RESEND'
+        AND a.route_snapshot->>'channel' = 'EMAIL'
+        AND a.route_snapshot->>'purpose' = 'QUOTE'
+        AND r.provenance->>'purpose' = 'QUOTE'
+        AND (
+          (${taggedAttempt}::uuid IS NOT NULL AND a.id = ${taggedAttempt}::uuid)
+          OR EXISTS (
+            SELECT 1 FROM correspondence_delivery_attempt_events e
+            WHERE e.attempt_id = a.id
+              AND e.status = 'ACCEPTED'::"CorrespondenceDeliveryAttemptStatus"
+              AND e.provider_reference = ${providerReference}
+          )
+        )
       ORDER BY a.created_at DESC
       LIMIT 1
     `);
