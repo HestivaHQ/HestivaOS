@@ -6,19 +6,23 @@ Messaging Quote persistence and resumable state were merged through PR #195. The
 
 The Quote-domain submission authority was merged through PR #194. PR #197 connected a confirmed `READY_TO_SUBMIT` Messaging Quote to that shared authoritative Quote service without impersonating the Website integration.
 
-PR #199 wired authenticated WhatsApp/Messenger inbound messages to the deterministic review/confirmation boundary. The current guided-collection slice extends `COLLECTING` with bounded Home/Property questions only; it still does not infer canonical Quote facts from arbitrary free text.
+PR #199 wired authenticated WhatsApp/Messenger inbound messages to the deterministic review/confirmation boundary. Subsequent merged Quote slices expanded deterministic guided collection beyond the original Home/Property-only checkpoint: current `main` includes guided Home/Property collection, Cleaning Requirements/Personalisation collection including the Post-Event extension, durable review/confirmation, and the review correction loop. This document preserves the earlier slice history below where useful but no longer describes Home/Property as the only implemented guided section.
+
+ADR-0088 approves WhatsApp Flow as the **PLANNED primary** structured WhatsApp Quote presentation. The existing deterministic WhatsApp collector remains the **IMPLEMENTED fallback**, and the Messenger guided collector remains the **IMPLEMENTED provider-appropriate conversational path**. No Flow/session persistence or production Flow runtime is implemented by the ADR/documentation slice.
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
 ## Purpose
 
-Messaging Foundation v1 requires a resumable Messaging Quote Draft so a WhatsApp or Messenger customer can answer Quote questions over time without creating an incomplete canonical Quote. This state is current workflow state, not immutable message history and not a second Quote domain.
+Messaging Foundation v1 requires resumable conversation-side Quote state so WhatsApp or Messenger customers can answer Quote questions over time without creating an incomplete canonical Quote. This state is current workflow state, not immutable message history and not a second Quote domain.
 
 HestivaOS remains authoritative for Quote validation, pricing, immutable Quote revisions, Quote status and accepted operational conversion. Messaging persists only the conversation-side facts and evidence needed to reach the existing Quote-domain boundary safely.
 
+The planned WhatsApp Flow is another presentation of these canonical business facts, not another Quote authority. Its future session/version state is deliberately not defined by this v1 persistence document until the Flow/session implementation slice.
+
 ## Persistence
 
-`MessagingConversation` owns the current Messaging Quote snapshot through:
+`MessagingConversation` owns the current deterministic Messaging Quote snapshot through:
 
 - `quoteState` / database `quote_state`: nullable JSON containing the current versioned Quote workflow snapshot;
 - `quoteStateVersion` / database `quote_state_version`: integer optimistic-concurrency revision, default `0`.
@@ -42,7 +46,9 @@ The v1 snapshot stores:
 
 Pre-reservation snapshots created by the already-merged v1 persistence slice do not contain `submissionKey`; they are read compatibly as `submissionKey = null`.
 
-The flow phase is derived from `evaluateMessagingQuoteFlow()` rather than stored independently. Its phases are `COLLECTING`, `REVIEW`, `READY_TO_SUBMIT`, `SUBMITTING`, `HUMAN_REVIEW`, and `SUBMITTED`.
+The deterministic guided flow phase is derived from `evaluateMessagingQuoteFlow()` rather than stored independently. Its phases are `COLLECTING`, `REVIEW`, `READY_TO_SUBMIT`, `SUBMITTING`, `HUMAN_REVIEW`, and `SUBMITTED`.
+
+These are Messaging Quote workflow phases, not evidence that a future Meta Flow was `STARTED`, `VIEWED` or `ABANDONED`. ADR-0088 requires the future Flow lifecycle to record only provider/local facts that can actually be proved.
 
 A fact group is no longer considered complete merely because its object exists. Completeness is derived from the canonical Quote v2 business-field validator, so partially collected or invalid nested groups remain in `COLLECTING` and cannot reach customer review as though they were complete.
 
@@ -50,9 +56,9 @@ A fact group is no longer considered complete merely because its object exists. 
 
 Guided collection persists customer answers incrementally. Nested patches merge recursively with existing progress so a later answer cannot erase earlier facts in the same group.
 
-The initial live guided slice covers the `YOUR_HOME` / Property fact group. It asks deterministic questions for supported property type, street address, suburb, South Africa confirmation, floor-size band, bedroom count, bathroom count, living-area count, apartment floor/access where required, outdoor area and estate/complex classification.
+The initial live guided slice covered `YOUR_HOME` / Property. Later merged slices added deterministic Cleaning Requirements/Personalisation handling, including the Post-Event Cleaning conditional extension. Current `main` orchestrates those implemented guided sections before review; sections not yet represented by a deterministic collector remain incomplete and cannot be guessed merely to advance the flow.
 
-Safety rules are:
+Safety rules include:
 
 1. bounded categorical questions accept only the explicitly listed menu value;
 2. street address and suburb are stored verbatim after trimming and are not semantically interpreted;
@@ -61,13 +67,14 @@ Safety rules are:
 5. South Africa is stored only after the customer replies exact `YES` to the country question;
 6. a menu-like inbound answer is not interpreted unless the matching current question was already durably accepted by the provider;
 7. invalid or ambiguous replies do not mutate Quote state and receive a deterministic retry prompt;
-8. every prompt and retry uses a stable idempotency key and is persisted before provider delivery.
+8. every prompt and retry uses a stable idempotency key and is persisted before provider delivery;
+9. Post-Event follow-up facts are collected only when the Post-Event service path requires them; unsupported/unsafe combinations do not become guessed canonical facts.
 
-The remaining `CLEANING_REQUIREMENTS`, `PREFERRED_VISIT`, `ACCESS_AND_HOUSEHOLD`, `PHOTOS_AND_NOTES`, and `YOUR_DETAILS` guided sections remain follow-up slices. Until each section is implemented, its facts cannot be guessed merely to advance the flow.
+The deterministic collector remains the WhatsApp fallback and Messenger conversational path after ADR-0088. It is not deleted merely because Flow becomes the planned primary WhatsApp presentation.
 
 ## Review and confirmation integrity
 
-A canonical Quote must not be created merely because all fact groups are present. The customer must first be shown a review summary and then explicitly confirm it.
+For the **implemented conversational guided collector**, a canonical Quote must not be created merely because all fact groups are present. The customer must first be shown a review summary and then explicitly confirm it.
 
 The durable transition rules are:
 
@@ -84,11 +91,13 @@ The durable transition rules are:
 
 These rules prevent an old customer confirmation from authorizing a materially different draft and prevent the draft from changing while a Quote is being created.
 
+ADR-0088 supersedes only this **presentation/confirmation mechanism** for the planned WhatsApp Flow path. A valid authenticated completion of the exact versioned Flow's own Review/Submit step is planned to be the explicit customer submission action; it must then enter the same HestivaOS validation, replay/idempotency and authoritative Quote-domain boundaries. Guided WhatsApp fallback and Messenger continue to use the conversational review/confirmation rules above.
+
 ## Submission identity and authoritative creation
 
 `MessagingQuoteSubmissionService` is the internal runtime boundary for a durable confirmed Messaging Quote.
 
-The stable submission identity is derived from the normalized provider, HestivaOS conversation ID and immutable customer-confirmation message ID. The same confirmed conversation therefore produces the same key across retries.
+For the implemented conversational path, the stable submission identity is derived from the normalized provider, HestivaOS conversation ID and immutable customer-confirmation message ID. The same confirmed conversation therefore produces the same key across retries.
 
 The runtime sequence is:
 
@@ -104,9 +113,11 @@ The Quote revision stores `source = HOMENT_MESSAGING`, `schemaVersion = MESSAGIN
 
 Pricing and operational-cost resolution remain owned by the existing Quote domain. The shared pricing/cost boundary consumes canonical Quote business facts rather than requiring a Website transport envelope.
 
+The future Flow path must preserve the same business-effect invariant: authenticated duplicate/retried completion delivery for one logical Flow submission must converge on exactly one canonical Quote or `HUMAN_REVIEW` result. Its exact submission/session identity is deferred to the Flow/session implementation slice.
+
 ## Concurrency, crash recovery and retry safety
 
-Every state-changing operation requires an expected `quote_state_version`.
+Every current state-changing operation requires an expected `quote_state_version`.
 
 `MessagingQuoteStateService` re-reads the current state inside a serializable transaction and uses a compare-and-swap update constrained by the same expected version. A stale caller or concurrent writer receives a conflict and must reload rather than silently overwriting newer conversation facts.
 
@@ -127,6 +138,28 @@ Messaging Quote state is mutable current workflow state. Existing `MessagingMess
 
 The implementation does not store current Quote state in message metadata, Customer notes, synthetic provider messages, or other fields whose existing semantics would be changed. Review and confirmation message IDs are references to real persisted message evidence only.
 
+## WhatsApp Flow session boundary — planned, not implemented
+
+ADR-0088 requires a future Flow session to be durably bound to the exact provider Flow definition/version and HestivaOS mapping contract used for that launch. Old in-flight sessions must remain on their original version when a new Flow is deployed.
+
+Unfinished Flow field progress is not assumed to survive leaving the Flow, returning to chat, restarting WhatsApp or temporary connectivity loss. Until an authenticated completion arrives, HestivaOS must not treat unsubmitted client-side values as durable Quote facts.
+
+While an unresolved Flow session exists, ordinary WhatsApp chat remains available for customer questions and automated/human assistance. Ordinary chat messages must not accidentally enter the deterministic guided collector as Quote answers. A deliberate transition to fallback is required before the guided collector becomes answer-active.
+
+The explicit fallback direction is:
+
+**WhatsApp Flow -> deterministic guided WhatsApp collector -> Website Quote form where appropriate -> human assistance.**
+
+Do not create durable `STARTED`, `VIEWED` or `ABANDONED` Flow events unless a future provider contract supplies trustworthy evidence for them. A locally recorded offer/send, authenticated completion, definite failure or local expiry/supersession may be represented only when the implementation can prove that event.
+
+## Flow PhotoPicker boundary — planned, optional
+
+PhotoPicker is planned optional Quote evidence capture and must be independently disableable. Its failure must not disable the core Flow.
+
+Flow PhotoPicker media is not ordinary inbound WhatsApp image media. The future implementation must use the verified Flow-media retrieval/decryption/verification lifecycle and preserve ADR-0081's existing private-storage, replay-safety, no-temporary-URL and immutable-message-history principles before promoting media into canonical Quote-owned photo evidence.
+
+PR #214 is not part of current `main` and is not treated as implemented state by this document.
+
 ## Submitted Quote changes
 
 Once `submittedQuoteId` is present, draft mutation is rejected. Customer-requested changes to an already submitted Quote must use the canonical immutable Quote revision model; the Messaging draft is not an alternate mutable copy of a submitted Quote.
@@ -137,23 +170,28 @@ Once `submittedQuoteId` is present, draft mutation is rejected. Customer-request
 
 The operator attention surface and deliberate hand-back mechanism remain separate implementation work. No unsupported fact, price, availability or business decision may be guessed merely to leave human review.
 
+The planned Flow path ends at the same authoritative outcome boundary: unsupported, ambiguous or otherwise unsafe completed facts produce `HUMAN_REVIEW` rather than provider-side guessing.
+
 ## Current live-orchestration boundary
 
 Authenticated WhatsApp and Messenger inbound webhooks call `MessagingQuoteLiveOrchestratorService` only after provider authentication, normalized durable inbound persistence, and trusted-identity resolution.
 
-The live deterministic behavior is intentionally bounded:
+The current deterministic behavior includes:
 
-- `COLLECTING` can now drive the implemented guided Home/Property questions described above;
+- `COLLECTING` drives the implemented guided Home/Property and Cleaning Requirements/Personalisation collectors, including conditional Post-Event collection;
 - arbitrary prose is not parsed into multiple Quote facts and AI is not used;
-- when all canonical fact groups have eventually been collected and validated, `REVIEW` persists and sends one idempotent text summary of selected canonical facts;
-- the summary explicitly instructs the customer to reply `CONFIRM` exactly;
-- only a persisted inbound TEXT message whose trimmed content is exactly uppercase `CONFIRM` is accepted as Quote submission authorization;
-- variants such as `confirm`, `yes`, `okay`, emojis, or longer sentences are not treated as authorization;
+- when all canonical fact groups have been collected and validated, `REVIEW` persists and sends one idempotent text summary of selected canonical facts;
+- the summary instructs the customer to reply `CONFIRM` exactly to submit or `CHANGE` exactly to enter the correction menu;
+- only a persisted inbound TEXT message whose trimmed content is exactly uppercase `CONFIRM` is accepted as conversational Quote submission authorization;
+- `CHANGE` opens a deterministic section-selection correction loop, and selecting a section clears that canonical group so it must be recollected and reviewed again;
+- conversational variants such as `confirm`, `yes`, `okay`, emojis, or longer sentences are not treated as authorization;
 - after exact confirmation, the durable confirmation transition runs and the authoritative Quote submission runtime is invoked;
 - if a prior attempt stopped after confirmation or during `SUBMITTING`, a later inbound event may safely resume the idempotent submission runtime;
 - `HUMAN_REVIEW` and `SUBMITTED` states do not perform new automated Quote actions.
 
 The review and guided prompt messages are durably persisted before provider delivery and use stable idempotency keys. Ambiguous provider-send outcomes remain pending reconciliation rather than causing duplicate business actions.
+
+WhatsApp Flow launch/session/completion routing is not implemented in current `main`; ADR-0088 records the approved next presentation direction only.
 
 ## Non-goals
 
@@ -161,7 +199,8 @@ This boundary does not:
 
 - introduce an AI provider or allow AI to authorize business actions;
 - infer multiple structured facts from arbitrary free text;
-- claim that guided collection sections beyond Home/Property are implemented;
+- claim every canonical guided section is implemented merely because the draft schema can represent it;
+- implement WhatsApp Flow/session schema, Flow launch or Flow completion handling;
 - call the Website Quote ingestion route or use the Website integration secret, Website submission identity, or `HESTIVA_WEBSITE` provenance;
 - change Meta webhook authentication or provider adapters;
 - create Customers or Properties early;

@@ -95,3 +95,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0085: Use one Prisma provider per API process](ADR-0085-single-prisma-provider-per-api-process.md)
 - [ADR-0086: Bound the Prisma pool per API process](ADR-0086-bound-prisma-pool-per-api-process.md)
 - [ADR-0087: Separate Customer accounts, contacts, Properties, and messaging identities](ADR-0087-customer-contact-and-messaging-identity-separation.md)
+- [ADR-0088: Use WhatsApp Flow as the primary structured Quote intake](ADR-0088-whatsapp-flow-first-quote-intake.md)
