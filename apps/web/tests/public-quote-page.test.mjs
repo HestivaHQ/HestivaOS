@@ -54,6 +54,8 @@ test('durable public response projection reconstructs converted, pending and dec
   assert.match(component, /case 'ACCEPTED_CONVERTED': return 'CONVERTED'/);
   assert.match(component, /case 'ACCEPTED_PENDING_INTERNAL_COMPLETION': return 'PENDING_INTERNAL_COMPLETION'/);
   assert.match(component, /case 'DECLINED': return 'DECLINED'/);
+  assert.match(component, /projection\.quote\.status === 'ACCEPTED'/);
+  assert.match(component, /projection\.quote\.status === 'DECLINED'/);
   assert.match(component, /Your acceptance has been received/);
   assert.match(component, /quote\.actionable && !effectiveResultState/);
 });
