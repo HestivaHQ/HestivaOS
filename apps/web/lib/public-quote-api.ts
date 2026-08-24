@@ -5,6 +5,7 @@ export type PublicQuoteProjection = {
     revisionNumber: number;
     status: 'SUBMITTED' | 'ACCEPTED' | 'DECLINED';
     actionable: boolean;
+    customerResponseState: 'NO_RESPONSE' | 'ACCEPTED_CONVERTED' | 'ACCEPTED_PENDING_INTERNAL_COMPLETION' | 'DECLINED';
     validUntil: string;
     accessExpiresAt: string;
     property: Record<string, unknown>;
