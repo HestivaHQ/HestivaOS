@@ -28,6 +28,8 @@ The session reserves that submission key before authoritative Quote creation. `Q
 
 The Step 5 migration adds nullable `submission_key`, `submitted_quote_id`, `human_review_reason` and `processed_at` fields to the existing Flow session table. The submission key and Quote linkage are unique when present. A session already linked to a canonical Quote returns that Quote on replay and cannot be linked to a different Quote.
 
+These replay and linkage semantics are domain-state behavior, not a new operator recovery or incident procedure. Existing `docs/RECOVERY_GUIDE.md` procedures are unchanged by Step 5.
+
 ## HUMAN_REVIEW
 
 Unsafe completed Flow data does not receive invented business facts or pricing. `NOT_SURE`, unresolved PhotoPicker evidence, malformed/contradictory V1 submissions and other mapping/validation failures are recorded as a durable Flow-session human-review reason. Replay returns the same review outcome instead of creating a duplicate Quote.
