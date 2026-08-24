@@ -35,7 +35,8 @@ describe('ResendWebhookService', () => {
     const headers = signed(raw, secret, 'same-provider-event');
     await service.ingest(raw, headers); await service.ingest(raw, headers);
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
-    expect(String(prisma.$executeRaw.mock.calls[0]?.[0])).toContain('ON CONFLICT');
+    const calls = prisma.$executeRaw.mock.calls as unknown[][];
+    expect(String(calls[0]?.[0])).toContain('ON CONFLICT');
   });
 
   it('preserves delayed and out-of-order provider events as separate append-only evidence', async () => {
