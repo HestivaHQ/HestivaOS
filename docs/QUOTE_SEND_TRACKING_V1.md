@@ -37,7 +37,7 @@ The panel shows separate evidence for:
 - current secure-access state;
 - bounded recovery state when an email outcome is genuinely uncertain.
 
-Terminal/non-actionable Quotes do not expose an active Send button for a new customer offer.
+Terminal/non-actionable Quotes do not expose an active Send button for a new customer offer. Exact-revision recovery of an already-existing email attempt remains available after the customer response changes the Quote out of `SUBMITTED`; transport evidence does not disappear merely because the business lifecycle advanced.
 
 ## Secure customer links
 
@@ -125,9 +125,9 @@ The provider ingester accepts these authenticated transport/lifecycle events as 
 
 `email.opened` and `email.clicked` are explicitly ignored for this Quote workflow. They never become Quote `VIEW_CONFIRMED`.
 
-The synchronous Resend API response is the evidence used for initial provider acceptance. A later webhook does not rewrite the immutable Correspondence record; it appends provider evidence against the delivery attempt.
+The synchronous Resend API response is the normal evidence used for initial provider acceptance. A later webhook does not rewrite the immutable Correspondence record; it appends provider lifecycle evidence against the delivery attempt.
 
-When the synchronous HTTP outcome was lost and the attempt therefore remained `PENDING`, recovery may use later authenticated provider evidence to finish the original Correspondence attempt truthfully. `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced` and `email.complained` all prove that Resend accepted/processed the original submission; downstream bounce/complaint semantics remain visible as provider lifecycle evidence and are not misreported as API rejection. `email.failed` and `email.suppressed` can resolve an otherwise uncertain submission to failed provider submission when no stronger acceptance evidence exists.
+When the synchronous HTTP outcome was lost and the attempt therefore remained `PENDING`, any authenticated trusted Resend event correlated to that attempt proves that Resend created/processed the provider-side email identified by `email_id`. Recovery therefore records the original Correspondence attempt as provider `ACCEPTED`; it does not misreport later `email.failed`, `email.suppressed`, bounce or complaint lifecycle evidence as an HTTP/API rejection. Downstream `email.bounced`, `email.failed` or `email.suppressed` remains visible as delivery-failure evidence and can make a deliberate resend available. A complaint is preserved as complaint evidence and does not itself authorize an automatic-looking resend.
 
 ## Railway API environment variables
 
@@ -167,27 +167,27 @@ Sending from a verified domain does not itself create a mailbox. Because custome
 
 The recovery order is:
 
-1. revalidate the current Quote/revision and normal customer-offer eligibility;
+1. revalidate that the Quote still exists and the requested revision is still the exact current revision represented by the delivery attempt; recovery may continue after the Quote has become accepted/declined because it is reconciling historical transport evidence, not offering a new Quote;
 2. locate the original pending Resend attempt without creating another Correspondence record or capability;
 3. inspect authenticated, append-only Resend provider events already correlated to that exact attempt;
-4. if provider processing/acceptance is proven, record the original Correspondence attempt `ACCEPTED` without creating a new link;
-5. if provider submission failure is proven, record the original attempt `FAILED`, after which a deliberate fresh resend is allowed;
-6. if neither is proven, verify that the original exact-revision customer grant remains active and keep the attempt unresolved;
+4. if any trusted provider lifecycle event proves that Resend created/processed the email, record the original Correspondence attempt `ACCEPTED` without creating a new link;
+5. separately preserve downstream delivery failure (`email.bounced`, `email.failed`, `email.suppressed`) or complaint evidence; delivery failure may permit a deliberate fresh resend, while complaint does not automatically do so;
+6. if no provider evidence exists, verify that the original exact-revision customer grant remains active and keep the attempt unresolved;
 7. if the original grant is revoked, superseded, expired or otherwise inactive, fail closed rather than resurrecting it.
 
 An unresolved outcome therefore remains visible as a real recovery state rather than being silently converted into success or failure.
 
 ### Safe resend behavior
 
-A normal new resend is blocked while the previous attempt is unresolved. Once recovery gives the prior attempt a defensible terminal outcome, any later deliberate resend uses the ordinary Send path and therefore creates a new Correspondence delivery preparation and new exact-revision customer capability. It does not mutate or reuse a revoked/superseded/stale grant.
+A normal new resend is blocked while the previous attempt is unresolved. Once recovery proves the original provider-side state, a later deliberate resend uses the ordinary Send path and therefore creates a new Correspondence delivery preparation and new exact-revision customer capability when the Quote business lifecycle is still eligible for a new offer. It does not mutate or reuse a revoked/superseded/stale grant. If the Quote has already become accepted/declined, recovery may finish the old transport evidence but a new offer Send remains unavailable.
 
 ### Webhook convergence
 
-Duplicate `svix-id` deliveries are idempotent. Delayed and out-of-order provider events remain append-only with provider occurrence timestamps. A webhook may arrive before or after the ADMIN opens the recovery view; it still correlates to the same attempt and can provide the evidence used by the next reconciliation action. Provider open/click events remain excluded from Quote customer-view evidence.
+Duplicate `svix-id` deliveries are idempotent. Delayed and out-of-order provider events remain append-only with provider occurrence timestamps. A webhook may arrive before or after the ADMIN opens the recovery view; it still correlates to the same attempt and can provide the evidence used by the next reconciliation action. Concurrent duplicate reconciliation converges on the same existing accepted provider reference instead of creating a second terminal outcome. Provider open/click events remain excluded from Quote customer-view evidence.
 
 ### Customer-response recovery
 
-Existing customer-response behavior is intentionally reused rather than rebuilt. `CUSTOMER_ACCEPTED`/`CUSTOMER_DECLINED` evidence is persisted independently of operational completion. A same-decision/idempotency replay recovers the existing decision. When canonical acceptance conversion temporarily fails, later safe replay reuses the existing acceptance evidence and canonical `QuoteReviewService`; the customer does not need to accept again. Contradictory decisions remain conflicts. Customer acceptance can complete even while email transport tracking is incomplete.
+Existing customer-response behavior is intentionally reused rather than rebuilt. `CUSTOMER_ACCEPTED`/`CUSTOMER_DECLINED` evidence is persisted independently of operational completion. A same-decision/idempotency replay recovers the existing decision. When canonical acceptance conversion temporarily fails, later safe replay reuses the existing acceptance evidence and canonical `QuoteReviewService`; the customer does not need to accept again. Contradictory decisions remain conflicts. Customer acceptance can complete even while email transport tracking is incomplete, and the old email attempt can still be reconciled afterward for that exact revision.
 
 ### ADMIN recovery presentation
 
@@ -198,7 +198,7 @@ The Send / Share panel scopes provider lifecycle text to the latest email attemp
 - delayed;
 - bounced;
 - complaint;
-- provider submission failed;
+- provider delivery failed;
 - genuinely uncertain;
 - awaiting customer view / customer viewed;
 - accepted / declined;
@@ -208,13 +208,15 @@ These labels remain evidence-specific and do not create new Quote statuses.
 
 ## Recovery and edge cases
 
-- **Quote changes before action:** exact expected-revision checks fail with conflict; ADMIN must reload the current revision.
+- **Quote changes before new send:** exact expected-revision checks fail with conflict; ADMIN must reload the current revision.
+- **Customer response before email recovery:** customer ACCEPT/DECLINE remains authoritative and independent; the exact-revision transport attempt can still be reconciled without reopening the offer.
 - **New send/share preparation:** new grant supersedes the prior active grant. Older links fail closed.
-- **Explicit provider rejection:** attempt is terminal `FAILED`; a later operator resend creates a fresh Correspondence record/attempt and secure grant.
+- **Explicit synchronous provider rejection:** attempt is terminal `FAILED`; a later operator resend may create a fresh Correspondence record/attempt and secure grant while the Quote remains eligible.
 - **Network/ambiguous send outcome:** attempt remains pending reconciliation and the UI blocks blind resend until it is reconciled.
-- **Authenticated provider evidence after lost HTTP response:** reconciliation finishes the original Correspondence attempt; it does not create another link.
+- **Authenticated provider evidence after lost HTTP response:** reconciliation marks the original Correspondence attempt provider-accepted and preserves the exact downstream lifecycle event; it does not create another link.
+- **Authenticated downstream delivery failure:** the original attempt remains provider-accepted while the failed/bounced/suppressed lifecycle is shown separately; a deliberate resend may be offered if the Quote is still eligible.
 - **No authenticated provider evidence yet:** the original attempt remains unresolved and its active secure grant is preserved.
-- **Original grant no longer active during recovery:** recovery fails closed and never resurrects the link.
+- **Original grant no longer active during unresolved recovery:** recovery fails closed and never resurrects the link.
 - **Duplicate/out-of-order provider webhook:** provider event ID dedupe and occurrence timestamps preserve truthful evidence without assuming arrival order.
 - **Webhook for unknown Resend email ID/attempt:** accepted as unmatched transport input but does not mutate a Quote or Correspondence attempt.
 - **Provider open/click events:** ignored for Quote view semantics.
