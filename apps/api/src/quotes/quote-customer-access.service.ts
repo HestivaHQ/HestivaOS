@@ -30,6 +30,13 @@ type StructuredQuoteData = {
   visit?: Record<string, unknown>;
 };
 
+type CustomerResponseDecision = 'CUSTOMER_ACCEPTED' | 'CUSTOMER_DECLINED';
+export type QuoteCustomerResponseState =
+  | 'NO_RESPONSE'
+  | 'ACCEPTED_CONVERTED'
+  | 'ACCEPTED_PENDING_INTERNAL_COMPLETION'
+  | 'DECLINED';
+
 export type IssueQuoteCustomerAccessInput = {
   quoteId: string;
   expectedRevisionNumber: number;
@@ -43,6 +50,7 @@ export type QuoteCustomerPublicProjection = {
     revisionNumber: number;
     status: QuoteStatus;
     actionable: boolean;
+    customerResponseState: QuoteCustomerResponseState;
     validUntil: string;
     accessExpiresAt: string;
     property: Record<string, unknown>;
@@ -101,6 +109,21 @@ function isCustomerReadableQuoteStatus(status: QuoteStatus): boolean {
     default:
       return false;
   }
+}
+
+function customerResponseState(
+  decision: CustomerResponseDecision | undefined,
+  status: QuoteStatus,
+): QuoteCustomerResponseState {
+  if (!decision) return 'NO_RESPONSE';
+  if (decision === 'CUSTOMER_DECLINED') {
+    if (status === QuoteStatus.ACCEPTED) throw unavailable();
+    return 'DECLINED';
+  }
+  if (status === QuoteStatus.DECLINED) throw unavailable();
+  return status === QuoteStatus.ACCEPTED
+    ? 'ACCEPTED_CONVERTED'
+    : 'ACCEPTED_PENDING_INTERNAL_COMPLETION';
 }
 
 @Injectable()
@@ -268,6 +291,17 @@ export class QuoteCustomerAccessService {
     if (quote.validUntil.getTime() <= now.getTime()) throw unavailable();
     if (!isCustomerReadableQuoteStatus(quote.status)) throw unavailable();
 
+    const responseRows = await this.prisma.$queryRaw<Array<{ decision: CustomerResponseDecision }>>(Prisma.sql`
+      SELECT decision::text AS decision
+      FROM quote_customer_responses
+      WHERE grant_id = ${grant.id}::uuid
+        AND quote_id = ${grant.quote_id}::uuid
+        AND revision_number = ${grant.revision_number}
+      ORDER BY created_at ASC
+      LIMIT 1
+    `);
+    const responseState = customerResponseState(responseRows[0]?.decision, quote.status);
+
     const structured = revision.structuredData as StructuredQuoteData;
     const profile = await this.prisma.businessProfile.findUnique({ where: { id: 'hestiva' } });
     const business: Record<string, string> = {};
@@ -284,7 +318,8 @@ export class QuoteCustomerAccessService {
         reference: quote.reference,
         revisionNumber: revision.revisionNumber,
         status: quote.status,
-        actionable: quote.status === QuoteStatus.SUBMITTED,
+        actionable: quote.status === QuoteStatus.SUBMITTED && responseState === 'NO_RESPONSE',
+        customerResponseState: responseState,
         validUntil: quote.validUntil.toISOString(),
         accessExpiresAt: grant.expires_at.toISOString(),
         property: publicObject(structured.property, ['propertyType', 'suburb', 'floorSize', 'bedrooms', 'bathrooms', 'livingAreas', 'storeys', 'outdoorArea']),
