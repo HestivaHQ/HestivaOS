@@ -50,7 +50,7 @@ describe('QuoteSendShareService', () => {
     const recordDeliveryOutcome = jest.fn<() => Promise<unknown>>(); recordDeliveryOutcome.mockResolvedValue({});
     const correspondence = { materialize, createDeliveryAttempt, recordDeliveryOutcome };
     const send = jest.fn<() => Promise<EmailAccepted>>(); send.mockResolvedValue({ outcome: 'ACCEPTED', providerReference: 'email_1' });
-    const email = { assertConfigured: jest.fn(), send, recover: jest.fn() };
+    const email = { assertConfigured: jest.fn(), send };
     const service = new QuoteSendShareService(prisma as never, access as never, engagement as never, responses as never, correspondence as never, email as never);
     return { service, prisma, access, correspondence, email };
   }
@@ -70,7 +70,7 @@ describe('QuoteSendShareService', () => {
     expect(access.issue).not.toHaveBeenCalled(); expect(correspondence.materialize).not.toHaveBeenCalled(); expect(email.send).not.toHaveBeenCalled();
   });
 
-  it('reconciles a lost HTTP response from later signed provider evidence without issuing another capability', async () => {
+  it('reconciles a lost HTTP response from later signed provider acceptance evidence without issuing another capability', async () => {
     const { service, prisma, access, correspondence } = harness();
     prisma.$queryRaw
       .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
@@ -80,7 +80,17 @@ describe('QuoteSendShareService', () => {
     expect(correspondence.recordDeliveryOutcome).toHaveBeenCalledWith(actor, '55555555-5555-4555-8555-555555555555', expect.objectContaining({ status: CorrespondenceDeliveryAttemptStatus.ACCEPTED, providerReference: 'email_1' }));
   });
 
-  it('permits a later reviewed resend only after signed provider failure evidence resolves the original attempt', async () => {
+  it('treats downstream bounce evidence as proof the original provider submission happened, not as API rejection', async () => {
+    const { service, prisma, access, correspondence } = harness();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
+      .mockResolvedValueOnce([{ event_type: 'email.bounced', provider_reference: 'email_1', occurred_at: new Date() }]);
+    await expect(service.recoverEmail('11111111-1111-4111-8111-111111111111', 2, actor)).resolves.toMatchObject({ state: 'PROVIDER_ACCEPTED', retryPermitted: false });
+    expect(access.issue).not.toHaveBeenCalled();
+    expect(correspondence.recordDeliveryOutcome).toHaveBeenCalledWith(actor, '55555555-5555-4555-8555-555555555555', expect.objectContaining({ status: CorrespondenceDeliveryAttemptStatus.ACCEPTED, providerReference: 'email_1' }));
+  });
+
+  it('permits a later reviewed resend only after signed provider submission-failure evidence resolves the original attempt', async () => {
     const { service, prisma, access, correspondence } = harness();
     prisma.$queryRaw
       .mockResolvedValueOnce([{ attempt_id: '55555555-5555-4555-8555-555555555555', record_id: '33333333-3333-4333-8333-333333333333', subject: 'Quote', body: 'Body', recipient_email: 'customer@example.com' }])
