@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { CorrespondenceDeliveryAttemptStatus, CorrespondenceTemplateVersionStatus, Prisma, QuoteActivityType, QuoteStatus, User } from '@prisma/client';
+import { CorrespondenceDeliveryAttemptStatus, CorrespondenceTemplateVersionStatus, Prisma, QuoteStatus, User } from '@prisma/client';
 import { CorrespondenceService } from '../correspondence/correspondence.service';
 import { ResendEmailTransport } from '../correspondence/resend-email.transport';
 import { PrismaService } from '../prisma.service';
@@ -9,6 +9,7 @@ import { QuoteCustomerResponseService } from './quote-customer-response.service'
 
 const QUOTE_TEMPLATE_KEY = 'quote_customer_ready_v1';
 const SECURE_LINK_MARKER = '{{SECURE_QUOTE_LINK}}';
+const WHATSAPP_COMPOSER_OPENED = 'WHATSAPP_COMPOSER_OPENED';
 
 type ContactSnapshot = { name: string; email: string | null; phone: string | null };
 
@@ -56,7 +57,8 @@ export class QuoteSendShareService {
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
       select: {
-        id: true, reference: true, status: true, currentRevisionNumber: true, customer: { select: { name: true, contactName: true, email: true, phone: true } },
+        id: true, reference: true, status: true, currentRevisionNumber: true,
+        customer: { select: { name: true, contactName: true, email: true, phone: true } },
         revisions: { where: { revisionNumber: expectedRevisionNumber }, take: 1, select: { structuredData: true } },
       },
     });
@@ -85,16 +87,16 @@ export class QuoteSendShareService {
     const link = await this.secureLink(quoteId, expectedRevisionNumber, actor);
     const text = `Hello ${quote.contact.name}, your Homent Quote ${quote.reference} is ready to review: ${link.url}`;
     const composerUrl = `https://wa.me/${whatsappNumber(quote.contact.phone)}?text=${encodeURIComponent(text)}`;
-    const activity = await this.prisma.quoteActivity.create({
-      data: {
-        quoteId,
-        type: QuoteActivityType.WHATSAPP_COMPOSER_OPENED,
-        actorUserId: actor.id,
-        metadata: { revisionNumber: expectedRevisionNumber, channel: 'WHATSAPP', evidence: 'COMPOSER_OPENED_ONLY' },
-      },
-      select: { createdAt: true },
-    });
-    return { composerUrl, revisionNumber: expectedRevisionNumber, evidence: 'WHATSAPP_COMPOSER_OPENED', occurredAt: activity.createdAt.toISOString() };
+    const occurredAt = new Date();
+    await this.prisma.$executeRaw(Prisma.sql`
+      INSERT INTO quote_activities (id, quote_id, type, metadata, actor_user_id, created_at)
+      VALUES (
+        gen_random_uuid(), ${quoteId}::uuid, ${WHATSAPP_COMPOSER_OPENED}::"QuoteActivityType",
+        ${JSON.stringify({ revisionNumber: expectedRevisionNumber, channel: 'WHATSAPP', evidence: 'COMPOSER_OPENED_ONLY' })}::jsonb,
+        ${actor.id}::uuid, ${occurredAt}
+      )
+    `);
+    return { composerUrl, revisionNumber: expectedRevisionNumber, evidence: WHATSAPP_COMPOSER_OPENED, occurredAt: occurredAt.toISOString() };
   }
 
   async sendEmail(quoteId: string, expectedRevisionNumber: number, actor: User) {
@@ -103,8 +105,7 @@ export class QuoteSendShareService {
     const link = await this.secureLink(quoteId, expectedRevisionNumber, actor);
     const version = await this.prisma.correspondenceTemplateVersion.findFirst({
       where: { template: { key: QUOTE_TEMPLATE_KEY }, status: CorrespondenceTemplateVersionStatus.PUBLISHED },
-      orderBy: { version: 'desc' },
-      select: { id: true },
+      orderBy: { version: 'desc' }, select: { id: true },
     });
     if (!version) throw new ServiceUnavailableException('Published Quote correspondence template is not available.');
 
@@ -119,9 +120,7 @@ export class QuoteSendShareService {
     const subject = record.subject ?? 'Your Homent Quote is ready';
     const safeBody = record.body.includes(SECURE_LINK_MARKER) ? record.body : `${record.body}\n\n${SECURE_LINK_MARKER}`;
     const result = await this.email.send({
-      purpose: 'QUOTE',
-      to: quote.contact.email,
-      subject,
+      purpose: 'QUOTE', to: quote.contact.email, subject,
       text: safeBody.replaceAll(SECURE_LINK_MARKER, link.url),
       idempotencyKey: `correspondence-attempt/${attempt.id}`,
     });
@@ -137,8 +136,7 @@ export class QuoteSendShareService {
     if (result.outcome === 'REJECTED') {
       await this.correspondence.recordDeliveryOutcome(actor, attempt.id, {
         status: CorrespondenceDeliveryAttemptStatus.FAILED,
-        failureCode: result.code,
-        failureMessage: result.message,
+        failureCode: result.code, failureMessage: result.message,
         metadata: { provider: 'RESEND', semantics: 'PROVIDER_REJECTED' },
       });
       return { revisionNumber: expectedRevisionNumber, correspondenceRecordId: record.id, attemptId: attempt.id, state: 'PROVIDER_FAILED' };
@@ -165,16 +163,17 @@ export class QuoteSendShareService {
         AND r.provenance->>'revisionNumber' = ${String(expectedRevisionNumber)}
       ORDER BY a.created_at DESC, pe.occurred_at ASC
     `);
-    const whatsapp = await this.prisma.quoteActivity.findMany({
-      where: { quoteId, type: QuoteActivityType.WHATSAPP_COMPOSER_OPENED },
-      orderBy: { createdAt: 'desc' }, take: 20, select: { createdAt: true, metadata: true },
-    });
+    const whatsapp = await this.prisma.$queryRaw<Array<{ created_at: Date; metadata: Prisma.JsonValue }>>(Prisma.sql`
+      SELECT created_at, metadata FROM quote_activities
+      WHERE quote_id = ${quoteId}::uuid AND type = ${WHATSAPP_COMPOSER_OPENED}::"QuoteActivityType"
+      ORDER BY created_at DESC LIMIT 20
+    `);
     return {
       revisionNumber: expectedRevisionNumber,
       access: engagement,
       response: response.response,
       email: emailRows.map((row) => ({ ...row, attempt_created_at: row.attempt_created_at.toISOString(), provider_occurred_at: row.provider_occurred_at?.toISOString() ?? null })),
-      whatsappComposerOpened: whatsapp.map((event) => ({ occurredAt: event.createdAt.toISOString(), metadata: event.metadata })),
+      whatsappComposerOpened: whatsapp.map((event) => ({ occurredAt: event.created_at.toISOString(), metadata: event.metadata })),
     };
   }
 }
