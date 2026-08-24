@@ -167,9 +167,8 @@ describe('QuoteCustomerEngagementService confirmation', () => {
 });
 
 describe('QuoteCustomerEngagementService ADMIN projection', () => {
-  it('derives first view, last view and count from append-only evidence', async () => {
-    const first = new Date('2026-08-24T09:00:00.000Z');
-    const last = new Date('2026-08-24T09:05:00.000Z');
+  function summaryHarness(first: Date, last: Date, viewCount: bigint) {
+    let queryCount = 0;
     const prisma = {
       quote: { findUnique: jest.fn(async () => ({
         currentRevisionNumber: 2,
@@ -177,11 +176,28 @@ describe('QuoteCustomerEngagementService ADMIN projection', () => {
         status: QuoteStatus.SUBMITTED,
         revisions: [{ revisionNumber: 2 }],
       })) },
-      $queryRaw: jest.fn()
-        .mockResolvedValueOnce([{ id: GRANT_ID, revision_number: 2, expires_at: new Date(Date.now() + 60_000), revoked_at: null, superseded_at: null, created_at: new Date() }])
-        .mockResolvedValueOnce([{ first_viewed_at: first, last_viewed_at: last, view_count: 2n }]),
+      $queryRaw: jest.fn(async () => {
+        queryCount += 1;
+        if (queryCount === 1) {
+          return [{
+            id: GRANT_ID,
+            revision_number: 2,
+            expires_at: new Date(Date.now() + 60_000),
+            revoked_at: null,
+            superseded_at: null,
+            created_at: new Date(),
+          }];
+        }
+        return [{ first_viewed_at: first, last_viewed_at: last, view_count: viewCount }];
+      }),
     } as unknown as PrismaService;
-    const service = new QuoteCustomerEngagementService(prisma, accessHarness());
+    return new QuoteCustomerEngagementService(prisma, accessHarness());
+  }
+
+  it('derives first view, last view and count from append-only evidence', async () => {
+    const first = new Date('2026-08-24T09:00:00.000Z');
+    const last = new Date('2026-08-24T09:05:00.000Z');
+    const service = summaryHarness(first, last, 2n);
     const summary = await service.engagementSummary(QUOTE_ID, 2);
     expect(summary).toEqual({
       revisionNumber: 2,
@@ -195,13 +211,7 @@ describe('QuoteCustomerEngagementService ADMIN projection', () => {
   it('keeps the original first view while later evidence advances last view and count', async () => {
     const first = new Date('2026-08-24T09:00:00.000Z');
     const last = new Date('2026-08-24T09:10:00.000Z');
-    const prisma = {
-      quote: { findUnique: jest.fn(async () => ({ currentRevisionNumber: 2, validUntil: new Date(Date.now() + 60_000), status: QuoteStatus.SUBMITTED, revisions: [{ revisionNumber: 2 }] })) },
-      $queryRaw: jest.fn()
-        .mockResolvedValueOnce([{ id: GRANT_ID, revision_number: 2, expires_at: new Date(Date.now() + 60_000), revoked_at: null, superseded_at: null, created_at: new Date() }])
-        .mockResolvedValueOnce([{ first_viewed_at: first, last_viewed_at: last, view_count: 3n }]),
-    } as unknown as PrismaService;
-    const service = new QuoteCustomerEngagementService(prisma, accessHarness());
+    const service = summaryHarness(first, last, 3n);
     const summary = await service.engagementSummary(QUOTE_ID, 2);
     expect(summary.firstViewedAt).toBe(first.toISOString());
     expect(summary.lastViewedAt).toBe(last.toISOString());
