@@ -17,6 +17,7 @@ import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-or
 import { MessagingService } from './messaging.service';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
 import { WhatsAppInboundMediaService } from './whatsapp-inbound-media.service';
+import { WhatsAppQuoteFlowInboundService } from './whatsapp-quote-flow-inbound.service';
 
 type WebhookRequest = { body: unknown };
 type WebhookResponse = {
@@ -34,6 +35,7 @@ export class WhatsAppWebhookController {
     private readonly inboundMedia: WhatsAppInboundMediaService,
     private readonly customerLinking: MessagingCustomerLinkingService,
     private readonly quoteOrchestrator: MessagingQuoteLiveOrchestratorService,
+    private readonly quoteFlowInbound: WhatsAppQuoteFlowInboundService,
   ) {}
 
   @Get()
@@ -65,7 +67,8 @@ export class WhatsAppWebhookController {
       const message = await this.messaging.persistInbound(event);
       await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
       await this.inboundMedia.secureInboundMedia(message.id, event);
-      await this.quoteOrchestrator.handleInbound(message.id);
+      const flowOwned = await this.quoteFlowInbound.handleInbound(message.id);
+      if (!flowOwned) await this.quoteOrchestrator.handleInbound(message.id);
     }
     for (const event of statusEvents) await this.messaging.persistWhatsAppStatus(event);
     return { received: true, normalizedEvents: events.length, normalizedStatusEvents: statusEvents.length };
