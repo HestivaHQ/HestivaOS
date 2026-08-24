@@ -1,6 +1,7 @@
 {
   "contractId": "HOMENT_QUOTE_REQUEST_V1",
   "mappingVersion": "HOMENT_QUOTE_REQUEST_MAPPING_V1",
+  "architectureDecision": "ADR-0088",
   "purpose": "Pre-runtime fixture matrix. These cases become executable parser/provider contract tests in the implementation slice.",
   "fixtures": [
     {"id":"normal-house","expected":"VALID_CANONICAL_FACTS","covers":["HOUSE","storeys","REGULAR_HOME","ONE_TIME","no_add_ons","no_photos"]},
