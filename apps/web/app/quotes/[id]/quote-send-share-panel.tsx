@@ -11,11 +11,13 @@ type Tracking = {
   revisionNumber: number;
   access: { accessState: string; firstViewedAt: string | null; lastViewedAt: string | null; viewCount: number };
   response: { decision: string; respondedAt: string; source: string } | null;
+  recovery: { state: 'PENDING_RECONCILIATION'; attemptId: string; action: 'RECONCILE_OR_WAIT' } | null;
   email: Array<{ record_id: string; attempt_id: string; attempt_number: number; attempt_created_at: string; attempt_status: string; provider_reference: string | null; event_type: string | null; provider_occurred_at: string | null }>;
   whatsappComposerOpened: Array<{ occurredAt: string }>;
 };
 
 type SendResult = { state: 'PROVIDER_ACCEPTED' | 'PROVIDER_FAILED' | 'PENDING_RECONCILIATION' };
+type RecoveryResult = { state: 'PROVIDER_ACCEPTED' | 'DELIVERY_FAILED' | 'PENDING_RECONCILIATION'; retryPermitted: boolean; message?: string };
 type WhatsAppResult = { composerUrl: string; evidence: 'WHATSAPP_COMPOSER_OPENED'; occurredAt: string };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -54,20 +56,36 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
   useEffect(() => { void load(); }, [load]);
   const emailAttempts = useMemo(() => tracking ? new Map(tracking.email.map((row) => [row.attempt_id, row])).size : 0, [tracking]);
   const latestEmail = tracking?.email[0] ?? null;
-  const providerEvents = tracking?.email.filter((row) => row.event_type).map((row) => row.event_type as string) ?? [];
-  const emailState = providerEvents.includes('email.delivered') ? 'Delivered to recipient mail server' :
-    providerEvents.some((event) => ['email.failed', 'email.bounced', 'email.suppressed'].includes(event)) ? 'Provider delivery failed' :
-    providerEvents.includes('email.sent') ? 'Sent by Resend' :
-    latestEmail?.attempt_status === 'ACCEPTED' ? 'Accepted by Resend' : latestEmail?.attempt_status === 'FAILED' ? 'Send failed' : latestEmail ? 'Pending reconciliation' : 'Not sent';
+  const latestProviderEvents = latestEmail
+    ? tracking?.email.filter((row) => row.attempt_id === latestEmail.attempt_id && row.event_type).map((row) => row.event_type as string) ?? []
+    : [];
+  const emailState = latestProviderEvents.includes('email.complained') ? 'Recipient complaint received' :
+    latestProviderEvents.includes('email.delivered') ? 'Delivered to recipient mail server' :
+    latestProviderEvents.includes('email.bounced') ? 'Recipient mail server rejected the email (bounced)' :
+    latestProviderEvents.includes('email.failed') || latestProviderEvents.includes('email.suppressed') ? 'Provider delivery failed' :
+    latestProviderEvents.includes('email.delivery_delayed') ? 'Delivery delayed by recipient mail system' :
+    latestProviderEvents.includes('email.sent') ? 'Sent by Resend' :
+    latestEmail?.attempt_status === 'ACCEPTED' ? 'Accepted by Resend' : latestEmail?.attempt_status === 'FAILED' ? 'Send failed' : latestEmail ? 'Outcome uncertain' : 'Not sent';
 
   async function sendEmail() {
     if (!quote || busy) return;
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await request<SendResult>(`/quotes/${quote.id}/send-share/email`, { method: 'POST', body: JSON.stringify({ expectedRevisionNumber: quote.currentRevisionNumber }) });
-      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Quote email accepted by Resend. This does not mean the customer viewed it.' : result.state === 'PROVIDER_FAILED' ? 'Resend rejected the email send. Review the delivery state before retrying.' : 'Email outcome is uncertain. Refresh tracking before deciding whether to resend.');
+      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Quote email accepted by Resend. This does not mean the customer viewed it.' : result.state === 'PROVIDER_FAILED' ? 'Resend rejected the email send. Review the delivery state before retrying.' : 'Email outcome is uncertain. Reconcile the original attempt before any resend.');
       await load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Quote email could not be sent.'); }
+    finally { setBusy(false); }
+  }
+
+  async function reconcileEmail() {
+    if (!quote || busy) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await request<RecoveryResult>(`/quotes/${quote.id}/send-share/email/reconcile`, { method: 'POST', body: JSON.stringify({ expectedRevisionNumber: quote.currentRevisionNumber }) });
+      setNotice(result.state === 'DELIVERY_FAILED' ? 'Authenticated Resend evidence confirms the original submission existed but delivery failed. A deliberate resend is now permitted.' : result.state === 'PROVIDER_ACCEPTED' ? 'Authenticated Resend evidence confirms the original email submission was accepted. No new Quote link was created.' : result.message ?? 'The original email remains genuinely unresolved. Do not resend yet.');
+      await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Quote email recovery could not be completed.'); }
     finally { setBusy(false); }
   }
 
@@ -88,7 +106,7 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
   }
 
   if (!quote) return <section className="quoteWorkspace"><p role="status">Loading Send / Share…</p>{error ? <div className="errorBanner" role="alert">{error}</div> : null}</section>;
-  const canSend = quote.status === 'SUBMITTED';
+  const canSend = quote.status === 'SUBMITTED' && !tracking?.recovery;
   return <section className="quoteWorkspace quoteDetail" aria-labelledby="quote-send-share-title">
     <header className="pageHeader"><div><p className="eyebrow">Customer delivery</p><h2 id="quote-send-share-title">Send / Share</h2><p>Current Quote revision <strong>{quote.currentRevisionNumber}</strong></p></div></header>
     {error ? <div className="errorBanner" role="alert">{error}</div> : null}
@@ -99,16 +117,18 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
       <p>Mobile: <strong>{quote.customer?.phone ?? quote.summary?.customerMobile ?? 'Not available'}</strong></p>
       <div className="rowActions">
         <button className="primaryButton" type="button" disabled={!canSend || busy} onClick={() => void sendEmail()}>{emailAttempts ? 'Resend Quote email' : 'Send Quote by email'}</button>
-        <button type="button" disabled={!canSend || busy} onClick={() => void openWhatsApp()}>Open WhatsApp</button>
+        {tracking?.recovery ? <button className="primaryButton" type="button" disabled={busy} onClick={() => void reconcileEmail()}>Reconcile uncertain email</button> : null}
+        <button type="button" disabled={quote.status !== 'SUBMITTED' || busy} onClick={() => void openWhatsApp()}>Open WhatsApp</button>
         <button type="button" disabled={busy} onClick={() => void load()}>Refresh tracking</button>
       </div>
-      {!canSend ? <p>This Quote is read-only for customer delivery because its current status is {quote.status}.</p> : null}
+      {tracking?.recovery ? <p><strong>Recovery required:</strong> the previous email outcome is genuinely uncertain. HestivaOS will not rotate the secure link or start another email until provider evidence safely resolves the original attempt.</p> : null}
+      {quote.status !== 'SUBMITTED' ? <p>This Quote is read-only for customer delivery because its current status is {quote.status}.</p> : null}
     </div>
     <div className="quoteCard">
       <h3>Delivery & customer evidence</h3>
       <p><strong>Email:</strong> {emailState}</p>
       <p><strong>WhatsApp:</strong> {tracking?.whatsappComposerOpened.length ? `Composer opened ${tracking.whatsappComposerOpened.length} time(s); latest ${when(tracking.whatsappComposerOpened[0]?.occurredAt)}` : 'Composer not opened'}</p>
-      <p><strong>Secure Quote view:</strong> {tracking?.access.viewCount ? `Viewed ${tracking.access.viewCount} time(s); first ${when(tracking.access.firstViewedAt)}, latest ${when(tracking.access.lastViewedAt)}` : 'Not viewed'}</p>
+      <p><strong>Secure Quote view:</strong> {tracking?.access.viewCount ? `Viewed ${tracking.access.viewCount} time(s); first ${when(tracking.access.firstViewedAt)}, latest ${when(tracking.access.lastViewedAt)}` : 'Awaiting customer view'}</p>
       <p><strong>Customer response:</strong> {tracking?.response ? `${tracking.response.decision === 'CUSTOMER_ACCEPTED' ? 'Accepted' : 'Declined'} at ${when(tracking.response.respondedAt)}` : 'No response'}</p>
       <p><strong>Secure access:</strong> {tracking?.access.accessState ?? 'Unknown'}</p>
       <p className="muted">Provider acceptance or delivery is email transport evidence only. Customer-view evidence comes only from the secure Quote page VIEW_CONFIRMED protocol.</p>
