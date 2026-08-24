@@ -98,7 +98,7 @@ describe('QuoteCustomerResponseService', () => {
     const h = harness({ preflights: [{ eligibleForAcceptance: false, blockers: [{ code: 'CUSTOMER_UNRESOLVED' }] }] });
     const result = await h.respond('CUSTOMER_ACCEPTED', 'accept-0002');
     expect(result.state).toBe('PENDING_INTERNAL_COMPLETION');
-    expect(result.blockers).toEqual([{ code: 'CUSTOMER_UNRESOLVED' }]);
+    expect('blockers' in result ? result.blockers : undefined).toEqual([{ code: 'CUSTOMER_UNRESOLVED' }]);
     expect(h.evidencePersisted()).toBe(true);
     expect(h.review.accept).not.toHaveBeenCalled();
   });
@@ -132,7 +132,7 @@ describe('QuoteCustomerResponseService', () => {
     });
     const result = await h.respond('CUSTOMER_ACCEPTED', 'accept-0005');
     expect(result.state).toBe('PENDING_INTERNAL_COMPLETION');
-    expect(result.blockers).toEqual([{ code: 'CUSTOMER_UNRESOLVED' }]);
+    expect('blockers' in result ? result.blockers : undefined).toEqual([{ code: 'CUSTOMER_UNRESOLVED' }]);
   });
 
   it('converges an acceptance race through the canonical already-accepted replay path without duplicate response evidence', async () => {
