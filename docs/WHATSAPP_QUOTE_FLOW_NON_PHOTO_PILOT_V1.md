@@ -4,7 +4,7 @@
 
 **REPOSITORY PREPARATION COMPLETE WHEN THIS PR IS GREEN. REAL META DEPLOYMENT NOT YET PERFORMED. REAL-DEVICE PILOT NOT YET PERFORMED.**
 
-This document prepares the controlled Step 6A deployment of the frozen `HOMENT_QUOTE_REQUEST_V1` contract without Flow PhotoPicker. It does not claim that Meta has accepted, validated, previewed or published the artifact and it does not claim any Android/iOS test result.
+This document prepares the controlled Step 6A deployment of the frozen `HOMENT_QUOTE_REQUEST_V1` contract without Flow PhotoPicker. It does not claim that Meta has accepted, validated, previewed or published the artifact and it does not claim any Android/iOS test result. `docs/README.md` routes future Messaging/WhatsApp work back to this pilot preparation together with the frozen/runtime/mapping authorities.
 
 Governing contracts and decisions remain `MESSAGING_WHATSAPP_QUOTE_FLOW_V1.md`, `WHATSAPP_QUOTE_FLOW_RUNTIME_V1.md`, `WHATSAPP_QUOTE_FLOW_MAPPING_SUBMISSION_V1.md`, ADR-0049, ADR-0081 and ADR-0088. Coordination remains Issue #116.
 
@@ -14,7 +14,7 @@ Repository-owned generator:
 
 `python3 scripts/generate_whatsapp_quote_flow_v1_non_photo.py --output /tmp/HOMENT_QUOTE_REQUEST_V1.flow.json --check`
 
-The generator consumes `docs/contracts/HOMENT_QUOTE_REQUEST_V1.json` and produces the Meta upload artifact rather than maintaining a second hand-edited field contract. Local validation fails if the frozen contract/mapping/completion identifiers change, screen order changes, a non-photo machine field disappears, PhotoPicker leaks into the pilot artifact, or a screen exceeds the reviewed 50-component ceiling.
+The generator consumes `docs/contracts/HOMENT_QUOTE_REQUEST_V1.json` and produces the Meta upload artifact rather than maintaining a second hand-edited field contract. Local validation fails if the frozen contract/mapping/completion identifiers change, screen order changes, a non-photo machine field disappears, PhotoPicker leaks into the pilot artifact, a synthetic unresolved condition leaks into the output, or a screen exceeds the reviewed 50-component ceiling.
 
 The pilot artifact preserves these eight screens in order:
 
@@ -39,7 +39,7 @@ No pricing, availability or booking decision is performed in the Flow.
 
 ## Conditional presentation
 
-The artifact uses static Flow presentation only. Required/visible expressions are generated from the frozen V1 conditional contract. Add-on quantity visibility uses client-side `update_data` flags on the two relevant Checkbox options so `EXTRA_REFRIGERATOR` and `BALCONY_PATIO` reveal their quantity fields without a backend `data_exchange` endpoint.
+The artifact uses static Flow presentation only. Required/visible expressions are generated from the frozen V1 conditional contract. Add-on quantity visibility uses client-side `update_data` flags on the two relevant Checkbox options so `EXTRA_REFRIGERATOR` and `BALCONY_PATIO` reveal their quantity fields without a backend `data_exchange` endpoint. The synthetic frozen `resolved_frequency` presentation concept is compiled into explicit conditions over the actual frequency fields and is never emitted as an undeclared Flow data variable.
 
 All conditions are UX only. Step 5 continues to revalidate completion data in HestivaOS and must reject malformed, unsupported or contradictory data regardless of what the client displayed.
 
