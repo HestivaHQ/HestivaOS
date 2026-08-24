@@ -14,24 +14,21 @@ const TRUSTED_EVENTS = new Set([
 ]);
 const IGNORED_ENGAGEMENT_EVENTS = new Set(['email.opened', 'email.clicked']);
 const MAX_TIMESTAMP_SKEW_SECONDS = 300;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type ResendEvent = {
   type: string;
   created_at: string;
-  data: { email_id?: string; to?: string[]; bounce?: unknown; [key: string]: unknown };
+  data: { email_id?: string; to?: string[]; bounce?: unknown; tags?: Record<string, unknown>; [key: string]: unknown };
 };
 
 function signingKey(): Buffer {
   const configured = process.env.RESEND_WEBHOOK_SIGNING_SECRET?.trim();
   if (!configured) throw new ServiceUnavailableException('RESEND_WEBHOOK_SIGNING_SECRET is not configured.');
   const encoded = configured.startsWith('whsec_') ? configured.slice('whsec_'.length) : configured;
-  try {
-    const key = Buffer.from(encoded, 'base64');
-    if (!key.length) throw new Error('empty');
-    return key;
-  } catch {
-    throw new ServiceUnavailableException('RESEND_WEBHOOK_SIGNING_SECRET is invalid.');
-  }
+  const key = Buffer.from(encoded, 'base64');
+  if (!key.length) throw new ServiceUnavailableException('RESEND_WEBHOOK_SIGNING_SECRET is invalid.');
+  return key;
 }
 
 function verifySignature(payload: Buffer, id: string, timestamp: string, signatureHeader: string): void {
@@ -47,10 +44,8 @@ function verifySignature(payload: Buffer, id: string, timestamp: string, signatu
   const valid = candidates.some((candidate) => {
     const value = candidate.startsWith('v1,') ? candidate.slice(3) : '';
     if (!value) return false;
-    try {
-      const actual = Buffer.from(value, 'base64');
-      return actual.length === expected.length && timingSafeEqual(actual, expected);
-    } catch { return false; }
+    const actual = Buffer.from(value, 'base64');
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
   });
   if (!valid) throw new BadRequestException('Invalid Resend webhook signature.');
 }
@@ -71,19 +66,29 @@ export class ResendWebhookService {
     const occurredAt = new Date(event.created_at);
     if (!providerReference || Number.isNaN(occurredAt.getTime())) throw new BadRequestException('Invalid Resend email event.');
 
+    const taggedAttempt = typeof event.data.tags?.correspondence_attempt === 'string'
+      && UUID_PATTERN.test(event.data.tags.correspondence_attempt)
+      ? event.data.tags.correspondence_attempt
+      : null;
     const attempts = await this.prisma.$queryRaw<Array<{ attempt_id: string }>>(Prisma.sql`
       SELECT a.id AS attempt_id
       FROM correspondence_delivery_attempts a
-      JOIN correspondence_delivery_attempt_events e ON e.attempt_id = a.id
-      WHERE e.status = 'ACCEPTED'::"CorrespondenceDeliveryAttemptStatus"
-        AND e.provider_reference = ${providerReference}
-      ORDER BY e.created_at DESC
+      WHERE (
+        ${taggedAttempt}::uuid IS NOT NULL AND a.id = ${taggedAttempt}::uuid
+      ) OR EXISTS (
+        SELECT 1 FROM correspondence_delivery_attempt_events e
+        WHERE e.attempt_id = a.id
+          AND e.status = 'ACCEPTED'::"CorrespondenceDeliveryAttemptStatus"
+          AND e.provider_reference = ${providerReference}
+      )
+      ORDER BY a.created_at DESC
       LIMIT 1
     `);
     if (!attempts[0]) return { accepted: true, unmatched: true };
 
     const safeMetadata = {
       recipientCount: Array.isArray(event.data.to) ? event.data.to.length : 0,
+      correlatedBy: taggedAttempt ? 'SIGNED_RESEND_TAG' : 'PROVIDER_REFERENCE',
       ...(event.type === 'email.bounced' && event.data.bounce ? { bounce: event.data.bounce } : {}),
     };
     await this.prisma.$executeRaw(Prisma.sql`
