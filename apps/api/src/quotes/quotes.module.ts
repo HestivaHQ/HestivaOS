@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CorrespondenceModule } from '../correspondence/correspondence.module';
 import {
   ApprovedQuoteOperationalCostProvider,
   type AllocatedRouteDistanceResolver,
@@ -19,6 +20,8 @@ import { QuoteCustomerEngagementAdminController, QuoteCustomerEngagementPublicCo
 import { QuoteCustomerEngagementService } from './quote-customer-engagement.service';
 import { QuoteCustomerResponseAdminController, QuoteCustomerResponsePublicController } from './quote-customer-response.controller';
 import { QuoteCustomerResponseService } from './quote-customer-response.service';
+import { QuoteSendShareController } from './quote-send-share.controller';
+import { QuoteSendShareService } from './quote-send-share.service';
 
 function configuredCoidaRate(): number | null {
   const raw = process.env.HESTIVA_COIDA_RATE;
@@ -43,6 +46,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
 }
 
 @Module({
+  imports: [CorrespondenceModule],
   controllers: [
     QuoteReviewController,
     QuoteCustomerAccessAdminController,
@@ -51,6 +55,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
     QuoteCustomerEngagementPublicController,
     QuoteCustomerResponseAdminController,
     QuoteCustomerResponsePublicController,
+    QuoteSendShareController,
     WebsiteIntegrationHealthController,
     WebsiteQuoteIngestionController,
   ],
@@ -62,6 +67,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
     QuoteCustomerAccessService,
     QuoteCustomerEngagementService,
     QuoteCustomerResponseService,
+    QuoteSendShareService,
     { provide: QUOTE_OPERATIONAL_COST_PROVIDER, useFactory: () => new ApprovedQuoteOperationalCostProvider({ coidaRate: configuredCoidaRate(), routeDistanceResolver: configuredRouteDistanceResolver() }) },
   ],
   exports: [QuoteSubmissionService, QuoteCustomerAccessService],
