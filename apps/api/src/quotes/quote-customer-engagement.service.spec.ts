@@ -33,7 +33,7 @@ function accessHarness(revisionNumber = 2) {
 }
 
 function grantIdentity() {
-  return { id: GRANT_ID, quote_id: QUOTE_ID, revision_number: 2 };
+  return { id: GRANT_ID, quote_id: QUOTE_ID, revision_number: 2, expires_at: new Date(Date.now() + 60_000) };
 }
 
 function confirmationRow(overrides: Record<string, unknown> = {}) {
@@ -76,9 +76,20 @@ describe('QuoteCustomerEngagementService challenge issuance', () => {
     expect(values.some((value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))).toBe(true);
   });
 
+  it('never lets a challenge outlive the access grant', async () => {
+    const grantExpiry = new Date(Date.now() + 20_000);
+    const prisma = {
+      $queryRaw: jest.fn(async () => [{ ...grantIdentity(), expires_at: grantExpiry }]),
+      $executeRaw: jest.fn(async () => 1),
+    } as unknown as PrismaService;
+    const service = new QuoteCustomerEngagementService(prisma, accessHarness());
+    const result = await service.issueViewChallenge(CAPABILITY);
+    expect(new Date(result.expiresAt).getTime()).toBe(grantExpiry.getTime());
+  });
+
   it('rejects an unknown capability through the existing Slice B resolver', async () => {
     const access = accessHarness();
-    (access.resolve as jest.Mock).mockRejectedValue(new NotFoundException('Quote access is unavailable.'));
+    jest.mocked(access.resolve).mockRejectedValue(new NotFoundException('Quote access is unavailable.'));
     const prisma = {} as PrismaService;
     const service = new QuoteCustomerEngagementService(prisma, access);
     await expect(service.issueViewChallenge(CAPABILITY)).rejects.toBeInstanceOf(NotFoundException);
@@ -88,9 +99,11 @@ describe('QuoteCustomerEngagementService challenge issuance', () => {
 describe('QuoteCustomerEngagementService confirmation', () => {
   function confirmationHarness(rowOverrides: Record<string, unknown> = {}, existingEvent?: { id: string; occurred_at: Date }) {
     const txExecuteCalls: SqlLike[] = [];
+    let queryCount = 0;
     const tx = {
       $queryRaw: jest.fn(async () => {
-        if ((tx.$queryRaw as jest.Mock).mock.calls.length === 1) return [confirmationRow(rowOverrides)];
+        queryCount += 1;
+        if (queryCount === 1) return [confirmationRow(rowOverrides)];
         return existingEvent ? [existingEvent] : [];
       }),
       $executeRaw: jest.fn(async (query: SqlLike) => { txExecuteCalls.push(query); return 1; }),
@@ -99,7 +112,7 @@ describe('QuoteCustomerEngagementService confirmation', () => {
       $queryRaw: jest.fn(async () => [grantIdentity()]),
       $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
     } as unknown as PrismaService;
-    return { service: new QuoteCustomerEngagementService(prisma, accessHarness()), tx, txExecuteCalls };
+    return { service: new QuoteCustomerEngagementService(prisma, accessHarness()), txExecuteCalls };
   }
 
   it('does not confirm before the server-measured dwell threshold', async () => {
