@@ -20,11 +20,10 @@ type WhatsAppResult = { composerUrl: string; evidence: 'WHATSAPP_COMPOSER_OPENED
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const { data: { session } } = await createClient().auth.getSession();
-  const response = await fetch(`${API_URL}/api/v1${path}`, {
-    cache: 'no-store',
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}), ...init?.headers },
-  });
+  const headers = new Headers(init?.headers);
+  headers.set('Content-Type', 'application/json');
+  if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`);
+  const response = await fetch(`${API_URL}/api/v1${path}`, { cache: 'no-store', ...init, headers });
   const body = await response.json().catch(() => null) as { message?: string } | T | null;
   if (!response.ok) throw new ApiError((body as { message?: string } | null)?.message ?? `Request failed with status ${response.status}`, response.status);
   return body as T;
@@ -58,6 +57,7 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
   const providerEvents = tracking?.email.filter((row) => row.event_type).map((row) => row.event_type as string) ?? [];
   const emailState = providerEvents.includes('email.delivered') ? 'Delivered to recipient mail server' :
     providerEvents.some((event) => ['email.failed', 'email.bounced', 'email.suppressed'].includes(event)) ? 'Provider delivery failed' :
+    providerEvents.includes('email.sent') ? 'Sent by Resend' :
     latestEmail?.attempt_status === 'ACCEPTED' ? 'Accepted by Resend' : latestEmail?.attempt_status === 'FAILED' ? 'Send failed' : latestEmail ? 'Pending reconciliation' : 'Not sent';
 
   async function sendEmail() {
@@ -65,7 +65,7 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await request<SendResult>(`/quotes/${quote.id}/send-share/email`, { method: 'POST', body: JSON.stringify({ expectedRevisionNumber: quote.currentRevisionNumber }) });
-      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Quote email accepted by Resend. This does not mean the customer viewed it.' : result.state === 'PROVIDER_FAILED' ? 'Resend rejected the email send. Review the delivery state before retrying.' : 'Email outcome is uncertain. Do not resend until the delivery state is reconciled.');
+      setNotice(result.state === 'PROVIDER_ACCEPTED' ? 'Quote email accepted by Resend. This does not mean the customer viewed it.' : result.state === 'PROVIDER_FAILED' ? 'Resend rejected the email send. Review the delivery state before retrying.' : 'Email outcome is uncertain. Refresh tracking before deciding whether to resend.');
       await load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : 'Quote email could not be sent.'); }
     finally { setBusy(false); }
@@ -73,7 +73,8 @@ export function QuoteSendSharePanel({ quoteId }: { quoteId: string }) {
 
   async function openWhatsApp() {
     if (!quote || busy) return;
-    const popup = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const popup = window.open('about:blank', '_blank');
+    if (popup) popup.opener = null;
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await request<WhatsAppResult>(`/quotes/${quote.id}/send-share/whatsapp-composer`, { method: 'POST', body: JSON.stringify({ expectedRevisionNumber: quote.currentRevisionNumber }) });
