@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { MessagingDirection, MessagingMessageKind } from '@prisma/client';
+import { MessagingDirection, MessagingMessageKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { WhatsAppQuoteFlowSessionService } from './whatsapp-quote-flow-session.service';
 
@@ -54,6 +54,8 @@ export class WhatsAppQuoteFlowInboundService {
       if (!object || typeof object.flow_token !== 'string' || !object.flow_token.trim()) {
         throw new ConflictException('WhatsApp Flow completion is missing its correlation token.');
       }
+      // Persist any due local expiry before completion eligibility is checked.
+      await this.sessions.hasActiveUnresolvedSession(message.conversationId);
       const { flow_token: flowToken, ...businessResponse } = object;
       await this.sessions.captureCompletion(
         { id: message.id, conversationId: message.conversationId, providerEventKey: message.providerEventKey },
@@ -65,5 +67,21 @@ export class WhatsAppQuoteFlowInboundService {
     // While Flow remains unresolved, ordinary text/media/interactive traffic is
     // normal WhatsApp conversation/help. It must not mutate guided Quote state.
     return this.sessions.hasActiveUnresolvedSession(message.conversationId);
+  }
+
+  async reconcileLaunchStatus(messageId: string, providerStatus: 'sent' | 'delivered' | 'read' | 'failed') {
+    if (providerStatus === 'failed') {
+      await this.prisma.$executeRaw(Prisma.sql`
+        UPDATE messaging_quote_flow_sessions
+        SET status = 'FALLBACK', fallback_reason = 'provider launch failed', fallback_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE launch_message_id = ${messageId}::uuid AND status = 'PREPARED'
+      `);
+      return;
+    }
+    await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE messaging_quote_flow_sessions
+      SET status = 'OFFERED', offered_at = COALESCE(offered_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+      WHERE launch_message_id = ${messageId}::uuid AND status = 'PREPARED'
+    `);
   }
 }
