@@ -1,0 +1,163 @@
+{
+  "contractId": "HOMENT_QUOTE_REQUEST_V1",
+  "flowJsonVersion": "7.3",
+  "mappingVersion": "HOMENT_QUOTE_REQUEST_MAPPING_V1",
+  "completionVersion": "HOMENT_QUOTE_REQUEST_COMPLETION_V1",
+  "pricingInFlow": false,
+  "screens": [
+    {
+      "id": "YOUR_HOME",
+      "title": "Your Home",
+      "fields": [
+        {"id":"property_type","type":"Dropdown","required":true,"options":["APARTMENT","TOWNHOUSE","HOUSE","DUPLEX","OTHER"],"destination":"property.propertyType"},
+        {"id":"property_type_other","type":"TextArea","requiredWhen":"property_type == OTHER","destination":"notes.additionalNotes:Property type details"},
+        {"id":"address_line_1","type":"TextInput","required":true,"destination":"property.addressLine1"},
+        {"id":"suburb","type":"TextInput","required":true,"destination":"property.suburb"},
+        {"id":"postal_code","type":"TextInput","required":false,"destination":"property.postalCode"},
+        {"id":"country_sa_confirmed","type":"OptIn","required":true,"accepted":[true],"destination":"property.country=South Africa"},
+        {"id":"floor_size","type":"Dropdown","required":true,"options":["UNDER_40","FROM_40_TO_59","FROM_60_TO_79","FROM_80_TO_99","FROM_100_TO_129","FROM_130_TO_169","FROM_170_TO_219","FROM_220_TO_299","FROM_300_UP","UNKNOWN"],"destination":"property.floorSize"},
+        {"id":"bedrooms_apartment","type":"Dropdown","requiredWhen":"property_type == APARTMENT","options":["STUDIO","ONE","TWO","THREE","FOUR","FIVE_PLUS","OTHER"],"destination":"property.bedrooms"},
+        {"id":"bedrooms_other","type":"Dropdown","requiredWhen":"property_type != APARTMENT","options":["ONE","TWO","THREE","FOUR","FIVE_PLUS","OTHER"],"destination":"property.bedrooms"},
+        {"id":"bathrooms","type":"Dropdown","required":true,"options":["ONE","TWO","THREE","FOUR","FIVE_PLUS"],"destination":"property.bathrooms"},
+        {"id":"living_areas","type":"Dropdown","required":true,"options":["ONE","TWO","THREE","FOUR_PLUS"],"destination":"property.livingAreas"},
+        {"id":"storeys","type":"Dropdown","requiredWhen":"property_type in [TOWNHOUSE,HOUSE,OTHER]","options":["ONE","TWO","THREE","FOUR_PLUS","UNKNOWN"],"destination":"property.storeys","derived":"DUPLEX -> TWO"},
+        {"id":"apartment_floor","type":"TextInput:number","requiredWhen":"property_type == APARTMENT","range":[0,50],"destination":"property.exactFloor"},
+        {"id":"apartment_access","type":"Dropdown","requiredWhen":"property_type == APARTMENT","options":["ELEVATOR","STAIRS","ELEVATOR_AND_STAIRS"],"destination":"property.buildingAccess"},
+        {"id":"outdoor_area","type":"Dropdown","required":true,"options":["NONE","BALCONY","PATIO","BOTH"],"destination":"property.outdoorArea"},
+        {"id":"estate_classification","type":"Dropdown","required":true,"options":["NONE","ESTATE","COMPLEX","GATED_COMMUNITY"],"destination":"property.estateClassification"}
+      ]
+    },
+    {
+      "id": "CLEANING_REQUIREMENTS",
+      "title": "Cleaning Requirements",
+      "fields": [
+        {"id":"primary_service","type":"Dropdown","required":true,"options":["REGULAR_HOME","DEEP","MOVE_IN","MOVE_OUT","KITCHEN","BATHROOM","BEDROOM","LIVING_AREA","INTERIOR_WINDOWS","POST_RENOVATION","POST_EVENT","NOT_SURE"],"destination":"request.primaryService"},
+        {"id":"service_not_sure_details","type":"TextArea","requiredWhen":"primary_service == NOT_SURE","destination":"notes.additionalNotes:Requested service details"},
+        {"id":"frequency_full","type":"Dropdown","requiredWhen":"primary_service in [REGULAR_HOME,BEDROOM,LIVING_AREA]","options":["ONE_TIME","WEEKLY","EVERY_TWO_WEEKS","MONTHLY","CUSTOM"],"destination":"request.frequency"},
+        {"id":"frequency_deep","type":"Dropdown","requiredWhen":"primary_service == DEEP","options":["ONE_TIME","MONTHLY","CUSTOM"],"destination":"request.frequency"},
+        {"id":"frequency_simple","type":"Dropdown","requiredWhen":"primary_service in [KITCHEN,BATHROOM,INTERIOR_WINDOWS,POST_RENOVATION,NOT_SURE]","options":["ONE_TIME","CUSTOM"],"destination":"request.frequency"},
+        {"id":"custom_frequency_note","type":"TextArea","requiredWhen":"resolved_frequency == CUSTOM","destination":"request.customFrequencyNote"},
+        {"id":"home_condition","type":"Dropdown","required":true,"options":["LIGHT_UPKEEP","STANDARD","EXTRA_ATTENTION","HEAVY_BUILDUP","RECENTLY_RENOVATED","VACANT","MOVE_IN_OUT"],"destination":"request.homeCondition"},
+        {"id":"post_event_type","type":"Dropdown","requiredWhen":"primary_service == POST_EVENT","options":["PARTY_BIRTHDAY","WEDDING_RECEPTION","FAMILY_GATHERING","CORPORATE_EVENT","FUNERAL_MEMORIAL","OTHER"],"destination":"request.postEvent.eventType"},
+        {"id":"post_event_venue_type","type":"Dropdown","requiredWhen":"primary_service == POST_EVENT","options":["HOME","APARTMENT","BUSINESS_PREMISES","EVENT_VENUE","OTHER"],"destination":"request.postEvent.venueType"},
+        {"id":"post_event_guest_band","type":"Dropdown","requiredWhen":"primary_service == POST_EVENT","options":["ONE_TO_20","FROM_21_TO_50","FROM_51_TO_100","FROM_101_TO_150","FROM_150_UP"],"destination":"request.postEvent.guestBand"},
+        {"id":"post_event_bathrooms","type":"TextInput:number","requiredWhen":"primary_service == POST_EVENT","range":[1,20],"destination":"request.postEvent.bathrooms"},
+        {"id":"post_event_kitchen_used","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.kitchenSubstantiallyUsed"},
+        {"id":"post_event_dishwashing","type":"Dropdown","requiredWhen":"primary_service == POST_EVENT","options":["NONE","MODERATE","HEAVY"],"destination":"request.postEvent.dishwashing"},
+        {"id":"post_event_outdoor_areas","type":"CheckboxGroup","required":false,"visibleWhen":"primary_service == POST_EVENT","options":["PATIO","BALCONY","BRAAI_AREA","GARDEN_ENTERTAINMENT_AREA"],"destination":"request.postEvent.outdoorAreas"},
+        {"id":"post_event_waste_level","type":"Dropdown","requiredWhen":"primary_service == POST_EVENT","options":["LIGHT","MODERATE","HEAVY"],"destination":"request.postEvent.wasteLevel"},
+        {"id":"post_event_significant_soiling","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.significantOrdinarySoiling"},
+        {"id":"post_event_overnight","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.lateNightOrOvernight"},
+        {"id":"post_event_bulk_waste","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.bulkWasteRemovalRequested"},
+        {"id":"post_event_specialist_contamination","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.specialistContamination"},
+        {"id":"post_event_specialist_carpet","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.specialistCarpetOrUpholstery"},
+        {"id":"post_event_complex_venue","type":"RadioButtonsGroup","requiredWhen":"primary_service == POST_EVENT","options":["YES","NO"],"destination":"request.postEvent.complexVenue"}
+      ],
+      "derived": [
+        {"when":"primary_service in [MOVE_IN,MOVE_OUT,POST_EVENT]","destination":"request.frequency","value":"ONE_TIME"}
+      ]
+    },
+    {
+      "id": "PERSONALISE_SERVICE",
+      "title": "Personalise Your Service",
+      "fields": [
+        {"id":"add_ons","type":"CheckboxGroup","required":false,"options":["INSIDE_OVEN","INSIDE_FRIDGE","INSIDE_CUPBOARDS","INTERIOR_WINDOWS","BED_MAKING","LINEN_CHANGE","BALCONY_PATIO","GARAGE_SWEEP","EXTRA_BATHROOM","EXTRA_REFRIGERATOR","PET_HAIR"],"destination":"request.addOns"},
+        {"id":"extra_refrigerator_quantity","type":"TextInput:number","requiredWhen":"add_ons contains EXTRA_REFRIGERATOR","minimum":1,"destination":"request.addOns[Extra Refrigerator].quantity"},
+        {"id":"balcony_patio_quantity","type":"TextInput:number","requiredWhen":"add_ons contains BALCONY_PATIO","minimum":1,"destination":"request.addOns[Balcony / Patio Cleaning].quantity"},
+        {"id":"eco_friendly_products","type":"RadioButtonsGroup","required":false,"options":["YES","NO"],"destination":"request.ecoFriendlyProducts"},
+        {"id":"laundry_requested","type":"OptIn","required":false,"visibleWhen":"primary_service in [REGULAR_HOME,DEEP]","destination":"request.laundry.laundryLoads presence"},
+        {"id":"ironing_requested","type":"OptIn","required":false,"visibleWhen":"primary_service in [REGULAR_HOME,DEEP]","destination":"request.laundry.ironingLoads presence"},
+        {"id":"laundry_facilities","type":"RadioButtonsGroup","requiredWhen":"laundry_requested == true","options":["WASHER_DRYER","WASHER_LINE"],"destination":"request.laundry.facilities"},
+        {"id":"laundry_loads","type":"TextInput:number","requiredWhen":"laundry_requested == true","minimum":1,"destination":"request.laundry.laundryLoads"},
+        {"id":"ironing_loads","type":"TextInput:number","requiredWhen":"ironing_requested == true","minimum":1,"destination":"request.laundry.ironingLoads"}
+      ]
+    },
+    {
+      "id": "PREFERRED_VISIT",
+      "title": "Preferred Visit",
+      "fields": [
+        {"id":"preferred_date","type":"DatePicker","required":true,"destination":"visit.preferredDate"},
+        {"id":"alternative_date","type":"DatePicker","required":false,"destination":"visit.alternativeDate"},
+        {"id":"preferred_time","type":"Dropdown","required":true,"options":["MORNING","MIDDAY","AFTERNOON","FLEXIBLE"],"destination":"visit.preferredTime"},
+        {"id":"flexibility","type":"Dropdown","required":true,"options":["Exact date preferred","A day either side","Flexible this week","Fully flexible"],"destination":"visit.flexibility"},
+        {"id":"urgency","type":"Dropdown","required":true,"options":["Planning ahead","Within two weeks","Within one week","As soon as possible"],"destination":"visit.urgency"},
+        {"id":"recurring_notes","type":"TextArea","required":false,"visibleWhen":"resolved_frequency != ONE_TIME","destination":"visit.recurringNotes"}
+      ]
+    },
+    {
+      "id": "ACCESS_HOUSEHOLD",
+      "title": "Access and Household Details",
+      "fields": [
+        {"id":"complex_access","type":"Dropdown","required":true,"options":["ACCESS_CODE","NOT_APPLICABLE","VISITOR_SIGN_IN","RESIDENT_ARRANGED"],"destination":"access.complexAccess"},
+        {"id":"security_instructions","type":"TextArea","required":false,"destination":"access.securityInstructions"},
+        {"id":"parking","type":"TextArea","required":false,"destination":"access.parking"},
+        {"id":"key_handover","type":"Dropdown","required":true,"options":["SOMEONE_WILL_OPEN","CONCIERGE_RECEPTION","TO_BE_ARRANGED"],"destination":"access.keyHandover"},
+        {"id":"key_handover_details","type":"TextArea","requiredWhen":"key_handover == TO_BE_ARRANGED","destination":"access.keyHandoverDetails"},
+        {"id":"someone_present","type":"RadioButtonsGroup","required":true,"options":["YES","NO"],"destination":"access.someonePresent"},
+        {"id":"has_pets","type":"RadioButtonsGroup","required":true,"options":["YES","NO"],"destination":"household.hasPets"},
+        {"id":"pet_type","type":"Dropdown","requiredWhen":"has_pets == YES","options":["DOG","CAT","DOG_AND_CAT","BIRD","OTHER"],"destination":"household.petType"},
+        {"id":"pet_type_other","type":"TextInput","requiredWhen":"pet_type == OTHER","destination":"household.petType"},
+        {"id":"pet_temperament","type":"Dropdown","requiredWhen":"has_pets == YES","options":["FRIENDLY","SHY","PROTECTIVE","REACTIVE","NOT_SURE"],"destination":"household.petTemperament"},
+        {"id":"off_limits_areas","type":"TextArea","required":false,"destination":"safety.offLimitsAreas"},
+        {"id":"fragile_items","type":"TextArea","required":false,"destination":"safety.fragileItems"},
+        {"id":"product_restrictions_choice","type":"RadioButtonsGroup","required":true,"options":["NONE","DETAILS"],"destination":"safety.productRestrictions presence"},
+        {"id":"product_restrictions_details","type":"TextArea","requiredWhen":"product_restrictions_choice == DETAILS","destination":"safety.productRestrictions"},
+        {"id":"allergies_choice","type":"RadioButtonsGroup","required":true,"options":["NONE","DETAILS"],"destination":"safety.allergiesOrSensitivities presence"},
+        {"id":"allergies_details","type":"TextArea","requiredWhen":"allergies_choice == DETAILS","destination":"safety.allergiesOrSensitivities"}
+      ]
+    },
+    {
+      "id": "PHOTOS_NOTES",
+      "title": "Photos and Notes",
+      "fields": [
+        {"id":"quote_photos","type":"PhotoPicker","required":false,"maxPhotos":10,"maxFileSizeKiB":10240,"acceptedIntent":["image/jpeg","image/png","image/heic","image/heif"],"destination":"Quote-owned photo evidence after secure provider retrieval","featureGate":"independently disableable"},
+        {"id":"existing_damage","type":"TextArea","required":false,"destination":"safety.existingDamage"},
+        {"id":"attention_areas","type":"TextArea","required":false,"destination":"notes.attentionAreas"},
+        {"id":"renovation_dust","type":"TextArea","required":false,"destination":"notes.renovationDust"},
+        {"id":"appliance_notes","type":"TextArea","required":false,"destination":"notes.applianceNotes"},
+        {"id":"additional_notes","type":"TextArea","required":false,"destination":"notes.additionalNotes"}
+      ]
+    },
+    {
+      "id": "YOUR_DETAILS",
+      "title": "Your Details",
+      "fields": [
+        {"id":"full_name","type":"TextInput","required":true,"destination":"customer.fullName"},
+        {"id":"email","type":"TextInput:email","required":true,"destination":"customer.email"},
+        {"id":"mobile","type":"TextInput:phone","required":true,"format":"E.164 after validation/normalization","destination":"customer.mobile"},
+        {"id":"preferred_contact","type":"Dropdown","required":true,"options":["PHONE","EMAIL","WHATSAPP"],"destination":"customer.preferredContact"}
+      ]
+    },
+    {
+      "id": "REVIEW_SUBMIT",
+      "title": "Review and Submit",
+      "terminal": true,
+      "fields": [],
+      "action": {"type":"complete","label":"Submit quote request"}
+    }
+  ],
+  "completion": {
+    "requiredMetadata": {
+      "homent_contract": "HOMENT_QUOTE_REQUEST_V1",
+      "homent_mapping_version": "HOMENT_QUOTE_REQUEST_MAPPING_V1",
+      "homent_completion_version": "HOMENT_QUOTE_REQUEST_COMPLETION_V1"
+    },
+    "requiresFlowToken": true,
+    "flowTokenPolicy": "opaque high-entropy correlation only; no PII; not authentication",
+    "providerEnvelope": "authenticated WhatsApp interactive nfm_reply response_json",
+    "businessEffect": "exactly one Quote or HUMAN_REVIEW after HestivaOS mapping/validation"
+  },
+  "fallback": ["WHATSAPP_GUIDED_COLLECTOR","WEBSITE_WHERE_APPROPRIATE","HUMAN_ASSISTANCE"],
+  "interruption": {
+    "assumeClientProgressPersists": false,
+    "ordinaryChatWhileUnresolvedFlow": "HELP_CONVERSATION_NOT_GUIDED_ANSWER",
+    "partialFlowCreatesQuote": false
+  },
+  "photoPolicy": {
+    "optional": true,
+    "independentlyDisableable": true,
+    "publicUrlsAllowed": false,
+    "silentDropOnRetrievalFailure": false,
+    "duplicatePermanentMessagingCopy": false
+  }
+}
