@@ -22,12 +22,11 @@ import {
 
 type PublicRequest = { socket?: { remoteAddress?: string | null } };
 type PublicResponse = { setHeader(name: string, value: string): void };
-
 type RateBucket = { startedAt: number; count: number };
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const CHALLENGE_RATE_LIMIT_MAX = 10;
 const CONFIRM_RATE_LIMIT_MAX = 30;
-const buckets = new Map<string, RateBucket>();
 
 function applyPublicHeaders(response: PublicResponse): void {
   response.setHeader('Cache-Control', 'private, no-store, max-age=0');
@@ -36,7 +35,12 @@ function applyPublicHeaders(response: PublicResponse): void {
   response.setHeader('Referrer-Policy', 'no-referrer');
 }
 
-function enforceRateLimit(request: PublicRequest, operation: string, maximum: number): void {
+function enforceRateLimit(
+  buckets: Map<string, RateBucket>,
+  request: PublicRequest,
+  operation: string,
+  maximum: number,
+): void {
   const peer = request.socket?.remoteAddress || 'unknown-peer';
   const key = `${operation}:${peer}`;
   const now = Date.now();
@@ -58,6 +62,8 @@ function capabilityFromAuthorization(value: string | undefined): string {
 
 @Controller('public/quote-access')
 export class QuoteCustomerEngagementPublicController {
+  private readonly rateBuckets = new Map<string, RateBucket>();
+
   constructor(private readonly engagement: QuoteCustomerEngagementService) {}
 
   @Public()
@@ -68,7 +74,7 @@ export class QuoteCustomerEngagementPublicController {
     @Res({ passthrough: true }) response: PublicResponse,
   ) {
     applyPublicHeaders(response);
-    enforceRateLimit(request, 'view-challenge', CHALLENGE_RATE_LIMIT_MAX);
+    enforceRateLimit(this.rateBuckets, request, 'view-challenge', CHALLENGE_RATE_LIMIT_MAX);
     return this.engagement.issueViewChallenge(capabilityFromAuthorization(authorization));
   }
 
@@ -82,7 +88,7 @@ export class QuoteCustomerEngagementPublicController {
     @Res({ passthrough: true }) response: PublicResponse,
   ) {
     applyPublicHeaders(response);
-    enforceRateLimit(request, 'view-confirm', CONFIRM_RATE_LIMIT_MAX);
+    enforceRateLimit(this.rateBuckets, request, 'view-confirm', CONFIRM_RATE_LIMIT_MAX);
     return this.engagement.confirmView(
       capabilityFromAuthorization(authorization),
       typeof challenge === 'string' ? challenge : '',
