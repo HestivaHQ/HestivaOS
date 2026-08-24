@@ -57,7 +57,12 @@ describe('QuoteCustomerEngagementPublicController', () => {
       await controller.issueViewChallenge(`QuoteCapability ${'A'.repeat(43)}`, { socket: { remoteAddress: 'limited-peer' } }, response);
     }
     const { response } = responseHarness();
-    await expect(controller.issueViewChallenge(`QuoteCapability ${'A'.repeat(43)}`, { socket: { remoteAddress: 'limited-peer' } }, response)).rejects.toBeInstanceOf(HttpException);
+    expect(() => controller.issueViewChallenge(
+      `QuoteCapability ${'A'.repeat(43)}`,
+      { socket: { remoteAddress: 'limited-peer' } },
+      response,
+    )).toThrow(HttpException);
+    expect(issueViewChallenge).toHaveBeenCalledTimes(QUOTE_CUSTOMER_ENGAGEMENT_ROUTE_SECURITY.challengeRateLimitMax);
     expect(confirmView).not.toHaveBeenCalled();
   });
 });
