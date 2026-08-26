@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import './styles.css';
 import './homent-ui.css';
 import './dashboard-ui.css';
+import './quote-ui.css';
 
 export const dynamic = 'force-dynamic';
 
