@@ -16,7 +16,7 @@ export const APP_NAVIGATION_ITEMS = [
   { label: 'Team', children: [
     { href: '/technicians', label: 'Technicians' },
     { href: '/crews', label: 'Crews' },
-    { href: '/shifts', label: 'Shift Planning' },
+    { href: '/shifts', label: 'Shift planning' },
   ] },
   { href: '/profile', label: 'My profile' },
 ] as const satisfies readonly NavigationItem[];
@@ -31,7 +31,7 @@ export async function AppFrame({ active, email, user, children }: { active: stri
     <main className="appShell">
       <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={navigationItems} />
       <aside className="sidebar desktopSidebar">
-        <div><p className="eyebrow">Hestiva OS</p><h1 className="brand">Operations</h1></div>
+        <div><p className="eyebrow">Homent</p><h1 className="brand">Operations</h1></div>
         <AppNavigation active={active} items={navigationItems} />
         <div className="accountBlock"><AccountMenu user={authoritativeUser} email={email} /></div>
       </aside>
