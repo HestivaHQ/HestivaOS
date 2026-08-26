@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import './styles.css';
+import './homent-ui.css';
 
 export const dynamic = 'force-dynamic';
 
