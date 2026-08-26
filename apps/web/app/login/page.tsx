@@ -47,80 +47,77 @@ export default function LoginPage() {
     }
   }
 
+  const signIn = mode === 'sign-in';
+
   return (
-    <main className="shell">
-      <section className="card" style={{ maxWidth: 480 }}>
-        <p className="eyebrow">Hestiva OS</p>
-        <h1 style={{ fontSize: 'clamp(32px, 7vw, 44px)' }}>
-          {mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
-        </h1>
-        <p className="summary">
-          {mode === 'sign-in'
-            ? 'Sign in to manage customers, properties, and work orders.'
-            : 'Create an account to start using Hestiva OS.'}
-        </p>
+    <main className="loginShell">
+      <section className="loginBrandPanel" aria-label="Homent operations">
+        <div className="loginBrandMark">
+          <strong>Homent</strong>
+          <span>Operations</span>
+        </div>
+        <div className="loginBrandCopy">
+          <p>Hestiva OS</p>
+          <h1>Care, coordinated beautifully.</h1>
+          <p>One secure place for the people, homes, quotes and work behind every Homent service.</p>
+        </div>
+      </section>
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 18, marginTop: 28 }}>
-          <label style={{ display: 'grid', gap: 8, fontWeight: 700 }}>
-            Email address
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-              required
-              style={{ padding: '13px 14px', border: '1px solid #bfc9ca', borderRadius: 10, font: 'inherit' }}
-            />
-          </label>
+      <section className="loginFormPanel">
+        <div className="loginCard">
+          <p className="eyebrow">Homent operations</p>
+          <h2>{signIn ? 'Welcome back' : 'Create your account'}</h2>
+          <p className="summary">
+            {signIn
+              ? 'Sign in to continue to Hestiva OS.'
+              : 'Create your Hestiva OS account using your work email.'}
+          </p>
 
-          <label style={{ display: 'grid', gap: 8, fontWeight: 700 }}>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
-              minLength={6}
-              required
-              style={{ padding: '13px 14px', border: '1px solid #bfc9ca', borderRadius: 10, font: 'inherit' }}
-            />
-          </label>
+          <form className="loginForm" onSubmit={handleSubmit}>
+            <label className="formField">
+              <span>Email address</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+                inputMode="email"
+                required
+              />
+            </label>
 
-          {message ? (
-            <p role="status" style={{ margin: 0, padding: 12, borderRadius: 10, background: '#f8f9f9' }}>
-              {message}
-            </p>
-          ) : null}
+            <label className="formField">
+              <span>Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete={signIn ? 'current-password' : 'new-password'}
+                minLength={6}
+                required
+              />
+            </label>
+
+            {message ? <p className="formMessage" role="status" aria-live="polite">{message}</p> : null}
+
+            <button className="primaryButton" type="submit" disabled={loading}>
+              {loading ? (signIn ? 'Signing in…' : 'Creating account…') : signIn ? 'Sign in' : 'Create account'}
+            </button>
+          </form>
 
           <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: '14px 18px',
-              border: 0,
-              borderRadius: 10,
-              background: '#17202a',
-              color: 'white',
-              font: 'inherit',
-              fontWeight: 700,
-              cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+            className="quietButton"
+            type="button"
+            onClick={() => {
+              setMode(signIn ? 'sign-up' : 'sign-in');
+              setMessage(null);
             }}
           >
-            {loading ? (mode === 'sign-in' ? 'Signing in…' : 'Creating account…') : mode === 'sign-in' ? 'Sign in' : 'Create account'}
+            {signIn ? 'Need an account? Create one' : 'Already have an account? Sign in'}
           </button>
-        </form>
 
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in');
-            setMessage(null);
-          }}
-          style={{ marginTop: 18, padding: 0, border: 0, background: 'transparent', font: 'inherit', cursor: 'pointer' }}
-        >
-          {mode === 'sign-in' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
-        </button>
+          <p className="loginSecurityNote">Hestiva OS is for authorised Homent operations users.</p>
+        </div>
       </section>
     </main>
   );
