@@ -16,7 +16,7 @@ export const APP_NAVIGATION_ITEMS = [
   { label: 'Team', children: [
     { href: '/technicians', label: 'Technicians' },
     { href: '/crews', label: 'Crews' },
-    { href: '/shifts', label: 'Shift planning' },
+    { href: '/shifts', label: 'Shift Planning' },
   ] },
   { href: '/profile', label: 'My profile' },
 ] as const satisfies readonly NavigationItem[];
