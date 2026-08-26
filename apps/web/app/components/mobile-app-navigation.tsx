@@ -32,7 +32,7 @@ export function MobileAppNavigation({ active, email, user, items }: {
 
   return <>
     <header className="mobileAppHeader">
-      <div className="mobileBrand"><span>Hestiva OS</span><strong>Operations</strong></div>
+      <div className="mobileBrand"><span>Homent</span><strong>Operations</strong></div>
       <div className="mobileHeaderActions">
         <AccountMenu user={user} email={email} compact />
         <button
