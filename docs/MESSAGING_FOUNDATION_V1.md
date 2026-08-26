@@ -8,6 +8,23 @@ WhatsApp Flow is **APPROVED / PLANNED** as the primary structured WhatsApp Quote
 
 Coordination source: `HestivaHQ/HestivaOS#116`.
 
+## Verified Meta account / coexistence checkpoint — 2026-08-26
+
+A controlled read-only Meta account inspection followed by an approved ownership transfer established the current provider-side state for the Homent integration.
+
+- The existing Meta Developer app `Homent`, App ID `1976545799730460`, is now owned by the **Homent** business portfolio. It was transferred from the GOOD KARMA portfolio; it was not deleted or recreated, and the App ID did not change.
+- The app remains unpublished/in development. Existing Messenger and WhatsApp use cases, current testing-level permissions, Messenger callback/subscriptions and connected Page records survived the transfer.
+- The existing South African WhatsApp Business App number remains owned by the Homent business portfolio and remains **Cloud API Offline**. It was not registered, migrated, disconnected, added to the developer app or entered into Embedded Signup during the ownership transfer. Normal WhatsApp Business App operation was confirmed after the transfer.
+- The account inspection showed no number-level suspension, policy restriction or South-Africa-specific coexistence prohibition for the existing number. This is evidence of potential compatibility, not final number-level coexistence approval.
+- Meta's coexistence path for an existing WhatsApp Business App number is distinct from the ordinary **Add New Number** Cloud API registration path. The existing production number **must not** be entered into the ordinary Add New Number flow as a substitute for coexistence onboarding.
+- Final coexistence eligibility for the exact production number remains **UNVERIFIED / BLOCKED ON PREREQUISITES** until Meta's coexistence-enabled Embedded Signup is deliberately configured and the number is accepted through that specific flow.
+- The inspected Meta coexistence documentation requires the coexistence-enabled Embedded Signup path for Business App users and identifies Tech Provider/Solution Partner qualification as part of that integration route. Homent has not completed Tech Provider onboarding or business verification, and coexistence onboarding has not started.
+- Manual messages sent from the WhatsApp Business App and Cloud API messages are separate provider paths. Business App messages do **not** open or extend the Cloud API 24-hour customer-service window. Any cost-control design that prefers manual Business App replies must therefore preserve Cloud API window/template rules independently rather than treating a manual reply as API-window activity.
+- No payment method was added during this work. Provider billing/payment setup, business verification, Tech Provider onboarding, app publication and coexistence onboarding remain separate future changes requiring deliberate review.
+- The previous Meta developer WhatsApp test environment is not currently visible after the ownership transfer. Meta now gates the WhatsApp test/production setup behind Homent portfolio selection plus a `Continue`/terms step. That step was intentionally not accepted. The prior test-number assets are therefore **NOT VERIFIED** after transfer and must not be assumed deleted or preserved until a separately approved inspection/provisioning step resolves them.
+
+This checkpoint records provider/account state only. It does not change the implemented HestivaOS provider runtime described below, does not claim production coexistence is active, and does not authorize ordinary Add New Number registration of the existing Business App number.
+
 ## Goals
 
 The foundation keeps WhatsApp and Facebook Messenger as provider channels around one shared HestivaOS conversation boundary. HestivaOS remains authoritative for Customers, Properties, Quotes, pricing, Work Orders, recurring services, payments, and operational state.
@@ -72,7 +89,7 @@ The Flow's own versioned Review/Submit completion is planned to be the explicit 
 
 1. verify webhook authenticity using the provider-supported mechanism;
 2. fail closed when authenticity cannot be established;
-3. normalize one webhook into zero, one, or many provider-neutral events;
+3. normalize one webhook into zero, one or many provider-neutral events;
 4. submit only already-authorized outbound commands when a provider-specific send boundary is proven safe;
 5. keep provider payload details out of business-domain logic.
 
