@@ -1,0 +1,193 @@
+.shiftWorkspace {
+  display: grid;
+  gap: 1.4rem;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.shiftWorkspace .pageHeader {
+  margin-bottom: 0;
+}
+
+.shiftWorkspace .resourceGrid {
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.28fr);
+  align-items: start;
+  gap: 1.35rem;
+}
+
+.shiftWorkspace .resourceForm,
+.shiftWorkspace .resourceGrid > .panel {
+  border-color: var(--homent-border);
+  background: var(--homent-surface);
+  box-shadow: var(--homent-shadow-sm);
+}
+
+.shiftWorkspace .resourceForm {
+  position: sticky;
+  top: 1.25rem;
+}
+
+.shiftWorkspace .resourceForm .panelHeader,
+.shiftWorkspace .resourceGrid > .panel > .panelHeader {
+  margin: -1.25rem -1.25rem 1.1rem;
+  padding: 1.05rem 1.25rem;
+  border-bottom: 1px solid var(--homent-border);
+  background: linear-gradient(135deg, rgba(105, 20, 49, 0.07), rgba(105, 20, 49, 0.015));
+}
+
+.shiftWorkspace .resourceForm label {
+  gap: 0.42rem;
+  color: var(--homent-ink);
+  font-weight: 650;
+}
+
+.shiftWorkspace .resourceForm input,
+.shiftWorkspace .resourceForm select,
+.shiftWorkspace .resourceForm textarea,
+.shiftWorkspace .panelHeader input[type='date'] {
+  border-color: var(--homent-border-strong);
+  background: #fffdf9;
+}
+
+.shiftWorkspace .resourceForm input:focus,
+.shiftWorkspace .resourceForm select:focus,
+.shiftWorkspace .resourceForm textarea:focus,
+.shiftWorkspace .panelHeader input[type='date']:focus {
+  border-color: var(--homent-burgundy);
+  box-shadow: 0 0 0 3px rgba(105, 20, 49, 0.1);
+  outline: none;
+}
+
+.shiftWorkspace .resourceForm input[type='search'] {
+  background: #fffdf9;
+}
+
+.shiftWorkspace .formActions {
+  padding-top: 0.35rem;
+}
+
+.shiftWorkspace .resourceGrid > .panel > .panelHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.shiftWorkspace .resourceGrid > .panel > .panelHeader .rowActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(145px, 1fr));
+  gap: 0.55rem;
+  width: min(100%, 330px);
+}
+
+.shiftWorkspace .dataList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.shiftWorkspace .dataRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--homent-border);
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.shiftWorkspace .dataRow:hover {
+  border-color: rgba(105, 20, 49, 0.3);
+  box-shadow: 0 10px 26px rgba(50, 33, 37, 0.06);
+  transform: translateY(-1px);
+}
+
+.shiftWorkspace .dataRow > div:first-child {
+  min-width: 0;
+}
+
+.shiftWorkspace .dataRow strong {
+  font-size: 1rem;
+  color: var(--homent-ink);
+}
+
+.shiftWorkspace .dataRow p {
+  margin: 0.28rem 0 0;
+  color: var(--homent-muted);
+  line-height: 1.45;
+}
+
+.shiftWorkspace .dataRow .rowActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  max-width: 270px;
+}
+
+.shiftWorkspace .statusPill {
+  border-color: rgba(105, 20, 49, 0.14);
+  background: rgba(105, 20, 49, 0.06);
+  color: var(--homent-burgundy);
+  font-weight: 750;
+}
+
+.shiftWorkspace .dangerButton {
+  border-color: rgba(153, 27, 27, 0.22);
+  background: rgba(153, 27, 27, 0.04);
+}
+
+.shiftWorkspace .emptyState {
+  min-height: 180px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border: 1px dashed var(--homent-border-strong);
+  border-radius: 16px;
+  background: rgba(255, 253, 249, 0.65);
+}
+
+@media (max-width: 1100px) {
+  .shiftWorkspace .resourceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .shiftWorkspace .resourceForm {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .shiftWorkspace {
+    gap: 1rem;
+  }
+
+  .shiftWorkspace .resourceGrid > .panel > .panelHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .shiftWorkspace .resourceGrid > .panel > .panelHeader .rowActions {
+    width: 100%;
+  }
+
+  .shiftWorkspace .dataRow {
+    grid-template-columns: 1fr;
+  }
+
+  .shiftWorkspace .dataRow .rowActions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .shiftWorkspace .resourceGrid > .panel > .panelHeader .rowActions {
+    grid-template-columns: 1fr;
+  }
+
+  .shiftWorkspace .dataRow .rowActions button,
+  .shiftWorkspace .dataRow .rowActions .dangerButton {
+    flex: 1 1 44%;
+  }
+}
