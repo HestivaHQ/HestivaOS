@@ -1,0 +1,136 @@
+.fieldTeamWorkspace .resourceGrid {
+  grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.5fr);
+  align-items: start;
+}
+
+.fieldTeamWorkspace .resourceForm,
+.fieldTeamWorkspace .teamDirectory {
+  border-color: rgba(105, 31, 48, 0.1);
+  box-shadow: 0 18px 44px rgba(60, 35, 38, 0.055);
+}
+
+.fieldTeamWorkspace .resourceForm {
+  position: sticky;
+  top: 22px;
+  background: linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(255, 249, 246, 0.94));
+}
+
+.fieldTeamWorkspace .resourceForm .panelHeader,
+.fieldTeamWorkspace .teamDirectory .panelHeader {
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(105, 31, 48, 0.08);
+}
+
+.fieldTeamWorkspace .resourceForm fieldset {
+  margin: 4px 0 2px;
+  padding: 14px;
+  border: 1px solid rgba(105, 31, 48, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.fieldTeamWorkspace .resourceForm fieldset legend {
+  padding: 0 7px;
+  color: var(--ink-strong);
+  font-weight: 750;
+}
+
+.fieldTeamWorkspace .resourceForm fieldset .dataList {
+  gap: 7px;
+}
+
+.fieldTeamWorkspace .resourceForm fieldset .dataRow {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid rgba(105, 31, 48, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.fieldTeamWorkspace .resourceForm fieldset .dataRow > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldTeamWorkspace .resourceForm fieldset input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--burgundy);
+}
+
+.fieldTeamWorkspace .teamDirectory .panelHeader {
+  align-items: end;
+}
+
+.fieldTeamWorkspace .teamDirectory .searchInput {
+  width: min(280px, 100%);
+}
+
+.fieldTeamWorkspace .teamDirectory .dataList {
+  gap: 10px;
+}
+
+.fieldTeamWorkspace .teamDirectory .dataRow {
+  padding: 16px 17px;
+  border: 1px solid rgba(105, 31, 48, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.fieldTeamWorkspace .teamDirectory .dataRow:hover {
+  border-color: rgba(105, 31, 48, 0.18);
+  box-shadow: 0 10px 26px rgba(60, 35, 38, 0.055);
+  transform: translateY(-1px);
+}
+
+.fieldTeamWorkspace .teamDirectory .dataRow strong {
+  color: var(--ink-strong);
+  font-size: 0.98rem;
+}
+
+.fieldTeamWorkspace .teamDirectory .dataRow p {
+  margin: 5px 0 0;
+  line-height: 1.45;
+}
+
+.fieldTeamWorkspace .teamDirectory .rowActions {
+  justify-content: flex-end;
+  align-self: center;
+}
+
+.fieldTeamWorkspace .formActions {
+  padding-top: 5px;
+  border-top: 1px solid rgba(105, 31, 48, 0.07);
+}
+
+@media (max-width: 1040px) {
+  .fieldTeamWorkspace .resourceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldTeamWorkspace .resourceForm {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .fieldTeamWorkspace .teamDirectory .panelHeader {
+    align-items: stretch;
+  }
+
+  .fieldTeamWorkspace .teamDirectory .searchInput {
+    width: 100%;
+  }
+
+  .fieldTeamWorkspace .teamDirectory .dataRow {
+    align-items: stretch;
+  }
+
+  .fieldTeamWorkspace .teamDirectory .rowActions {
+    justify-content: flex-start;
+  }
+}
