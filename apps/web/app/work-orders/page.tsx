@@ -6,7 +6,7 @@ export default async function WorkOrdersPage() {
   try {
     const appUser = await (await createAuthenticatedApi()).syncUser();
 
-    return <AppFrame active="/work-orders" email={appUser.email} user={appUser}><WorkOrdersManager createdById={appUser.id} /></AppFrame>;
+    return <AppFrame active="/work-orders" email={appUser.email} user={appUser}><div className="workOrderWorkspace"><WorkOrdersManager createdById={appUser.id} /></div></AppFrame>;
   } catch (error) {
     console.error(
       `WORK_ORDERS_PAGE_ERROR ${JSON.stringify({
