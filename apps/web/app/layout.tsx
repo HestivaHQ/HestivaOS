@@ -7,6 +7,7 @@ import './resource-ui.css';
 import './work-order-ui.css';
 import './shift-ui.css';
 import './field-team-ui.css';
+import './employee-ui.css';
 
 export const dynamic = 'force-dynamic';
 
