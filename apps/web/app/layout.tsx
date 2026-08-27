@@ -4,6 +4,7 @@ import './homent-ui.css';
 import './dashboard-ui.css';
 import './quote-ui.css';
 import './resource-ui.css';
+import './work-order-ui.css';
 
 export const dynamic = 'force-dynamic';
 
