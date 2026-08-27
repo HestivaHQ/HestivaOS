@@ -1,0 +1,322 @@
+/* Homent Quotes workspace — presentation only. */
+.quoteWorkspace {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.quoteWorkspace .pageHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.quoteWorkspace .pageHeader h2 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.045em;
+  color: var(--homent-ink);
+}
+
+.quoteWorkspace .pageHeader p:last-child {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.quoteQueue,
+.quoteCard {
+  border: 1px solid var(--homent-border);
+  border-radius: var(--homent-radius-lg);
+  background: var(--homent-surface);
+  box-shadow: var(--homent-shadow);
+}
+
+.quoteQueue {
+  overflow: hidden;
+}
+
+.quoteQueue .panelHeader {
+  padding: 1.15rem 1.25rem;
+  background: linear-gradient(180deg, rgba(83, 22, 40, 0.045), rgba(83, 22, 40, 0));
+}
+
+.quoteQueue .panelHeader h3,
+.quoteCard h3 {
+  margin: 0;
+  color: var(--homent-ink);
+}
+
+.quoteQueue .panelHeader p {
+  margin: 0.25rem 0 0;
+  color: var(--homent-muted);
+}
+
+.quoteFilters {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px) auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.quoteFilters label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--homent-ink);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.quoteFilters input,
+.quoteFilters button,
+.quoteFilterTabs button,
+.quoteWorkspace button,
+.quoteWorkspace select,
+.quoteWorkspace textarea {
+  font: inherit;
+}
+
+.quoteFilters input {
+  min-height: 46px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #cfc2c6;
+  border-radius: var(--homent-radius-md);
+  background: #fff;
+  color: var(--homent-ink);
+}
+
+.quoteFilters input:focus {
+  outline: none;
+  border-color: var(--homent-burgundy-700);
+  box-shadow: var(--homent-focus);
+}
+
+.quoteFilters button,
+.quoteWorkspace .rowActions > button:not(.primaryButton) {
+  min-height: 46px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid var(--homent-border);
+  border-radius: var(--homent-radius-md);
+  background: #fff;
+  color: var(--homent-burgundy-900);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.quoteFilters button:hover,
+.quoteWorkspace .rowActions > button:not(.primaryButton):hover:not(:disabled) {
+  border-color: var(--homent-burgundy-700);
+  background: var(--homent-burgundy-50);
+}
+
+.quoteFilterTabs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding: 0.3rem 1.25rem 1rem;
+  scrollbar-width: thin;
+}
+
+.quoteFilterTabs button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--homent-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--homent-muted);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.quoteFilterTabs button.active,
+.quoteFilterTabs button[aria-pressed='true'] {
+  border-color: var(--homent-burgundy-900);
+  background: var(--homent-burgundy-900);
+  color: #fff;
+}
+
+.quoteList {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.quoteQueueCard {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.35fr) minmax(340px, 1.7fr) minmax(170px, 0.8fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--homent-border);
+  border-radius: var(--homent-radius-md);
+  background: #fff;
+  color: var(--homent-ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.quoteQueueCard:hover,
+.quoteQueueCard:focus-visible {
+  border-color: var(--homent-burgundy-700);
+  background: var(--homent-burgundy-50);
+  transform: translateY(-1px);
+}
+
+.quoteQueueIdentity,
+.quoteQueueMeta {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.quoteQueueIdentity > strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.quoteQueueCard p,
+.quoteQueueCard time,
+.quoteQueueCard dt {
+  color: var(--homent-muted);
+}
+
+.quoteQueueCard p {
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+
+.quoteQueueCard dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.quoteQueueCard dl div {
+  min-width: 0;
+}
+
+.quoteQueueCard dt {
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quoteQueueCard dd {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.quoteStatus.needs_attention { background: var(--homent-warning-bg); color: var(--homent-warning); }
+.quoteStatus.submitted { background: var(--homent-info-bg); color: var(--homent-info); }
+.quoteStatus.accepted { background: var(--homent-success-bg); color: var(--homent-success); }
+.quoteStatus.declined,
+.quoteStatus.expired { background: var(--homent-danger-bg); color: var(--homent-danger); }
+
+.quoteLoading,
+.quoteWorkspace .emptyState {
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--homent-border);
+  border-radius: var(--homent-radius-md);
+  background: rgba(255, 253, 248, 0.7);
+  color: var(--homent-muted);
+}
+
+.quoteDetail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quoteDetail > .pageHeader,
+.quoteDetail > .errorBanner,
+.quoteDetail > .successBanner {
+  grid-column: 1 / -1;
+}
+
+.quoteCard {
+  padding: 1.2rem;
+}
+
+.quoteCard > h3 {
+  margin-bottom: 0.85rem;
+  font-size: 1.08rem;
+}
+
+.quoteCard > p {
+  margin: 0.5rem 0;
+  line-height: 1.55;
+}
+
+.quoteCard .muted {
+  color: var(--homent-muted);
+  font-size: 0.9rem;
+}
+
+.quoteWorkspace .rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.quoteWorkspace .rowActions .primaryButton {
+  min-height: 46px;
+}
+
+.quoteWorkspace button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.quoteWorkspace .errorBanner,
+.quoteWorkspace .successBanner {
+  border-radius: var(--homent-radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.quoteWorkspace .errorBanner {
+  border: 1px solid #efc2bc;
+  background: var(--homent-danger-bg);
+  color: var(--homent-danger);
+}
+
+.quoteWorkspace .successBanner {
+  border: 1px solid #bddfc9;
+}
+
+@media (max-width: 1120px) {
+  .quoteQueueCard {
+    grid-template-columns: minmax(140px, 0.8fr) minmax(220px, 1.4fr) minmax(170px, 0.8fr);
+  }
+  .quoteQueueCard dl { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
+  .quoteWorkspace { gap: 1rem; }
+  .quoteWorkspace .pageHeader { align-items: start; }
+  .quoteFilters { grid-template-columns: 1fr; }
+  .quoteFilters button { width: 100%; }
+  .quoteQueueCard { grid-template-columns: 1fr; gap: 0.8rem; }
+  .quoteQueueCard dl { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: auto; }
+  .quoteQueueMeta { grid-template-columns: 1fr auto; align-items: center; }
+  .quoteDetail { grid-template-columns: 1fr; }
+  .quoteWorkspace .rowActions { display: grid; }
+  .quoteWorkspace .rowActions > button { width: 100%; }
+}
+
+@media (max-width: 430px) {
+  .quoteQueue .panelHeader,
+  .quoteFilters,
+  .quoteFilterTabs,
+  .quoteList { padding-left: 0.9rem; padding-right: 0.9rem; }
+  .quoteQueueCard dl { grid-template-columns: 1fr; }
+  .quoteQueueMeta { grid-template-columns: 1fr; }
+}
