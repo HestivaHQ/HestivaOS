@@ -4,5 +4,5 @@ import { ServicesCatalogue } from './services-catalogue';
 
 export default async function ServicesPage() {
   const appUser = await (await createAuthenticatedApi()).syncUser();
-  return <AppFrame active="/services" email={appUser.email} user={appUser}><ServicesCatalogue /></AppFrame>;
+  return <AppFrame active="/services" email={appUser.email} user={appUser}><div className="catalogueWorkspace"><ServicesCatalogue /></div></AppFrame>;
 }
