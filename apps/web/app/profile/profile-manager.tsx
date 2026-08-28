@@ -4,10 +4,26 @@ import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { api, AppUser } from '../../lib/api';
 import { preflightEmailChange } from '../../lib/email-change-api';
 import { createClient } from '../../lib/supabase/client';
+import { ProfilePhotoCropper } from './profile-photo-cropper';
+
+const PROFILE_SOURCE_LIMIT = 20 * 1024 * 1024;
+const PROFILE_SOURCE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export function profileInitials(user: AppUser) {
   return (user.displayName || `${user.firstName} ${user.lastName}`.trim() || user.email)
     .split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function storedProfilePhotoPath(publicUrl: string | null | undefined, bucket: string) {
+  if (!publicUrl) return null;
+  try {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const pathname = new URL(publicUrl).pathname;
+    const markerIndex = pathname.indexOf(marker);
+    return markerIndex >= 0 ? decodeURIComponent(pathname.slice(markerIndex + marker.length)) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; authenticatedEmail: string }) {
@@ -20,6 +36,7 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [newEmail, setNewEmail] = useState(authenticatedEmail);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('email-change') === 'confirmed') {
@@ -40,22 +57,63 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
       setProfile(updated); setMessage('Personal information saved.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save profile.'); } finally { setSaving(false); }
   }
-  async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]; if (!file || saving) return;
+  function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || saving) return;
+    setError(''); setMessage('');
+    if (!PROFILE_SOURCE_TYPES.has(file.type)) {
+      setError('Choose a JPG, PNG or WebP image.');
+      return;
+    }
+    if (file.size > PROFILE_SOURCE_LIMIT) {
+      setError('Choose an image smaller than 20 MB.');
+      return;
+    }
+    setCropFile(file);
+  }
+  async function uploadCroppedPhoto(blob: Blob) {
+    if (saving) return;
     setSaving(true); setError(''); setMessage('');
     try {
-      const supabase = createClient(); const bucket = process.env.NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET || 'profile-images';
-      const path = `${profile.authUserId}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+      const supabase = createClient();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.access_token || !session.user?.id) throw new Error('Authenticated session is required.');
+      const bucket = process.env.NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET || 'profile-images';
+      const path = `${session.user.id}/avatar.jpg`;
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(path, blob, {
+        upsert: true,
+        contentType: 'image/jpeg',
+        cacheControl: '3600',
+      });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      const updated = await api.updateProfile(await token(), { profilePhotoUrl: data.publicUrl }); setProfile(updated); setMessage('Profile photo updated.');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to upload profile photo.'); } finally { setSaving(false); }
+      const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+      const updated = await api.updateProfile(session.access_token, { profilePhotoUrl: publicUrl });
+      setProfile(updated); setCropFile(null); setMessage('Profile photo updated.');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to upload profile photo.'); throw err; } finally { setSaving(false); }
   }
   async function removePhoto() {
     if (saving) return; setSaving(true); setError(''); setMessage('');
-    try { const updated = await api.updateProfile(await token(), { profilePhotoUrl: null }); setProfile(updated); setMessage('Profile photo removed.'); }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to remove profile photo.'); } finally { setSaving(false); }
+    try {
+      const supabase = createClient();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.access_token || !session.user?.id) throw new Error('Authenticated session is required.');
+      const bucket = process.env.NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET || 'profile-images';
+      const oldPath = storedProfilePhotoPath(profile.profilePhotoUrl, bucket);
+      const updated = await api.updateProfile(session.access_token, { profilePhotoUrl: null });
+      setProfile(updated);
+      if (oldPath) {
+        const { error: removeError } = await supabase.storage.from(bucket).remove([oldPath]);
+        if (removeError) {
+          setError('Profile photo was removed from your account, but the stored image could not be cleaned up.');
+          return;
+        }
+      }
+      setMessage('Profile photo removed.');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to remove profile photo.'); } finally { setSaving(false); }
   }
   async function changeEmail(event: FormEvent) {
     event.preventDefault(); if (emailSaving) return; setError(''); setMessage(''); setEmailSaving(true);
@@ -86,7 +144,7 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
     <form className="panel resourceForm profileSection" onSubmit={save}>
       <div><h3>Personal information</h3><p>Your confirmed email is controlled by your authenticated Supabase account.</p></div>
       <div className="profileAvatar">{profile.profilePhotoUrl ? <img src={profile.profilePhotoUrl} alt="Profile" /> : profileInitials(profile)}</div>
-      <label>Profile photo<input type="file" accept="image/*" onChange={upload} disabled={saving} /></label>
+      <label>Profile photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPhoto} disabled={saving} /></label>
       {profile.profilePhotoUrl ? <button type="button" onClick={() => void removePhoto()} disabled={saving}>Remove photo</button> : null}
       <label>First name<input required value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} /></label>
       <label>Last name<input required value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} /></label>
@@ -107,5 +165,6 @@ export function ProfileManager({ user, authenticatedEmail }: { user: AppUser; au
       <label>Confirm new password<input type="password" autoComplete="new-password" minLength={8} required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} disabled={securitySaving} /></label>
       <div className="formActions"><button className="primaryButton" disabled={securitySaving}>{securitySaving ? 'Updating…' : 'Change password'}</button></div>
     </form>
+    {cropFile ? <ProfilePhotoCropper file={cropFile} onCancel={() => setCropFile(null)} onConfirm={uploadCroppedPhoto} /> : null}
   </>;
 }
