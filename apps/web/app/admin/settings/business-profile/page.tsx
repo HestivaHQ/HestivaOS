@@ -9,5 +9,5 @@ export default async function BusinessProfilePage() {
   const appUser = await authenticatedApi.syncUser();
   if (!canAccessAdminSettings(appUser.role)) redirect('/');
   const profile = await authenticatedApi.businessProfile();
-  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><BusinessProfileManager initialProfile={profile} /></AppFrame>;
+  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><div className="businessProfileWorkspace"><BusinessProfileManager initialProfile={profile} /></div></AppFrame>;
 }
