@@ -12,6 +12,7 @@ import './catalogue-ui.css';
 import './recurring-service-ui.css';
 import './profile-ui.css';
 import './admin-ui.css';
+import './homent-os-v2.css';
 
 export const dynamic = 'force-dynamic';
 
