@@ -4,5 +4,5 @@ import { CleaningJobTemplatesManager } from './cleaning-job-templates-manager';
 
 export default async function CleaningJobTemplatesPage() {
   const appUser = await (await createAuthenticatedApi()).syncUser();
-  return <AppFrame active="/cleaning-job-templates" email={appUser.email} user={appUser}><CleaningJobTemplatesManager /></AppFrame>;
+  return <AppFrame active="/cleaning-job-templates" email={appUser.email} user={appUser}><div className="templateWorkspace"><CleaningJobTemplatesManager /></div></AppFrame>;
 }
