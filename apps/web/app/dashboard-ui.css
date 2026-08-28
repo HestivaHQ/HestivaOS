@@ -1,6 +1,6 @@
 .dashboard {
   display: grid;
-  gap: 24px;
+  gap: 22px;
   max-width: 1440px;
   margin: 0 auto;
 }
@@ -10,11 +10,12 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  padding: clamp(24px, 4vw, 40px);
-  border: 1px solid var(--homent-border);
-  border-radius: var(--homent-radius-lg);
-  background: linear-gradient(135deg, var(--homent-surface), #fbf5ed);
-  box-shadow: var(--homent-shadow);
+  padding: 10px 4px 24px;
+  border: 0;
+  border-bottom: 1px solid var(--homent-gold-soft);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .dashboardHeader > div:first-child { min-width: 0; }
@@ -22,24 +23,24 @@
 .dashboardHeader h2 {
   margin: 0;
   color: var(--homent-burgundy-950);
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1.02;
-  letter-spacing: -.045em;
+  font-size: clamp(1.9rem, 3vw, 2.45rem);
+  line-height: 1.06;
+  letter-spacing: -.038em;
 }
 .dashboardHeader h2 + p {
-  margin: 10px 0 16px;
+  margin: 8px 0 13px;
   color: var(--homent-muted);
-  font-size: .95rem;
+  font-size: .94rem;
 }
 .dashboardHeader strong {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 7px;
   color: var(--homent-ink);
-  font-size: .95rem;
-  line-height: 1.55;
+  font-size: .92rem;
+  line-height: 1.5;
 }
-.dashboardHeader strong span { color: #b9aeb2; }
+.dashboardHeader strong span { color: var(--homent-gold); }
 .dashboardUnavailable {
   display: block;
   margin-top: 12px;
@@ -47,14 +48,14 @@
 }
 .dashboardProfile {
   flex: 0 0 auto;
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 3px solid rgba(255,255,255,.9);
+  border: 2px solid var(--homent-gold-soft);
   border-radius: 50%;
-  box-shadow: 0 8px 22px rgba(59,15,26,.14);
+  box-shadow: none;
   color: white;
   text-decoration: none;
   font-weight: 800;
@@ -64,57 +65,69 @@
 .dashboardSection,
 .shortcuts {
   overflow: hidden;
-  border: 1px solid var(--homent-border);
-  border-radius: var(--homent-radius-lg);
-  background: var(--homent-surface);
-  box-shadow: 0 8px 24px rgba(59,15,26,.055);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboardSection {
+  border-top: 1px solid var(--homent-border);
+  border-bottom: 1px solid var(--homent-border);
 }
 .dashboardSectionToggle {
   width: 100%;
-  min-height: 74px;
+  min-height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 18px 22px;
+  padding: 16px 4px;
   border: 0;
   background: transparent;
   color: var(--homent-ink);
   text-align: left;
   cursor: pointer;
 }
-.dashboardSectionToggle:hover { background: var(--homent-burgundy-50); }
-.dashboardSectionToggle > span:first-child { display: grid; gap: 4px; min-width: 0; }
+.dashboardSectionToggle:hover { background: transparent; }
+.dashboardSectionToggle > span:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--homent-gold);
+}
 .dashboardSectionToggle strong { color: var(--homent-burgundy-950); font-size: 1.08rem; }
 .dashboardSectionToggle small { color: var(--homent-muted); line-height: 1.45; }
 .dashboardChevron {
-  color: var(--homent-burgundy-700);
+  color: var(--homent-gold);
   font-size: 1.25rem;
   transition: transform .16s ease;
 }
 .dashboardSection.expanded .dashboardChevron { transform: rotate(180deg); }
 .dashboardSectionContent {
-  padding: 0 22px 22px;
-  border-top: 1px solid var(--homent-border);
+  padding: 0 4px 18px;
+  border-top: 1px solid var(--homent-gold-soft);
 }
-.dashboardSectionContent > :first-child { margin-top: 20px; }
+.dashboardSectionContent > :first-child { margin-top: 16px; }
 
-.todayJobList { display: grid; gap: 10px; }
+.todayJobList { display: grid; gap: 0; }
 .todayJob {
   display: grid;
   grid-template-columns: 88px minmax(130px, .8fr) minmax(180px, 1.5fr) minmax(120px, .9fr) auto;
   align-items: center;
   gap: 14px;
   min-height: 66px;
-  padding: 12px 14px;
-  border: 1px solid var(--homent-border);
-  border-radius: var(--homent-radius-md);
-  background: white;
+  padding: 14px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--homent-border);
+  border-radius: 0;
+  background: transparent;
   color: var(--homent-ink);
   text-decoration: none;
 }
+.todayJob:last-child { border-bottom: 0; }
 .todayJob:hover,
-.todayJob:focus-visible { border-color: var(--homent-burgundy-700); background: var(--homent-burgundy-50); }
+.todayJob:focus-visible { background: #fbf7ef; }
 .todayJob time { color: var(--homent-burgundy-800); font-weight: 800; }
 .jobIdentity { display: grid; gap: 2px; }
 .jobIdentity strong { color: var(--homent-ink); }
@@ -137,76 +150,89 @@
 .workloadGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 16px;
+  gap: 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--homent-border);
+  border-bottom: 1px solid var(--homent-border);
 }
 .workloadGrid article {
   display: grid;
   gap: 4px;
-  padding: 14px;
-  border: 1px solid var(--homent-border);
-  border-radius: var(--homent-radius-md);
-  background: #fffaf5;
+  padding: 14px 16px;
+  border: 0;
+  border-right: 1px solid var(--homent-border);
+  border-radius: 0;
+  background: transparent;
 }
+.workloadGrid article:last-child { border-right: 0; }
 .workloadGrid strong { color: var(--homent-burgundy-900); font-size: 1.35rem; }
 .workloadGrid span { color: var(--homent-muted); font-size: .82rem; }
 
-.shortcuts { padding: 22px; }
+.shortcuts {
+  padding: 18px 0 0;
+  border-top: 1px solid var(--homent-gold-soft);
+}
 .shortcuts > h3 {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   color: var(--homent-burgundy-950);
   font-size: 1.08rem;
 }
 .shortcutGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .shortcutCard {
-  min-height: 92px;
+  min-height: 86px;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--homent-border);
+  border-bottom: 2px solid var(--homent-gold-soft);
   border-radius: var(--homent-radius-md);
+  background: var(--homent-surface);
   text-decoration: none;
+  box-shadow: none;
 }
 .shortcutCard:not(.disabled):hover,
-.shortcutCard:not(.disabled):focus-visible { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(59,15,26,.08); }
+.shortcutCard:not(.disabled):focus-visible { transform: none; border-color: var(--homent-gold); box-shadow: none; }
 .shortcutCard.disabled { opacity: .55; }
 .shortcutIcon {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
+  border: 1px solid var(--homent-gold-soft);
   border-radius: 50%;
-  background: var(--homent-burgundy-100);
-  color: var(--homent-burgundy-800);
+  background: #fbf4e4;
+  color: #9a731f;
   font-weight: 900;
 }
-.shortcutCard.primary .shortcutIcon { background: rgba(255,255,255,.13); color: white; }
+.shortcutCard.primary .shortcutIcon { border-color: rgba(201,164,91,.6); background: rgba(201,164,91,.12); color: var(--homent-gold); }
 .shortcutCard > span:last-child { display: grid; gap: 3px; }
 .shortcutCard small { color: var(--homent-muted); line-height: 1.35; }
 .shortcutCard.primary small { color: #eadde1; }
 
-.upcomingDays { display: grid; gap: 8px; }
+.upcomingDays { display: grid; gap: 0; }
 .upcomingDays > div {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  padding: 12px 14px;
+  padding: 12px 10px;
   border-bottom: 1px solid var(--homent-border);
 }
 .upcomingDays > div:last-child { border-bottom: 0; }
 .upcomingDays strong { color: var(--homent-ink); }
 .upcomingDays span { color: var(--homent-muted); text-align: right; }
 .dashboardEmpty {
-  padding: 20px;
-  border: 1px dashed var(--homent-border);
-  border-radius: var(--homent-radius-md);
-  background: #fffaf5;
+  padding: 20px 10px;
+  border: 0;
+  border-top: 1px dashed var(--homent-gold-soft);
+  border-bottom: 1px dashed var(--homent-gold-soft);
+  border-radius: 0;
+  background: transparent;
   color: var(--homent-muted);
   text-align: center;
 }
@@ -219,11 +245,11 @@
 
 @media (max-width: 760px) {
   .dashboard { gap: 16px; }
-  .dashboardHeader { padding: 22px 18px; }
-  .dashboardHeader h2 { max-width: 12ch; }
-  .dashboardProfile { width: 48px; height: 48px; }
-  .dashboardSectionToggle { padding: 16px; }
-  .dashboardSectionContent { padding: 0 16px 16px; }
+  .dashboardHeader { padding: 6px 0 18px; }
+  .dashboardHeader h2 { max-width: 14ch; }
+  .dashboardProfile { width: 46px; height: 46px; }
+  .dashboardSectionToggle { padding: 14px 0; }
+  .dashboardSectionContent { padding: 0 0 14px; }
   .todayJob {
     grid-template-columns: 74px minmax(0, 1fr);
     align-items: start;
@@ -232,8 +258,10 @@
   .todayJob .jobAddress,
   .todayJob .jobAssignment,
   .todayJob .statusPill { grid-column: 2; justify-self: start; }
+  .workloadGrid { grid-template-columns: 1fr 1fr; }
+  .workloadGrid article:nth-child(2n) { border-right: 0; }
   .shortcutGrid { grid-template-columns: 1fr; }
-  .shortcuts { padding: 16px; }
+  .shortcuts { padding-top: 16px; }
   .upcomingDays > div { display: grid; gap: 4px; }
   .upcomingDays span { text-align: left; }
 }
@@ -243,4 +271,7 @@
   .dashboardProfile { width: 42px; height: 42px; }
   .todayJob { grid-template-columns: 1fr; }
   .todayJob > * { grid-column: 1 !important; }
+  .workloadGrid { grid-template-columns: 1fr; }
+  .workloadGrid article { border-right: 0; border-bottom: 1px solid var(--homent-border); }
+  .workloadGrid article:last-child { border-bottom: 0; }
 }
