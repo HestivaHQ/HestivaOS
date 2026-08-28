@@ -33,6 +33,7 @@ export function ProfilePhotoCropper({
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [applying, setApplying] = useState(false);
+  const [cropError, setCropError] = useState('');
   const drag = useRef<{ pointerId: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
   useEffect(() => () => URL.revokeObjectURL(objectUrl), [objectUrl]);
@@ -88,6 +89,7 @@ export function ProfilePhotoCropper({
   async function applyCrop() {
     if (!naturalSize.width || !naturalSize.height || applying) return;
     setApplying(true);
+    setCropError('');
     try {
       const image = new Image();
       image.src = objectUrl;
@@ -105,6 +107,8 @@ export function ProfilePhotoCropper({
       const drawY = OUTPUT_SIZE / 2 + offset.y * outputRatio - drawHeight / 2;
       context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
       await onConfirm(await canvasBlob(canvas));
+    } catch (error) {
+      setCropError(error instanceof Error ? error.message : 'Unable to save the cropped profile photo.');
     } finally {
       setApplying(false);
     }
@@ -120,6 +124,7 @@ export function ProfilePhotoCropper({
             <p>Drag the photo to position your face, then zoom until the framing looks right.</p>
           </div>
         </div>
+        {cropError ? <p className="errorBanner" role="alert">{cropError}</p> : null}
         <div
           ref={stageRef}
           className="profileCropStage"
