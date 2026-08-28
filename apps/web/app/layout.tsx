@@ -14,8 +14,6 @@ import './profile-ui.css';
 import './admin-ui.css';
 import './homent-os-v2.css';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata = {
   title: 'Hestiva OS',
   description: 'Hestiva OS business operations platform',

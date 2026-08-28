@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 const crews = readFileSync(new URL('../app/crews/crews-manager.tsx', import.meta.url), 'utf8');
 const orders = readFileSync(new URL('../app/work-orders/work-orders-manager.tsx', import.meta.url), 'utf8');
-const detail = readFileSync(new URL('../app/work-orders/[id]/page.tsx', import.meta.url), 'utf8');
+const detail = readFileSync(new URL('../app/(authenticated)/work-orders/[id]/page.tsx', import.meta.url), 'utf8');
 const technicianDetail = readFileSync(new URL('../app/work-orders/[id]/technician-job-view.tsx', import.meta.url), 'utf8');
 
 test('Crew UI is a simple leadership and membership editor', () => {

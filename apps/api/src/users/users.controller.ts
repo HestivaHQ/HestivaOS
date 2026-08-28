@@ -13,7 +13,7 @@ type EmailChangeInput = { email?: string };
 export class UsersController {
   constructor(private readonly users: UsersService, private readonly supabaseAdmin: SupabaseAdminService) {}
   @Post('sync') sync(@Req() request: AuthenticatedRequest) { return this.users.sync(request.supabaseUser); }
-  @Get('me') findMe(@Req() request: AuthenticatedRequest) { return this.users.findByAuthUserId(request.supabaseUser.id); }
+  @Get('me') findMe(@CurrentUser() user: User) { return user; }
   @Patch('me/profile') updateProfile(@Req() request: AuthenticatedRequest, @Body() input: UpdateProfileInput) { return this.users.updateProfile(request.supabaseUser.id, input); }
   @Post('me/email-change/preflight') preflightEmailChange(@Req() request: AuthenticatedRequest, @Body() input: EmailChangeInput) { return this.users.preflightEmailChange(request.supabaseUser.id, input.email ?? ''); }
   @Post('admin/invitations')

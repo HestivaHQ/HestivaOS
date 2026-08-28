@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-28 — Persistent authenticated navigation architecture
+
+### Changed
+
+- Protected office navigation now verifies Supabase claims through the asymmetric JWKS path, retains identity reconciliation at login, and uses read-only current-user resolution for routine transitions.
+- The Homent office shell now persists through a shared authenticated layout with an in-shell loading boundary; canonical API ACTIVE-user and role authorization remain authoritative.
+
+### Preserved
+
+- Supabase identity authority, local API ES256 verification, application User existence and ACTIVE enforcement, ADMIN/SUPERVISOR boundaries, access audit history, public Quote access, and the separately scoped Technician shell remain intact.
+
 ## 2026-08-20 — Messenger outbound standard-window safety
 
 ### Added

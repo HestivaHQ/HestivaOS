@@ -1,5 +1,25 @@
 # HestivaOS performance audit
 
+## 2026-08-28 — Navigation and authentication architecture
+
+Routine office navigation previously ran Supabase `auth.getUser()` in middleware, called write-capable `POST /users/sync` from each protected page, and rebuilt `AppFrame` inside every page. The current architecture replaces those critical-path operations without weakening the authentication or application-authorization boundaries.
+
+### Implemented on `perf/navigation-auth-architecture`
+
+- Middleware now uses Supabase `auth.getClaims()` so asymmetric JWT signatures and expiry are verified through the installed Supabase JWKS path without a routine Auth `/user` request. Missing configuration or unverifiable claims fail protected routes closed, and middleware continues to propagate refreshed cookies.
+- Login remains the explicit `/users/sync` bootstrap/reconciliation boundary. Protected navigation uses read-only `GET /users/me`; the API returns the ACTIVE application User already resolved by its global guard, so ordinary navigation performs neither reconciliation writes nor a duplicate User lookup.
+- Office routes now share one authenticated App Router layout containing the Homent desktop sidebar, mobile navigation, account UI, and role-sensitive navigation. Pages render only route content, and a shared in-shell `loading.tsx` supplies immediate transition feedback while preserving the shell.
+- Root `force-dynamic` was removed. Authenticated cookie access remains dynamic at the protected layout boundary while unrelated root/public work is no longer blanket-forced dynamic.
+- ADMIN and SUPERVISOR page checks remain supplementary to API authorization. The API continues local ES256 verification, canonical User existence and ACTIVE enforcement, and route-role enforcement.
+
+### Request-path change
+
+Previously, a protected transition waited for Cloudflare middleware → remote Supabase `getUser` → page session read → API `/users/sync` → API local JWT verification → User lookup plus serializable reconciliation transaction → page-local shell construction → route data. Now it uses middleware locally verified claims → persistent authenticated layout → cached server session token → API `GET /users/me` with local JWT verification and the guard's canonical ACTIVE User lookup → streamed route content. Login alone retains reconciliation.
+
+### Deliberately deferred
+
+Browser/API topology, client-manager request fan-out, reference-data batching, and broader route data-loading changes remain PR 2 scope. This slice records no unmeasured latency claim.
+
 ## 2026-08-14 — UI/UX speed pass 2G: dashboard payload slimming
 
 The live dashboard had already reduced its database operation count, but each of the three remaining Work Order queries still selected broad related records and the response duplicated upcoming and overdue records that the current dashboard does not render.

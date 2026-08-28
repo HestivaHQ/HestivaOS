@@ -841,6 +841,10 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 const json = (value: unknown): RequestInit => ({ body: JSON.stringify(value) });
 
 export const api = {
+  currentUser: (accessToken: string) =>
+    apiFetch<AppUser>("/users/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
   syncUser: (accessToken: string) =>
     apiFetch<AppUser>("/users/sync", {
       method: "POST",

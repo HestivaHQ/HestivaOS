@@ -1,8 +1,10 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import type { AppUser } from '../../lib/api';
 import { MobileAppNavigation } from './mobile-app-navigation';
 import { AccountMenu } from './account-menu';
-import { createAuthenticatedApi } from '../../lib/api-server';
 import { AppNavigation, type NavigationItem } from './app-navigation';
 
 export const APP_NAVIGATION_ITEMS = [
@@ -21,19 +23,26 @@ export const APP_NAVIGATION_ITEMS = [
   { href: '/profile', label: 'My profile' },
 ] as const satisfies readonly NavigationItem[];
 
-export async function AppFrame({ active, email, user, children }: { active: string; email: string; user?: AppUser; children: ReactNode }) {
-  const authoritativeUser = user ?? await (await createAuthenticatedApi()).syncUser();
-  const roleItems = authoritativeUser.role === 'SUPERVISOR'
+export function AppFrame({ user, children }: { user: AppUser; children: ReactNode }) {
+  const pathname = usePathname();
+  const active = pathname.startsWith('/work-orders/')
+    ? '/work-orders'
+    : pathname.startsWith('/quotes/')
+      ? '/quotes'
+      : pathname.startsWith('/admin/messaging')
+        ? '/management'
+        : pathname;
+  const roleItems = user.role === 'SUPERVISOR'
     ? [APP_NAVIGATION_ITEMS[0], { href: '/supervisor/operations', label: 'Operational review' }, ...APP_NAVIGATION_ITEMS.slice(1)]
     : APP_NAVIGATION_ITEMS;
-  const navigationItems = authoritativeUser.role === 'ADMIN' ? roleItems : roleItems.filter((item) => !('href' in item) || item.href !== '/quotes');
+  const navigationItems = user.role === 'ADMIN' ? roleItems : roleItems.filter((item) => !('href' in item) || item.href !== '/quotes');
   return (
     <main className="appShell">
-      <MobileAppNavigation active={active} email={email} user={authoritativeUser} items={navigationItems} />
+      <MobileAppNavigation active={active} email={user.email} user={user} items={navigationItems} />
       <aside className="sidebar desktopSidebar">
         <div><p className="eyebrow">Homent</p><h1 className="brand">Operations</h1></div>
         <AppNavigation active={active} items={navigationItems} />
-        <div className="accountBlock"><AccountMenu user={authoritativeUser} email={email} /></div>
+        <div className="accountBlock"><AccountMenu user={user} email={user.email} /></div>
       </aside>
       <section className="content">{children}</section>
     </main>

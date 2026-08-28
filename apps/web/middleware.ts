@@ -12,12 +12,22 @@ function getSupabaseProjectUrl(value: string) {
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  const pathname = request.nextUrl.pathname;
+  const isLoginRoute = pathname.startsWith('/login');
+  const isAuthCallbackRoute = pathname.startsWith('/auth/');
+  const isPublicQuoteRoute = pathname === '/quote' || pathname.startsWith('/quote/');
+  const isPublicRoute = isLoginRoute || isAuthCallbackRoute || isPublicQuoteRoute;
+
   const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const supabaseUrl = rawSupabaseUrl ? getSupabaseProjectUrl(rawSupabaseUrl) : null;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return response;
+    if (isPublicRoute) return response;
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey.trim(), {
@@ -37,23 +47,20 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims verifies asymmetric Supabase JWT signatures against the project's
+  // public JWKS and validates expiry. Unlike getUser, a warm verification does
+  // not make an Auth service request on every route transition.
+  const { data, error } = await supabase.auth.getClaims();
+  const authenticated = !error && typeof data?.claims?.sub === 'string';
 
-  const pathname = request.nextUrl.pathname;
-  const isLoginRoute = pathname.startsWith('/login');
-  const isAuthCallbackRoute = pathname.startsWith('/auth/');
-  const isPublicRoute = isLoginRoute || isAuthCallbackRoute;
-
-  if (!user && !isPublicRoute) {
+  if (!authenticated && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isLoginRoute) {
+  if (authenticated && isLoginRoute) {
     const nextPath = request.nextUrl.searchParams.get('next');
     const destination = nextPath?.startsWith('/') && !nextPath.startsWith('//') ? nextPath : '/';
     return NextResponse.redirect(new URL(destination, request.url));
