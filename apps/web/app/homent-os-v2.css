@@ -158,6 +158,75 @@ button { border-radius: var(--homent-radius-md); }
 .loginBrandPanel::after { border-color: rgba(201,164,91,.45); box-shadow: none; }
 .loginCard, .loginCard.card { box-shadow: none; }
 
+/* Whole-app consistency cleanup. Keep the approved dashboard treatment untouched. */
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteManagerHeader,.quoteFilters,.quoteList,.quoteItem,.customerDetailsSection,.quoteDetailPanel,.quoteFinancialCard,.serviceConfigurationCard,.deliveryTrackingPanel,.deliveryEventRow,.resourceToolbar,.resourceCard,.resourceForm,.workOrderTopbar,.workOrderPanel,.workOrderSummaryCard,.workOrderFormSection,.workOrderFeedback,.shiftToolbar,.shiftPanel,.shiftFeedback,.shiftModal,.shiftJob,.shiftAssignment,.fieldTeamToolbar,.fieldTeamPanel,.fieldTeamFeedback,.fieldTeamSearchResultCard,.fieldTeamListItem) {
+  background-image: none;
+  box-shadow: none;
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteManagerHeader,.quoteFilters,.quoteList,.customerDetailsSection,.quoteDetailPanel,.resourceToolbar,.resourceForm,.workOrderTopbar,.workOrderPanel,.workOrderFormSection,.shiftToolbar,.shiftPanel,.shiftFeedback,.shiftModal,.fieldTeamToolbar,.fieldTeamPanel,.fieldTeamFeedback) {
+  border-color: var(--homent-border);
+  border-radius: var(--homent-radius-lg);
+  background: var(--homent-surface);
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteItem,.quoteFinancialCard,.serviceConfigurationCard,.deliveryTrackingPanel,.deliveryEventRow,.resourceCard,.workOrderSummaryCard,.shiftJob,.shiftAssignment,.fieldTeamSearchResultCard,.fieldTeamListItem) {
+  border-color: var(--homent-border);
+  border-radius: var(--homent-radius-md);
+  background: transparent;
+}
+
+/* Use gold as a thin structural accent, never as a large fill. */
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteManagerHeader,.resourceToolbar,.workOrderTopbar,.shiftToolbar,.fieldTeamToolbar) {
+  border-top: 2px solid var(--homent-gold);
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(h2,h3) {
+  color: var(--homent-burgundy-900);
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.resourceCardAction,.resourceAction,.workOrderBack,.fieldTeamRemove) {
+  border-color: var(--homent-gold);
+  background: transparent;
+  color: var(--homent-burgundy-900);
+  box-shadow: none;
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.resourceCardAction,.resourceAction,.workOrderBack,.fieldTeamRemove):hover {
+  border-color: var(--homent-gold);
+  background: #fbf4e4;
+  transform: none;
+  box-shadow: none;
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.resourceChip,.workOrderControl) {
+  border-color: var(--homent-gold-soft);
+  background: #f5efe4;
+  color: var(--homent-ink);
+}
+
+/* Neutralize inherited burgundy wash and lifted hover treatments from the first overhaul. */
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteItem,.resourceCard,.shiftJob,.shiftAssignment,.fieldTeamSearchResultCard,.fieldTeamListItem):hover {
+  border-color: var(--homent-gold);
+  background: var(--homent-surface);
+  transform: none;
+  box-shadow: none;
+}
+
+:is(.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace)
+:is(.quoteFinancialCard,.serviceConfigurationCard,.workOrderSummaryCard) {
+  border-left: 2px solid var(--homent-gold-soft);
+}
+
 @media (max-width: 900px) {
   .content { padding: 28px 24px 44px; }
   .adminSettingsGrid { grid-template-columns: 1fr; }
