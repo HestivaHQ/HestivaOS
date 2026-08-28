@@ -7,5 +7,5 @@ import { AdminServicesManager } from './services-manager';
 export default async function AdminServicesPage() {
   const appUser = await (await createAuthenticatedApi()).syncUser();
   if (!canAccessAdminSettings(appUser.role)) redirect('/');
-  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><AdminServicesManager /></AppFrame>;
+  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><div className="v2Workspace"><AdminServicesManager /></div></AppFrame>;
 }

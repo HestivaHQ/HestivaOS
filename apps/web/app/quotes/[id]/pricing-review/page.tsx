@@ -7,5 +7,5 @@ export default async function QuotePricingReviewPage({ params }: { params: Promi
   const appUser = await (await createAuthenticatedApi()).syncUser();
   if (appUser.role !== 'ADMIN') redirect('/');
   const { id } = await params;
-  return <AppFrame active="/quotes" email={appUser.email} user={appUser}><QuotePricingReview quoteId={id} /></AppFrame>;
+  return <AppFrame active="/quotes" email={appUser.email} user={appUser}><div className="v2Workspace"><QuotePricingReview quoteId={id} /></div></AppFrame>;
 }

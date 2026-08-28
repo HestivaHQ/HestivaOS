@@ -1,0 +1,170 @@
+:root {
+  --homent-burgundy-950: #2a0a12;
+  --homent-burgundy-900: #3b0f1a;
+  --homent-burgundy-800: #4a1321;
+  --homent-burgundy-700: #5a1929;
+  --homent-gold: #c9a45b;
+  --homent-gold-soft: #e7d7b3;
+  --homent-ink: #261d20;
+  --homent-muted: #6f6266;
+  --homent-border: #ddd4ca;
+  --homent-border-strong: #c9bfb3;
+  --homent-surface: #fffdf8;
+  --homent-canvas: #f8f3e8;
+  --homent-white: #fff;
+  --homent-radius-sm: 5px;
+  --homent-radius-md: 7px;
+  --homent-radius-lg: 9px;
+  --homent-shadow: none;
+  --homent-focus: 0 0 0 3px rgba(201,164,91,.28);
+}
+
+/* V2 is intentionally flat: brand comes from structure, type, whitespace and gold detail. */
+body, .appShell, .content { background: var(--homent-canvas); }
+.content { padding: 38px 42px 52px; }
+
+.card, .panel, .metricCard, .shortcuts,
+.quickActionCard, .technicianWorkloadItem, .alertCard, .shortcutCard,
+.adminModuleLink,
+[class*="Card"], [class*="Panel"] {
+  box-shadow: none;
+}
+
+.card, .panel, .metricCard, .shortcuts {
+  border: 1px solid var(--homent-border);
+  border-radius: var(--homent-radius-lg);
+  background: var(--homent-surface);
+}
+
+.pageHeader { margin-bottom: 30px; padding-bottom: 18px; border-bottom: 1px solid var(--homent-gold-soft); }
+.pageHeader h2, .dashboardHeader h2 { color: var(--homent-burgundy-900); font-size: clamp(1.9rem,3vw,2.45rem); line-height: 1.08; letter-spacing: -.035em; }
+.pageHeader p:last-child, .dashboardHeader p:not(.eyebrow) { max-width: 72ch; color: var(--homent-muted); }
+.eyebrow { color: var(--homent-burgundy-900); font-size: .72rem; letter-spacing: .14em; }
+.eyebrow::after { content: ""; display: inline-block; width: 28px; height: 1px; margin-left: 9px; vertical-align: middle; background: var(--homent-gold); }
+
+.sidebar { background: var(--homent-burgundy-900); border-right: 2px solid var(--homent-gold); }
+.navLink { border: 0; border-radius: 5px; }
+.navLink:hover, .navLink:focus-visible { background: rgba(255,255,255,.065); }
+.navLink.active { background: var(--homent-surface); color: var(--homent-burgundy-900); box-shadow: inset 3px 0 0 var(--homent-gold); }
+.sidebar .navLink.active { color: var(--homent-burgundy-900); }
+.accountMenuPopover { border-radius: 7px; box-shadow: 0 8px 20px rgba(38,29,32,.12); }
+.accountMenuPopover a:hover, .accountMenuPopover a:focus-visible, .accountMenuPopover button:hover, .accountMenuPopover button:focus-visible { background: var(--homent-canvas); }
+
+.panelHeader { padding-bottom: 14px; border-bottom-color: var(--homent-gold-soft); }
+.panelHeader h3 { color: var(--homent-burgundy-900); font-size: 1.1rem; }
+.panelHeader a, a:not(.navLink):not(.primaryButton) { text-decoration-color: var(--homent-gold); text-underline-offset: 3px; }
+
+.metricGrid { gap: 10px; }
+.metricCard { gap: 8px; padding: 17px 18px; border-top: 2px solid var(--homent-gold); }
+.metricCard strong { color: var(--homent-burgundy-900); font-size: 1.9rem; }
+.metricCard span { color: var(--homent-muted); }
+
+.workItem, .dataRow, .recentActivityItem, .timelineItem { border-bottom-color: var(--homent-border); }
+.workItem:hover, .dataRow:hover, .recentActivityItem:hover, .recentActivityItem:focus-visible { background: rgba(255,253,248,.65); }
+
+.quickActionCard, .technicianWorkloadItem, .alertCard, .shortcutCard {
+  border: 1px solid var(--homent-border);
+  border-radius: var(--homent-radius-md);
+  background: transparent;
+}
+.quickActionCard:hover, .quickActionCard:focus-visible, .alertCard:hover, .alertCard:focus-visible, .shortcutCard:hover, .shortcutCard:focus-visible {
+  transform: none;
+  border-color: var(--homent-gold);
+  background: var(--homent-surface);
+  box-shadow: none;
+}
+.quickActionIcon { color: var(--homent-gold); }
+.shortcutCard.primary, .primaryButton {
+  border-color: var(--homent-burgundy-900);
+  border-radius: var(--homent-radius-md);
+  background: var(--homent-burgundy-900);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 rgba(201,164,91,.35);
+}
+.primaryButton:hover:not(:disabled), .shortcutCard.primary:hover { transform: none; background: var(--homent-burgundy-800); }
+
+.statusPill { border-radius: 999px; background: #eee8df; color: var(--homent-ink); }
+.systemBadge, .alertSeverity { border-radius: 999px; }
+
+input, select, textarea, .formField input {
+  border-color: var(--homent-border-strong);
+  border-radius: var(--homent-radius-md);
+  background: var(--homent-white);
+}
+input:focus, select:focus, textarea:focus, .formField input:focus { border-color: var(--homent-gold); box-shadow: var(--homent-focus); }
+button { border-radius: var(--homent-radius-md); }
+
+/* Correct the page-specific overhaul: no burgundy wash, gradients, lift or nested floating cards. */
+.dashboardWorkspace :is(.panel,.shortcuts,.metricCard),
+.quoteWorkspace :is(.panel,.card),
+.resourceWorkspace :is(.panel,.card),
+.workOrderWorkspace :is(.panel,.card),
+.shiftWorkspace :is(.panel,.card),
+.fieldTeamWorkspace :is(.panel,.card),
+.employeeWorkspace :is(.panel,.card),
+.catalogueWorkspace :is(.panel,.card),
+.templateWorkspace :is(.panel,.card),
+.recurringServiceWorkspace :is(.panel,.card),
+.profileWorkspace :is(.panel,.card),
+.adminWorkspace :is(.panel,.card),
+.businessProfileWorkspace :is(.panel,.card),
+.v2Workspace :is(.panel,.card) {
+  border-color: var(--homent-border);
+  border-radius: var(--homent-radius-lg);
+  background: var(--homent-surface);
+  background-image: none;
+  box-shadow: none;
+}
+
+:is(.dashboardWorkspace,.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace) :is(a,button,details,[class*="Row"],[class*="Item"],[class*="Card"]):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+:is(.dashboardWorkspace,.quoteWorkspace,.resourceWorkspace,.workOrderWorkspace,.shiftWorkspace,.fieldTeamWorkspace,.employeeWorkspace,.catalogueWorkspace,.templateWorkspace,.recurringServiceWorkspace,.profileWorkspace,.adminWorkspace,.businessProfileWorkspace,.v2Workspace) [style*="gradient"],
+.adminWorkspace .adminModuleLink,
+.businessProfileWorkspace .businessProfileSection,
+.businessProfileWorkspace .shareActions {
+  background-image: none;
+}
+
+.adminSettingsGrid { gap: 1px; overflow: hidden; border: 1px solid var(--homent-border); border-radius: var(--homent-radius-lg); background: var(--homent-border); }
+.adminWorkspace .adminModuleLink, .v2Workspace .adminModuleLink {
+  min-height: 118px;
+  margin: 0;
+  padding: 18px 20px;
+  border: 0;
+  border-radius: 0;
+  background: var(--homent-surface);
+  box-shadow: none;
+}
+.adminWorkspace .adminModuleLink:hover, .v2Workspace .adminModuleLink:hover { transform: none; background: #fbf7ef; box-shadow: inset 3px 0 0 var(--homent-gold); }
+.adminModuleLink h3 { color: var(--homent-burgundy-900); }
+
+.businessProfileWorkspace .businessProfileSection, .businessProfileWorkspace .shareActions { padding: 20px; border-radius: var(--homent-radius-lg); box-shadow: none; }
+.businessProfileWorkspace .completeness { border-radius: var(--homent-radius-md); border-color: var(--homent-gold-soft); background: transparent; }
+.businessProfileWorkspace .completeness strong { color: var(--homent-burgundy-900); }
+
+/* Remaining operational/admin areas share this wrapper rather than inventing new page systems. */
+.v2Workspace { max-width: 1240px; margin: 0 auto; }
+.v2Workspace > section { margin-bottom: 24px; }
+.v2Workspace > section > h3, .v2Workspace .supervisorSectionHead h3 { color: var(--homent-burgundy-900); }
+.v2Workspace .supervisorJob { border: 1px solid var(--homent-border); border-radius: var(--homent-radius-md); background: var(--homent-surface); box-shadow: none; }
+.v2Workspace .supervisorJob.exception { border-left: 3px solid var(--homent-gold); }
+.v2Workspace .supervisorJob summary:hover { background: #fbf7ef; }
+
+/* Login keeps its branded split but loses decorative SaaS glow/lift. */
+.loginBrandPanel { background: var(--homent-burgundy-900); }
+.loginBrandPanel::after { border-color: rgba(201,164,91,.45); box-shadow: none; }
+.loginCard, .loginCard.card { box-shadow: none; }
+
+@media (max-width: 900px) {
+  .content { padding: 28px 24px 44px; }
+  .adminSettingsGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .content { padding: 22px 16px 36px; }
+  .pageHeader { margin-bottom: 22px; padding-bottom: 14px; }
+  .pageHeader h2, .dashboardHeader h2 { font-size: 1.85rem; }
+  .card, .panel, .shortcuts { border-radius: 7px; }
+}

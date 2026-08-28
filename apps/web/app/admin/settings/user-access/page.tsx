@@ -10,6 +10,6 @@ export default async function UserAccessPage() {
   if (!canAccessAdminSettings(appUser.role)) redirect('/');
   const users = await authenticatedApi.adminUsers();
   return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}>
-    <UserAccessManager initialUsers={users} currentUserId={appUser.id} />
+    <div className="v2Workspace"><UserAccessManager initialUsers={users} currentUserId={appUser.id} /></div>
   </AppFrame>;
 }

@@ -12,7 +12,7 @@ export default async function SupervisorOperationsPage(){
  const client=await createAuthenticatedApi(); const user=await client.syncUser();
  if(user.role!=='SUPERVISOR') redirect('/');
  const [operations,attention]=await Promise.all([client.supervisorOperations(),client.attention('mine')]);
- return <AppFrame active="/supervisor/operations" email={user.email} user={user}><div className="supervisorWorkspace">
+ return <AppFrame active="/supervisor/operations" email={user.email} user={user}><div className="supervisorWorkspace v2Workspace">
   <header className="pageHeader"><div><p className="eyebrow">Supervisor workspace</p><h2>Operational review</h2><p>Exceptions and readiness from authoritative Work Order execution records.</p></div></header>
   <section><h3>Needs Attention</h3><AttentionPanel initial={attention}/></section>
   <section><div className="supervisorSectionHead"><div><h3>Active and today’s work</h3><p>Healthy work stays compact. Open a Work Order for authorized review actions.</p></div><span>{operations.workOrders.length} jobs</span></div>

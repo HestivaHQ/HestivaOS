@@ -8,5 +8,5 @@ export default async function BusinessListsPage() {
   const appUser = await authenticatedApi.syncUser();
   if (appUser.role !== 'ADMIN') redirect('/');
   const options = await authenticatedApi.businessLists(true);
-  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><BusinessListsManager initialOptions={options} /></AppFrame>;
+  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><div className="v2Workspace"><BusinessListsManager initialOptions={options} /></div></AppFrame>;
 }
