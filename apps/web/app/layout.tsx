@@ -9,6 +9,7 @@ import './shift-ui.css';
 import './field-team-ui.css';
 import './employee-ui.css';
 import './catalogue-ui.css';
+import './recurring-service-ui.css';
 
 export const dynamic = 'force-dynamic';
 
