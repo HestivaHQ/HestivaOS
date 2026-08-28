@@ -1,0 +1,116 @@
+.profileWorkspace {
+  max-width: 980px;
+}
+
+.profileWorkspace .pageHeader {
+  margin-bottom: 20px;
+}
+
+.profileWorkspace .errorBanner,
+.profileWorkspace .successBanner {
+  margin-bottom: 16px;
+  border-radius: 14px;
+}
+
+.profileWorkspace .profileSection {
+  max-width: none;
+  margin-bottom: 18px;
+  padding: 22px;
+  border-color: rgba(105, 31, 48, 0.1);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(255, 249, 246, 0.94));
+  box-shadow: 0 16px 38px rgba(60, 35, 38, 0.05);
+}
+
+.profileWorkspace .profileSection > div:first-child {
+  margin-bottom: 4px;
+}
+
+.profileWorkspace .profileSection > div:first-child h3 {
+  margin-bottom: 5px;
+  color: var(--ink-strong);
+}
+
+.profileWorkspace .profileSection > div:first-child p,
+.profileWorkspace .profileSection small {
+  line-height: 1.5;
+}
+
+.profileWorkspace .profileAvatar {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(105, 31, 48, 0.12);
+  border-radius: 24px;
+  background: rgba(109, 36, 57, 0.08);
+  color: #6d2439;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.profileWorkspace .profileAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileWorkspace .profileSection label {
+  margin-top: 3px;
+}
+
+.profileWorkspace .profileSection input[readonly] {
+  background: rgba(105, 31, 48, 0.035);
+  color: var(--ink-muted);
+}
+
+.profileWorkspace .profileSection input[type='file'] {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.profileWorkspace .profileSection > button[type='button'] {
+  justify-self: start;
+}
+
+.profileWorkspace .formActions {
+  padding-top: 4px;
+}
+
+@media (min-width: 760px) {
+  .profileWorkspace .profileSection {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+  }
+
+  .profileWorkspace .profileSection > div:first-child,
+  .profileWorkspace .profileSection > small,
+  .profileWorkspace .profileSection > .formActions {
+    grid-column: 1 / -1;
+  }
+
+  .profileWorkspace .profileAvatar,
+  .profileWorkspace .profileSection > button[type='button'] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .profileWorkspace .profileSection {
+    padding: 17px;
+  }
+
+  .profileWorkspace .profileAvatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 21px;
+  }
+
+  .profileWorkspace .formActions button,
+  .profileWorkspace .profileSection > button[type='button'] {
+    width: 100%;
+  }
+}
