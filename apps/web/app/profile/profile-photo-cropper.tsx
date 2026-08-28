@@ -2,7 +2,6 @@
 
 import { PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-const PREVIEW_SIZE = 320;
 const OUTPUT_SIZE = 512;
 
 function clamp(value: number, min: number, max: number) {
@@ -28,6 +27,8 @@ export function ProfilePhotoCropper({
   onConfirm: (blob: Blob) => Promise<void>;
 }) {
   const objectUrl = useMemo(() => URL.createObjectURL(file), [file]);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [stageSize, setStageSize] = useState(320);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -35,14 +36,23 @@ export function ProfilePhotoCropper({
   const drag = useRef<{ pointerId: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
   useEffect(() => () => URL.revokeObjectURL(objectUrl), [objectUrl]);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const updateSize = () => setStageSize(stage.getBoundingClientRect().width || 320);
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
 
   const baseScale = naturalSize.width && naturalSize.height
-    ? Math.max(PREVIEW_SIZE / naturalSize.width, PREVIEW_SIZE / naturalSize.height)
+    ? Math.max(stageSize / naturalSize.width, stageSize / naturalSize.height)
     : 1;
   const renderedWidth = naturalSize.width * baseScale * zoom;
   const renderedHeight = naturalSize.height * baseScale * zoom;
-  const maxX = Math.max(0, (renderedWidth - PREVIEW_SIZE) / 2);
-  const maxY = Math.max(0, (renderedHeight - PREVIEW_SIZE) / 2);
+  const maxX = Math.max(0, (renderedWidth - stageSize) / 2);
+  const maxY = Math.max(0, (renderedHeight - stageSize) / 2);
 
   function boundedOffset(nextX: number, nextY: number) {
     return { x: clamp(nextX, -maxX, maxX), y: clamp(nextY, -maxY, maxY) };
@@ -69,8 +79,8 @@ export function ProfilePhotoCropper({
     const boundedZoom = clamp(nextZoom, 1, 3);
     const nextRenderedWidth = naturalSize.width * baseScale * boundedZoom;
     const nextRenderedHeight = naturalSize.height * baseScale * boundedZoom;
-    const nextMaxX = Math.max(0, (nextRenderedWidth - PREVIEW_SIZE) / 2);
-    const nextMaxY = Math.max(0, (nextRenderedHeight - PREVIEW_SIZE) / 2);
+    const nextMaxX = Math.max(0, (nextRenderedWidth - stageSize) / 2);
+    const nextMaxY = Math.max(0, (nextRenderedHeight - stageSize) / 2);
     setZoom(boundedZoom);
     setOffset(({ x, y }) => ({ x: clamp(x, -nextMaxX, nextMaxX), y: clamp(y, -nextMaxY, nextMaxY) }));
   }
@@ -87,7 +97,7 @@ export function ProfilePhotoCropper({
       canvas.height = OUTPUT_SIZE;
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Unable to prepare the profile photo editor.');
-      const outputRatio = OUTPUT_SIZE / PREVIEW_SIZE;
+      const outputRatio = OUTPUT_SIZE / stageSize;
       const drawScale = baseScale * zoom * outputRatio;
       const drawWidth = naturalSize.width * drawScale;
       const drawHeight = naturalSize.height * drawScale;
@@ -111,6 +121,7 @@ export function ProfilePhotoCropper({
           </div>
         </div>
         <div
+          ref={stageRef}
           className="profileCropStage"
           onPointerDown={beginDrag}
           onPointerMove={moveDrag}
