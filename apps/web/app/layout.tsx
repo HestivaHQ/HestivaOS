@@ -11,6 +11,7 @@ import './employee-ui.css';
 import './catalogue-ui.css';
 import './recurring-service-ui.css';
 import './profile-ui.css';
+import './admin-ui.css';
 
 export const dynamic = 'force-dynamic';
 
