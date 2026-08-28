@@ -1,0 +1,131 @@
+.catalogueWorkspace .panel,
+.templateWorkspace .panel {
+  border-color: rgba(105, 31, 48, 0.1);
+  box-shadow: 0 16px 40px rgba(60, 35, 38, 0.05);
+}
+
+.catalogueWorkspace .panel {
+  background: linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(255, 249, 246, 0.94));
+}
+
+.catalogueWorkspace .serviceCatalogueHeader {
+  align-items: end;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(105, 31, 48, 0.08);
+}
+
+.catalogueWorkspace .serviceCatalogueHeader label {
+  min-width: min(300px, 100%);
+}
+
+.catalogueWorkspace .dataList,
+.templateWorkspace .dataList {
+  gap: 10px;
+}
+
+.catalogueWorkspace .dataRow,
+.templateWorkspace .dataRow {
+  padding: 16px 17px;
+  border: 1px solid rgba(105, 31, 48, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.catalogueWorkspace .dataRow:hover,
+.templateWorkspace .dataRow:hover {
+  border-color: rgba(105, 31, 48, 0.18);
+  box-shadow: 0 10px 26px rgba(60, 35, 38, 0.055);
+  transform: translateY(-1px);
+}
+
+.catalogueWorkspace .dataRow strong,
+.templateWorkspace .dataRow strong {
+  color: var(--ink-strong);
+  font-size: 0.98rem;
+}
+
+.catalogueWorkspace .dataRow p,
+.templateWorkspace .dataRow p {
+  margin: 5px 0 0;
+  line-height: 1.45;
+}
+
+.templateWorkspace .resourceGrid {
+  grid-template-columns: minmax(290px, 0.85fr) minmax(0, 1.45fr);
+  align-items: start;
+}
+
+.templateWorkspace .resourceForm {
+  position: sticky;
+  top: 22px;
+  background: linear-gradient(180deg, rgba(255, 252, 249, 0.98), rgba(255, 249, 246, 0.94));
+}
+
+.templateWorkspace .resourceForm .panelHeader {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(105, 31, 48, 0.08);
+}
+
+.templateWorkspace .resourceForm fieldset {
+  margin: 4px 0 2px;
+  padding: 14px;
+  border: 1px solid rgba(105, 31, 48, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.templateWorkspace .resourceForm fieldset legend {
+  padding: 0 7px;
+  color: var(--ink-strong);
+  font-weight: 750;
+}
+
+.templateWorkspace .resourceForm fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 5px 0;
+}
+
+.templateWorkspace .resourceForm fieldset input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--burgundy);
+}
+
+.templateWorkspace .rowActions {
+  justify-content: flex-end;
+  align-self: center;
+}
+
+@media (max-width: 1040px) {
+  .templateWorkspace .resourceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .templateWorkspace .resourceForm {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .catalogueWorkspace .serviceCatalogueHeader {
+    align-items: stretch;
+  }
+
+  .catalogueWorkspace .serviceCatalogueHeader label {
+    min-width: 0;
+  }
+
+  .catalogueWorkspace .dataRow,
+  .templateWorkspace .dataRow {
+    align-items: stretch;
+  }
+
+  .templateWorkspace .rowActions {
+    justify-content: flex-start;
+  }
+}
