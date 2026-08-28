@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default async function AdminSettingsPage() {
   const appUser = await (await createAuthenticatedApi()).syncUser();
   if (!canAccessAdminSettings(appUser.role)) redirect('/');
-  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}>
+  return <AppFrame active="/admin/settings" email={appUser.email} user={appUser}><div className="adminWorkspace">
     <header className="pageHeader"><div><p className="eyebrow">Administration</p><h2>Admin Settings</h2><p>Manage Hestiva OS administrative configuration.</p></div></header>
     <section className="adminSettingsGrid" aria-label="Administrative modules">
       <Link className="panel adminModuleLink" href="/admin/settings/user-access"><h3>User Access</h3><p>Manage roles and who can use Hestiva OS.</p><span className="statusPill">Manage user access</span></Link>
@@ -18,5 +18,5 @@ export default async function AdminSettingsPage() {
       <Link className="panel adminModuleLink" href="/admin/settings/services"><h3>Services</h3><p>Manage canonical primary services and add-ons.</p><span className="statusPill">Manage services</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/service-scopes"><h3>Service Scope Templates</h3><p>Manage versioned sections, requirements, evidence rules, and lifecycle.</p><span className="statusPill">Manage execution scopes</span></Link>
     </section>
-  </AppFrame>;
+  </div></AppFrame>;
 }
