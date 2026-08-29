@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { displayCustomerName } from '../../lib/customer-display';
 import { frequencyLabels, homeConditionLabels, workOrderDisplayLabel, workOrderFrequencyLabel, workOrderReference } from '../../lib/work-order-display';
@@ -40,13 +40,13 @@ function activityDescription(activity: WorkOrderActivity) {
   return `Status changed from ${activity.previousStatus ? readableStatus(activity.previousStatus) : 'unknown'} to ${activity.newStatus ? readableStatus(activity.newStatus) : 'unknown'}`;
 }
 
-export function WorkOrdersManager({ createdById, createRoute = false, initialCustomerId, initialPropertyId }: { createdById: string; createRoute?: boolean; initialCustomerId?: string; initialPropertyId?: string }) {
+export function WorkOrdersManager({ createdById, createRoute = false, initialCustomerId, initialPropertyId, initialItems = [] }: { createdById: string; createRoute?: boolean; initialCustomerId?: string; initialPropertyId?: string; initialItems?: WorkOrder[] }) {
   const searchParams = useSearchParams();
   const preselectedCustomerId = createRoute ? initialCustomerId ?? null : null;
   const preselectedPropertyId = createRoute ? initialPropertyId ?? null : null;
   const editId = searchParams.get('edit');
   const alert = searchParams.get('alert');
-  const [items, setItems] = useState<WorkOrder[]>([]);
+  const [items, setItems] = useState<WorkOrder[]>(initialItems);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
@@ -66,6 +66,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
   const [timeline, setTimeline] = useState<WorkOrderActivity[]>([]);
   const [checklist, setChecklist] = useState<WorkOrderChecklistItem[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const initialListLoad = useRef(true);
   const availableProperties = useMemo(() => properties.filter((p) => !form.customerId || p.customerId === form.customerId), [properties, form.customerId]);
   const selectedCrew = useMemo(() => crews.find((crew) => crew.id === form.crewId), [crews, form.crewId]);
   const assignableTechnicians = useMemo(() => technicians.filter((technician) => technician.status === 'ACTIVE'), [technicians]);
@@ -108,12 +109,16 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load work orders.'); }
   }
 
-  useEffect(() => { void loadReferenceData(); }, [preselectedCustomerId, preselectedPropertyId]);
+  const editorOpen = createRoute || editingId !== null || editId !== null;
+  useEffect(() => { if (editorOpen) void loadReferenceData(); }, [editorOpen, preselectedCustomerId, preselectedPropertyId]);
   useEffect(() => {
+    if (initialListLoad.current && !alert) { initialListLoad.current = false; return; }
+    initialListLoad.current = false;
     const timer = window.setTimeout(() => { void loadWorkOrders(); }, 300);
     return () => window.clearTimeout(timer);
   }, [alert, search]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.customers(`?page=1&pageSize=20${customerSearch.trim() ? `&search=${encodeURIComponent(customerSearch.trim())}` : ''}`)
         .then((data) => setCustomers((current) => mergeSelected(data.items, current.find((item) => item.id === form.customerId))))
@@ -122,6 +127,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     return () => window.clearTimeout(timer);
   }, [customerSearch, form.customerId]);
   useEffect(() => {
+    if (!editorOpen) return;
     if (!form.customerId) { setProperties([]); return; }
     const timer = window.setTimeout(() => {
       void api.properties(`?page=1&pageSize=20&customerId=${encodeURIComponent(form.customerId)}${propertySearch.trim() ? `&search=${encodeURIComponent(propertySearch.trim())}` : ''}`)
@@ -131,6 +137,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     return () => window.clearTimeout(timer);
   }, [form.customerId, form.propertyId, propertySearch]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.technicians(`?page=1&pageSize=20&status=ACTIVE${technicianSearch.trim() ? `&search=${encodeURIComponent(technicianSearch.trim())}` : ''}`)
         .then((data) => setTechnicians((current) => mergeSelectedMany(data.items, current.filter((item) => form.technicianIds.includes(item.id)))))
@@ -139,6 +146,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     return () => window.clearTimeout(timer);
   }, [form.technicianIds, technicianSearch]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.crews(`?page=1&pageSize=20&status=ACTIVE${crewSearch.trim() ? `&search=${encodeURIComponent(crewSearch.trim())}` : ''}`)
         .then((data) => setCrews((current) => mergeSelected(data.items, current.find((item) => item.id === form.crewId))))
@@ -147,6 +155,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     return () => window.clearTimeout(timer);
   }, [crewSearch, form.crewId]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.services(`?page=1&pageSize=20&status=ACTIVE&type=PRIMARY${serviceSearch.trim() ? `&search=${encodeURIComponent(serviceSearch.trim())}` : ''}`)
         .then((data) => setPrimaryServices((current) => mergeSelected(data.items, current.find((item) => item.id === form.serviceId))))
@@ -155,6 +164,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     return () => window.clearTimeout(timer);
   }, [form.serviceId, serviceSearch]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.services(`?page=1&pageSize=20&status=ACTIVE&type=ADD_ON${addOnSearch.trim() ? `&search=${encodeURIComponent(addOnSearch.trim())}` : ''}`)
         .then((data) => setAddOnServices(data.items))
@@ -224,7 +234,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
     <header className="pageHeader"><div><p className="eyebrow">Operations</p><h2>{createRoute?'Create Work Order':'Work orders'}</h2><p>Schedule work, assign technicians or crews, and complete each job checklist.</p></div>{createRoute?<Link href="/work-orders">Back to work orders</Link>:<Link className="primaryButton" href="/work-orders/new">Create Work Order</Link>}</header>
     {error ? <p className="errorBanner">{error}</p> : null}
     <div className="resourceGrid">
-      <form className="panel resourceForm" onSubmit={submit}>
+      {editorOpen ? <form className="panel resourceForm" onSubmit={submit}>
         <div className="panelHeader"><h3>{editingId ? 'Edit work order' : 'New work order'}</h3></div>
         <label>Search customers<input type="search" value={customerSearch} onChange={(event) => setCustomerSearch(event.target.value)} placeholder="Name, email or phone" /></label>
         <label>Customer<select required value={form.customerId} onChange={(e) => { const customerId = e.target.value; setPropertySearch(''); setForm({ ...form, customerId, propertyId: '' }); }}><option value="">Select customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{displayCustomerName(c)}</option>)}</select></label>
@@ -252,7 +262,7 @@ export function WorkOrdersManager({ createdById, createRoute = false, initialCus
         <label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as WorkOrder['priority'] })}>{['LOW','NORMAL','HIGH','URGENT'].map((v) => <option key={v}>{v}</option>)}</select></label>
         <label>Scheduled at<input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} /></label>
         <div className="formActions"><button className="primaryButton">Save work order</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); setTimeline([]); setChecklist([]); }}>Cancel</button> : null}</div>
-      </form>
+      </form> : <section className="panel"><div className="panelHeader"><h3>Create work order</h3></div><p>Reference data is loaded only when you open the create workflow.</p><Link className="primaryButton" href="/work-orders/new">New work order</Link></section>}
       <section className="panel"><div className="panelHeader"><h3>Work queue</h3><label>Search work orders<input className="searchInput" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, customer, property or service" /></label></div><div className="dataList">
         {items.map((workOrder) => <article className="dataRow" key={workOrder.id}><div><strong>{workOrderReference(workOrder)}</strong><p>{workOrderDisplayLabel(workOrder)}</p><p>{workOrderFrequencyLabel(workOrder)}{workOrder.homeCondition ? ` · ${homeConditionLabels[workOrder.homeCondition]}` : ''}</p>{workOrder.addOns.length ? <p>Add-ons: {workOrder.addOns.map((item) => `${item.service.name} × ${item.quantity}`).join(', ')}</p> : null}<p> {workOrder.assignedTechnicians.length ? `Assigned: ${workOrder.assignedTechnicians.map((item) => `${item.technician.firstName} ${item.technician.lastName}${item.technicianId === workOrder.jobLeaderId ? ' — Job Leader' : ''}`).join(', ')}${workOrder.crew ? ` · Crew: ${workOrder.crew.name}` : ''}` : 'Unassigned'}</p></div><div className="rowActions"><span className="statusPill">{readableStatus(workOrder.status)}</span><span className="priorityText">{workOrder.priority}</span><Link href={`/work-orders/${workOrder.id}`}>Open job</Link><button onClick={() => edit(workOrder)}>Edit</button><button className="dangerButton" onClick={() => void remove(workOrder.id)}>Delete</button></div></article>)}
         {!items.length ? <div className="emptyState"><strong>No work orders found</strong><p>Create a customer and property, then schedule the first job.</p></div> : null}

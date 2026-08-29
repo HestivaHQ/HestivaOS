@@ -1,5 +1,30 @@
 # HestivaOS performance audit
 
+## 2026-08-29 — Server-first operational lists and on-demand Work Order references
+
+PR #244 established the persistent authenticated shell, claims-based middleware check, read-only application-user resolution, and authenticated loading boundary described below. This follow-up keeps those boundaries and moves essential list reads earlier without adding persistent caching or changing API authorization.
+
+### Request architecture before this change
+
+Customers, Properties, and Work Orders rendered client managers with empty list state. Their useful first rows therefore waited for hydration, a browser session lookup, and a browser-to-Railway request. The Work Orders manager also started customer, property, technician, crew, primary-service, and add-on selector effects during ordinary queue viewing, and delayed its initial queue read by the search debounce. Properties reloaded the property list and stable property-type reference data whenever customer search changed. Dashboard loaded its operational and Needs Attention requests sequentially.
+
+### Request architecture after this change
+
+- Customers, Properties, and Work Orders start their bounded first-page reads in their authenticated server pages and pass the results into their interactive managers. Those server reads explicitly forward the request-scoped Supabase access token rather than depending on the browser-only session acquisition path. The managers retain uncached browser reads for searches and post-mutation refreshes, but skip the duplicate mount read.
+- Work Orders ordinary queue viewing starts only the essential server list request. Customer/property, staffing, and service selectors remain absent until the dedicated create route or an edit action opens the editor. Search remains debounced for user input; the initial server request is not delayed.
+- Properties starts its property list, customer selector options, and active property types concurrently on the server. Customer typing refreshes only customer selector options rather than refetching the list and property types.
+- Dashboard and Needs Attention requests start concurrently after the canonical application user is resolved. Each retains its independent safe-empty failure behavior.
+- Mutable operational responses remain `no-store`; there is no long-lived operational cache. The existing central `apiFetch` browser transport continues to acquire the current Supabase session for each request, forward its bearer token, and leave JWT, ACTIVE-user, and role enforcement to the API.
+
+### Same-origin BFF decision
+
+A Cloudflare BFF is deferred. The current client API helper already centralizes ordinary authenticated transport, while a proxy would add a Cloudflare execution hop and require complete method/body/upload/error compatibility across a large API surface. Without repository measurements showing CORS preflight as the dominant remaining delay, that added deployment and security surface is not justified in this bounded pass. Browser calls therefore continue to use the configured Railway API origin and bearer-token contract. Public Quote capability exchange and customer response routes remain separate and unchanged.
+
+### Remaining measured work
+
+- Quotes, Recurring Services, Shift Planning, Services, Team, and lower-frequency Admin managers still have client-first or editor/reference loading patterns that should be prioritized only with observed request/render evidence and their business workflows in scope.
+- No production timing or request-trace measurements were performed in this implementation environment, so this record makes no latency claim. Browser waterfall traces on representative production data remain the next evidence source.
+
 ## 2026-08-28 — Navigation and authentication architecture
 
 Routine office navigation previously ran Supabase `auth.getUser()` in middleware, called write-capable `POST /users/sync` from each protected page, and rebuilt `AppFrame` inside every page. The current architecture replaces those critical-path operations without weakening the authentication or application-authorization boundaries.

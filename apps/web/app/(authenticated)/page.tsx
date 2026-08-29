@@ -62,8 +62,12 @@ export default async function HomePage() {
   let attention = EMPTY_ATTENTION;
   let dashboardAvailable = false;
   let attentionAvailable = false;
-  try { dashboard = await authenticatedApi.dashboard(); dashboardAvailable = true; } catch { /* render a safe empty operational state */ }
-  try { attention = await authenticatedApi.attention('mine'); attentionAvailable = true; } catch { /* render a safe empty attention state */ }
+  const [dashboardResult, attentionResult] = await Promise.allSettled([
+    authenticatedApi.dashboard(),
+    authenticatedApi.attention('mine'),
+  ]);
+  if (dashboardResult.status === 'fulfilled') { dashboard = dashboardResult.value; dashboardAvailable = true; }
+  if (attentionResult.status === 'fulfilled') { attention = attentionResult.value; attentionAvailable = true; }
 
   const operational = dashboard.operationalDashboard;
   const todayCount = dashboard.todayScheduledWorkOrders.length;

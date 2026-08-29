@@ -910,9 +910,12 @@ export const api = {
         : undefined,
     ),
   supervisorOperations: (accessToken: string) => apiFetch<SupervisorOperations>('/supervisor/operations', { headers: { Authorization: `Bearer ${accessToken}` } }),
-  activeBusinessLists: (type: BusinessListType) =>
+  activeBusinessLists: (type: BusinessListType, accessToken?: string) =>
     apiFetch<BusinessListOption[]>(
       `/admin/business-lists?type=${encodeURIComponent(type)}`,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined,
     ),
   businessLists: (accessToken: string, includeInactive = false) =>
     apiFetch<BusinessListOption[]>(
@@ -962,12 +965,20 @@ export const api = {
       headers: { Authorization: `Bearer ${accessToken}` },
       ...json(input),
     }),
-  customerSelectorOptions: (search = "") =>
+  customerSelectorOptions: (search = "", accessToken?: string) =>
     apiFetch<CustomerSelectorOption[]>(
       `/customers/selector-options${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined,
     ),
-  customers: (query = "") =>
-    apiFetch<PaginatedResponse<Customer>>(`/customers${query}`),
+  customers: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<Customer>>(
+      `/customers${query}`,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined,
+    ),
   createCustomer: (input: CustomerInput) =>
     apiFetch<Customer>("/customers", { method: "POST", ...json(input) }),
   updateCustomer: (
@@ -984,8 +995,13 @@ export const api = {
       method: "DELETE",
       ...json({ confirmationName }),
     }),
-  properties: (query = "") =>
-    apiFetch<PaginatedResponse<Property>>(`/properties${query}`),
+  properties: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<Property>>(
+      `/properties${query}`,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined,
+    ),
   propertySelectorOptions: (customerId?: string) =>
     apiFetch<
       Array<
@@ -1111,8 +1127,13 @@ export const api = {
       method: "PATCH",
       ...json({ expectedRevisionNumber, reason }),
     }),
-  workOrders: (query = "") =>
-    apiFetch<PaginatedResponse<WorkOrder>>(`/work-orders${query}`),
+  workOrders: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<WorkOrder>>(
+      `/work-orders${query}`,
+      accessToken
+        ? { headers: { Authorization: `Bearer ${accessToken}` } }
+        : undefined,
+    ),
   workOrder: (id: string) => apiFetch<WorkOrder>(`/work-orders/${id}`),
   workOrderAccessReadinessHistory: (id: string) => apiFetch<WorkOrderAccessReadinessEvent[]>(`/work-orders/${id}/access-readiness/history`),
   updateWorkOrderAccessReadiness: (id: string, state: WorkOrderAccessReadiness) => apiFetch<{id:string;accessReadiness:WorkOrderAccessReadiness}>(`/work-orders/${id}/access-readiness`, { method: "PATCH", ...json({ state }) }),

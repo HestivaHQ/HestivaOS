@@ -22,6 +22,11 @@ export const createAuthenticatedApi = cache(async function createAuthenticatedAp
     businessLists: (includeInactive = false) => api.businessLists(session.access_token, includeInactive),
     adminUsers: (search = '') => api.adminUsers(session.access_token, search),
     dashboard: () => api.dashboard(session.access_token),
+    customers: (query = '') => api.customers(query, session.access_token),
+    customerSelectorOptions: (search = '') => api.customerSelectorOptions(search, session.access_token),
+    properties: (query = '') => api.properties(query, session.access_token),
+    activeBusinessLists: (type: Parameters<typeof api.activeBusinessLists>[0]) => api.activeBusinessLists(type, session.access_token),
+    workOrders: (query = '') => api.workOrders(query, session.access_token),
     attention: (view: AttentionView = 'mine') => attentionOverview(session.access_token, view),
     supervisorOperations: () => api.supervisorOperations(session.access_token),
   };

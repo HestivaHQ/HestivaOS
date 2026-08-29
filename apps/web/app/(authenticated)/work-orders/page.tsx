@@ -3,9 +3,13 @@ import { WorkOrdersManager } from '../../work-orders/work-orders-manager';
 
 export default async function WorkOrdersPage() {
   try {
-    const appUser = await (await createAuthenticatedApi()).currentUser();
+    const authenticatedApi = await createAuthenticatedApi();
+    const [appUser, workOrders] = await Promise.all([
+      authenticatedApi.currentUser(),
+      authenticatedApi.workOrders('?page=1&pageSize=100'),
+    ]);
 
-    return <><div className="workOrderWorkspace"><WorkOrdersManager createdById={appUser.id} /></div></>;
+    return <><div className="workOrderWorkspace"><WorkOrdersManager createdById={appUser.id} initialItems={workOrders.items} /></div></>;
   } catch (error) {
     console.error(
       `WORK_ORDERS_PAGE_ERROR ${JSON.stringify({
