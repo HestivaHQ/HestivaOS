@@ -84,4 +84,4 @@ Global documentation/ADR/roadmap/cross-system hygiene is reviewed after roughly 
 
 ## ADR-0069 pilot
 
-The next 3–5 normal implementation PRs form the measured pilot. Their PR template records documentation-file count, Changelog significance/use, Technical Work Log use, documentation-only correction commits, implementation-to-freeze time where observable, final CI time, and any impact-classification dispute/miss. After the pilot, perform the first reconciliation checkpoint and tighten the policy if evidence shows a safety gap.
+The next 3–5 normal implementation PRs form the measured pilot. Their PR template records documentation-file count, Changelog significance/use, Technical Work Log use, documentation-only correction commits after implementation stabilized, implementation-to-freeze time where observable, final CI time, and any impact-classification dispute/miss. After the pilot, perform the first reconciliation checkpoint and tighten the policy if evidence shows a safety gap.
