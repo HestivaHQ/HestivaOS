@@ -11,3 +11,9 @@ coverage/
 .DS_Store
 
 *.tsbuildinfo
+.playwright/
+playwright-report/
+test-results/
+apps/*/.playwright/
+apps/*/playwright-report/
+apps/*/test-results/

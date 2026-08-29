@@ -32,6 +32,7 @@ Load context in this order:
 | [`ENVIRONMENT.md`](ENVIRONMENT.md) | Environment-variable names/scopes and safe acquisition/recovery. |
 | [`RECOVERY_GUIDE.md`](RECOVERY_GUIDE.md) | Current incident/recovery procedure. |
 | [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) | Routing for active cross-repository/provider coordination. |
+| [`OS_BROWSER_AUDIT_V1.md`](OS_BROWSER_AUDIT_V1.md) | Browser-level OS readiness, timing, safety boundary and functional scenario matrix. |
 | [`decisions/README.md`](decisions/README.md) | ADR index and decision-history route. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Curated significant product/platform/security/cross-system milestones. |
 | [`TECHNICAL_WORK_LOG.md`](TECHNICAL_WORK_LOG.md) | Preserved historical engineering record through ADR-0069; no longer routine per-implementation bookkeeping. |
@@ -53,7 +54,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 | Work Order access recovery | `WORK_ORDER_ACCESS_OPERATIONS_V1.md`, `WORK_ORDER_ACCESS_RECOVERY_V1.md` | Work Order access + messaging recovery | ADR-0058–0061; Issue #116 when provider/shared messaging changes |
 | Needs Attention / Supervisor operations | Needs Attention and Supervisor focused docs; Architecture current section | attention/dashboard/supervisor modules and UI | ADR-0053, ADR-0063 |
 | Finance | `FINANCIAL_ARCHITECTURE.md` and `financial/` policy documents | Finance runtime when implemented | financial ADRs/policy authority; provider decision when applicable |
-| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, this router | `.github/workflows`, `scripts`, platform config | ADR-0001–0012 as relevant, ADR-0067, ADR-0069 |
+| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, `OS_BROWSER_AUDIT_V1.md`, this router | `.github/workflows`, `scripts`, platform config, browser diagnostics | ADR-0001–0012 as relevant, ADR-0067, ADR-0069 |
 
 For a task not covered by the table, inspect this directory for the closest current-state domain authority and add a routing row only if the gap would recur.
 
@@ -63,13 +64,15 @@ Development uses the three-stage workflow in `AGENTS.md` and ADR-0067. Final PR 
 
 Implementation/tooling PRs use `.github/pull_request_template.md` to declare documentation impact. `scripts/validate_documentation.py` verifies that the declaration is complete, rejects high-confidence path/declaration contradictions, and enforces mechanically determinable companion documents. Passing automation is a minimum gate; Stage 2 complete-diff semantic review remains authoritative for whether the declared impacts and documentation are truthful.
 
+The manual HestivaOS browser audit is an additional diagnostic layer documented in `OS_BROWSER_AUDIT_V1.md`. It does not replace or weaken the four mandatory PR quality-gate jobs.
+
 ## Historical and diagnostic material
 
 Historical records are preserved and must not be deleted or rewritten to make the past resemble present state. They are retrieved when relevant rather than loaded by default.
 
 Diagnostic documents such as `API_CONNECTIVITY_AUDIT.md` and focused historical implementation/audit documents remain useful evidence but are not automatically current authorities unless their own scope says so.
 
-The manual `Dependency security audit diagnostic` and `Next.js 16 migration validation` workflows remain diagnostic tools; they are not replacements for required PR quality gates.
+The manual `Dependency security audit diagnostic`, `Next.js 16 migration validation`, and `HestivaOS Browser Audit` workflows are diagnostic tools; they are not replacements for required PR quality gates.
 
 ## Cross-system routes
 

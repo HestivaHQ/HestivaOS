@@ -1,0 +1,56 @@
+name: HestivaOS Browser Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'HestivaOS origin to audit, for example the canonical production or future staging origin'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-browser-audit:
+    name: Read-only browser audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HESTIVA_BROWSER_AUDIT_BASE_URL: ${{ inputs.base_url }}
+      HESTIVA_BROWSER_AUDIT_ADMIN_EMAIL: ${{ secrets.HESTIVA_BROWSER_AUDIT_ADMIN_EMAIL }}
+      HESTIVA_BROWSER_AUDIT_ADMIN_PASSWORD: ${{ secrets.HESTIVA_BROWSER_AUDIT_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked application dependencies
+        run: npm ci
+
+      - name: Validate browser audit configuration
+        run: node apps/web/scripts/validate-browser-audit-env.mjs
+
+      - name: Install CI-only Playwright test runner
+        run: npm install --no-save --ignore-scripts @playwright/test@1.54.2
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run HestivaOS browser readiness matrix
+        run: npx playwright test --config apps/web/playwright.config.mjs
+
+      - name: Upload sanitized timing summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hestivaos-browser-audit-summary
+          path: apps/web/test-results/browser-audit-summary/*.json
+          if-no-files-found: ignore
+          retention-days: 14
