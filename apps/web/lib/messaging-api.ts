@@ -25,7 +25,8 @@ export type MessagingConversationSummary = {
 };
 
 export type ManualMessengerReplyResult = { messageId: string; providerMessageId: string; acceptedAt: string };
-export type WhatsAppAppReviewResult = { providerMessageId: string; acceptedAt: string; templateName: string };
+export type WhatsAppTemplate = { id: string | null; name: string; status: string; category: string | null; language: string };
+export type WhatsAppTemplateMessageResult = { providerMessageId: string; acceptedAt: string; templateName: string };
 
 async function request<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}/api/v1${path}`, {
@@ -81,6 +82,13 @@ export function sendManualMessengerReply(accessToken: string, conversationId: st
   return request(accessToken, `/messaging/conversations/${conversationId}/manual-replies`, { method: 'POST', body: JSON.stringify(input) });
 }
 
-export function sendWhatsAppAppReviewTemplate(accessToken: string, to: string): Promise<WhatsAppAppReviewResult> {
-  return request(accessToken, '/messaging/app-review/whatsapp/test-template', { method: 'POST', body: JSON.stringify({ to }) });
+export function whatsappBusinessTemplates(accessToken: string): Promise<WhatsAppTemplate[]> {
+  return request(accessToken, '/messaging/whatsapp-business/templates');
+}
+
+export function sendWhatsAppTemplateMessage(
+  accessToken: string,
+  input: { to: string; templateName: string; languageCode: string; bodyParameters: string[] },
+): Promise<WhatsAppTemplateMessageResult> {
+  return request(accessToken, '/messaging/whatsapp-business/template-messages', { method: 'POST', body: JSON.stringify(input) });
 }
