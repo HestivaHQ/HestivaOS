@@ -12,4 +12,9 @@ export class WhatsAppAppReviewController {
   sendTestTemplate(@Body() input: { to?: string }) {
     return this.appReview.sendTestTemplate(input.to ?? '');
   }
+
+  @Post('test-management')
+  runManagementTest() {
+    return this.appReview.runManagementTest();
+  }
 }
