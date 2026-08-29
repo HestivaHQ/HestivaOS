@@ -1,17 +1,18 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api, Service } from '../../../../lib/api';
 
 type ServiceForm = { name: string; description: string; type: Service['type'] };
 const emptyForm: ServiceForm = { name: '', description: '', type: 'PRIMARY' };
 
-export function AdminServicesManager() {
-  const [items, setItems] = useState<Service[]>([]);
+export function AdminServicesManager({ initialItems = [] }: { initialItems?: Service[] }) {
+  const [items, setItems] = useState<Service[]>(initialItems);
   const [form, setForm] = useState<ServiceForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const initialSearch = useRef(true);
 
   const load = useCallback(async () => {
     try {
@@ -20,7 +21,11 @@ export function AdminServicesManager() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load services.'); }
   }, [search]);
 
-  useEffect(() => { const timer = window.setTimeout(() => void load(), 150); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => {
+    if (initialSearch.current) { initialSearch.current = false; return; }
+    const timer = window.setTimeout(() => void load(), 150);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
