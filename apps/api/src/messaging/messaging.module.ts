@@ -11,6 +11,8 @@ import { MessagingQuoteSubmissionService } from './messaging-quote-submission.se
 import { MessagingService } from './messaging.service';
 import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 import { MessengerWebhookController } from './messenger-webhook.controller';
+import { WhatsAppAppReviewController } from './whatsapp-app-review.controller';
+import { WhatsAppAppReviewService } from './whatsapp-app-review.service';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
 import { WhatsAppInboundMediaService } from './whatsapp-inbound-media.service';
 import { WhatsAppQuoteFlowInboundService } from './whatsapp-quote-flow-inbound.service';
@@ -21,8 +23,8 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 @Global()
 @Module({
   imports: [QuotesModule],
-  controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController],
-  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, WhatsAppQuoteFlowSessionService, WhatsAppQuoteFlowSubmissionService, WhatsAppQuoteFlowInboundService, MessengerPlatformAdapter],
+  controllers: [WhatsAppWebhookController, MessengerWebhookController, MessagingCustomerLinkingController, MessagingAdminReplyController, WhatsAppAppReviewController],
+  providers: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppAppReviewService, WhatsAppCloudApiAdapter, WhatsAppInboundMediaService, WhatsAppQuoteFlowSessionService, WhatsAppQuoteFlowSubmissionService, WhatsAppQuoteFlowInboundService, MessengerPlatformAdapter],
   exports: [MessagingAdapterRegistry, MessagingService, MessagingCustomerLinkingService, MessagingAdminReplyService, MessagingQuoteStateService, MessagingQuoteSubmissionService, MessagingQuoteLiveOrchestratorService, WhatsAppQuoteFlowSessionService],
 })
 export class MessagingModule {}
