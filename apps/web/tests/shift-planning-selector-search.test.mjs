@@ -29,3 +29,27 @@ test('Shift Planning preserves selected historical relationships while searches 
   assert.match(manager, /setWorkOrders\(\(current\) => mergeSelected\(current, shift\.workOrder\)\)/);
   assert.match(manager, /inactive, historical/);
 });
+
+test('Shift Planning starts its deterministic range on the authenticated server without a mount reload', () => {
+  const page = readFileSync(new URL('../app/(authenticated)/shifts/page.tsx', import.meta.url), 'utf8');
+  const range = readFileSync(new URL('../lib/shift-date-range.ts', import.meta.url), 'utf8');
+  assert.match(page, /const initialRange = defaultShiftDateRange\(\)/);
+  assert.match(page, /authenticatedApi\.shifts\(shiftRangeQuery\(initialRange\)\)/);
+  assert.match(page, /initialItems=\{shifts\.items\}/);
+  assert.match(manager, /useState<Shift\[]>\(initialItems\)/);
+  assert.match(manager, /if \(initialListLoad\.current\)/);
+  assert.match(manager, /useState\(initialRange\.dateFrom\)/);
+  assert.match(manager, /useState\(initialRange\.dateTo\)/);
+  assert.match(range, /timeZone: 'Africa\/Johannesburg'/);
+  assert.match(range, /getUTCDay\(\)/);
+  assert.match(range, /Date\.UTC/);
+});
+
+test('Shift selector requests are editor-only while range changes still refresh immediately', () => {
+  assert.match(manager, /const \[editorOpen, setEditorOpen\] = useState\(false\)/);
+  assert.ok((manager.match(/if \(!editorOpen\) return;/g) ?? []).length >= 2);
+  assert.match(manager, /if \(!editorOpen \|\| selectedCrew\) return;/);
+  assert.match(manager, /onClick=\{\(\) => setEditorOpen\(true\)\}>Create shift/);
+  assert.match(manager, /function edit\(shift: Shift\) \{\n    setEditorOpen\(true\)/);
+  assert.match(manager, /void loadShifts\(\);\n  \}, \[dateFrom, dateTo\]\)/);
+});

@@ -27,6 +27,9 @@ export const createAuthenticatedApi = cache(async function createAuthenticatedAp
     properties: (query = '') => api.properties(query, session.access_token),
     activeBusinessLists: (type: Parameters<typeof api.activeBusinessLists>[0]) => api.activeBusinessLists(type, session.access_token),
     workOrders: (query = '') => api.workOrders(query, session.access_token),
+    quotes: (query = '') => api.quotes(query, session.access_token),
+    recurringServices: () => api.recurringServices(session.access_token),
+    shifts: (query = '') => api.shifts(query, session.access_token),
     attention: (view: AttentionView = 'mine') => attentionOverview(session.access_token, view),
     supervisorOperations: () => api.supervisorOperations(session.access_token),
   };

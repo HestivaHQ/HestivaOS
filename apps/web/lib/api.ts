@@ -1019,8 +1019,8 @@ export const api = {
     }),
   deleteProperty: (id: string) =>
     apiFetch<Property>(`/properties/${id}`, { method: "DELETE" }),
-  technicians: (query = "") =>
-    apiFetch<PaginatedResponse<Technician>>(`/technicians${query}`),
+  technicians: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<Technician>>(`/technicians${query}`, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   createTechnician: (input: TechnicianInput) =>
     apiFetch<Technician>("/technicians", { method: "POST", ...json(input) }),
   updateTechnician: (id: string, input: Partial<TechnicianInput>) =>
@@ -1030,7 +1030,7 @@ export const api = {
     }),
   deleteTechnician: (id: string) =>
     apiFetch<Technician>(`/technicians/${id}`, { method: "DELETE" }),
-  crews: (query = "") => apiFetch<PaginatedResponse<Crew>>(`/crews${query}`),
+  crews: (query = "", accessToken?: string) => apiFetch<PaginatedResponse<Crew>>(`/crews${query}`, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   crew: (id: string) => apiFetch<Crew>(`/crews/${id}`),
   createCrew: (input: CrewInput) =>
     apiFetch<Crew>("/crews", { method: "POST", ...json(input) }),
@@ -1038,7 +1038,7 @@ export const api = {
     apiFetch<Crew>(`/crews/${id}`, { method: "PATCH", ...json(input) }),
   deleteCrew: (id: string) =>
     apiFetch<Crew>(`/crews/${id}`, { method: "DELETE" }),
-  shifts: (query = "") => apiFetch<PaginatedResponse<Shift>>(`/shifts${query}`),
+  shifts: (query = "", accessToken?: string) => apiFetch<PaginatedResponse<Shift>>(`/shifts${query}`, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   shift: (id: string) => apiFetch<Shift>(`/shifts/${id}`),
   createShift: (input: ShiftInput) =>
     apiFetch<Shift>("/shifts", { method: "POST", ...json(input) }),
@@ -1048,8 +1048,8 @@ export const api = {
     apiFetch<Shift>(`/shifts/${id}/copy`, { method: "POST", ...json(input) }),
   deleteShift: (id: string) =>
     apiFetch<Shift>(`/shifts/${id}`, { method: "DELETE" }),
-  services: (query = "") =>
-    apiFetch<PaginatedResponse<Service>>(`/services${query}`),
+  services: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<Service>>(`/services${query}`, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   createService: (input: ServiceInput) =>
     apiFetch<Service>("/services", { method: "POST", ...json(input) }),
   updateService: (id: string, input: Partial<ServiceInput>) =>
@@ -1082,8 +1082,8 @@ export const api = {
   retireServiceScopeVersion: (id:string) => apiFetch<ServiceScopeTemplateVersion>(`/service-scope-template-versions/${id}/retire`,{method:"PATCH"}),
   compareWorkOrderScope: (workOrderId:string,versionId:string) => apiFetch<ScopeComparison>(`/work-orders/${workOrderId}/execution-scope-comparison?templateVersionId=${encodeURIComponent(versionId)}`),
   adoptWorkOrderScope: (workOrderId:string,templateVersionId:string) => apiFetch<ExecutionScope>(`/work-orders/${workOrderId}/execution-scope-revisions`,{method:"POST",...json({templateVersionId})}),
-  recurringServices: () =>
-    apiFetch<RecurringServiceAgreement[]>("/recurring-services"),
+  recurringServices: (accessToken?: string) =>
+    apiFetch<RecurringServiceAgreement[]>("/recurring-services", accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   createRecurringService: (input: RecurringServiceInput) =>
     apiFetch<RecurringServiceAgreement>("/recurring-services", {
       method: "POST",
@@ -1098,8 +1098,8 @@ export const api = {
     apiFetch<WorkOrder | null>(`/recurring-services/${id}/generate`, {
       method: "POST",
     }),
-  quotes: (query = "") =>
-    apiFetch<PaginatedResponse<QuoteListItem>>(`/quotes${query}`),
+  quotes: (query = "", accessToken?: string) =>
+    apiFetch<PaginatedResponse<QuoteListItem>>(`/quotes${query}`, accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined),
   quote: (id: string) => apiFetch<QuoteDetail>(`/quotes/${id}`),
   quotePreflight: (id: string, expectedRevisionNumber: number) =>
     apiFetch<QuotePreflight>(

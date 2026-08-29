@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, type QuoteListItem, type QuoteStatus } from '../../lib/api';
 
 const filters: Array<{ label: string; value: '' | QuoteStatus }> = [
@@ -11,12 +11,20 @@ const filters: Array<{ label: string; value: '' | QuoteStatus }> = [
 ];
 const words = (value: string) => value.toLowerCase().replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 
-export function QuotesManager() {
-  const [items, setItems] = useState<QuoteListItem[]>([]);
+function actionableOrder(items: QuoteListItem[]) {
+  return [...items].sort((a, b) => {
+    const priority = (item: QuoteListItem) => item.status === 'NEEDS_ATTENTION' ? 0 : item.status === 'SUBMITTED' ? 1 : 2;
+    return priority(a) - priority(b) || Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  });
+}
+
+export function QuotesManager({ initialItems }: { initialItems: QuoteListItem[] }) {
+  const [items, setItems] = useState<QuoteListItem[]>(() => actionableOrder(initialItems));
   const [search, setSearch] = useState('');
   const [submittedSearch, setSubmittedSearch] = useState('');
   const [status, setStatus] = useState<'' | QuoteStatus>('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const initialLoad = useRef(true);
   const [error, setError] = useState('');
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -25,15 +33,15 @@ export function QuotesManager() {
       if (submittedSearch) params.set('search', submittedSearch);
       if (status) params.set('status', status);
       const result = await api.quotes(`?${params}`);
-      const ordered = status || submittedSearch ? result.items : [...result.items].sort((a, b) => {
-        const priority = (item: QuoteListItem) => item.status === 'NEEDS_ATTENTION' ? 0 : item.status === 'SUBMITTED' ? 1 : 2;
-        return priority(a) - priority(b) || Date.parse(b.createdAt) - Date.parse(a.createdAt);
-      });
+      const ordered = status || submittedSearch ? result.items : actionableOrder(result.items);
       setItems(ordered);
     } catch (caught) { setError(caught instanceof ApiError ? caught.message : 'Quotes could not be loaded.'); }
     finally { setLoading(false); }
   }, [status, submittedSearch]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (initialLoad.current) { initialLoad.current = false; return; }
+    void load();
+  }, [load]);
   const submitSearch = (event: FormEvent) => { event.preventDefault(); setSubmittedSearch(search.trim()); };
   return <div className="quoteWorkspace">
     <header className="pageHeader"><div><p className="eyebrow">Administration</p><h2>Quotes</h2><p>Review customer requests and make revision-safe decisions.</p></div></header>
