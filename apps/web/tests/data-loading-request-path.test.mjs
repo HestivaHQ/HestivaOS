@@ -4,6 +4,25 @@ import test from 'node:test';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+test('server data helpers explicitly forward the request-scoped bearer token', () => {
+  const serverApi = read('lib/api-server.ts');
+  const api = read('lib/api.ts');
+
+  for (const call of [
+    'api.customers(query, session.access_token)',
+    'api.customerSelectorOptions(search, session.access_token)',
+    'api.properties(query, session.access_token)',
+    'api.activeBusinessLists(type, session.access_token)',
+    'api.workOrders(query, session.access_token)',
+  ]) assert.ok(serverApi.includes(call), `${call} must use the request-scoped token`);
+
+  for (const method of ['activeBusinessLists', 'customerSelectorOptions', 'customers', 'properties', 'workOrders']) {
+    assert.match(api, new RegExp(`${method}: \\([^)]*accessToken\\?: string\\)`));
+  }
+  assert.match(api, /Authorization: `Bearer \$\{accessToken\}`/);
+  assert.match(api, /cache: "no-store"/);
+});
+
 test('customers receive server-loaded first-page data without duplicating the mount request', () => {
   const page = read('app/(authenticated)/customers/page.tsx');
   const manager = read('app/customers/customers-manager.tsx');

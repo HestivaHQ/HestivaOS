@@ -10,7 +10,7 @@ Customers, Properties, and Work Orders rendered client managers with empty list 
 
 ### Request architecture after this change
 
-- Customers, Properties, and Work Orders start their bounded first-page reads in their authenticated server pages and pass the results into their interactive managers. The managers retain uncached browser reads for searches and post-mutation refreshes, but skip the duplicate mount read.
+- Customers, Properties, and Work Orders start their bounded first-page reads in their authenticated server pages and pass the results into their interactive managers. Those server reads explicitly forward the request-scoped Supabase access token rather than depending on the browser-only session acquisition path. The managers retain uncached browser reads for searches and post-mutation refreshes, but skip the duplicate mount read.
 - Work Orders ordinary queue viewing starts only the essential server list request. Customer/property, staffing, and service selectors remain absent until the dedicated create route or an edit action opens the editor. Search remains debounced for user input; the initial server request is not delayed.
 - Properties starts its property list, customer selector options, and active property types concurrently on the server. Customer typing refreshes only customer selector options rather than refetching the list and property types.
 - Dashboard and Needs Attention requests start concurrently after the canonical application user is resolved. Each retains its independent safe-empty failure behavior.
