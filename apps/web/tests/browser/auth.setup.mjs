@@ -1,8 +1,9 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test as setup, expect } from '@playwright/test';
 
-const authFile = '.playwright/auth/admin.json';
+const authFile = fileURLToPath(new URL('../../.playwright/auth/admin.json', import.meta.url));
 
 setup('authenticate browser-audit admin identity', async ({ page }) => {
   const email = process.env.HESTIVA_BROWSER_AUDIT_ADMIN_EMAIL;
