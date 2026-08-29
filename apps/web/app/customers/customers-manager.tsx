@@ -1,20 +1,21 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { api, ApiError, Customer } from '../../lib/api';
 import { displayCustomerName } from '../../lib/customer-display';
 
 type CustomerForm = { contactName: string; email: string; phone: string; notes: string; status: Customer['status'] };
 const emptyForm: CustomerForm = { contactName: '', email: '', phone: '', notes: '', status: 'ACTIVE' };
 
-export function CustomersManager({ ownerId }: { ownerId: string }) {
-  const [items, setItems] = useState<Customer[]>([]);
+export function CustomersManager({ ownerId, initialItems }: { ownerId: string; initialItems: Customer[] }) {
+  const [items, setItems] = useState<Customer[]>(initialItems);
   const [form, setForm] = useState<CustomerForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const initialLoad = useRef(true);
 
   async function load() {
     try {
@@ -28,7 +29,10 @@ export function CustomersManager({ ownerId }: { ownerId: string }) {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
     return () => window.clearTimeout(timer);
   }, [search]);
-  useEffect(() => { void load(); }, [debouncedSearch]);
+  useEffect(() => {
+    if (initialLoad.current) { initialLoad.current = false; return; }
+    void load();
+  }, [debouncedSearch]);
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true);
