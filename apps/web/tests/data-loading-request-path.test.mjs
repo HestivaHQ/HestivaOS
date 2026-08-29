@@ -63,3 +63,44 @@ test('properties load the first list and stable reference data on the server', (
   assert.doesNotMatch(manager, /Promise\.all\(\[api\.properties/);
   assert.match(manager, /api\.customerSelectorOptions\(customerSearch\)/);
 });
+
+test('quotes start with authenticated server data and retain interactive refresh paths', () => {
+  const page = read('app/(authenticated)/quotes/page.tsx');
+  const manager = read('app/quotes/quotes-manager.tsx');
+
+  assert.match(page, /if \(appUser\.role !== 'ADMIN'\) redirect\('\/'\)/);
+  assert.match(page, /authenticatedApi\.quotes\('\?pageSize=100'\)/);
+  assert.match(page, /initialItems=\{quotes\.items\}/);
+  assert.match(manager, /useState<QuoteListItem\[]>\(\(\) => actionableOrder\(initialItems\)\)/);
+  assert.match(manager, /if \(initialLoad\.current\)/);
+  assert.match(manager, /setStatus\(filter\.value\)/);
+  assert.match(manager, /setSubmittedSearch\(search\.trim\(\)\)/);
+  assert.match(manager, /onClick=\{\(\) => void load\(\)\}>Try again/);
+});
+
+test('recurring agreements start on the server while create references stay on demand', () => {
+  const page = read('app/(authenticated)/recurring-services/page.tsx');
+  const manager = read('app/recurring-services/recurring-services-manager.tsx');
+
+  assert.match(page, /authenticatedApi\.recurringServices\(\)/);
+  assert.match(page, /initialItems=\{agreements\}/);
+  assert.match(manager, /useState<AgreementWithFutureVisits\[]>\(initialAgreements\)/);
+  assert.doesNotMatch(manager, /useEffect\(\(\)=>\{void load/);
+  assert.match(manager, /async function openCreate\(\)/);
+  assert.match(manager, /Promise\.all\(\[api\.properties\('\?pageSize=100'\),api\.services\('\?pageSize=100'\)\]\)/);
+  assert.match(manager, /onClick=\{\(\)=>void openCreate\(\)\}/);
+  assert.ok((manager.match(/await loadAgreements\(\)/g) ?? []).length >= 3, 'mutations must refresh only the agreement list');
+});
+
+test('new server-first methods forward the request token through no-store transport', () => {
+  const serverApi = read('lib/api-server.ts');
+  const api = read('lib/api.ts');
+  for (const call of [
+    'api.quotes(query, session.access_token)',
+    'api.recurringServices(session.access_token)',
+    'api.shifts(query, session.access_token)',
+  ]) assert.ok(serverApi.includes(call), `${call} must use the request-scoped token`);
+  for (const method of ['quotes', 'recurringServices', 'shifts']) {
+    assert.match(api, new RegExp(`${method}: \\([^)]*accessToken\\?: string\\)`));
+  }
+});

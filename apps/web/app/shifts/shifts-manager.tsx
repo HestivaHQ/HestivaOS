@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { workOrderDisplayLabel, workOrderReference } from '../../lib/work-order-display';
 import { api, Crew, Shift, ShiftInput, ShiftStatus, Technician, WorkOrder } from '../../lib/api';
+import { shiftRangeQuery, type ShiftDateRange } from '../../lib/shift-date-range';
 
 type ShiftForm = {
   title: string;
@@ -27,58 +28,65 @@ function mergeSelected<T extends { id: string }>(items: T[], selected?: T | null
   return selected && !items.some((item) => item.id === selected.id) ? [selected, ...items] : items;
 }
 
-export function ShiftsManager() {
-  const [items, setItems] = useState<Shift[]>([]);
+export function ShiftsManager({ initialItems, initialRange }: { initialItems: Shift[]; initialRange: ShiftDateRange }) {
+  const [items, setItems] = useState<Shift[]>(initialItems);
   const [crews, setCrews] = useState<Crew[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [form, setForm] = useState<ShiftForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const initialListLoad = useRef(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [crewSearch, setCrewSearch] = useState('');
   const [technicianSearch, setTechnicianSearch] = useState('');
   const [workOrderSearch, setWorkOrderSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState(() => { const date = new Date(); date.setDate(date.getDate() - date.getDay() + 1); return date.toISOString().slice(0, 10); });
-  const [dateTo, setDateTo] = useState(() => { const date = new Date(); date.setDate(date.getDate() - date.getDay() + 7); return date.toISOString().slice(0, 10); });
+  const [dateFrom, setDateFrom] = useState(initialRange.dateFrom);
+  const [dateTo, setDateTo] = useState(initialRange.dateTo);
 
   const selectedCrew = useMemo(() => crews.find((crew) => crew.id === form.crewId), [crews, form.crewId]);
   const availableTechnicians = useMemo(() => selectedCrew ? selectedCrew.members.map((member) => member.technician) : technicians, [selectedCrew, technicians]);
 
   async function loadShifts() {
     try {
-      const query = `?page=1&pageSize=100&dateFrom=${encodeURIComponent(`${dateFrom}T00:00:00`)}&dateTo=${encodeURIComponent(`${dateTo}T23:59:59`)}`;
+      const query = shiftRangeQuery({ dateFrom, dateTo });
       setItems((await api.shifts(query)).items);
       setError('');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load shifts.'); }
   }
 
-  useEffect(() => { void loadShifts(); }, [dateFrom, dateTo]);
   useEffect(() => {
+    if (initialListLoad.current) { initialListLoad.current = false; return; }
+    void loadShifts();
+  }, [dateFrom, dateTo]);
+  useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.crews(`?page=1&pageSize=20&status=ACTIVE${crewSearch.trim() ? `&search=${encodeURIComponent(crewSearch.trim())}` : ''}`)
         .then((data) => setCrews((current) => mergeSelected(data.items, current.find((crew) => crew.id === form.crewId))))
         .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search crews.'));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [crewSearch, form.crewId]);
+  }, [crewSearch, editorOpen, form.crewId]);
   useEffect(() => {
-    if (selectedCrew) return;
+    if (!editorOpen || selectedCrew) return;
     const timer = window.setTimeout(() => {
       void api.technicians(`?page=1&pageSize=20&status=ACTIVE${technicianSearch.trim() ? `&search=${encodeURIComponent(technicianSearch.trim())}` : ''}`)
         .then((data) => setTechnicians((current) => mergeSelected(data.items, current.find((technician) => technician.id === form.technicianId))))
         .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search technicians.'));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [form.technicianId, selectedCrew, technicianSearch]);
+  }, [editorOpen, form.technicianId, selectedCrew, technicianSearch]);
   useEffect(() => {
+    if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.workOrders(`?page=1&pageSize=20${workOrderSearch.trim() ? `&search=${encodeURIComponent(workOrderSearch.trim())}` : ''}`)
         .then((data) => setWorkOrders((current) => mergeSelected(data.items, current.find((workOrder) => workOrder.id === form.workOrderId))))
         .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search work orders.'));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [form.workOrderId, workOrderSearch]);
+  }, [editorOpen, form.workOrderId, workOrderSearch]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -100,12 +108,14 @@ export function ShiftsManager() {
       else await api.createShift(payload);
       setForm(emptyForm);
       setEditingId(null);
+      setEditorOpen(false);
       await loadShifts();
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save shift.'); }
     finally { setBusy(false); }
   }
 
   function edit(shift: Shift) {
+    setEditorOpen(true);
     setEditingId(shift.id);
     setCrews((current) => mergeSelected(current, shift.crew));
     setTechnicians((current) => mergeSelected(current, shift.technician));
@@ -145,7 +155,7 @@ export function ShiftsManager() {
     <header className="pageHeader"><div><p className="eyebrow">Staff operations</p><h2>Shift planning</h2><p>Plan crew and technician working times, breaks, work-order links, and weekly coverage.</p></div></header>
     {error ? <p className="errorBanner">{error}</p> : null}
     <div className="resourceGrid">
-      <form className="panel resourceForm" onSubmit={submit}>
+      {editorOpen ? <form className="panel resourceForm" onSubmit={submit}>
         <div className="panelHeader"><h3>{editingId ? 'Edit shift' : 'New shift'}</h3></div>
         <label>Shift title<input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
         <label>Start<input required type="datetime-local" value={form.startAt} onChange={(event) => setForm({ ...form, startAt: event.target.value })} /></label>
@@ -160,8 +170,8 @@ export function ShiftsManager() {
         <label>Location<input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} /></label>
         <label>Status<select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as ShiftStatus })}>{['DRAFT','SCHEDULED','CONFIRMED','COMPLETED','CANCELLED'].map((status) => <option key={status}>{status}</option>)}</select></label>
         <label>Management notes<textarea rows={4} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></label>
-        <div className="formActions"><button className="primaryButton" disabled={busy}>{busy ? 'Saving…' : 'Save shift'}</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button> : null}</div>
-      </form>
+        <div className="formActions"><button className="primaryButton" disabled={busy}>{busy ? 'Saving…' : 'Save shift'}</button><button type="button" onClick={() => { setEditingId(null); setEditorOpen(false); setForm(emptyForm); }}>Cancel</button></div>
+      </form> : <section className="panel resourceForm"><div className="panelHeader"><h3>Shift editor</h3></div><p>Open the editor when you need staffing and Work Order selectors.</p><button className="primaryButton" type="button" onClick={() => setEditorOpen(true)}>Create shift</button></section>}
 
       <section className="panel">
         <div className="panelHeader"><h3>Shift calendar</h3><div className="rowActions"><input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} /><input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></div></div>

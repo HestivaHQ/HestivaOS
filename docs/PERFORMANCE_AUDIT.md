@@ -1,5 +1,21 @@
 # HestivaOS performance audit
 
+## 2026-08-29 — Server-first Quotes, recurring agreements, and Shift Planning
+
+PR #244 established the persistent authenticated shell, claims-based middleware bootstrap, and authenticated loading boundary. PR #246 then established the request-scoped authenticated server API pattern, server-first Customers, Properties, and Work Orders, editor-only Work Order references, and concurrent Dashboard/Needs Attention loading. This slice reuses those boundaries rather than introducing caching, a BFF, or another request architecture.
+
+### Request architecture after this change
+
+- The ADMIN-only Quotes queue starts its default `pageSize=100` actionable read in the authenticated server page. The request-scoped Supabase access token is forwarded explicitly, default actionable ordering is preserved, and the manager skips a duplicate hydration-time request. Status changes, submitted searches, retries, and later refreshes remain uncached client requests.
+- Recurring Services starts only its agreement read in the authenticated server page and skips a duplicate mount read. The ordinary agreement view no longer downloads up to 100 Properties and 100 Services. Those create-only references load together when an operator explicitly opens the create workflow; agreement create, pause, resume, cancel, generate, retry, and refresh paths reload agreements without reloading the reference choices.
+- Shift Planning uses one shared Johannesburg-date Monday-through-Sunday range calculation and passes both that range and its server-loaded shifts into the manager. The manager skips the duplicate mount read and continues to reload immediately for date-range changes and mutations. Crew, Technician, and Work Order searches do not begin during ordinary calendar viewing; opening create or edit enables their existing bounded 300 ms debounced searches, while selected relationships are merged into search results for historical representability.
+- Every new protected Server Component read uses the request-scoped access token through `createAuthenticatedApi`; mutable operational transport remains `no-store`. API JWT verification, canonical ACTIVE-user enforcement, route-role enforcement, and public Quote capability transport remain unchanged.
+
+### Remaining measured work
+
+- Services, Team lists outside Shift Planning, and lower-frequency Admin managers retain client-first or eager reference-loading paths that should be evaluated in focused slices with observed request/render evidence.
+- A same-origin BFF remains deferred as recorded after PR #246. No production timing or waterfall measurements were performed in this implementation environment, so this entry makes no latency or percentage-improvement claim.
+
 ## 2026-08-29 — Server-first operational lists and on-demand Work Order references
 
 PR #244 established the persistent authenticated shell, claims-based middleware check, read-only application-user resolution, and authenticated loading boundary described below. This follow-up keeps those boundaries and moves essential list reads earlier without adding persistent caching or changing API authorization.
