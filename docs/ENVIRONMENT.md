@@ -97,6 +97,13 @@ The deployment validator requires the first four names in this list and fails be
 
 GitHub Actions has no frontend deployment workflow and owns no Cloudflare production variables. The pull-request quality gate receives no production credentials and verifies without deploying.
 
+The manual `HestivaOS Browser Audit` workflow has its own dedicated read-only diagnostic identity. Store these values only as GitHub Actions repository secrets; never commit them or reuse a normal operator's password:
+
+- `HESTIVA_BROWSER_AUDIT_ADMIN_EMAIL`
+- `HESTIVA_BROWSER_AUDIT_ADMIN_PASSWORD`
+
+`HESTIVA_BROWSER_AUDIT_BASE_URL` is supplied from the workflow-dispatch `base_url` input for each run rather than stored in source. The current browser audit performs read-only navigation/readiness checks only. Do not configure mutation fixtures or provider credentials into this workflow until the isolated mutation boundary documented in `OS_BROWSER_AUDIT_V1.md` exists.
+
 ## Local development
 
 - `NODE_ENV`
