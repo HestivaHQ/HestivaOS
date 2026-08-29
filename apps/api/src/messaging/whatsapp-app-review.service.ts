@@ -1,6 +1,7 @@
 import { BadGatewayException, Injectable, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
 
 const APP_REVIEW_TEST_PHONE_NUMBER_ID = '1292261450635742';
+const APP_REVIEW_TEST_WABA_ID = '1054641293940671';
 const APP_REVIEW_TEMPLATE_NAME = 'jaspers_market_order_confirmation_v1';
 
 function env(name: string): string | undefined {
@@ -76,6 +77,45 @@ export class WhatsAppAppReviewService {
       providerMessageId,
       acceptedAt: new Date().toISOString(),
       templateName: APP_REVIEW_TEMPLATE_NAME,
+    };
+  }
+
+  async runManagementTest() {
+    const accessToken = env('META_WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = env('META_WHATSAPP_PHONE_NUMBER_ID');
+    const graphVersion = env('META_GRAPH_API_VERSION');
+
+    if (!accessToken || !phoneNumberId || !graphVersion) {
+      throw new ServiceUnavailableException('WhatsApp Cloud API test transport is not configured.');
+    }
+    // Keep this management probe bound to the same Meta test environment as the messaging review test.
+    if (phoneNumberId !== APP_REVIEW_TEST_PHONE_NUMBER_ID) {
+      throw new ServiceUnavailableException('App Review management test is locked to the approved Meta test account.');
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`https://graph.facebook.com/${encodeURIComponent(graphVersion)}/${APP_REVIEW_TEST_WABA_ID}/message_templates?limit=5`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch {
+      throw new BadGatewayException('Unable to reach WhatsApp Business Management API for the App Review test.');
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException(`WhatsApp Business Management API rejected the App Review test with HTTP ${response.status}.`);
+    }
+
+    const body = await response.json() as { data?: unknown[] };
+    if (!Array.isArray(body.data)) {
+      throw new BadGatewayException('WhatsApp Business Management API returned an unexpected App Review response.');
+    }
+
+    return {
+      acceptedAt: new Date().toISOString(),
+      templateCount: body.data.length,
+      testWabaId: APP_REVIEW_TEST_WABA_ID,
     };
   }
 }
