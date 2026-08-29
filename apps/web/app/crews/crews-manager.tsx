@@ -1,19 +1,20 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Crew, Technician } from '../../lib/api';
 
 type CrewForm = { name: string; description: string; status: Crew['status']; leaderId: string; memberIds: string[] };
 const emptyForm: CrewForm = { name: '', description: '', status: 'ACTIVE', leaderId: '', memberIds: [] };
 
-export function CrewsManager() {
-  const [items, setItems] = useState<Crew[]>([]);
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
+export function CrewsManager({ initialItems = [], initialTechnicians = [] }: { initialItems?: Crew[]; initialTechnicians?: Technician[] }) {
+  const [items, setItems] = useState<Crew[]>(initialItems);
+  const [technicians] = useState<Technician[]>(initialTechnicians);
   const [form, setForm] = useState<CrewForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const initialSearch = useRef(true);
 
   const selectedMembers = useMemo(() => technicians.filter((technician) => form.memberIds.includes(technician.id)), [form.memberIds, technicians]);
 
@@ -25,15 +26,8 @@ export function CrewsManager() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load crews.'); }
   }
 
-  async function loadTechnicians() {
-    try {
-      setTechnicians((await api.technicians('?page=1&pageSize=100')).items);
-      setError('');
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load technicians.'); }
-  }
-
-  useEffect(() => { void loadTechnicians(); }, []);
   useEffect(() => {
+    if (initialSearch.current) { initialSearch.current = false; return; }
     const timeout = window.setTimeout(() => { void loadCrews(); }, 300);
     return () => window.clearTimeout(timeout);
   }, [search]);

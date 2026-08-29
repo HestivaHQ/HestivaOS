@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, Service } from '../../lib/api';
 
-export function ServicesCatalogue() {
-  const [items, setItems] = useState<Service[]>([]);
+export function ServicesCatalogue({ initialItems = [] }: { initialItems?: Service[] }) {
+  const [items, setItems] = useState<Service[]>(initialItems);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const initialSearch = useRef(true);
 
   useEffect(() => {
+    if (initialSearch.current) { initialSearch.current = false; return; }
     const timer = window.setTimeout(() => {
       api.services(`?page=1&pageSize=100&status=ACTIVE&search=${encodeURIComponent(search)}`)
         .then((data) => { setItems(data.items); setError(''); })
