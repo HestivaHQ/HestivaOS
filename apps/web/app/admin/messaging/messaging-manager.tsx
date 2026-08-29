@@ -38,8 +38,7 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
   const [templatesBusy, setTemplatesBusy] = useState(false);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [templateRecipient, setTemplateRecipient] = useState('');
-  const [selectedTemplateName, setSelectedTemplateName] = useState('');
-  const [templateLanguage, setTemplateLanguage] = useState('en_US');
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState('');
   const [templateBodyParameters, setTemplateBodyParameters] = useState('');
   const [templateSendBusy, setTemplateSendBusy] = useState(false);
   const [templateSendSuccess, setTemplateSendSuccess] = useState<string | null>(null);
@@ -149,39 +148,33 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
       const templates = await whatsappBusinessTemplates(token);
       setWhatsAppTemplates(templates);
       setTemplatesLoaded(true);
-      if (!selectedTemplateName) {
+      if (!selectedTemplateKey) {
         const preferred = templates.find((template) => template.status === 'APPROVED') ?? templates[0];
-        if (preferred) {
-          setSelectedTemplateName(preferred.name);
-          setTemplateLanguage(preferred.language);
-        }
+        if (preferred) setSelectedTemplateKey(`${preferred.name}::${preferred.language}`);
       }
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load WhatsApp message templates.'); }
     finally { setTemplatesBusy(false); }
   }
 
-  function selectWhatsAppTemplate(name: string) {
-    setSelectedTemplateName(name);
-    const selected = whatsAppTemplates.find((template) => template.name === name);
-    if (selected) setTemplateLanguage(selected.language);
-  }
-
   async function sendWhatsAppTemplate() {
-    if (!templateRecipient.trim() || !selectedTemplateName || !templateLanguage.trim() || templateSendBusy) return;
+    const selectedTemplate = whatsAppTemplates.find((template) => `${template.name}::${template.language}` === selectedTemplateKey);
+    if (!templateRecipient.trim() || !selectedTemplate || templateSendBusy) return;
     setTemplateSendBusy(true); setTemplateSendSuccess(null); setError(null);
     try {
       const token = await accessToken();
       const bodyParameters = templateBodyParameters.split('\n').map((value) => value.trim()).filter(Boolean);
       const result = await sendWhatsAppTemplateMessage(token, {
         to: templateRecipient.trim(),
-        templateName: selectedTemplateName,
-        languageCode: templateLanguage.trim(),
+        templateName: selectedTemplate.name,
+        languageCode: selectedTemplate.language,
         bodyParameters,
       });
       setTemplateSendSuccess(`Accepted by WhatsApp at ${new Date(result.acceptedAt).toLocaleString()}. Template: ${result.templateName}.`);
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to send WhatsApp template message.'); }
     finally { setTemplateSendBusy(false); }
   }
+
+  const selectedWhatsAppTemplate = whatsAppTemplates.find((template) => `${template.name}::${template.language}` === selectedTemplateKey);
 
   return <>
     <header className="pageHeader"><div><p className="eyebrow">Messaging</p><h2>Customer identity review</h2><p>Review WhatsApp and Messenger enquiries. Identity trust is established only by an explicit administrator action; inbound messages never self-authorize.</p></div></header>
@@ -200,10 +193,10 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
         </div> : null}
         {whatsAppTemplates.length > 0 ? <div className="resourceForm">
           <label>Recipient WhatsApp number<input inputMode="tel" onChange={(event) => setTemplateRecipient(event.target.value)} placeholder="+27…" value={templateRecipient} /></label>
-          <label>Template<select onChange={(event) => selectWhatsAppTemplate(event.target.value)} value={selectedTemplateName}><option value="">Select template…</option>{whatsAppTemplates.map((template) => <option disabled={template.status !== 'APPROVED'} key={`${template.name}-${template.language}`} value={template.name}>{template.name} — {template.status}</option>)}</select></label>
-          <label>Language code<input onChange={(event) => setTemplateLanguage(event.target.value)} value={templateLanguage} /></label>
+          <label>Template<select onChange={(event) => setSelectedTemplateKey(event.target.value)} value={selectedTemplateKey}><option value="">Select template…</option>{whatsAppTemplates.map((template) => <option disabled={template.status !== 'APPROVED'} key={`${template.name}-${template.language}`} value={`${template.name}::${template.language}`}>{template.name} — {template.status} · {template.language}</option>)}</select></label>
+          <label>Language code<input disabled value={selectedWhatsAppTemplate?.language ?? ''} /></label>
           <label>Body parameters<textarea onChange={(event) => setTemplateBodyParameters(event.target.value)} placeholder="One value per line. Leave empty for templates with no body variables." rows={4} value={templateBodyParameters} /></label>
-          <button className="primaryButton" disabled={templateSendBusy || !templateRecipient.trim() || !selectedTemplateName || !templateLanguage.trim()} onClick={() => void sendWhatsAppTemplate()} type="button">{templateSendBusy ? 'Sending…' : 'Send template message'}</button>
+          <button className="primaryButton" disabled={templateSendBusy || !templateRecipient.trim() || !selectedWhatsAppTemplate || selectedWhatsAppTemplate.status !== 'APPROVED'} onClick={() => void sendWhatsAppTemplate()} type="button">{templateSendBusy ? 'Sending…' : 'Send template message'}</button>
         </div> : null}
         {templateSendSuccess ? <p>{templateSendSuccess}</p> : null}
       </article>
