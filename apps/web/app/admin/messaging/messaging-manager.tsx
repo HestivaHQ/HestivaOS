@@ -9,6 +9,7 @@ import {
   messagingCustomerContacts,
   messagingCustomerOptions,
   sendManualMessengerReply,
+  sendWhatsAppAppReviewTemplate,
   trustMessagingIdentity,
   type MessagingConversationSummary,
   type MessagingCustomerContact,
@@ -31,6 +32,9 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<Record<string, string>>({});
+  const [appReviewRecipient, setAppReviewRecipient] = useState('');
+  const [appReviewBusy, setAppReviewBusy] = useState(false);
+  const [appReviewSuccess, setAppReviewSuccess] = useState<string | null>(null);
 
   async function accessToken() {
     const { data: { session } } = await createClient().auth.getSession();
@@ -129,9 +133,33 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
     finally { setBusyId(null); }
   }
 
+  async function sendAppReviewTemplate() {
+    const recipient = appReviewRecipient.trim();
+    if (!recipient || appReviewBusy) return;
+    setAppReviewBusy(true); setAppReviewSuccess(null); setError(null);
+    try {
+      const token = await accessToken();
+      const result = await sendWhatsAppAppReviewTemplate(token, recipient);
+      setAppReviewSuccess(`Accepted by WhatsApp at ${new Date(result.acceptedAt).toLocaleString()}. Template: ${result.templateName}.`);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to send WhatsApp App Review template.'); }
+    finally { setAppReviewBusy(false); }
+  }
+
   return <>
     <header className="pageHeader"><div><p className="eyebrow">Messaging</p><h2>Customer identity review</h2><p>Review WhatsApp and Messenger enquiries. Identity trust is established only by an explicit administrator action; inbound messages never self-authorize.</p></div></header>
     {error ? <div className="panel"><p>{error}</p></div> : null}
+    <section className="adminSettingsGrid">
+      <article className="panel">
+        <p className="eyebrow">WhatsApp App Review</p>
+        <h3>Tech Provider messaging test</h3>
+        <p>Admin-only diagnostic for Meta App Review. The server is locked to the approved Meta test phone-number ID and sends the exact review template; it cannot use the production Homent number.</p>
+        <div className="resourceForm">
+          <label>Recipient WhatsApp number<input inputMode="tel" onChange={(event) => setAppReviewRecipient(event.target.value)} placeholder="+27…" value={appReviewRecipient} /></label>
+          <button className="primaryButton" disabled={appReviewBusy || !appReviewRecipient.trim()} onClick={() => void sendAppReviewTemplate()} type="button">{appReviewBusy ? 'Sending…' : 'Send App Review test'}</button>
+        </div>
+        {appReviewSuccess ? <p>{appReviewSuccess}</p> : null}
+      </article>
+    </section>
     {loading ? <div className="panel"><p>Loading conversations…</p></div> : null}
     {!loading && rows.length === 0 ? <div className="panel"><p>No messaging conversations are available yet.</p></div> : null}
     <section className="adminSettingsGrid">
