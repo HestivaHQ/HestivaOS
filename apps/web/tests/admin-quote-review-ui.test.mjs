@@ -4,15 +4,15 @@ import { readFileSync } from 'node:fs';
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const frame = source('../app/components/app-frame.tsx');
-const page = source('../app/quotes/page.tsx');
+const page = source('../app/(authenticated)/quotes/page.tsx');
 const queue = source('../app/quotes/quotes-manager.tsx');
-const detailPage = source('../app/quotes/[id]/page.tsx');
+const detailPage = source('../app/(authenticated)/quotes/[id]/page.tsx');
 const detail = source('../app/quotes/[id]/quote-review.tsx');
 const api = source('../lib/api.ts');
 
 test('Quotes navigation and pages are supplementary ADMIN-only guards', () => {
   assert.match(frame, /href: '\/quotes', label: 'Quotes'/);
-  assert.match(frame, /authoritativeUser\.role === 'ADMIN'/);
+  assert.match(frame, /user\.role === 'ADMIN'/);
   assert.match(page, /appUser\.role !== 'ADMIN'\) redirect\('\/'\)/);
   assert.match(detailPage, /appUser\.role !== 'ADMIN'\) redirect\('\/'\)/);
 });

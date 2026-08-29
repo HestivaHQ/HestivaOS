@@ -2,22 +2,21 @@ import { api } from './api';
 import { attentionOverview, type AttentionView } from './attention-api';
 import { createClient } from './supabase/server';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
-export async function createAuthenticatedApi() {
+export const createAuthenticatedApi = cache(async function createAuthenticatedApi() {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('Authenticated session is required.');
+  const currentUser = api.currentUser(session.access_token).catch(async (error) => {
+    if (error instanceof Error && error.message === 'Hestiva OS access is disabled.') {
+      await supabase.auth.signOut();
+      redirect('/login?reason=access-disabled');
+    }
+    throw error;
+  });
   return {
-    syncUser: async () => {
-      try { return await api.syncUser(session.access_token); }
-      catch (error) {
-        if (error instanceof Error && error.message === 'Hestiva OS access is disabled.') {
-          await supabase.auth.signOut();
-          redirect('/login?reason=access-disabled');
-        }
-        throw error;
-      }
-    },
+    currentUser: () => currentUser,
     updateProfile: (input: Parameters<typeof api.updateProfile>[1]) => api.updateProfile(session.access_token, input),
     businessProfile: () => api.businessProfile(session.access_token),
     businessLists: (includeInactive = false) => api.businessLists(session.access_token, includeInactive),
@@ -26,4 +25,4 @@ export async function createAuthenticatedApi() {
     attention: (view: AttentionView = 'mine') => attentionOverview(session.access_token, view),
     supervisorOperations: () => api.supervisorOperations(session.access_token),
   };
-}
+});

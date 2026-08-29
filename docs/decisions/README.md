@@ -98,3 +98,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0088: Use WhatsApp Flow as the primary structured Quote intake](ADR-0088-whatsapp-flow-first-quote-intake.md)
 - [ADR-0089: Secure customer Quote access, engagement and response](ADR-0089-secure-customer-quote-access-engagement-response.md)
 - [ADR-0090: Resend transport for Quote correspondence](ADR-0090-resend-quote-correspondence-transport.md)
+- [ADR-0091: Persist the authenticated web shell and separate login reconciliation from navigation](ADR-0091-persistent-authenticated-navigation.md)

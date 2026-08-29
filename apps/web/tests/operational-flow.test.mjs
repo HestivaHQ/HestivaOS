@@ -10,7 +10,7 @@ const mobile = source('../app/components/mobile-app-navigation.tsx');
 const customers = source('../app/customers/customers-manager.tsx');
 const properties = source('../app/properties/properties-manager.tsx');
 const workOrders = source('../app/work-orders/work-orders-manager.tsx');
-const adminSettings = source('../app/admin/settings/page.tsx');
+const adminSettings = source('../app/(authenticated)/admin/settings/page.tsx');
 
 test('shared desktop and mobile navigation has the approved operational order', () => {
   const labels = ['Dashboard', 'Customers', 'Properties', 'Work orders', 'Team', 'My profile'];

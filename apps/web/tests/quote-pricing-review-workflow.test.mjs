@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
-const quotePage = source('../app/quotes/[id]/page.tsx');
-const reviewPage = source('../app/quotes/[id]/pricing-review/page.tsx');
+const quotePage = source('../app/(authenticated)/quotes/[id]/page.tsx');
+const reviewPage = source('../app/(authenticated)/quotes/[id]/pricing-review/page.tsx');
 const review = source('../app/quotes/[id]/pricing-review/quote-pricing-review.tsx');
 const client = source('../lib/quote-pricing-review-api.ts');
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 test('dashboard hierarchy starts with Needs Attention then Today work before shortcuts and upcoming', () => {
-  const source = read('app/page.tsx');
+  const source = read('app/(authenticated)/page.tsx');
   const attention = source.indexOf('title="Needs Attention"');
   const today = source.indexOf('title="Today’s Work"');
   const shortcuts = source.indexOf('id="shortcuts-title"');

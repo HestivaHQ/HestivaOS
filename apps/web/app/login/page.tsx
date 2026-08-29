@@ -3,6 +3,7 @@
 import { FormEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
+import { api } from '../../lib/api';
 
 function getSafeNextPath(value: string | null) {
   return value?.startsWith('/') && !value.startsWith('//') ? value : '/';
@@ -37,6 +38,11 @@ export default function LoginPage() {
       if (mode === 'sign-up' && !result.data.session) {
         setMessage('Account created. Check your email to confirm your address.');
         return;
+      }
+      if (result.data.session) {
+        // Login is the deliberate identity bootstrap/reconciliation boundary.
+        // Protected route transitions use the read-only /users/me endpoint.
+        await api.syncUser(result.data.session.access_token);
       }
       router.replace(nextPath);
     } catch {

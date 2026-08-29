@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const apiSource = await readFile(new URL('../lib/work-order-material-change-api.ts', import.meta.url), 'utf8');
 const panelSource = await readFile(new URL('../app/work-orders/[id]/material-change-admin-panel.tsx', import.meta.url), 'utf8');
-const pageSource = await readFile(new URL('../app/work-orders/[id]/page.tsx', import.meta.url), 'utf8');
+const pageSource = await readFile(new URL('../app/(authenticated)/work-orders/[id]/page.tsx', import.meta.url), 'utf8');
 
 test('material change client uses the dedicated preview, commit and history contracts', () => {
   assert.match(apiSource, /\/material-change\/preview/);
