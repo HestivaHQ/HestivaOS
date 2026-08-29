@@ -77,6 +77,6 @@ See `docs/ENVIRONMENT.md` for the canonical runtime-variable inventory.
 - The API independently verifies that the selected template is currently approved; the browser's disabled options are not treated as an authorization boundary.
 - This capability does not weaken WhatsApp webhook authentication, messaging idempotency, Quote authority, customer identity rules or Coexistence onboarding safeguards.
 
-## App Review relationship
+## Meta review relationship
 
 Meta App Review should demonstrate the actual HestivaOS product behavior described above rather than a special-purpose certification harness. The same production-intended template listing and template-sending paths may naturally generate the API evidence Meta requires for `whatsapp_business_management` and `whatsapp_business_messaging` while accurately showing the reviewer what Homent intends to operate after approval.
