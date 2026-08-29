@@ -1,18 +1,19 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { api, Technician } from '../../lib/api';
 
 type TechnicianForm = { firstName: string; lastName: string; email: string; phone: string; skills: string; notes: string; status: Technician['status'] };
 const emptyForm: TechnicianForm = { firstName: '', lastName: '', email: '', phone: '', skills: '', notes: '', status: 'ACTIVE' };
 
-export function TechniciansManager() {
-  const [items, setItems] = useState<Technician[]>([]);
+export function TechniciansManager({ initialItems = [] }: { initialItems?: Technician[] }) {
+  const [items, setItems] = useState<Technician[]>(initialItems);
   const [form, setForm] = useState<TechnicianForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const initialSearch = useRef(true);
 
   async function load() {
     try {
@@ -23,6 +24,7 @@ export function TechniciansManager() {
   }
 
   useEffect(() => {
+    if (initialSearch.current) { initialSearch.current = false; return; }
     const timeout = window.setTimeout(() => { void load(); }, 300);
     return () => window.clearTimeout(timeout);
   }, [search]);
