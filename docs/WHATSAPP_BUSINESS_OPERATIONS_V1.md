@@ -47,7 +47,7 @@ A template send requires:
 - language code;
 - optional BODY text parameters, supplied in provider order.
 
-HestivaOS validates the basic recipient/template/language/parameter shape before calling Meta. A successful provider response must contain a provider message ID; otherwise the request is treated as failed.
+Before sending, HestivaOS re-reads the configured WABA's template list and refuses the send unless the exact template name/language pair is currently `APPROVED`. HestivaOS also validates the basic recipient/template/language/parameter shape before calling Meta. A successful provider response must contain a provider message ID; otherwise the request is treated as failed.
 
 This bounded surface currently supports BODY text parameters only. Rich header/button parameter editing is outside V1 and must be added deliberately if a real Homent template requires it.
 
@@ -59,7 +59,7 @@ The operation reuses the existing server-side Meta configuration:
 - `META_WHATSAPP_PHONE_NUMBER_ID`
 - `META_GRAPH_API_VERSION`
 
-Template listing additionally requires:
+Template listing and the approval recheck used by template sending additionally require:
 
 - `META_WHATSAPP_BUSINESS_ACCOUNT_ID`
 
@@ -74,6 +74,7 @@ See `docs/ENVIRONMENT.md` for the canonical runtime-variable inventory.
 - No production WhatsApp number is registered, migrated, removed or otherwise changed by these operations.
 - Listing templates is read-only provider management.
 - Sending a template is an explicit outbound provider action and therefore requires deliberate administrator input.
+- The API independently verifies that the selected template is currently approved; the browser's disabled options are not treated as an authorization boundary.
 - This capability does not weaken WhatsApp webhook authentication, messaging idempotency, Quote authority, customer identity rules or Coexistence onboarding safeguards.
 
 ## App Review relationship
