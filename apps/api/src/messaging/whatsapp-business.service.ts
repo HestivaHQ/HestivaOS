@@ -50,6 +50,14 @@ type MetaTemplate = {
   language?: unknown;
 };
 
+type WhatsAppTemplate = {
+  id: string | null;
+  name: string;
+  status: string;
+  category: string | null;
+  language: string;
+};
+
 @Injectable()
 export class WhatsAppBusinessService {
   private configuredTransport() {
@@ -62,12 +70,17 @@ export class WhatsAppBusinessService {
     return { accessToken, phoneNumberId, graphVersion };
   }
 
-  async listTemplates() {
-    const { accessToken, graphVersion } = this.configuredTransport();
+  private configuredBusinessAccountId() {
     const businessAccountId = env('META_WHATSAPP_BUSINESS_ACCOUNT_ID');
     if (!businessAccountId) {
       throw new ServiceUnavailableException('WhatsApp Business Account management is not configured.');
     }
+    return businessAccountId;
+  }
+
+  private async fetchTemplates(): Promise<WhatsAppTemplate[]> {
+    const { accessToken, graphVersion } = this.configuredTransport();
+    const businessAccountId = this.configuredBusinessAccountId();
 
     let response: Response;
     try {
@@ -100,6 +113,10 @@ export class WhatsAppBusinessService {
     });
   }
 
+  listTemplates() {
+    return this.fetchTemplates();
+  }
+
   async sendTemplateMessage(input: { to?: unknown; templateName?: unknown; languageCode?: unknown; bodyParameters?: unknown }) {
     const { accessToken, phoneNumberId, graphVersion } = this.configuredTransport();
     if (typeof input.to !== 'string' || typeof input.templateName !== 'string' || typeof input.languageCode !== 'string') {
@@ -110,6 +127,11 @@ export class WhatsAppBusinessService {
     const templateName = normalizeTemplateName(input.templateName);
     const languageCode = normalizeLanguageCode(input.languageCode);
     const bodyParameters = normalizeBodyParameters(input.bodyParameters);
+    const templates = await this.fetchTemplates();
+    const selected = templates.find((template) => template.name === templateName && template.language === languageCode);
+    if (!selected || selected.status !== 'APPROVED') {
+      throw new UnprocessableEntityException('The selected WhatsApp template is not approved for the configured Business Account and language.');
+    }
 
     const template: Record<string, unknown> = {
       name: templateName,
