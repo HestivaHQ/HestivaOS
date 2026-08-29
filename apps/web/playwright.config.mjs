@@ -1,6 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.HESTIVA_BROWSER_AUDIT_BASE_URL;
+const authState = fileURLToPath(new URL('./.playwright/auth/admin.json', import.meta.url));
 
 export default defineConfig({
   testDir: './tests/browser',
@@ -30,7 +32,7 @@ export default defineConfig({
       dependencies: ['auth-setup'],
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.playwright/auth/admin.json',
+        storageState: authState,
       },
     },
     {
@@ -39,7 +41,7 @@ export default defineConfig({
       dependencies: ['auth-setup'],
       use: {
         ...devices['Pixel 7'],
-        storageState: '.playwright/auth/admin.json',
+        storageState: authState,
       },
     },
   ],
