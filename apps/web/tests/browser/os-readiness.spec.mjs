@@ -66,7 +66,7 @@ test('desktop primary navigation records client-transition timings', async ({ pa
   await expect(page.locator('.appShell')).toBeVisible();
 
   for (const [label, path] of primaryRoutes.filter(([, route]) => route !== '/')) {
-    const link = page.locator(`a[href="${path}"]`).filter({ visible: true }).first();
+    const link = page.locator(`a[href="${path}"]:visible`).first();
     if (await link.count() === 0) {
       timings.push({ kind: 'client-transition-skipped', label, path, reason: 'visible-link-not-found' });
       continue;
@@ -75,8 +75,7 @@ test('desktop primary navigation records client-transition timings', async ({ pa
     await link.click();
     await page.waitForURL((url) => url.pathname === path, { timeout: 15_000 });
     await expect(page.locator('.appShell')).toBeVisible();
-    const durationMs = Date.now() - startedAt;
-    timings.push({ kind: 'client-transition', label, path, durationMs });
+    timings.push({ kind: 'client-transition', label, path, durationMs: Date.now() - startedAt });
   }
 });
 
@@ -86,14 +85,14 @@ test('Work Orders repeat navigation is timed separately', async ({ page }, testI
   await expect(page.locator('.appShell')).toBeVisible();
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const workOrdersLink = page.locator('a[href="/work-orders"]').filter({ visible: true }).first();
+    const workOrdersLink = page.locator('a[href="/work-orders"]:visible').first();
     const startedAt = Date.now();
     await workOrdersLink.click();
     await page.waitForURL((url) => url.pathname === '/work-orders', { timeout: 15_000 });
     await expect(page.locator('.appShell')).toBeVisible();
     timings.push({ kind: 'work-orders-transition', label: `attempt-${attempt}`, path: '/work-orders', durationMs: Date.now() - startedAt });
     if (attempt < 3) {
-      const customersLink = page.locator('a[href="/customers"]').filter({ visible: true }).first();
+      const customersLink = page.locator('a[href="/customers"]:visible').first();
       await customersLink.click();
       await page.waitForURL((url) => url.pathname === '/customers', { timeout: 15_000 });
     }
