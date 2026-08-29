@@ -26,6 +26,7 @@ export class WhatsAppAppReviewService {
     if (!accessToken || !phoneNumberId || !graphVersion) {
       throw new ServiceUnavailableException('WhatsApp Cloud API test transport is not configured.');
     }
+    // Fail closed: this App Review diagnostic must never send through production credentials.
     if (phoneNumberId !== APP_REVIEW_TEST_PHONE_NUMBER_ID) {
       throw new ServiceUnavailableException('App Review test sender is locked to the approved Meta test phone number.');
     }
