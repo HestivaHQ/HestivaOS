@@ -1,0 +1,44 @@
+:root {
+  --homent-burgundy-950: #35101a;
+  --homent-burgundy-900: #481421;
+  --homent-burgundy-800: #581a2b;
+  --homent-burgundy-700: #692036;
+}
+
+.technicianPhotoPreview {
+  display: grid;
+  gap: 10px;
+  margin: 14px 16px 0;
+  padding: 12px;
+  border: 1px solid var(--homent-gold-soft, #e7d7b3);
+  border-radius: var(--homent-radius-md, 7px);
+  background: var(--homent-surface, #fffdf8);
+}
+
+.technicianPhotoPreview > div {
+  display: grid;
+  gap: 2px;
+}
+
+.technicianPhotoPreview span {
+  color: var(--homent-muted, #6f6266);
+  font-size: .82rem;
+}
+
+.technicianPhotoPreview img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: var(--homent-radius-sm, 5px);
+  background: #fff;
+}
+
+.technicianPhotoPreview button {
+  justify-self: start;
+  border: 1px solid var(--homent-border-strong, #c9bfb3);
+  border-radius: var(--homent-radius-sm, 5px);
+  padding: 7px 11px;
+  background: transparent;
+  color: var(--homent-burgundy-900);
+  font-weight: 700;
+}
