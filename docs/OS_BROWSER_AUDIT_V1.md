@@ -74,7 +74,7 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Quotes | queue filters/search; quote detail; revision review; safe send/share controls; secure customer accept/decline exact revision | Office route readiness active; outbound correspondence and public capability mutation scenarios remain isolated-only |
 | Work Orders | queue/search; create; edit; service/staffing selectors; status lifecycle; detail; assignment; repeated navigation timing | Route readiness + repeated navigation timing active; mutations pending isolated environment |
 | Technician execution | assigned-job list; job start; checklist outcomes; exceptions; offline queue/reconcile; evidence/photo capture; review; Job Leader completion; correction; incident | Pending dedicated Technician identity + isolated job fixture |
-| Execution Evidence / photos | select photo; immediate local preview; compressed local save; queued upload; acknowledged persistence; reload; private evidence visibility | Pending isolated Technician fixture. Immediate preview is a known live observation to verify and currently has no explicit preview implementation in the capture path |
+| Execution Evidence / photos | select photo; immediate local preview; compressed local save; queued upload; acknowledged persistence; reload; private evidence visibility | Immediate selected-photo preview is implemented for Technician image inputs; persisted/reload verification remains pending an isolated Technician fixture |
 | Crews | list/search; create/edit; leader/member choices; membership persistence | Route readiness active; mutations pending isolated environment |
 | Shift Planning | week navigation; create/edit/copy/delete; crew/technician/work-order selectors; historical selected-value representability | Route readiness active; mutations pending isolated environment |
 | Services | list/search; Admin create/edit/status; primary/add-on semantics | Route readiness active; mutations pending isolated environment |
@@ -99,6 +99,8 @@ This is an execution-safety requirement, not a reason to split the audit into ma
 
 The browser audit records elapsed milliseconds rather than asserting an arbitrary universal speed threshold. The first goal is to compare routes under the same run and identify outliers. Work Orders receives an explicit three-attempt client-transition sample because current operator observation says it remains a little slower after the server-first performance work.
 
+The first complete timing artifact, from browser audit run #6 on 2026-08-30, established that Work Orders is a cold/direct-load outlier while warm client-side navigation is healthy. Desktop direct load was about 4.3 seconds and mobile about 4.1 seconds, while the desktop client transition was about 48 ms and three repeated Work Orders transitions were about 57/53/53 ms. This evidence points at route/data readiness rather than the persistent navigation shell. The consolidated cleanup therefore preserves the 100-item initial Work Order data contract but streams a route-level fallback while that data resolves instead of changing list semantics or reopening the navigation architecture.
+
 Performance findings must distinguish:
 
 - client-shell transition time;
@@ -108,13 +110,13 @@ Performance findings must distinguish:
 
 A later threshold may be introduced only after representative runs establish a stable baseline. The browser audit must not create a noisy gate from an invented latency number.
 
-## Known operator observations entering the first audit
+## First-audit observations and resulting cleanup
 
-These are observations to verify, not assumptions that the audit has already diagnosed their root causes:
+The first deployed audit and operator review produced three bounded cleanup items:
 
-- Technician job-photo capture currently gives save/upload feedback but no visible selected-photo preview before/after local save; this should become a required evidence scenario when the Technician fixture is available.
-- The current system-wide burgundy is visually darker than desired. This is a design-token adjustment to evaluate after the functional audit so the whole OS can be changed once rather than screen by screen.
-- Work Orders feels slightly slower than neighbouring operational routes. V1 records repeated Work Orders client-transition timing so the next cleanup can use evidence rather than another speculative performance slice.
+- Technician job-photo selection now surfaces an immediate local preview before the existing compression, offline persistence and upload/reconcile path continues. This does not change evidence authority or storage behavior; persisted/reload verification remains part of the future isolated Technician scenario.
+- The shared Homent burgundy tokens are lightened slightly through a final global tuning layer so the whole OS moves together rather than screen by screen.
+- Work Orders keeps the same initial 100-record server data request and existing authorization behavior, but that data is now behind a Suspense fallback so a slow Railway-backed direct load does not leave the route visually frozen. Warm navigation was already healthy and is intentionally unchanged.
 
 ## Required GitHub Actions configuration
 
@@ -135,8 +137,6 @@ The sanitized timing artifact is comparative evidence. It is not customer/busine
 
 ## Next operational sequence
 
-1. Merge the browser-audit foundation only after normal PR quality gates pass.
-2. Configure the dedicated GitHub Actions browser-audit ADMIN credentials.
-3. Run the read-only matrix against the intended deployed origin and collect the first timing/failure report.
-4. Use that report together with the already observed photo-preview, burgundy and Work Orders issues to define **one consolidated OS cleanup**, rather than reopening page-by-page speculative slices.
-5. Establish the isolated mutation fixture boundary, then enable the remaining business-journey scenarios inside this same audit system.
+1. Keep the read-only browser audit as the deployed production-safe readiness and comparative-timing diagnostic.
+2. After the consolidated cleanup is deployed, rerun the same audit to compare Work Orders direct-load behavior without inventing a hard threshold.
+3. Establish the isolated mutation fixture boundary, then enable the remaining business-journey scenarios inside this same audit system.
