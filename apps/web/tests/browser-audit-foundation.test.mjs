@@ -83,6 +83,11 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(office, /selectOption\('INACTIVE'\)/);
   assert.match(office, /Recurring Services create references can load and close without submitting/);
   assert.match(office, /Close create form/);
+  assert.match(office, /Service Catalogue search filters active services without changing state/);
+  assert.match(office, /No active services found/);
+  assert.match(office, /Cleaning Job Templates native validation blocks an empty save/);
+  assert.match(office, /Save template/);
+  assert.match(office, /validity\.valid/);
 
   assert.doesNotMatch(productionSafeSources, /response\.text\(/);
   assert.doesNotMatch(productionSafeSources, /response\.json\(/);
