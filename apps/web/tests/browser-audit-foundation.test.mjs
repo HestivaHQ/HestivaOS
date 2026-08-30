@@ -78,6 +78,8 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(readiness, /HTTP 5xx responses/);
 
   assert.match(office, /Employee Records search and status filters remain read-only/);
+  assert.match(office, /locator\('\.employeeFilters'\)/);
+  assert.match(office, /name: 'Status', exact: true/);
   assert.match(office, /selectOption\('INACTIVE'\)/);
   assert.match(office, /Recurring Services create references can load and close without submitting/);
   assert.match(office, /Close create form/);

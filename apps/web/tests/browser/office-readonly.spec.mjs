@@ -21,12 +21,13 @@ test.describe('production-safe office interactions', () => {
     await page.goto('/employees', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.appShell')).toBeVisible();
 
-    const search = page.getByRole('searchbox', { name: 'Search' }).first();
+    const filters = page.locator('.employeeFilters');
+    const search = filters.getByRole('searchbox', { name: 'Search', exact: true });
     await search.fill('__browser_audit_no_match__');
     await expect(search).toHaveValue('__browser_audit_no_match__');
     await page.waitForTimeout(350);
 
-    const status = page.getByRole('combobox', { name: 'Status' }).first();
+    const status = filters.getByRole('combobox', { name: 'Status', exact: true });
     await status.selectOption('INACTIVE');
     await expect(status).toHaveValue('INACTIVE');
     await page.waitForTimeout(350);
