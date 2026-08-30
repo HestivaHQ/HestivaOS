@@ -53,6 +53,16 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(readiness, /Quotes search and status filters work without changing quote state/);
   assert.match(readiness, /Work Orders search filters the list without opening the editor/);
   assert.match(readiness, /getByRole\('searchbox', \{ name: \/search work orders\/i \}\)/);
+  assert.match(readiness, /Technicians search filters the list without opening an editor/);
+  assert.match(readiness, /placeholder: 'Search technicians'/);
+  assert.match(readiness, /Crews search filters the list without opening an editor/);
+  assert.match(readiness, /placeholder: 'Search crews'/);
+  assert.match(readiness, /Shift Planning editor lookups can be exercised and cancelled without saving/);
+  assert.match(readiness, /getByRole\('button', \{ name: 'Create shift', exact: true \}\)/);
+  assert.match(readiness, /getByRole\('searchbox', \{ name: 'Search crews' \}\)/);
+  assert.match(readiness, /getByRole\('searchbox', \{ name: 'Search technicians' \}\)/);
+  assert.match(readiness, /getByRole\('searchbox', \{ name: 'Search work orders' \}\)/);
+  assert.match(readiness, /getByRole\('button', \{ name: 'Cancel', exact: true \}\)/);
   assert.match(readiness, /Admin settings exposes navigable settings destinations without changing state/);
   assert.match(readiness, /const collapsibleShellGroups/);
   assert.match(readiness, /label: 'Team'/);

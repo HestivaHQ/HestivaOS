@@ -179,6 +179,56 @@ test.describe('production-safe read-only interactions', () => {
     expectClean(watch, 'Work Orders search');
   });
 
+  test('Technicians search filters the list without opening an editor', async ({ page }) => {
+    await fillSearchAndVerify(page, {
+      path: '/technicians',
+      placeholder: 'Search technicians',
+      value: '__browser_audit_no_match__',
+      label: 'Technicians search',
+    });
+    await expect(page.getByRole('heading', { name: 'New technician' })).toBeVisible();
+  });
+
+  test('Crews search filters the list without opening an editor', async ({ page }) => {
+    await fillSearchAndVerify(page, {
+      path: '/crews',
+      placeholder: 'Search crews',
+      value: '__browser_audit_no_match__',
+      label: 'Crews search',
+    });
+    await expect(page.getByRole('heading', { name: 'New crew' })).toBeVisible();
+  });
+
+  test('Shift Planning editor lookups can be exercised and cancelled without saving', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/shifts', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    await page.getByRole('button', { name: 'Create shift', exact: true }).click();
+    const editor = page.locator('form.resourceForm').first();
+    await expect(editor.getByRole('heading', { name: 'New shift' })).toBeVisible();
+
+    const crewSearch = editor.getByRole('searchbox', { name: 'Search crews' });
+    await crewSearch.fill('__browser_audit_no_match__');
+    await expect(crewSearch).toHaveValue('__browser_audit_no_match__');
+    await page.waitForTimeout(450);
+
+    const technicianSearch = editor.getByRole('searchbox', { name: 'Search technicians' });
+    await expect(technicianSearch).toBeVisible();
+    await technicianSearch.fill('__browser_audit_no_match__');
+    await expect(technicianSearch).toHaveValue('__browser_audit_no_match__');
+    await page.waitForTimeout(450);
+
+    const workOrderSearch = editor.getByRole('searchbox', { name: 'Search work orders' });
+    await workOrderSearch.fill('__browser_audit_no_match__');
+    await expect(workOrderSearch).toHaveValue('__browser_audit_no_match__');
+    await page.waitForTimeout(450);
+
+    await editor.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Create shift', exact: true })).toBeVisible();
+    await expect(page).toHaveURL((url) => url.pathname === '/shifts');
+    expectClean(watch, 'Shift Planning editor lookups');
+  });
+
   test('Admin settings exposes navigable settings destinations without changing state', async ({ page }) => {
     const watch = installFailureWatch(page);
     await page.goto('/admin/settings', { waitUntil: 'domcontentloaded' });
