@@ -9,6 +9,7 @@ const browserFiles = [
   'playwright.config.mjs',
   'tests/browser/auth.setup.mjs',
   'tests/browser/os-readiness.spec.mjs',
+  'tests/browser/office-readonly.spec.mjs',
   'scripts/validate-browser-audit-env.mjs',
 ];
 
@@ -19,12 +20,14 @@ test('browser audit JavaScript sources are syntactically valid', () => {
 });
 
 test('browser audit remains manual, read-only and credential-safe by construction', async () => {
-  const [workflow, config, auth, readiness] = await Promise.all([
+  const [workflow, config, auth, readiness, office] = await Promise.all([
     read('../../.github/workflows/os-browser-audit.yml'),
     read('playwright.config.mjs'),
     read('tests/browser/auth.setup.mjs'),
     read('tests/browser/os-readiness.spec.mjs'),
+    read('tests/browser/office-readonly.spec.mjs'),
   ]);
+  const productionSafeSources = `${readiness}\n${office}`;
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /\nschedule:/);
@@ -73,7 +76,13 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(readiness, /shell-link-not-found/);
   assert.match(readiness, /work-orders-transition/);
   assert.match(readiness, /HTTP 5xx responses/);
-  assert.doesNotMatch(readiness, /response\.text\(/);
-  assert.doesNotMatch(readiness, /response\.json\(/);
-  assert.doesNotMatch(readiness, /api\.(?:create|update|delete|send|complete|assign|upload)/);
+
+  assert.match(office, /Employee Records search and status filters remain read-only/);
+  assert.match(office, /selectOption\('INACTIVE'\)/);
+  assert.match(office, /Recurring Services create references can load and close without submitting/);
+  assert.match(office, /Close create form/);
+
+  assert.doesNotMatch(productionSafeSources, /response\.text\(/);
+  assert.doesNotMatch(productionSafeSources, /response\.json\(/);
+  assert.doesNotMatch(productionSafeSources, /api\.(?:create|update|delete|send|complete|assign|upload|generate)/);
 });
