@@ -50,7 +50,12 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(readiness, /Customers search accepts input without mutating records/);
   assert.match(readiness, /Customers native validation blocks an empty create submission/);
   assert.match(readiness, /Properties expandable sections can be inspected without saving/);
+  assert.match(readiness, /Quotes search and status filters work without changing quote state/);
+  assert.match(readiness, /Work Orders search filters the list without opening the editor/);
   assert.match(readiness, /Admin settings exposes navigable settings destinations without changing state/);
+  assert.match(readiness, /async function clickShellRoute/);
+  assert.match(readiness, /element\.click\(\)/);
+  assert.match(readiness, /shell-link-not-found/);
   assert.match(readiness, /work-orders-transition/);
   assert.match(readiness, /HTTP 5xx responses/);
   assert.doesNotMatch(readiness, /response\.text\(/);

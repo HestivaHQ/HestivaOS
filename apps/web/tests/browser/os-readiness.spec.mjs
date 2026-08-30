@@ -69,6 +69,16 @@ async function fillSearchAndVerify(page, { path, placeholder, value, label }) {
   expectClean(watch, label);
 }
 
+async function clickShellRoute(page, path) {
+  const link = page.locator(`a[href="${path}"]`).first();
+  if (await link.count() === 0) return false;
+  if (await link.isVisible()) await link.click();
+  else await link.evaluate((element) => element.click());
+  await page.waitForURL((url) => url.pathname === path, { timeout: 15_000 });
+  await expect(page.locator('.appShell')).toBeVisible();
+  return true;
+}
+
 test.describe('authenticated route readiness', () => {
   for (const [label, path] of [...primaryRoutes, ...secondaryAdminRoutes]) {
     test(`${label} opens without a browser or server failure`, async ({ page }) => {
@@ -122,6 +132,35 @@ test.describe('production-safe read-only interactions', () => {
     expectClean(watch, 'Properties expandable sections');
   });
 
+  test('Quotes search and status filters work without changing quote state', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/quotes', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    const search = page.getByPlaceholder('Q-…');
+    await search.fill('__browser_audit_no_match__');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(search).toHaveValue('__browser_audit_no_match__');
+    await page.getByRole('button', { name: 'Declined', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Declined', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Actionable', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Actionable', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+    expectClean(watch, 'Quotes filters');
+  });
+
+  test('Work Orders search filters the list without opening the editor', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/work-orders', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    const search = page.getByRole('textbox', { name: /search work orders/i }).first();
+    await expect(search, 'Work Orders search control should be visible').toBeVisible();
+    await search.fill('__browser_audit_no_match__');
+    await expect(search).toHaveValue('__browser_audit_no_match__');
+    await page.waitForTimeout(450);
+    await expect(page).toHaveURL((url) => url.pathname === '/work-orders');
+    expectClean(watch, 'Work Orders search');
+  });
+
   test('Admin settings exposes navigable settings destinations without changing state', async ({ page }) => {
     const watch = installFailureWatch(page);
     await page.goto('/admin/settings', { waitUntil: 'domcontentloaded' });
@@ -138,15 +177,12 @@ test('desktop primary navigation records client-transition timings', async ({ pa
   await expect(page.locator('.appShell')).toBeVisible();
 
   for (const [label, path] of primaryRoutes.filter(([, route]) => route !== '/')) {
-    const link = page.locator(`a[href="${path}"]:visible`).first();
-    if (await link.count() === 0) {
-      timings.push({ kind: 'client-transition-skipped', label, path, reason: 'visible-link-not-found' });
+    const startedAt = Date.now();
+    const navigated = await clickShellRoute(page, path);
+    if (!navigated) {
+      timings.push({ kind: 'client-transition-skipped', label, path, reason: 'shell-link-not-found' });
       continue;
     }
-    const startedAt = Date.now();
-    await link.click();
-    await page.waitForURL((url) => url.pathname === path, { timeout: 15_000 });
-    await expect(page.locator('.appShell')).toBeVisible();
     timings.push({ kind: 'client-transition', label, path, durationMs: Date.now() - startedAt });
   }
 });
@@ -157,17 +193,10 @@ test('Work Orders repeat navigation is timed separately', async ({ page }, testI
   await expect(page.locator('.appShell')).toBeVisible();
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const workOrdersLink = page.locator('a[href="/work-orders"]:visible').first();
     const startedAt = Date.now();
-    await workOrdersLink.click();
-    await page.waitForURL((url) => url.pathname === '/work-orders', { timeout: 15_000 });
-    await expect(page.locator('.appShell')).toBeVisible();
+    expect(await clickShellRoute(page, '/work-orders'), 'Work Orders shell link should exist').toBe(true);
     timings.push({ kind: 'work-orders-transition', label: `attempt-${attempt}`, path: '/work-orders', durationMs: Date.now() - startedAt });
-    if (attempt < 3) {
-      const customersLink = page.locator('a[href="/customers"]:visible').first();
-      await customersLink.click();
-      await page.waitForURL((url) => url.pathname === '/customers', { timeout: 15_000 });
-    }
+    if (attempt < 3) expect(await clickShellRoute(page, '/customers'), 'Customers shell link should exist').toBe(true);
   }
 });
 
