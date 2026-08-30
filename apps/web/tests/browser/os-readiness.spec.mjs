@@ -152,7 +152,7 @@ test.describe('production-safe read-only interactions', () => {
     const watch = installFailureWatch(page);
     await page.goto('/work-orders', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.appShell')).toBeVisible();
-    const search = page.getByRole('textbox', { name: /search work orders/i }).first();
+    const search = page.getByRole('searchbox', { name: /search work orders/i }).first();
     await expect(search, 'Work Orders search control should be visible').toBeVisible();
     await search.fill('__browser_audit_no_match__');
     await expect(search).toHaveValue('__browser_audit_no_match__');
