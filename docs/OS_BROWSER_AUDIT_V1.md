@@ -19,13 +19,15 @@ The browser audit is diagnostic. It does not replace the mandatory PR quality ga
 
 `.github/workflows/os-browser-audit.yml` is a manual `workflow_dispatch` diagnostic. It runs Chromium against an explicitly supplied HestivaOS origin using a dedicated browser-audit ADMIN identity stored only in GitHub Actions secrets.
 
-The current V1 executable matrix is intentionally read-only and production-compatible. It:
+The current executable matrix is production-compatible and deliberately non-mutating. It:
 
 - signs in through the real login UI;
 - records sanitized authentication-stage diagnostics when sign-in fails, limited to the generic login-page status plus whether the Supabase password request and HestivaOS `/users/sync` request were not observed, failed before an HTTP response, or returned a numeric HTTP status;
 - verifies authenticated shell readiness;
 - opens the primary and important secondary/admin routes on desktop and mobile Chromium;
-- fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route check;
+- exercises bounded read-only UI interactions on Customers, Properties and Admin Settings, including search-input behavior, native required-field validation, expandable property sections and settings-link availability;
+- never submits a valid create/edit form or invokes delete/send/complete/assign/upload/provider mutations in the production-safe project;
+- fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route or interaction check;
 - samples desktop client-side navigation timing across the primary shell;
 - samples Work Orders navigation three times independently because Work Orders has been observed to feel slightly slower than neighbouring routes;
 - writes only a sanitized JSON timing summary containing route names, route paths, project name and elapsed milliseconds.
@@ -61,6 +63,16 @@ No screenshots, videos, Playwright traces, storage-state files, customer payload
 
 The ADMIN browser-audit identity is required so the read-only sweep can traverse the broadest office surface. API authorization remains authoritative; the audit does not create a browser-side role bypass.
 
+## Production-safe interaction coverage
+
+The production-safe project now goes beyond route-open checks where the UI can be exercised without changing business state:
+
+- Customers: fill the search field with a guaranteed audit-only no-match value and verify the control remains usable; attempt an empty create submission and verify native required-field validation blocks it before any valid mutation can be sent.
+- Properties: exercise the customer lookup with an audit-only no-match value and open the Access & logistics and Household & care sections without submitting the property form.
+- Admin Settings: verify that the page exposes at least one visible settings destination link without following a mutation path.
+
+These checks are intentionally bounded. Search requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign or upload operational records. Mutation coverage remains blocked on the isolated-fixture boundary below.
+
 ## Full functional scenario map
 
 The long-term audit is one coordinated system, not a sequence of independent ad-hoc page tests. Scenarios are grouped by business journey so a failure identifies the broken boundary.
@@ -69,8 +81,8 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | --- | --- | --- |
 | Authentication and access | valid sign-in; invalid sign-in; protected-route redirect; role-visible navigation; inactive/unauthorised access | Valid ADMIN sign-in + protected route access active; sanitized Supabase/password and `/users/sync` failure-stage diagnostics active; negative/role matrix pending isolated identities |
 | Dashboard / Needs Attention | command-centre renders; actionable links open correct records; no browser/server errors; transition timing | Route readiness active; record-specific actions pending fixtures |
-| Customers | search; create; edit; validation; customer details remain visible after refresh | Route readiness active; mutation scenarios pending isolated environment |
-| Properties | search; customer association; create/edit; controlled property type; validation | Route readiness active; mutation scenarios pending isolated environment |
+| Customers | search; create; edit; validation; customer details remain visible after refresh | Search-input and blocked-empty-submit validation active; valid create/edit/delete pending isolated environment |
+| Properties | search; customer association; create/edit; controlled property type; validation | Customer lookup and expandable-section interaction active; mutations pending isolated environment |
 | Quotes | queue filters/search; quote detail; revision review; safe send/share controls; secure customer accept/decline exact revision | Office route readiness active; outbound correspondence and public capability mutation scenarios remain isolated-only |
 | Work Orders | queue/search; create; edit; service/staffing selectors; status lifecycle; detail; assignment; repeated navigation timing | Route readiness + repeated navigation timing active; mutations pending isolated environment |
 | Technician execution | assigned-job list; job start; checklist outcomes; exceptions; offline queue/reconcile; evidence/photo capture; review; Job Leader completion; correction; incident | Pending dedicated Technician identity + isolated job fixture |
@@ -82,14 +94,14 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Recurring Services | list; create; pause/resume/cancel; generate; reference loading | Route readiness active; mutations pending isolated environment |
 | Employee Records | list/search/status; controlled Business List values; create/edit | Route readiness active; mutations pending isolated environment |
 | Profile | profile read; email change flow boundaries; profile-photo choose/crop/save/reload | Route readiness active; mutations pending isolated environment |
-| Admin settings | Business Profile; Business Lists; Services; Service Scope Templates; User Access; Customer Data Cleanup | Main settings/service/scope readiness active; deeper record-specific scenarios pending fixtures |
+| Admin settings | Business Profile; Business Lists; Services; Service Scope Templates; User Access; Customer Data Cleanup | Main settings/service/scope readiness plus settings-destination availability active; deeper record-specific scenarios pending fixtures |
 | Supervisor operations | Supervisor-only operational review and correction paths | Pending dedicated Supervisor identity |
 | Messaging | conversation list; open conversation; guarded reply UI; WhatsApp Business operations | Route readiness active; real provider sends/templates/webhooks excluded from generic browser audit |
 | Public/customer capability surfaces | secure Quote exchange/session; safe projection; accept/decline/idempotency | Pending isolated capability fixtures; capability values must never enter artifacts/logs |
 
 ## Safety boundary for mutations
 
-The read-only V1 audit may target the deployed production OS because it does not intentionally create, edit, delete, send, complete, assign, upload, or change provider/business state.
+The production-safe audit may target the deployed production OS because it does not intentionally create, edit, delete, send, complete, assign, upload, or change provider/business state. It may submit invalid/empty forms only where browser-native validation prevents a valid request from being sent, and it may issue ordinary read-only search requests.
 
 A full mutation matrix must **not** be pointed at ordinary production data. Before mutation scenarios are enabled, HestivaOS needs an isolated browser-audit environment or tenant with disposable fixtures and dedicated identities for at least ADMIN, SUPERVISOR and TECHNICIAN roles. The environment must prevent external side effects such as customer correspondence, WhatsApp/Messenger sends, provider template operations, real customer capabilities, or production evidence uploads unless a specific provider smoke test is separately approved.
 
@@ -100,6 +112,8 @@ This is an execution-safety requirement, not a reason to split the audit into ma
 The browser audit records elapsed milliseconds rather than asserting an arbitrary universal speed threshold. The first goal is to compare routes under the same run and identify outliers. Work Orders receives an explicit three-attempt client-transition sample because current operator observation says it remains a little slower after the server-first performance work.
 
 The first complete timing artifact, from browser audit run #6 on 2026-08-30, established that Work Orders is a cold/direct-load outlier while warm client-side navigation is healthy. Desktop direct load was about 4.3 seconds and mobile about 4.1 seconds, while the desktop client transition was about 48 ms and three repeated Work Orders transitions were about 57/53/53 ms. This evidence points at route/data readiness rather than the persistent navigation shell. The consolidated cleanup therefore preserves the 100-item initial Work Order data contract but streams a route-level fallback while that data resolves instead of changing list semantics or reopening the navigation architecture.
+
+Run #8 on merged PR #254 kept all route-readiness checks green. Dashboard cold-load evidence remained variable: desktop changed only slightly from run #7 while mobile improved materially. Because the browser audit intentionally measures deployed end-to-end behavior and the samples are not yet a stable benchmark, no further speculative Dashboard optimization is justified from that single comparison. Functional coverage is the next audit priority.
 
 Performance findings must distinguish:
 
@@ -129,7 +143,7 @@ The workflow requires a `base_url` input at dispatch time and exports it only as
 
 ## How to interpret a run
 
-A failed route scenario means the browser observed an actionable readiness failure such as an HTTP document error, a browser page exception, an HTTP 5xx response, authentication failure, or missing authenticated shell. A green route scenario proves only that the route opened cleanly for that identity; it does not prove every button on that screen works.
+A failed route or read-only interaction scenario means the browser observed an actionable readiness failure such as an HTTP document error, a browser page exception, an HTTP 5xx response, authentication failure, missing authenticated shell, missing expected control, broken client interaction, or expected native validation not blocking an empty form. A green scenario proves only the behavior explicitly exercised; it does not prove every button on that screen works.
 
 When authentication fails before navigation, the error reports only the safe stage evidence needed to distinguish cases such as a Supabase password request returning an HTTP error, a successful Supabase request followed by a failing HestivaOS `/users/sync` call, or a network/CORS failure before an HTTP response. The diagnostic intentionally does not inspect response bodies or expose request URLs, credentials, tokens, user data or browser storage.
 
@@ -137,6 +151,6 @@ The sanitized timing artifact is comparative evidence. It is not customer/busine
 
 ## Next operational sequence
 
-1. Keep the read-only browser audit as the deployed production-safe readiness and comparative-timing diagnostic.
-2. After the consolidated cleanup is deployed, rerun the same audit to compare Work Orders direct-load behavior without inventing a hard threshold.
-3. Establish the isolated mutation fixture boundary, then enable the remaining business-journey scenarios inside this same audit system.
+1. Keep the deployed browser audit production-safe while expanding bounded read-only interaction coverage where controls can be exercised without changing business state.
+2. Use failures from those interactions to define focused fixes rather than speculative page rewrites.
+3. Establish the isolated mutation fixture boundary, then enable valid create/edit/delete/lifecycle, Technician, Supervisor, provider-safe and customer-capability journeys inside this same audit system.
