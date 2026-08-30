@@ -26,6 +26,10 @@ const secondaryAdminRoutes = [
   ['Messaging', '/admin/messaging'],
 ];
 
+const collapsibleShellGroups = [
+  { label: 'Team', paths: ['/technicians', '/crews', '/shifts'] },
+];
+
 const timings = [];
 
 function installFailureWatch(page) {
@@ -69,8 +73,22 @@ async function fillSearchAndVerify(page, { path, placeholder, value, label }) {
   expectClean(watch, label);
 }
 
+async function revealCollapsibleShellRoute(page, path) {
+  const group = collapsibleShellGroups.find(({ paths }) => paths.includes(path));
+  if (!group) return false;
+  const disclosure = page.getByRole('button', { name: group.label, exact: true }).first();
+  if (await disclosure.count() === 0) return false;
+  if (await disclosure.getAttribute('aria-expanded') !== 'true') await disclosure.click();
+  await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+  return true;
+}
+
 async function clickShellRoute(page, path) {
-  const link = page.locator(`a[href="${path}"]`).first();
+  let link = page.locator(`a[href="${path}"]`).first();
+  if (await link.count() === 0) {
+    await revealCollapsibleShellRoute(page, path);
+    link = page.locator(`a[href="${path}"]`).first();
+  }
   if (await link.count() === 0) return false;
   if (await link.isVisible()) await link.click();
   else await link.evaluate((element) => element.click());
