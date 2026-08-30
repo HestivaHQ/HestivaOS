@@ -25,7 +25,7 @@ The current executable matrix is production-compatible and deliberately non-muta
 - records sanitized authentication-stage diagnostics when sign-in fails, limited to the generic login-page status plus whether the Supabase password request and HestivaOS `/users/sync` request were not observed, failed before an HTTP response, or returned a numeric HTTP status;
 - verifies authenticated shell readiness;
 - opens the primary and important secondary/admin routes on desktop and mobile Chromium;
-- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders and Admin Settings, including search-input behavior, quote status filters, native required-field validation, expandable property sections and settings-link availability;
+- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders, Technicians, Crews, Shift Planning and Admin Settings, including list/search behavior, quote status filters, native required-field validation, expandable property sections, Shift Planning editor lookups and settings-link availability;
 - never submits a valid create/edit form or invokes delete/send/complete/assign/upload/provider mutations in the production-safe project;
 - fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route or interaction check;
 - samples desktop client-side navigation timing across the primary shell using the real navigation path, including opening a collapsed disclosure before clicking a child link when the child route is not rendered until that disclosure is expanded;
@@ -71,9 +71,12 @@ The production-safe project now goes beyond route-open checks where the UI can b
 - Properties: exercise the customer lookup with an audit-only no-match value and open the Access & logistics and Household & care sections without submitting the property form.
 - Quotes: submit an audit-only no-match reference search and switch between existing status filters, verifying only read behavior and `aria-pressed` state without opening or mutating a Quote.
 - Work Orders: enter an audit-only no-match list search and verify the route remains in list mode without opening the editor or changing a Work Order.
+- Technicians: exercise the debounced list search with an audit-only no-match value while leaving the create/edit form untouched.
+- Crews: exercise the debounced list search with an audit-only no-match value while leaving crew membership, leader selection and save controls untouched.
+- Shift Planning: open the new-shift editor, exercise crew, technician and Work Order lookup searches with audit-only no-match values, then cancel the editor without submitting a shift.
 - Admin Settings: verify that the page exposes at least one visible settings destination link without following a mutation path.
 
-These checks are intentionally bounded. Search/filter requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign or upload operational records. Mutation coverage remains blocked on the isolated-fixture boundary below.
+These checks are intentionally bounded. Search/filter requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign or upload operational records. Opening and cancelling an editor is allowed only where no save action is triggered. Mutation coverage remains blocked on the isolated-fixture boundary below.
 
 ## Client-navigation timing and collapsed groups
 
@@ -97,8 +100,9 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Work Orders | queue/search; create; edit; service/staffing selectors; status lifecycle; detail; assignment; repeated navigation timing | Route readiness + list search + repeated navigation timing active; mutations pending isolated environment |
 | Technician execution | assigned-job list; job start; checklist outcomes; exceptions; offline queue/reconcile; evidence/photo capture; review; Job Leader completion; correction; incident | Pending dedicated Technician identity + isolated job fixture |
 | Execution Evidence / photos | select photo; immediate local preview; compressed local save; queued upload; acknowledged persistence; reload; private evidence visibility | Immediate selected-photo preview is implemented for Technician image inputs; persisted/reload verification remains pending an isolated Technician fixture |
-| Crews | list/search; create/edit; leader/member choices; membership persistence | Route readiness active; mutations pending isolated environment |
-| Shift Planning | week navigation; create/edit/copy/delete; crew/technician/work-order selectors; historical selected-value representability | Route readiness active; mutations pending isolated environment |
+| Technicians | list/search; create/edit; status; contact/skills fields | Route readiness + list search active; mutations pending isolated environment |
+| Crews | list/search; create/edit; leader/member choices; membership persistence | Route readiness + list search active; mutations pending isolated environment |
+| Shift Planning | week navigation; create/edit/copy/delete; crew/technician/work-order selectors; historical selected-value representability | Route readiness + non-saving editor/lookup interaction active; mutations pending isolated environment |
 | Services | list/search; Admin create/edit/status; primary/add-on semantics | Route readiness active; mutations pending isolated environment |
 | Cleaning Job Templates | list; create/edit; service association; checklist configuration | Route readiness active; mutations pending isolated environment |
 | Recurring Services | list; create; pause/resume/cancel; generate; reference loading | Route readiness active; mutations pending isolated environment |
@@ -111,7 +115,7 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 
 ## Safety boundary for mutations
 
-The production-safe audit may target the deployed production OS because it does not intentionally create, edit, delete, send, complete, assign, upload, or change provider/business state. It may submit invalid/empty forms only where browser-native validation prevents a valid request from being sent, and it may issue ordinary read-only search/filter requests.
+The production-safe audit may target the deployed production OS because it does not intentionally create, edit, delete, send, complete, assign, upload, or change provider/business state. It may submit invalid/empty forms only where browser-native validation prevents a valid request from being sent, it may issue ordinary read-only search/filter requests, and it may open and cancel local editors that do not persist state until an explicit save action.
 
 A full mutation matrix must **not** be pointed at ordinary production data. Before mutation scenarios are enabled, HestivaOS needs an isolated browser-audit environment or tenant with disposable fixtures and dedicated identities for at least ADMIN, SUPERVISOR and TECHNICIAN roles. The environment must prevent external side effects such as customer correspondence, WhatsApp/Messenger sends, provider template operations, real customer capabilities, or production evidence uploads unless a specific provider smoke test is separately approved.
 
@@ -128,6 +132,8 @@ Run #8 on merged PR #254 kept all route-readiness checks green. Dashboard cold-l
 Run #9 on merged PR #255 passed the first expanded production-safe interaction set. It also showed that Technicians, Crews and Shift Planning could be skipped by the client-transition timing loop because those shell links were not visible at that moment. Their direct-load readiness checks passed, so this was not a route failure.
 
 Run #11 on merged PR #257 passed the corrected Work Orders search scenario and every other current production-safe check. Its sanitized timing artifact showed that Technicians, Crews and Shift Planning still recorded `shell-link-not-found`. Source inspection then confirmed the precise reason: the Team submenu uses conditional rendering, so those child anchors do not exist in the DOM while Team is collapsed. The audit therefore now exercises the actual disclosure path before timing those child routes rather than treating collapsed-group children as pre-existing hidden links.
+
+Run #12 on merged PR #258 passed the disclosure-aware navigation audit on the exact deployed merge. It produced real client-transition timings for the previously skipped Team routes: Technicians about 124 ms, Crews about 21 ms and Shift Planning about 20 ms. Work Orders was about 20 ms in the primary navigation sequence with repeated samples around 39/23/22 ms. This closes the shell-navigation blind spot and keeps the next priority on production-safe functional interaction coverage rather than further navigation instrumentation.
 
 Performance findings must distinguish:
 
