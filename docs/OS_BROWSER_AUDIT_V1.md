@@ -25,7 +25,7 @@ The current executable matrix is production-compatible and deliberately non-muta
 - records sanitized authentication-stage diagnostics when sign-in fails, limited to the generic login-page status plus whether the Supabase password request and HestivaOS `/users/sync` request were not observed, failed before an HTTP response, or returned a numeric HTTP status;
 - verifies authenticated shell readiness;
 - opens the primary and important secondary/admin routes on desktop and mobile Chromium;
-- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders, Technicians, Crews, Shift Planning, Recurring Services, Employee Records and Admin Settings, including list/search behavior, status filters, quote filters, native required-field validation, expandable sections, non-saving editor/reference loading and settings-link availability;
+- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders, Technicians, Crews, Shift Planning, Recurring Services, Employee Records, Service Catalogue, Cleaning Job Templates and Admin Settings, including list/search behavior, status filters, quote filters, native required-field validation, expandable sections, non-saving editor/reference loading and settings-link availability;
 - never submits a valid create/edit form or invokes delete/send/complete/assign/upload/generate/provider mutations in the production-safe project;
 - fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route or interaction check;
 - samples desktop client-side navigation timing across the primary shell using the real navigation path, including opening a collapsed disclosure before clicking a child link when the child route is not rendered until that disclosure is expanded;
@@ -76,6 +76,8 @@ The production-safe project now goes beyond route-open checks where the UI can b
 - Shift Planning: open the new-shift editor, exercise crew, technician and Work Order lookup searches with audit-only no-match values, then cancel the editor without submitting a shift.
 - Recurring Services: open the create workflow so its property/service references load, verify the default frequency/time-window controls, then close the form without creating an agreement.
 - Employee Records: exercise the debounced search plus inactive/all status filters while leaving employee, Business List and access-management mutation controls untouched.
+- Service Catalogue: exercise the debounced active-service search with an audit-only no-match value and verify the read-only empty state without changing canonical services.
+- Cleaning Job Templates: attempt an empty new-template save and verify native required-field validation keeps the form invalid and prevents a valid create request from being sent.
 - Admin Settings: verify that the page exposes at least one visible settings destination link without following a mutation path.
 
 These checks are intentionally bounded. Search/filter/reference requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign, upload or generate operational records. Opening and cancelling or closing an editor is allowed only where no save action is triggered. Mutation coverage remains blocked on the isolated-fixture boundary below.
@@ -109,8 +111,8 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Technicians | list/search; create/edit; status; contact/skills fields | Route readiness + list search active; mutations pending isolated environment |
 | Crews | list/search; create/edit; leader/member choices; membership persistence | Route readiness + list search active; mutations pending isolated environment |
 | Shift Planning | week navigation; create/edit/copy/delete; crew/technician/work-order selectors; historical selected-value representability | Route readiness + non-saving editor/lookup interaction active; mutations pending isolated environment |
-| Services | list/search; Admin create/edit/status; primary/add-on semantics | Route readiness active; mutations pending isolated environment |
-| Cleaning Job Templates | list; create/edit; service association; checklist configuration | Route readiness active; mutations pending isolated environment |
+| Services | list/search; Admin create/edit/status; primary/add-on semantics | Route readiness + active-service search active; mutations pending isolated environment |
+| Cleaning Job Templates | list; create/edit; service association; checklist configuration | Route readiness + blocked-empty-submit validation active; valid create/edit/delete pending isolated environment |
 | Recurring Services | list; create; pause/resume/cancel; generate; reference loading | Route readiness + non-saving create/reference loading active; mutations pending isolated environment |
 | Employee Records | list/search/status; controlled Business List values; create/edit | Route readiness + search/status filtering active; mutations pending isolated environment |
 | Profile | profile read; email change flow boundaries; profile-photo choose/crop/save/reload | Route readiness active; mutations pending isolated environment |
@@ -142,6 +144,8 @@ Run #11 on merged PR #257 passed the corrected Work Orders search scenario and e
 Run #12 on merged PR #258 passed the disclosure-aware navigation audit on the exact deployed merge. It produced real client-transition timings for the previously skipped Team routes: Technicians about 124 ms, Crews about 21 ms and Shift Planning about 20 ms. Work Orders was about 20 ms in the primary navigation sequence with repeated samples around 39/23/22 ms. This closes the shell-navigation blind spot and keeps the next priority on production-safe functional interaction coverage rather than further navigation instrumentation.
 
 Run #13 on merged PR #259 passed the expanded Team functional checks on the exact deployed merge. Technicians and Crews list searches and the non-saving Shift Planning crew/technician/Work Order lookup flow all completed without browser exceptions or server 5xx responses. The next production-safe coverage therefore moves to office workflows rather than reopening Team instrumentation.
+
+Run #15 on merged PR #261 passed on the exact deployed merge after the Employee Records locator was scoped to the intended filter region. Employee Records search/status filtering, Recurring Services non-saving reference loading and all previously established production-safe checks completed without browser exceptions or server 5xx responses. The next coverage therefore expands to Service Catalogue and Cleaning Job Templates while retaining the same non-mutation boundary.
 
 Performance findings must distinguish:
 
