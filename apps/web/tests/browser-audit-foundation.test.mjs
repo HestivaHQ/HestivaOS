@@ -30,7 +30,8 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.doesNotMatch(workflow, /\nschedule:/);
   assert.match(workflow, /secrets\.HESTIVA_BROWSER_AUDIT_ADMIN_EMAIL/);
   assert.match(workflow, /secrets\.HESTIVA_BROWSER_AUDIT_ADMIN_PASSWORD/);
-  assert.match(workflow, /browser-audit-summary/);
+  assert.match(workflow, /path: test-results\/browser-audit-summary\/\*\.json/);
+  assert.match(workflow, /if-no-files-found: error/);
   assert.doesNotMatch(workflow, /playwright-report/);
   assert.doesNotMatch(workflow, /storageState/);
 
