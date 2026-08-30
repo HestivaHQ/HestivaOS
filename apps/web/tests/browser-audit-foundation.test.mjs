@@ -38,7 +38,13 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(config, /screenshot: 'off'/);
   assert.match(config, /video: 'off'/);
   assert.match(auth, /storageState\(\{ path: authFile \}\)/);
-  assert.doesNotMatch(auth, /console\.log\(.*password/i);
+  assert.match(auth, /Supabase password sign-in:/);
+  assert.match(auth, /HestivaOS user sync:/);
+  assert.match(auth, /response\.status\(\)/);
+  assert.doesNotMatch(auth, /response\.text\(/);
+  assert.doesNotMatch(auth, /response\.json\(/);
+  assert.doesNotMatch(auth, /console\.log\(/);
+  assert.doesNotMatch(auth, /password\s*[:=].*console/i);
   assert.match(readiness, /work-orders-transition/);
   assert.match(readiness, /HTTP 5xx responses/);
   assert.doesNotMatch(readiness, /response\.text\(/);
