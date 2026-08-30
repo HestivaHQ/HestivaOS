@@ -51,6 +51,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hestivaos-browser-audit-summary
-          path: apps/web/test-results/browser-audit-summary/*.json
-          if-no-files-found: ignore
+          path: test-results/browser-audit-summary/*.json
+          if-no-files-found: error
           retention-days: 14
