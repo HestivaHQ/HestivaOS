@@ -23,8 +23,11 @@ export class OperationalDashboardService {
     const { todayStart, tomorrowStart, upcomingEnd } =
       getJohannesburgDayBoundaries();
 
+    // These reads feed one best-effort operational snapshot and do not depend on
+    // each other's results. Running them independently avoids serializing the
+    // dashboard behind a single read-only transaction/connection.
     const [todayScheduledWorkOrders, upcomingScheduledWorkOrders, overdueWorkOrderRecords] =
-      await this.prisma.$transaction([
+      await Promise.all([
         this.prisma.workOrder.findMany({
           where: {
             status: { not: WorkOrderStatus.CANCELLED },
