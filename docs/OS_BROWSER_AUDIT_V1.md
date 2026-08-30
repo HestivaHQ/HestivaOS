@@ -28,7 +28,7 @@ The current executable matrix is production-compatible and deliberately non-muta
 - exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders and Admin Settings, including search-input behavior, quote status filters, native required-field validation, expandable property sections and settings-link availability;
 - never submits a valid create/edit form or invokes delete/send/complete/assign/upload/provider mutations in the production-safe project;
 - fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route or interaction check;
-- samples desktop client-side navigation timing across the primary shell, using existing shell anchors even when the OS intentionally keeps some navigation links hidden or collapsed;
+- samples desktop client-side navigation timing across the primary shell using the real navigation path, including opening a collapsed disclosure before clicking a child link when the child route is not rendered until that disclosure is expanded;
 - samples Work Orders navigation three times independently because Work Orders has been observed to feel slightly slower than neighbouring routes;
 - writes only a sanitized JSON timing summary containing route names, route paths, project name and elapsed milliseconds.
 
@@ -75,9 +75,11 @@ The production-safe project now goes beyond route-open checks where the UI can b
 
 These checks are intentionally bounded. Search/filter requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign or upload operational records. Mutation coverage remains blocked on the isolated-fixture boundary below.
 
-## Client-navigation timing and hidden links
+## Client-navigation timing and collapsed groups
 
-HestivaOS intentionally hides or collapses some navigation entries depending on the current shell state. That visibility is not itself a readiness failure. For client-transition timing, the audit first finds the real shell anchor for the target route. If the anchor is visible, Playwright clicks it normally. If the same anchor exists but is hidden/collapsed, the audit activates that existing anchor through the DOM so Next.js still performs the shell client transition. If no matching shell anchor exists at all, the timing record is skipped with `shell-link-not-found` rather than misclassifying deliberate visibility as a route failure.
+HestivaOS intentionally collapses grouped navigation such as Team. In the current `AppNavigation` implementation, child links are not rendered into the DOM at all while the group is closed. That is expected user-interface behavior, not a route failure.
+
+For client-transition timing, the audit first looks for the real shell anchor for the target route. If the route belongs to a known collapsible group and the child anchor is not present, the audit finds the real disclosure button, opens it through the normal Playwright click path, verifies `aria-expanded="true"`, then clicks the newly rendered child link. If an anchor exists but is not visible for another shell reason, the audit may still activate that existing anchor through the DOM so Next.js performs the client transition. If no route anchor can be produced through the expected shell navigation path, the timing record is skipped with `shell-link-not-found`.
 
 This behavior applies only to timing diagnostics. Direct route-readiness checks still load every configured route independently, and the audit does not alter the OS navigation implementation or user-facing visibility rules.
 
@@ -123,7 +125,9 @@ The first complete timing artifact, from browser audit run #6 on 2026-08-30, est
 
 Run #8 on merged PR #254 kept all route-readiness checks green. Dashboard cold-load evidence remained variable: desktop changed only slightly from run #7 while mobile improved materially. Because the browser audit intentionally measures deployed end-to-end behavior and the samples are not yet a stable benchmark, no further speculative Dashboard optimization is justified from that single comparison. Functional coverage is the next audit priority.
 
-Run #9 on merged PR #255 passed the first expanded production-safe interaction set. It also showed that Technicians, Crews and Shift Planning could be skipped by the client-transition timing loop because those shell links were intentionally hidden/collapsed at that moment. That was an audit assumption problem rather than route failure: their direct-load readiness checks passed. The timing loop therefore now uses existing hidden shell anchors when present instead of requiring visibility.
+Run #9 on merged PR #255 passed the first expanded production-safe interaction set. It also showed that Technicians, Crews and Shift Planning could be skipped by the client-transition timing loop because those shell links were not visible at that moment. Their direct-load readiness checks passed, so this was not a route failure.
+
+Run #11 on merged PR #257 passed the corrected Work Orders search scenario and every other current production-safe check. Its sanitized timing artifact showed that Technicians, Crews and Shift Planning still recorded `shell-link-not-found`. Source inspection then confirmed the precise reason: the Team submenu uses conditional rendering, so those child anchors do not exist in the DOM while Team is collapsed. The audit therefore now exercises the actual disclosure path before timing those child routes rather than treating collapsed-group children as pre-existing hidden links.
 
 Performance findings must distinguish:
 
