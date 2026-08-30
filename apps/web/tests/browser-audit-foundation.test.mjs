@@ -54,6 +54,10 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(readiness, /Work Orders search filters the list without opening the editor/);
   assert.match(readiness, /getByRole\('searchbox', \{ name: \/search work orders\/i \}\)/);
   assert.match(readiness, /Admin settings exposes navigable settings destinations without changing state/);
+  assert.match(readiness, /const collapsibleShellGroups/);
+  assert.match(readiness, /label: 'Team'/);
+  assert.match(readiness, /async function revealCollapsibleShellRoute/);
+  assert.match(readiness, /aria-expanded/);
   assert.match(readiness, /async function clickShellRoute/);
   assert.match(readiness, /element\.click\(\)/);
   assert.match(readiness, /shell-link-not-found/);
