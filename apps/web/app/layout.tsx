@@ -13,6 +13,7 @@ import './recurring-service-ui.css';
 import './profile-ui.css';
 import './admin-ui.css';
 import './homent-os-v2.css';
+import './os-tuning.css';
 
 export const metadata = {
   title: 'Hestiva OS',

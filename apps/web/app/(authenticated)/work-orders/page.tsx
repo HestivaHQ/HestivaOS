@@ -1,7 +1,19 @@
+import { Suspense } from 'react';
 import { createAuthenticatedApi } from '../../../lib/api-server';
 import { WorkOrdersManager } from '../../work-orders/work-orders-manager';
 
-export default async function WorkOrdersPage() {
+function WorkOrdersFallback() {
+  return (
+    <div className="workOrderWorkspace">
+      <section className="routeLoading" aria-live="polite" aria-busy="true">
+        <span className="routeLoadingBar" aria-hidden="true" />
+        <p>Loading work orders…</p>
+      </section>
+    </div>
+  );
+}
+
+async function WorkOrdersData() {
   try {
     const authenticatedApi = await createAuthenticatedApi();
     const [appUser, workOrders] = await Promise.all([
@@ -9,7 +21,7 @@ export default async function WorkOrdersPage() {
       authenticatedApi.workOrders('?page=1&pageSize=100'),
     ]);
 
-    return <><div className="workOrderWorkspace"><WorkOrdersManager createdById={appUser.id} initialItems={workOrders.items} /></div></>;
+    return <div className="workOrderWorkspace"><WorkOrdersManager createdById={appUser.id} initialItems={workOrders.items} /></div>;
   } catch (error) {
     console.error(
       `WORK_ORDERS_PAGE_ERROR ${JSON.stringify({
@@ -21,4 +33,12 @@ export default async function WorkOrdersPage() {
     );
     throw error;
   }
+}
+
+export default function WorkOrdersPage() {
+  return (
+    <Suspense fallback={<WorkOrdersFallback />}>
+      <WorkOrdersData />
+    </Suspense>
+  );
 }
