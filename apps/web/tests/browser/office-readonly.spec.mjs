@@ -56,4 +56,35 @@ test.describe('production-safe office interactions', () => {
     await expect(page).toHaveURL((url) => url.pathname === '/recurring-services');
     expectClean(watch, 'Recurring Services create reference loading');
   });
+
+  test('Service Catalogue search filters active services without changing state', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/services', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+
+    const search = page.getByRole('searchbox', { name: 'Search', exact: true });
+    await search.fill('__browser_audit_no_match__');
+    await expect(search).toHaveValue('__browser_audit_no_match__');
+    await expect(page.getByText('No active services found', { exact: true })).toBeVisible();
+
+    await expect(page).toHaveURL((url) => url.pathname === '/services');
+    expectClean(watch, 'Service Catalogue search');
+  });
+
+  test('Cleaning Job Templates native validation blocks an empty save', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/cleaning-job-templates', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+
+    const form = page.locator('form.resourceForm').first();
+    await expect(form.getByRole('heading', { name: 'New template', exact: true })).toBeVisible();
+    const name = form.getByRole('textbox', { name: 'Name', exact: true });
+    await expect(name).toHaveValue('');
+    await form.getByRole('button', { name: 'Save template', exact: true }).click();
+    await expect(name).toHaveJSProperty('validity.valid', false);
+
+    await expect(page).toHaveURL((url) => url.pathname === '/cleaning-job-templates');
+    await expect(form.getByRole('heading', { name: 'New template', exact: true })).toBeVisible();
+    expectClean(watch, 'Cleaning Job Templates required-field validation');
+  });
 });
