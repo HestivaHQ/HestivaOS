@@ -32,7 +32,7 @@ Load context in this order:
 | [`ENVIRONMENT.md`](ENVIRONMENT.md) | Environment-variable names/scopes and safe acquisition/recovery. |
 | [`RECOVERY_GUIDE.md`](RECOVERY_GUIDE.md) | Current incident/recovery procedure. |
 | [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) | Routing for active cross-repository/provider coordination. |
-| [`OS_BROWSER_AUDIT_V1.md`](OS_BROWSER_AUDIT_V1.md) | Browser-level OS readiness, timing, safety boundary and functional scenario matrix. |
+| [`OS_BROWSER_AUDIT_V1.md`](OS_BROWSER_AUDIT_V1.md) | Browser-level OS readiness, timing, production-safe interaction coverage, safety boundary and functional scenario matrix. |
 | [`decisions/README.md`](decisions/README.md) | ADR index and decision-history route. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Curated significant product/platform/security/cross-system milestones. |
 | [`TECHNICAL_WORK_LOG.md`](TECHNICAL_WORK_LOG.md) | Preserved historical engineering record through ADR-0069; no longer routine per-implementation bookkeeping. |
@@ -64,7 +64,7 @@ Development uses the three-stage workflow in `AGENTS.md` and ADR-0067. Final PR 
 
 Implementation/tooling PRs use `.github/pull_request_template.md` to declare documentation impact. `scripts/validate_documentation.py` verifies that the declaration is complete, rejects high-confidence path/declaration contradictions, and enforces mechanically determinable companion documents. Passing automation is a minimum gate; Stage 2 complete-diff semantic review remains authoritative for whether the declared impacts and documentation are truthful.
 
-The manual HestivaOS browser audit is an additional diagnostic layer documented in `OS_BROWSER_AUDIT_V1.md`. Its authentication setup reports only sanitized stage evidence for Supabase password sign-in and HestivaOS user synchronization when login fails; it must not expose credentials, tokens, response bodies or customer data. Its sanitized timing-summary artifact is required output, so the workflow fails if the expected JSON summary is missing instead of silently succeeding without performance evidence. The browser audit does not replace or weaken the four mandatory PR quality-gate jobs.
+The manual HestivaOS browser audit is an additional diagnostic layer documented in `OS_BROWSER_AUDIT_V1.md`. Its authentication setup reports only sanitized stage evidence for Supabase password sign-in and HestivaOS user synchronization when login fails; it must not expose credentials, tokens, response bodies or customer data. Its production-safe project may exercise bounded read-only controls such as search inputs, blocked native validation and expandable sections, but it must not submit valid operational mutations against production data. Its sanitized timing-summary artifact is required output, so the workflow fails if the expected JSON summary is missing instead of silently succeeding without performance evidence. The browser audit does not replace or weaken the four mandatory PR quality-gate jobs.
 
 ## Historical and diagnostic material
 

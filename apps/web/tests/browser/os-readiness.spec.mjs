@@ -38,6 +38,11 @@ function installFailureWatch(page) {
   return { pageErrors, serverErrors };
 }
 
+function expectClean(watch, label) {
+  expect(watch.pageErrors, `${label} raised browser page errors`).toEqual([]);
+  expect(watch.serverErrors, `${label} received HTTP 5xx responses`).toEqual([]);
+}
+
 async function openAndMeasure(page, label, path) {
   const watch = installFailureWatch(page);
   const startedAt = Date.now();
@@ -48,8 +53,20 @@ async function openAndMeasure(page, label, path) {
   const durationMs = Date.now() - startedAt;
   timings.push({ kind: 'direct-load', label, path, durationMs });
   expect(response?.status() ?? 200, `${path} returned an unsuccessful document status`).toBeLessThan(400);
-  expect(watch.pageErrors, `${path} raised browser page errors`).toEqual([]);
-  expect(watch.serverErrors, `${path} received HTTP 5xx responses`).toEqual([]);
+  expectClean(watch, path);
+}
+
+async function fillSearchAndVerify(page, { path, placeholder, value, label }) {
+  const watch = installFailureWatch(page);
+  await page.goto(path, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.appShell')).toBeVisible();
+  const input = page.getByPlaceholder(placeholder).first();
+  await expect(input, `${label} search control should be visible`).toBeVisible();
+  await input.fill(value);
+  await expect(input).toHaveValue(value);
+  await page.waitForTimeout(450);
+  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  expectClean(watch, label);
 }
 
 test.describe('authenticated route readiness', () => {
@@ -58,6 +75,61 @@ test.describe('authenticated route readiness', () => {
       await openAndMeasure(page, label, path);
     });
   }
+});
+
+test.describe('production-safe read-only interactions', () => {
+  test('Customers search accepts input without mutating records', async ({ page }) => {
+    await fillSearchAndVerify(page, {
+      path: '/customers',
+      placeholder: 'Search customers',
+      value: '__browser_audit_no_match__',
+      label: 'Customers search',
+    });
+  });
+
+  test('Properties customer lookup accepts input without submitting the form', async ({ page }) => {
+    await fillSearchAndVerify(page, {
+      path: '/properties',
+      placeholder: 'Search by customer or contact name',
+      value: '__browser_audit_no_match__',
+      label: 'Properties customer lookup',
+    });
+  });
+
+  test('Customers native validation blocks an empty create submission', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/customers', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    const form = page.locator('form.resourceForm').first();
+    const contactName = form.getByLabel('Contact name');
+    await contactName.fill('');
+    await form.getByRole('button', { name: 'Save customer' }).click();
+    await expect(contactName).toHaveJSProperty('validity.valid', false);
+    await expect(page).toHaveURL((url) => url.pathname === '/customers');
+    expectClean(watch, 'Customers validation');
+  });
+
+  test('Properties expandable sections can be inspected without saving', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/properties', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    const accessSection = page.locator('details.propertyFormSection').filter({ hasText: '4. Access & logistics' });
+    const careSection = page.locator('details.propertyFormSection').filter({ hasText: '5. Household & care' });
+    await accessSection.locator('summary').click();
+    await careSection.locator('summary').click();
+    await expect(accessSection).toHaveJSProperty('open', true);
+    await expect(careSection).toHaveJSProperty('open', true);
+    expectClean(watch, 'Properties expandable sections');
+  });
+
+  test('Admin settings exposes navigable settings destinations without changing state', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/admin/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+    const settingsLinks = page.locator('a[href^="/admin/settings/"]:visible');
+    expect(await settingsLinks.count(), 'Admin settings should expose at least one settings destination').toBeGreaterThan(0);
+    expectClean(watch, 'Admin settings navigation');
+  });
 });
 
 test('desktop primary navigation records client-transition timings', async ({ page }, testInfo) => {

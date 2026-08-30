@@ -46,8 +46,14 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.doesNotMatch(auth, /response\.json\(/);
   assert.doesNotMatch(auth, /console\.log\(/);
   assert.doesNotMatch(auth, /password\s*[:=].*console/i);
+  assert.match(readiness, /production-safe read-only interactions/);
+  assert.match(readiness, /Customers search accepts input without mutating records/);
+  assert.match(readiness, /Customers native validation blocks an empty create submission/);
+  assert.match(readiness, /Properties expandable sections can be inspected without saving/);
+  assert.match(readiness, /Admin settings exposes navigable settings destinations without changing state/);
   assert.match(readiness, /work-orders-transition/);
   assert.match(readiness, /HTTP 5xx responses/);
   assert.doesNotMatch(readiness, /response\.text\(/);
   assert.doesNotMatch(readiness, /response\.json\(/);
+  assert.doesNotMatch(readiness, /api\.(?:create|update|delete|send|complete|assign|upload)/);
 });
