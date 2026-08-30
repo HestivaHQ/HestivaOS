@@ -22,6 +22,7 @@ The browser audit is diagnostic. It does not replace the mandatory PR quality ga
 The current V1 executable matrix is intentionally read-only and production-compatible. It:
 
 - signs in through the real login UI;
+- records sanitized authentication-stage diagnostics when sign-in fails, limited to the generic login-page status plus whether the Supabase password request and HestivaOS `/users/sync` request were not observed, failed before an HTTP response, or returned a numeric HTTP status;
 - verifies authenticated shell readiness;
 - opens the primary and important secondary/admin routes on desktop and mobile Chromium;
 - fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route check;
@@ -29,7 +30,7 @@ The current V1 executable matrix is intentionally read-only and production-compa
 - samples Work Orders navigation three times independently because Work Orders has been observed to feel slightly slower than neighbouring routes;
 - writes only a sanitized JSON timing summary containing route names, route paths, project name and elapsed milliseconds.
 
-No screenshots, videos, Playwright traces, storage-state files, customer payloads, browser console dumps, access tokens or credentials are uploaded as workflow artifacts. Authentication state is ephemeral runner data under `.playwright/` and is git-ignored.
+No screenshots, videos, Playwright traces, storage-state files, customer payloads, browser console dumps, access tokens or credentials are uploaded as workflow artifacts. Authentication diagnostics never read or print response bodies, request bodies, tokens, passwords, email values, full request URLs or browser storage. Authentication state is ephemeral runner data under `.playwright/` and is git-ignored.
 
 ## Current executable route matrix
 
@@ -66,7 +67,7 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 
 | Journey | Representative browser scenarios | V1 execution state |
 | --- | --- | --- |
-| Authentication and access | valid sign-in; invalid sign-in; protected-route redirect; role-visible navigation; inactive/unauthorised access | Valid ADMIN sign-in + protected route access active; negative/role matrix pending isolated identities |
+| Authentication and access | valid sign-in; invalid sign-in; protected-route redirect; role-visible navigation; inactive/unauthorised access | Valid ADMIN sign-in + protected route access active; sanitized Supabase/password and `/users/sync` failure-stage diagnostics active; negative/role matrix pending isolated identities |
 | Dashboard / Needs Attention | command-centre renders; actionable links open correct records; no browser/server errors; transition timing | Route readiness active; record-specific actions pending fixtures |
 | Customers | search; create; edit; validation; customer details remain visible after refresh | Route readiness active; mutation scenarios pending isolated environment |
 | Properties | search; customer association; create/edit; controlled property type; validation | Route readiness active; mutation scenarios pending isolated environment |
@@ -127,6 +128,8 @@ The workflow requires a `base_url` input at dispatch time and exports it only as
 ## How to interpret a run
 
 A failed route scenario means the browser observed an actionable readiness failure such as an HTTP document error, a browser page exception, an HTTP 5xx response, authentication failure, or missing authenticated shell. A green route scenario proves only that the route opened cleanly for that identity; it does not prove every button on that screen works.
+
+When authentication fails before navigation, the error reports only the safe stage evidence needed to distinguish cases such as a Supabase password request returning an HTTP error, a successful Supabase request followed by a failing HestivaOS `/users/sync` call, or a network/CORS failure before an HTTP response. The diagnostic intentionally does not inspect response bodies or expose request URLs, credentials, tokens, user data or browser storage.
 
 The sanitized timing artifact is comparative evidence. It is not customer/business data and must remain that way. Do not add response bodies, screenshots, DOM snapshots, traces, tokens, message text, customer names, addresses, phone numbers or email content to the artifact.
 
