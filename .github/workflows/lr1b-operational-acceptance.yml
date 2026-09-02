@@ -1,0 +1,59 @@
+name: HestivaOS LR-1B Operational Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Approved pre-launch HestivaOS origin'
+        required: true
+        type: string
+      confirm_acceptance:
+        description: 'Type RUN LR1B ACCEPTANCE to enable the destructive/mutating acceptance lane'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  role-interface-foundation:
+    name: LR-1B role interface foundation
+    if: ${{ inputs.confirm_acceptance == 'RUN LR1B ACCEPTANCE' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HESTIVA_LR1B_ACCEPTANCE_ENABLED: 'true'
+      HESTIVA_LR1B_BASE_URL: ${{ inputs.base_url }}
+      HESTIVA_LR1B_ADMIN_EMAIL: ${{ secrets.HESTIVA_LR1B_ADMIN_EMAIL }}
+      HESTIVA_LR1B_ADMIN_PASSWORD: ${{ secrets.HESTIVA_LR1B_ADMIN_PASSWORD }}
+      HESTIVA_LR1B_SUPERVISOR_EMAIL: ${{ secrets.HESTIVA_LR1B_SUPERVISOR_EMAIL }}
+      HESTIVA_LR1B_SUPERVISOR_PASSWORD: ${{ secrets.HESTIVA_LR1B_SUPERVISOR_PASSWORD }}
+      HESTIVA_LR1B_TECHNICIAN_LEAD_EMAIL: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_LEAD_EMAIL }}
+      HESTIVA_LR1B_TECHNICIAN_LEAD_PASSWORD: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_LEAD_PASSWORD }}
+      HESTIVA_LR1B_TECHNICIAN_MEMBER_EMAIL: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_MEMBER_EMAIL }}
+      HESTIVA_LR1B_TECHNICIAN_MEMBER_PASSWORD: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_MEMBER_PASSWORD }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked application dependencies
+        run: npm ci
+
+      - name: Validate LR-1B acceptance configuration
+        run: node apps/web/scripts/validate-lr1b-acceptance-env.mjs
+
+      - name: Install CI-only Playwright test runner
+        run: npm install --no-save --ignore-scripts @playwright/test@1.54.2
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated role-interface acceptance foundation
+        run: npx playwright test --config apps/web/playwright.acceptance.config.mjs
