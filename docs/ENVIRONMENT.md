@@ -17,6 +17,7 @@ This inventory documents names only. Values must never be committed. A `NEXT_PUB
 - `NEXT_PUBLIC_SUPABASE_URL` (supported API fallback for the project URL)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (supported API fallback where existing API code requires the anonymous client credential)
 - `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS` — required positive integer maximum lifetime for newly issued secure customer Quote capabilities. The effective expiry is always the earlier of this configured lifetime and the canonical Quote `validUntil`. There is intentionally no source-code default; issuance fails closed if the value is missing or invalid.
+- `HESTIVA_LAUNCH_BASELINE_RESET_ENABLED` — destructive pre-launch reset gate. Leave unset/false during ordinary operation. Set to `true` only for a deliberate LR-1 acceptance/final-reset window, then disable it again before the first real operational mutation. This value is API-only and must never be exposed through a `NEXT_PUBLIC_` variable.
 
 ### Quote email / Resend runtime
 
@@ -117,6 +118,7 @@ The manual `HestivaOS Browser Audit` workflow has its own dedicated read-only di
 - `NEXT_PUBLIC_SUPABASE_PROFILE_BUCKET`
 - `NEXT_PUBLIC_SUPABASE_WORK_ORDER_PHOTOS_BUCKET`
 - `HESTIVA_QUOTE_CUSTOMER_LINK_MAX_LIFETIME_SECONDS`
+- `HESTIVA_LAUNCH_BASELINE_RESET_ENABLED`
 - `RESEND_API_KEY`
 - `RESEND_WEBHOOK_SIGNING_SECRET`
 - `HESTIVA_CORRESPONDENCE_QUOTE_FROM`
