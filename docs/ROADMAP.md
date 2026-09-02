@@ -89,6 +89,8 @@ Safety requirements:
 
 The final pre-launch use of this capability must produce a verified **launch baseline**: no test Customers, Quotes, Work Orders, Shifts, recurring agreements, disposable messaging/correspondence records, test evidence, test website/contact-enquiry intake, or orphaned test Storage objects remain, while all canonical launch configuration and authorized identities remain intact.
 
+A successful final reset is a launch gate. Real operations must not begin until the post-reset verification proves that the OS is on the documented launch baseline and the first real operational reference/counter sequence will not be polluted by disposable acceptance data where those sequences are intended to start clean.
+
 ### LR-1B — Full Operational Acceptance Test
 
 The production-safe Browser Audit proves broad route/read/UI operativeness but intentionally does not prove the complete mutation lifecycle. After LR-1A establishes a genuinely disposable and verifiable acceptance boundary, HestivaOS must run a coordinated full operational acceptance test.
