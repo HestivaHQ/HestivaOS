@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 import { api } from '../../lib/api';
@@ -16,11 +16,16 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const submissionInFlight = useRef(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submissionInFlight.current) return;
+    if (!hydrated || submissionInFlight.current) return;
     submissionInFlight.current = true;
     setLoading(true);
     setMessage(null);
@@ -54,6 +59,7 @@ export default function LoginPage() {
   }
 
   const signIn = mode === 'sign-in';
+  const interactive = hydrated && !loading;
 
   return (
     <main className="loginShell">
@@ -79,7 +85,7 @@ export default function LoginPage() {
               : 'Create your Hestiva OS account using your work email.'}
           </p>
 
-          <form className="loginForm" onSubmit={handleSubmit}>
+          <form className="loginForm" onSubmit={handleSubmit} aria-busy={!hydrated || loading}>
             <label className="formField">
               <span>Email address</span>
               <input
@@ -88,6 +94,7 @@ export default function LoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
                 inputMode="email"
+                disabled={!interactive}
                 required
               />
             </label>
@@ -100,13 +107,14 @@ export default function LoginPage() {
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={signIn ? 'current-password' : 'new-password'}
                 minLength={6}
+                disabled={!interactive}
                 required
               />
             </label>
 
             {message ? <p className="formMessage" role="status" aria-live="polite">{message}</p> : null}
 
-            <button className="primaryButton" type="submit" disabled={loading}>
+            <button className="primaryButton" type="submit" disabled={!interactive}>
               {loading ? (signIn ? 'Signing in…' : 'Creating account…') : signIn ? 'Sign in' : 'Create account'}
             </button>
           </form>
@@ -114,6 +122,7 @@ export default function LoginPage() {
           <button
             className="quietButton"
             type="button"
+            disabled={!interactive}
             onClick={() => {
               setMode(signIn ? 'sign-up' : 'sign-in');
               setMessage(null);
