@@ -70,7 +70,8 @@ The reset must preserve at minimum:
 - required application roles, authorized launch Users and approved employee/technician identities unless an identity is explicitly marked as disposable acceptance identity;
 - security configuration, authorization policy, environment/provider configuration and repository/deployment state;
 - immutable security/audit evidence whose deletion would undermine the system's audit model, unless a separately approved test-only audit partition makes removal safe;
-- canonical system configuration required for the first real Customer/Quote/Work Order.
+- canonical system configuration required for the first real Customer/Quote/Work Order;
+- non-test website/contact-enquiry intake history or any other real inbound business record that the reset classification proves is not acceptance-owned. Website/contact-enquiry records must be included in the reset audit and removed only when they are explicitly identified as disposable test intake.
 
 Safety requirements:
 
@@ -85,7 +86,7 @@ Safety requirements:
 - post-reset smoke check proving preserved configuration still supports a new clean Customer → Quote/Work Order journey;
 - recovery/runbook documentation for failed or partially completed reset operations.
 
-The final pre-launch use of this capability must produce a verified **launch baseline**: no test Customers, Quotes, Work Orders, Shifts, recurring agreements, disposable messaging/correspondence records, test evidence or orphaned test Storage objects remain, while all canonical launch configuration and authorized identities remain intact.
+The final pre-launch use of this capability must produce a verified **launch baseline**: no test Customers, Quotes, Work Orders, Shifts, recurring agreements, disposable messaging/correspondence records, test evidence, test website/contact-enquiry intake, or orphaned test Storage objects remain, while all canonical launch configuration and authorized identities remain intact.
 
 ### LR-1B — Full Operational Acceptance Test
 
