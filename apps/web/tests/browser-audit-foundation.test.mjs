@@ -10,6 +10,7 @@ const browserFiles = [
   'tests/browser/auth.setup.mjs',
   'tests/browser/os-readiness.spec.mjs',
   'tests/browser/office-readonly.spec.mjs',
+  'tests/browser/profile-readonly.spec.mjs',
   'scripts/validate-browser-audit-env.mjs',
 ];
 
@@ -20,14 +21,15 @@ test('browser audit JavaScript sources are syntactically valid', () => {
 });
 
 test('browser audit remains manual, read-only and credential-safe by construction', async () => {
-  const [workflow, config, auth, readiness, office] = await Promise.all([
+  const [workflow, config, auth, readiness, office, profile] = await Promise.all([
     read('../../.github/workflows/os-browser-audit.yml'),
     read('playwright.config.mjs'),
     read('tests/browser/auth.setup.mjs'),
     read('tests/browser/os-readiness.spec.mjs'),
     read('tests/browser/office-readonly.spec.mjs'),
+    read('tests/browser/profile-readonly.spec.mjs'),
   ]);
-  const productionSafeSources = `${readiness}\n${office}`;
+  const productionSafeSources = `${readiness}\n${office}\n${profile}`;
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /\nschedule:/);
@@ -88,6 +90,15 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(office, /Cleaning Job Templates native validation blocks an empty save/);
   assert.match(office, /Save template/);
   assert.match(office, /validity\.valid/);
+
+  assert.match(profile, /production-safe profile interactions/);
+  assert.match(profile, /Profile account controls expose read-only email and block empty submissions natively/);
+  assert.match(profile, /Confirmed email/);
+  assert.match(profile, /readOnly/);
+  assert.match(profile, /Save personal information/);
+  assert.match(profile, /Request email change/);
+  assert.match(profile, /Change password/);
+  assert.match(profile, /validity\.valid/);
 
   assert.doesNotMatch(productionSafeSources, /response\.text\(/);
   assert.doesNotMatch(productionSafeSources, /response\.json\(/);
