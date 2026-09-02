@@ -24,7 +24,15 @@ LR-1B run #10 executed on deployed `main` `680d70fbe31ff0b17496e2786cda8da8b74f7
 
 The failure was a harness synchronization defect. `searchEmployee()` unconditionally waited for a fresh `GET /employees?search=...` response every time it ran. After the first Employee save, the search input already contained the same controlled email. Filling the same value does not trigger React state change or another Employee request, so the harness waited for a network event that the product had no reason to emit and timed out. This is not evidence of an Employee persistence, status-mutation or authorization defect.
 
-The rerun fix now waits for the Employee search response only when the search value actually changes. If the desired email filter is already active, it verifies the deterministic visible Employee card directly. Initial create/reuse detection still waits for the changed-filter response before deciding whether a record is absent, preserving rerun safety and preventing accidental duplicate Employee records.
+The run #10 fix made the response wait conditional on the filter value changing, while direct card verification handled an already-active filter.
+
+## Run #11 evidence
+
+LR-1B run #11 executed on deployed `main` `223e45a9700465eb47e683f4e41def27492840ff`. All eight acceptance-auth tests, the ADMIN office-interface check, the Supervisor interface check and both Technician mobile-interface checks passed again. S1 failed during the first Employee create/reuse decision; S2 and S3 remained correctly skipped by the serial suite.
+
+Run #11 proved that even a conditional `waitForResponse` remained the wrong abstraction for this UI. Employee Records owns a debounced client-side search state, while the acceptance requirement is the visible product state, not a particular transport event. The test timed out waiting for an inferred Employee GET response before any Employee persistence assertion failed.
+
+The rerun fix removes `waitForResponse` from Employee acceptance entirely. For create/reuse detection, it uses the existing Workforce identity links panel as the settled real-UI source: that panel loads Employee, User and Technician options together, and the controlled Technician option created earlier in S1 is used as the load-completion sentinel. Only after that option is visible does the harness inspect the deterministic Employee reference option to decide whether to reuse or create the Employee Record. Existing records are then located through the normal Employee search box and deterministic visible Employee card. No product API, persistence, authorization or UI behavior changes for this defect.
 
 ## S1 — Technician and Employee records
 
@@ -34,8 +42,8 @@ The ADMIN acceptance project now uses the real browser UI to establish the two c
 - saves controlled skills and disposable acceptance notes;
 - mutates the Job Leader Technician from ACTIVE to INACTIVE and back to ACTIVE, proving the workforce-status mutation while leaving the final operational state usable;
 - creates or reuses deterministic Employee Records for the two Technician identities;
-- searches Employee Records by the controlled email address but verifies the returned card through its deterministic visible Employee name/status, matching the actual Employee-list presentation contract;
-- waits for a search request only when changing the Employee filter, and otherwise waits on the already-filtered visible card state;
+- waits for the Workforce identity links panel's controlled Technician option before deciding Employee create/reuse state, proving the panel's combined Employee/User/Technician load has settled through visible UI;
+- identifies an existing Employee Record by its deterministic Employee reference option and then locates its card through the real email search plus visible Employee name;
 - mutates the Job Leader Employee Record from ACTIVE to INACTIVE and back to ACTIVE;
 - uses the Employee Records **Workforce identity links** panel introduced by PR #278 to link each Employee Record to the existing HestivaOS User and authoritative Technician through the normal ADMIN UI;
 - reloads and verifies that the User and Technician links persist.
@@ -73,7 +81,7 @@ The final S3 state intentionally leaves no LR-1B acceptance shift residue. The E
 
 The slice remains inside the existing manual-only LR-1B workflow, separate authenticated ADMIN session, provider-edge request guard, no screenshot/trace/video policy and Meta exclusion. Deterministic record names/references make reruns reconcile existing acceptance workforce rather than intentionally multiplying fixtures. The tests are serial and fail closed: if S1 fails, S2/S3 do not become acceptance evidence.
 
-Normal pull-request CI does not execute production mutations. It syntax-checks the acceptance source and verifies source-level invariants requiring the real Technician, Employee, Crew and Shift browser routes while rejecting direct Supabase/Prisma/database/fetch/provider shortcuts in the workforce spec. It also guards against regressing to either invalid Employee assumption discovered in runs #9 and #10: requiring email inside the Employee card, or requiring a new Employee search request when the filter value has not changed.
+Normal pull-request CI does not execute production mutations. It syntax-checks the acceptance source and verifies source-level invariants requiring the real Technician, Employee, Crew and Shift browser routes while rejecting direct Supabase/Prisma/database/fetch/provider shortcuts in the workforce spec. It also guards against regressing to the invalid Employee assumptions discovered in runs #9–#11: matching hidden email text inside the Employee card or coupling acceptance to `waitForResponse` transport events.
 
 ## Acceptance rule
 

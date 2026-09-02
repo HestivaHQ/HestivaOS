@@ -85,9 +85,10 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
 
   assert.match(workforce, /page\.goto\('\/technicians'/);
   assert.match(workforce, /page\.goto\('\/employees'/);
-  assert.match(workforce, /filterEmployees\(page, email\)/);
-  assert.match(workforce, /if \(await search\.inputValue\(\) !== email\)/);
+  assert.match(workforce, /getByLabel\('Linked Technician'\)[\s\S]{0,160}hasText: visibleName/);
+  assert.match(workforce, /getByLabel\('Employee record'\)[\s\S]{0,120}hasText: reference/);
   assert.match(workforce, /await expect\(card\)\.toBeVisible\(\)/);
+  assert.doesNotMatch(workforce, /waitForResponse/);
   assert.doesNotMatch(workforce, /employeeCard[\s\S]{0,80}hasText: email/);
   assert.match(workforce, /Save workforce links/);
   assert.match(workforce, /page\.goto\('\/crews'/);
