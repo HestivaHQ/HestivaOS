@@ -38,6 +38,18 @@ The intended LR-1B role topology is:
 
 No acceptance user is created by inserting directly into `public.users` or `auth.users`. Creating the workforce is itself part of the acceptance evidence for Admin access management and Supabase identity reconciliation.
 
+### Required identity/provisioning sequence
+
+The normal product lifecycle requires a HestivaOS `User` to exist before ADMIN can assign its application role. Therefore LR-1B must execute identity readiness in this order:
+
+1. ADMIN signs in through the normal login UI and saves only the ADMIN browser session state.
+2. Each controlled workforce identity performs a bootstrap sign-in through the normal login UI so Supabase authentication and HestivaOS `/users/sync` create/reconcile the application user where needed. These bootstrap sessions are discarded and are not role-interface acceptance evidence.
+3. ADMIN opens the real `/admin/settings/user-access` interface, searches each controlled workforce user, assigns the intended `SUPERVISOR`/`TECHNICIAN` application role where needed and ensures OS access is ACTIVE. No direct database or privileged test-only mutation is allowed.
+4. Supervisor and both Technician identities then sign in again with their own credentials in fresh browser contexts. Only these post-provisioning sessions are stored for role-specific acceptance projects.
+5. The setup is serial/fail-closed: if ADMIN authentication, identity bootstrap or ADMIN provisioning fails, downstream role-interface scenarios do not run.
+
+This ordering prevents a default/bootstrap role from being mistaken for the intended acceptance role and makes A2 a real Admin UI operation rather than a test precondition hidden outside HestivaOS.
+
 ## Role-interface acceptance requirement
 
 Creating the role records is not sufficient. Every acceptance identity must prove the **actual user experience for that role** through a real authenticated browser session.
@@ -84,13 +96,13 @@ No role interface is considered accepted merely because authentication succeeds 
 
 Production deployment at the start of this ledger includes the merged public Data API hardening from PR #272. Post-deployment inspection verified that `anon` and `authenticated` have zero public business tables with DML privileges and the Supabase security advisor no longer reports the prior public-table/RLS exposure.
 
-Current application-role inventory, verified read-only from production on 2026-09-02:
+Application-role inventory at the start of the ledger, verified read-only from production on 2026-09-02, was:
 
 - ADMIN: 2 ACTIVE users.
 - SUPERVISOR: 0 ACTIVE users.
-- TECHNICIAN: 0 ACTIVE users; 1 Technician user exists but is INACTIVE.
+- TECHNICIAN: 0 ACTIVE users; 1 Technician user existed but was INACTIVE.
 
-This means the ADMIN acceptance path can proceed immediately. The intended test will resolve Supervisor/Technician readiness through the real Admin invitation/role/access flow rather than direct database mutation.
+That was the **starting** inventory, not the current acceptance state. The controlled Supervisor and two Technician identities were subsequently invited/accepted through the supported flow and synchronized by real sign-in. LR-1B run #7 on deployed main `edfa8f1e98a140e24ac201fa39702d3f231898e0` verified successful authentication for ADMIN, Supervisor and both Technician credentials. The Supervisor role-interface check then failed while navigating to `/work-orders`, exposing that the harness had authenticated role sessions before ADMIN performed A2 role provisioning. No Supabase authentication failure remained in run #7.
 
 Current durable operational residue at LR-1B start includes existing Customers, Properties, Quotes, Work Orders, Messaging records and one Website enquiry. That state is intentionally not reset before the acceptance run.
 
@@ -98,12 +110,12 @@ Current durable operational residue at LR-1B start includes existing Customers, 
 
 | ID | Scenario | Current state | Evidence / blocker |
 | --- | --- | --- | --- |
-| A1 | ADMIN valid sign-in and protected-route access | BASELINE EVIDENCE EXISTS | Production-safe Browser Audit already signs in through the real UI with the dedicated ADMIN identity and traverses authenticated routes. LR-1B mutation evidence still pending. |
-| A2 | ADMIN invites acceptance workforce and assigns roles/access | READY | Must use canonical Admin invitation, synchronization, role and access flows; controlled internal addresses required. |
-| A3 | SUPERVISOR real login and role-specific interface | PENDING IDENTITY CREATION | Must use own credentials/session and comprehensively test Supervisor-visible UI, workflows, refresh and denials. |
-| A4 | TECHNICIAN #1 real login and role-specific phone interface | PENDING IDENTITY CREATION | Must use own credentials/session; intended Job Leader acceptance identity. |
-| A5 | TECHNICIAN #2 real login and role-specific phone interface | PENDING IDENTITY CREATION | Must use own credentials/session; intended non-leader acceptance identity. |
-| A6 | Inactive/unauthorized access denial | PARTIAL / PENDING | API/browser foundations exist; full role matrix follows acceptance identity creation. |
+| A1 | ADMIN valid sign-in and protected-route access | PASS FOUNDATION | LR-1B run #7 authenticated ADMIN successfully and opened the office interface. Broader mutation evidence remains part of later scenarios. |
+| A2 | ADMIN invites acceptance workforce and assigns roles/access | READY FOR RERUN | Controlled identities already exist from the supported invitation/acceptance flow. The harness now must bootstrap/sync them, then use the real ADMIN User Access UI to set intended roles/access before role sessions are stored. |
+| A3 | SUPERVISOR real login and role-specific interface | READY AFTER A2 | Run #7 proved credentials/authentication, but the pre-provisioning Supervisor session was not valid role-interface evidence and `/work-orders` navigation aborted. Rerun only after A2 completes in-sequence. |
+| A4 | TECHNICIAN #1 real login and role-specific phone interface | READY AFTER A2 | Run #7 proved credentials/authentication. Fresh post-provisioning Technician session is required before operational acceptance evidence is counted. |
+| A5 | TECHNICIAN #2 real login and role-specific phone interface | READY AFTER A2 | Run #7 proved credentials/authentication. Fresh post-provisioning Technician session is required before operational acceptance evidence is counted. |
+| A6 | Inactive/unauthorized access denial | PARTIAL / PENDING | API/browser foundations exist; full role matrix follows post-A2 role sessions. |
 | C1 | Customer create, reload, edit, validation | PENDING | Valid mutation intentionally excluded from production-safe Browser Audit. |
 | C2 | Property create/associate/reload/edit | PENDING | Valid mutation intentionally excluded from production-safe Browser Audit. |
 | Q1 | Quote intake/review/revision | PENDING | Requires controlled acceptance fixture. |
@@ -113,12 +125,12 @@ Current durable operational residue at LR-1B start includes existing Customers, 
 | S1 | Technician/Employee records and skills/status mutations | PENDING | Use supported Admin UI/API only. |
 | S2 | Crew create/edit/leadership/member persistence | PENDING | Must prove Job Leader and non-leader distinctions. |
 | S3 | Shift create/edit/copy/delete where supported | PENDING | Exercise crew/technician/Work Order selectors and reload persistence. |
-| T1 | Technician assigned-job visibility and Start Job | PENDING IDENTITY CREATION | Requires ACTIVE Technician and disposable assigned Work Order. |
+| T1 | Technician assigned-job visibility and Start Job | PENDING | Requires post-A2 Technician sessions and disposable assigned Work Order. |
 | T2 | Checklist outcomes and field exception/additional-work paths | PENDING | Run through Technician phone interface. |
 | T3 | Offline queue/reconciliation and refresh/reload behavior | PENDING | Must prove local-first boundaries without corrupting authoritative state. |
 | T4 | Photo/evidence capture, persistence, private reload | PENDING | Use only disposable acceptance evidence. |
-| T5 | Job Leader completion and non-leader denial | PENDING | Requires both Technician users signed into their own sessions. |
-| O1 | Supervisor operational review and correction | PENDING IDENTITY CREATION | Must run through Supervisor's own authenticated interface using Technician-created execution state. |
+| T5 | Job Leader completion and non-leader denial | PENDING | Requires both Technician users signed into their own post-A2 sessions. |
+| O1 | Supervisor operational review and correction | PENDING | Must run through Supervisor's own post-A2 authenticated interface using Technician-created execution state. |
 | O2 | Incident/interruption/replacement-visit paths | PENDING | Exercise bounded launch-supported variants through Supervisor/ADMIN interfaces as contract requires. |
 | R1 | Recurring service create/pause/resume/cancel/generate | PENDING | Read/reference coverage exists; valid mutation pending. |
 | M1 | Employee and Business List mutations intended for launch | PENDING | Must preserve canonical controlled-input behavior. |
@@ -132,14 +144,14 @@ Current durable operational residue at LR-1B start includes existing Customers, 
 | X1 | Correspondence materialization/render/history without delivery | PENDING | External delivery suppressed. |
 | X2 | Provider-neutral internal Messaging/Quote state | PENDING | Must not invoke Meta provider edges; PR #214 remains separate future state until merged. |
 | X3 | Meta WhatsApp/Messenger provider integration | EXCLUDED | Explicitly outside LR-1B. No provider sends/configuration/API smoke in this run. |
-| N1 | Negative authorization matrix by role | PENDING IDENTITY CREATION | ADMIN/SUPERVISOR/TECHNICIAN allow/deny checks after A2. |
+| N1 | Negative authorization matrix by role | PENDING | ADMIN/SUPERVISOR/TECHNICIAN allow/deny checks after A2. |
 | I1 | Refresh/reload/idempotency/replay | PENDING | Execute alongside every applicable mutation scenario rather than as one isolated check. |
 | F1 | Validation/failure/retry/recovery | PENDING | Exercise important operational boundaries with bounded failures and recoveries. |
 | D1 | Desktop launch-critical ADMIN paths | PARTIAL | Broad production-safe desktop readiness exists; mutation acceptance pending. |
-| D2 | Desktop launch-critical SUPERVISOR interface | PENDING IDENTITY CREATION | Comprehensive own-session Supervisor UI/workflow acceptance after A2. |
-| D3 | Phone launch-critical SUPERVISOR paths where product supports them | PENDING IDENTITY CREATION | Verify real responsive/mobile Supervisor experience only for intended launch operations. |
-| D4 | Phone TECHNICIAN #1 interface | PENDING IDENTITY CREATION | Full Job Leader field workflow in own session. |
-| D5 | Phone TECHNICIAN #2 interface | PENDING IDENTITY CREATION | Full non-leader field workflow and denial checks in own session. |
+| D2 | Desktop launch-critical SUPERVISOR interface | READY AFTER A2 | Comprehensive own-session Supervisor UI/workflow acceptance follows successful ADMIN provisioning. |
+| D3 | Phone launch-critical SUPERVISOR paths where product supports them | READY AFTER A2 | Verify real responsive/mobile Supervisor experience only for intended launch operations. |
+| D4 | Phone TECHNICIAN #1 interface | READY AFTER A2 | Full Job Leader field workflow in a fresh post-provisioning session. |
+| D5 | Phone TECHNICIAN #2 interface | READY AFTER A2 | Full non-leader field workflow and denial checks in a fresh post-provisioning session. |
 | Z1 | Launch-baseline preview against full acceptance residue | DEFERRED | Run only after all mutation scenarios/defect reruns are complete. |
 | Z2 | Final launch-baseline reset and residue proof | DEFERRED | Must remove disposable acceptance rows/private operational Storage while preserving canonical configuration/authorized launch identities. |
 | Z3 | Post-reset clean smoke journey | DEFERRED | Prove preserved configuration can create the first clean Customer → Quote/Work Order after reset, then remove that final smoke fixture if required by launch baseline policy. |
@@ -148,8 +160,8 @@ Current durable operational residue at LR-1B start includes existing Customers, 
 
 The acceptance run should traverse the OS as one connected business operating cycle rather than isolated page clicks. The preferred backbone is:
 
-1. ADMIN signs in and creates/activates the acceptance workforce through supported Admin access management.
-2. SUPERVISOR and both TECHNICIAN users complete real login through their own credentials and role-specific interfaces before operational scenarios are marked ready.
+1. ADMIN signs in; controlled workforce identities bootstrap/synchronize through real login; ADMIN then assigns/validates intended roles and ACTIVE access through User Access.
+2. SUPERVISOR and both TECHNICIAN users complete fresh real login through their own credentials and role-specific interfaces after A2.
 3. ADMIN creates or updates a disposable Employee/Technician setup, Crew and Shift structure.
 4. ADMIN creates a disposable Customer and Property.
 5. ADMIN exercises Quote creation/intake, review, revision and accepted handoff.
@@ -172,6 +184,7 @@ The LR-1B acceptance programme should extend the same Playwright architecture wi
 
 - require an explicit acceptance-enable switch/input;
 - use dedicated secrets for the ADMIN operator and controlled SUPERVISOR/TECHNICIAN acceptance identities;
+- sequence ADMIN authentication, workforce bootstrap/sync, real ADMIN User Access role/access provisioning, then fresh role-specific authentication before role-interface projects;
 - create separate authenticated browser storage/session state for ADMIN, SUPERVISOR, TECHNICIAN #1 and TECHNICIAN #2 rather than reusing ADMIN state across roles;
 - explicitly validate the signed-in role before executing that role's project;
 - execute role-specific projects against their intended desktop/mobile device profiles;

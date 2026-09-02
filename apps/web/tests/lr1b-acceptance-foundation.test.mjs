@@ -53,6 +53,7 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
 
   assert.match(validator, /HESTIVA_LR1B_ACCEPTANCE_ENABLED/);
   assert.match(validator, /distinct email addresses/);
+  assert.match(auth, /setup\.describe\.configure\(\{ mode: 'serial' \}\)/);
   assert.match(auth, /waitForLoginReady\(page\)/);
   assert.match(auth, /toBeEnabled\(\{ timeout: 12_000 \}\)/);
   assert.doesNotMatch(auth, /dispatchEvent/);
@@ -63,6 +64,17 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.doesNotMatch(auth, /response\.text\(/);
   assert.doesNotMatch(auth, /response\.json\(/);
   assert.doesNotMatch(auth, /postData(?:JSON)?\(/);
+
+  const adminAuth = auth.indexOf("setup('authenticate LR-1B admin identity'");
+  const bootstrap = auth.indexOf('bootstrap LR-1B ${role} identity through normal sign-in');
+  const provision = auth.indexOf("setup('ADMIN provisions LR-1B workforce roles and access through User Access'");
+  const roleAuth = auth.indexOf('authenticate LR-1B ${role} identity after ADMIN provisioning');
+  assert.ok(adminAuth >= 0 && bootstrap > adminAuth && provision > bootstrap && roleAuth > provision);
+  assert.match(auth, /page\.goto\('\/admin\/settings\/user-access'/);
+  assert.match(auth, /getByLabel\('Application role'\)/);
+  assert.match(auth, /selectOption\(desiredRole\)/);
+  assert.match(auth, /getByRole\('button', \{ name: 'Enable access' \}\)/);
+  assert.match(auth, /installAcceptanceSafetyGuard\(page\)/);
 
   assert.match(login, /useEffect\(\(\) => \{/);
   assert.match(login, /setHydrated\(true\)/);
