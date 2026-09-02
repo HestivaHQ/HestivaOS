@@ -15,6 +15,10 @@ function expectClean(watch, label) {
   expect(watch.serverErrors, `${label} received HTTP 5xx responses`).toEqual([]);
 }
 
+async function requestNativeSubmit(form, submitButton) {
+  await form.evaluate((element, button) => element.requestSubmit(button), await submitButton.elementHandle());
+}
+
 test.describe('production-safe office interactions', () => {
   test('Employee Records search and status filters remain read-only', async ({ page }) => {
     const watch = installFailureWatch(page);
@@ -86,5 +90,35 @@ test.describe('production-safe office interactions', () => {
     await expect(page).toHaveURL((url) => url.pathname === '/cleaning-job-templates');
     await expect(form.getByRole('heading', { name: 'New template', exact: true })).toBeVisible();
     expectClean(watch, 'Cleaning Job Templates required-field validation');
+  });
+
+  test('Create Work Order reference searches stay read-only and invalid save is blocked', async ({ page }) => {
+    const watch = installFailureWatch(page);
+    await page.goto('/work-orders/new', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.appShell')).toBeVisible();
+
+    const form = page.locator('form.resourceForm').first();
+    await expect(form.getByRole('heading', { name: 'New work order', exact: true })).toBeVisible();
+
+    const customerSearch = form.getByRole('searchbox', { name: 'Search customers', exact: true });
+    const crewSearch = form.getByRole('searchbox', { name: 'Search crews', exact: true });
+    const technicianSearch = form.getByRole('searchbox', { name: 'Search eligible technicians', exact: true });
+    const serviceSearch = form.getByRole('searchbox', { name: 'Search primary services', exact: true });
+    const addOnSearch = form.getByRole('searchbox', { name: 'Search add-ons', exact: true });
+
+    for (const search of [customerSearch, crewSearch, technicianSearch, serviceSearch, addOnSearch]) {
+      await search.fill('__browser_audit_no_match__');
+      await expect(search).toHaveValue('__browser_audit_no_match__');
+    }
+    await page.waitForTimeout(500);
+
+    const primaryService = form.getByRole('combobox', { name: 'Primary Service', exact: true });
+    await expect(primaryService).toHaveValue('');
+    await requestNativeSubmit(form, form.getByRole('button', { name: 'Save work order', exact: true }));
+    await expect(primaryService).toHaveJSProperty('validity.valid', false);
+
+    await expect(page).toHaveURL((url) => url.pathname === '/work-orders/new');
+    await expect(form.getByRole('heading', { name: 'New work order', exact: true })).toBeVisible();
+    expectClean(watch, 'Create Work Order reference searches and validation');
   });
 });
