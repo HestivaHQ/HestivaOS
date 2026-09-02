@@ -33,6 +33,7 @@ Load context in this order:
 | [`RECOVERY_GUIDE.md`](RECOVERY_GUIDE.md) | Current incident/recovery procedure. |
 | [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) | Routing for active cross-repository/provider coordination. |
 | [`OS_BROWSER_AUDIT_V1.md`](OS_BROWSER_AUDIT_V1.md) | Browser-level OS readiness, timing, production-safe interaction coverage, safety boundary and functional scenario matrix. |
+| [`LR1B_OPERATIONAL_ACCEPTANCE_V1.md`](LR1B_OPERATIONAL_ACCEPTANCE_V1.md) | Pre-launch whole-OS operational acceptance execution ledger, role topology, Meta exclusion and final reset sequencing. |
 | [`decisions/README.md`](decisions/README.md) | ADR index and decision-history route. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Curated significant product/platform/security/cross-system milestones. |
 | [`TECHNICAL_WORK_LOG.md`](TECHNICAL_WORK_LOG.md) | Preserved historical engineering record through ADR-0069; no longer routine per-implementation bookkeeping. |
@@ -54,7 +55,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 | Work Order access recovery | `WORK_ORDER_ACCESS_OPERATIONS_V1.md`, `WORK_ORDER_ACCESS_RECOVERY_V1.md` | Work Order access + messaging recovery | ADR-0058–0061; Issue #116 when provider/shared messaging changes |
 | Needs Attention / Supervisor operations | Needs Attention and Supervisor focused docs; Architecture current section | attention/dashboard/supervisor modules and UI | ADR-0053, ADR-0063 |
 | Finance | `FINANCIAL_ARCHITECTURE.md` and `financial/` policy documents | Finance runtime when implemented | financial ADRs/policy authority; provider decision when applicable |
-| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, `OS_BROWSER_AUDIT_V1.md`, this router | `.github/workflows`, `scripts`, platform config, browser diagnostics | ADR-0001–0012 as relevant, ADR-0067, ADR-0069 |
+| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, `OS_BROWSER_AUDIT_V1.md`, `LR1B_OPERATIONAL_ACCEPTANCE_V1.md`, this router | `.github/workflows`, `scripts`, platform config, browser diagnostics/acceptance | ADR-0001–0012 as relevant, ADR-0067, ADR-0069 |
 
 For a task not covered by the table, inspect this directory for the closest current-state domain authority and add a routing row only if the gap would recur.
 
@@ -66,13 +67,15 @@ Implementation/tooling PRs use `.github/pull_request_template.md` to declare doc
 
 The manual HestivaOS browser audit is an additional diagnostic layer documented in `OS_BROWSER_AUDIT_V1.md`. Its authentication setup reports only sanitized stage evidence for Supabase password sign-in and HestivaOS user synchronization when login fails; it must not expose credentials, tokens, response bodies or customer data. Its production-safe project may exercise bounded read-only controls such as list/search inputs, status filters, quote filters, Service Catalogue search, Create Work Order reference searches, blocked native validation including empty Cleaning Job Template submission, Create Work Order with an unmet required selector, and Profile personal/email/password forms, read-only account fields, expandable sections, and local editors whose lookup/reference controls can be exercised and then cancelled or closed without saving. Native-validation checks may use DOM `requestSubmit()` with the intended submitter when a real pointer click is irrelevant to the validation boundary or unreliable because of responsive layout geometry; this preserves browser constraint validation without forcing or bypassing a valid mutation. Production-safe browser specs are covered by the shared source-level mutation guard and must not submit valid operational mutations against production data or account-authentication changes. Browser locators for repeated labels must be scoped to the intended UI region so similarly named form controls cannot produce false audit failures. Client-transition timing uses the real shell navigation path: visible links are clicked normally, and when a target route belongs to a collapsed navigation group the audit opens that disclosure before clicking the rendered child link. Deliberately collapsed navigation is not treated as route failure. Its sanitized timing-summary artifact is required output, so the workflow fails if the expected JSON summary is missing instead of silently succeeding without performance evidence. The browser audit does not replace or weaken the four mandatory PR quality-gate jobs.
 
+LR-1B operational acceptance is deliberately separate from that production-safe audit. `.github/workflows/lr1b-operational-acceptance.yml` is manual-only, requires the exact `RUN LR1B ACCEPTANCE` dispatch confirmation plus `HESTIVA_LR1B_ACCEPTANCE_ENABLED=true`, and uses distinct ADMIN, SUPERVISOR, Technician Job Leader and Technician member credentials with separate browser storage states. Its acceptance sources disable trace/screenshot/video capture and include a fail-closed Meta/provider-edge request guard. The workflow must never become a pull-request, push or scheduled trigger and must not receive Meta provider credentials. Whole-OS mutation coverage is expanded only through the controlled pre-launch acceptance ledger in `LR1B_OPERATIONAL_ACCEPTANCE_V1.md`; the existing production-safe Browser Audit remains read-only.
+
 ## Historical and diagnostic material
 
 Historical records are preserved and must not be deleted or rewritten to make the past resemble present state. They are retrieved when relevant rather than loaded by default.
 
 Diagnostic documents such as `API_CONNECTIVITY_AUDIT.md` and focused historical implementation/audit documents remain useful evidence but are not automatically current authorities unless their own scope says so.
 
-The manual `Dependency security audit diagnostic`, `Next.js 16 migration validation`, and `HestivaOS Browser Audit` workflows are diagnostic tools; they are not replacements for required PR quality gates.
+The manual `Dependency security audit diagnostic`, `Next.js 16 migration validation`, and `HestivaOS Browser Audit` workflows are diagnostic tools; they are not replacements for required PR quality gates. LR-1B operational acceptance is a separately guarded pre-launch acceptance workflow, not a normal CI gate or production diagnostic.
 
 ## Cross-system routes
 
