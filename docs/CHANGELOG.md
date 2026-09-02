@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-02 — Next.js security patch
+
+### Security
+
+- Patched the HestivaOS web workspace from Next.js 16.3.0 to 16.3.4 and regenerated the npm lockfile with npm 11 on Node.js 24.
+- This removes the confirmed Critical Next.js exposure affecting releases before 16.3.3 while preserving the existing OpenNext 1.20.2, Wrangler 4.120.0, Turbopack, Cloudflare Worker and deployment-authority boundaries.
+- The post-regeneration npm audit still reports three high-severity findings elsewhere in the dependency graph; the broader dependency-security remediation roadmap item therefore remains open.
+
 ## 2026-08-28 — Persistent authenticated navigation architecture
 
 ### Changed

@@ -105,7 +105,7 @@ The `20260810220000_canonical_service_catalogue` migration is additive and data-
 
 Cloudflare's native Git integration connected to `HestivaHQ/HestivaOS` is the active and single deployment authority for `@hestiva/web`. A change merged to `main` triggers the configured Cloudflare build, which installs the root workspace dependencies and builds the Next.js application with OpenNext for Worker `hestivaos`.
 
-The frontend is pinned to Next.js 16.3.0 and uses Next.js 16's default Turbopack build behavior. No `--webpack` compatibility flag is configured: the application has no custom webpack configuration, and OpenNext 1.20.2 declares a compatible Next peer range for 16.3.0. The migration did not change Worker configuration or deployment authority.
+The frontend is pinned to Next.js 16.3.4 and uses Next.js 16's default Turbopack build behavior. No `--webpack` compatibility flag is configured: the application has no custom webpack configuration, and OpenNext 1.20.2 declares a compatible Next peer range for 16.3.4. The migration did not change Worker configuration or deployment authority.
 
 The Cloudflare production build environment must provide `API_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The workspace deployment command runs `validate:cloudflare-env` before OpenNext starts and fails with missing variable names only. It never prints values. Optional public Storage bucket names are also build-time configuration when production does not use the application defaults.
 
