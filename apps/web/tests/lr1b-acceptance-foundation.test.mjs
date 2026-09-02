@@ -59,6 +59,7 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.doesNotMatch(auth, /console\.log\(/);
   assert.doesNotMatch(auth, /response\.text\(/);
   assert.doesNotMatch(auth, /response\.json\(/);
+  assert.doesNotMatch(auth, /postData(?:JSON)?\(/);
 
   assert.match(guard, /graph\.facebook\.com/);
   assert.match(guard, /manual-replies/);
