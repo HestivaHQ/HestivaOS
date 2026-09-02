@@ -25,7 +25,7 @@ The current executable matrix is production-compatible and deliberately non-muta
 - records sanitized authentication-stage diagnostics when sign-in fails, limited to the generic login-page status plus whether the Supabase password request and HestivaOS `/users/sync` request were not observed, failed before an HTTP response, or returned a numeric HTTP status;
 - verifies authenticated shell readiness;
 - opens the primary and important secondary/admin routes on desktop and mobile Chromium;
-- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders, Technicians, Crews, Shift Planning, Recurring Services, Employee Records, Service Catalogue, Cleaning Job Templates and Admin Settings, including list/search behavior, status filters, quote filters, native required-field validation, expandable sections, non-saving editor/reference loading and settings-link availability;
+- exercises bounded read-only UI interactions on Customers, Properties, Quotes, Work Orders, Create Work Order, Technicians, Crews, Shift Planning, Recurring Services, Employee Records, Service Catalogue, Cleaning Job Templates, Profile and Admin Settings, including list/search behavior, status filters, quote filters, native required-field validation, read-only account fields, expandable sections, non-saving editor/reference loading and settings-link availability;
 - never submits a valid create/edit form or invokes delete/send/complete/assign/upload/generate/provider mutations in the production-safe project;
 - fails on document HTTP errors, browser page exceptions, or HTTP 5xx responses observed during a route or interaction check;
 - samples desktop client-side navigation timing across the primary shell using the real navigation path, including opening a collapsed disclosure before clicking a child link when the child route is not rendered until that disclosure is expanded;
@@ -71,6 +71,7 @@ The production-safe project now goes beyond route-open checks where the UI can b
 - Properties: exercise the customer lookup with an audit-only no-match value and open the Access & logistics and Household & care sections without submitting the property form.
 - Quotes: submit an audit-only no-match reference search and switch between existing status filters, verifying only read behavior and `aria-pressed` state without opening or mutating a Quote.
 - Work Orders: enter an audit-only no-match list search and verify the route remains in list mode without opening the editor or changing a Work Order.
+- Create Work Order: open the direct-create route, exercise customer, crew, technician, primary-service and add-on searches with an audit-only no-match value, then invoke native form submission while the required Primary Service remains empty and verify browser constraint validation blocks `api.createWorkOrder` before any valid create request can be sent.
 - Technicians: exercise the debounced list search with an audit-only no-match value while leaving the create/edit form untouched.
 - Crews: exercise the debounced list search with an audit-only no-match value while leaving crew membership, leader selection and save controls untouched.
 - Shift Planning: open the new-shift editor, exercise crew, technician and Work Order lookup searches with audit-only no-match values, then cancel the editor without submitting a shift.
@@ -78,6 +79,7 @@ The production-safe project now goes beyond route-open checks where the UI can b
 - Employee Records: exercise the debounced search plus inactive/all status filters while leaving employee, Business List and access-management mutation controls untouched.
 - Service Catalogue: exercise the debounced active-service search with an audit-only no-match value and verify the read-only empty state without changing canonical services.
 - Cleaning Job Templates: attempt an empty new-template save and verify native required-field validation keeps the form invalid and prevents a valid create request from being sent.
+- Profile: verify the confirmed-email field is read-only and use native `requestSubmit()` against empty required personal-information, email-change and password fields so browser constraint validation proves those account mutations cannot be reached by the production-safe checks.
 - Admin Settings: verify that the page exposes at least one visible settings destination link without following a mutation path.
 
 These checks are intentionally bounded. Search/filter/reference requests may perform normal read-only API calls, but the project does not create, update, delete, send, complete, assign, upload or generate operational records. Opening and cancelling or closing an editor is allowed only where no save action is triggered. Mutation coverage remains blocked on the isolated-fixture boundary below.
@@ -105,7 +107,7 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Customers | search; create; edit; validation; customer details remain visible after refresh | Search-input and blocked-empty-submit validation active; valid create/edit/delete pending isolated environment |
 | Properties | search; customer association; create/edit; controlled property type; validation | Customer lookup and expandable-section interaction active; mutations pending isolated environment |
 | Quotes | queue filters/search; quote detail; revision review; safe send/share controls; secure customer accept/decline exact revision | Queue search/status-filter interaction active; outbound correspondence and public capability mutation scenarios remain isolated-only |
-| Work Orders | queue/search; create; edit; service/staffing selectors; status lifecycle; detail; assignment; repeated navigation timing | Route readiness + list search + repeated navigation timing active; mutations pending isolated environment |
+| Work Orders | queue/search; create; edit; service/staffing selectors; status lifecycle; detail; assignment; repeated navigation timing | Route readiness + list search + repeated navigation timing + direct-create reference searches/blocked-invalid-save active; valid create/edit/lifecycle mutations pending isolated environment |
 | Technician execution | assigned-job list; job start; checklist outcomes; exceptions; offline queue/reconcile; evidence/photo capture; review; Job Leader completion; correction; incident | Pending dedicated Technician identity + isolated job fixture |
 | Execution Evidence / photos | select photo; immediate local preview; compressed local save; queued upload; acknowledged persistence; reload; private evidence visibility | Immediate selected-photo preview is implemented for Technician image inputs; persisted/reload verification remains pending an isolated Technician fixture |
 | Technicians | list/search; create/edit; status; contact/skills fields | Route readiness + list search active; mutations pending isolated environment |
@@ -115,7 +117,7 @@ The long-term audit is one coordinated system, not a sequence of independent ad-
 | Cleaning Job Templates | list; create/edit; service association; checklist configuration | Route readiness + blocked-empty-submit validation active; valid create/edit/delete pending isolated environment |
 | Recurring Services | list; create; pause/resume/cancel; generate; reference loading | Route readiness + non-saving create/reference loading active; mutations pending isolated environment |
 | Employee Records | list/search/status; controlled Business List values; create/edit | Route readiness + search/status filtering active; mutations pending isolated environment |
-| Profile | profile read; email change flow boundaries; profile-photo choose/crop/save/reload | Route readiness active; mutations pending isolated environment |
+| Profile | profile read; email change flow boundaries; profile-photo choose/crop/save/reload | Route readiness + confirmed-email read-only + blocked empty personal/email/password submissions active; profile-photo and valid account mutations pending isolated environment |
 | Admin settings | Business Profile; Business Lists; Services; Service Scope Templates; User Access; Customer Data Cleanup | Main settings/service/scope readiness plus settings-destination availability active; deeper record-specific scenarios pending fixtures |
 | Supervisor operations | Supervisor-only operational review and correction paths | Pending dedicated Supervisor identity |
 | Messaging | conversation list; open conversation; guarded reply UI; WhatsApp Business operations | Route readiness active; real provider sends/templates/webhooks excluded from generic browser audit |
@@ -146,6 +148,12 @@ Run #12 on merged PR #258 passed the disclosure-aware navigation audit on the ex
 Run #13 on merged PR #259 passed the expanded Team functional checks on the exact deployed merge. Technicians and Crews list searches and the non-saving Shift Planning crew/technician/Work Order lookup flow all completed without browser exceptions or server 5xx responses. The next production-safe coverage therefore moves to office workflows rather than reopening Team instrumentation.
 
 Run #15 on merged PR #261 passed on the exact deployed merge after the Employee Records locator was scoped to the intended filter region. Employee Records search/status filtering, Recurring Services non-saving reference loading and all previously established production-safe checks completed without browser exceptions or server 5xx responses. The next coverage therefore expands to Service Catalogue and Cleaning Job Templates while retaining the same non-mutation boundary.
+
+Run #17 on merged PR #262 passed the Service Catalogue no-match search and Cleaning Job Templates blocked-empty-submit checks together with the established production-safe matrix. This closed that catalogue/template expansion without widening the mutation boundary.
+
+Run #18 on merged PR #263 exposed a desktop-only audit interaction defect in the new Profile scenario: the Save personal information button was visible but responsive form geometry intercepted pointer events. Mobile passed, and the OS itself did not fail. PR #264 replaced geometry-dependent clicks with native `form.requestSubmit(submitter)`, preserving browser constraint validation without forcing a pointer event or bypassing form validity.
+
+Run #19 on merged PR #264 (`f48c1dd003e71f0476070b5786a27f383200397d`) passed the complete browser audit on desktop and mobile, including the Profile read-only confirmed-email check and blocked empty personal-information, email-change and password submissions. The sanitized timing artifact was uploaded successfully. Profile production-safe coverage is therefore confirmed, and the next bounded expansion is Create Work Order reference searches plus invalid-save validation.
 
 Performance findings must distinguish:
 
