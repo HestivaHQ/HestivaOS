@@ -28,13 +28,13 @@ const currentUser = {
 };
 
 describe('UsersController login synchronization', () => {
-  it('reuses the guard-resolved active user when Auth UUID and normalized email still match', async () => {
+  it('reuses the guard-resolved active user when Auth UUID and normalized email still match', () => {
     const { controller, users } = createController();
 
-    await expect(controller.sync({
+    expect(controller.sync({
       supabaseUser: { id: 'auth-1', email: ' Person@Example.com ' },
       currentUser: currentUser as never,
-    })).resolves.toEqual(currentUser);
+    })).toEqual(currentUser);
 
     expect(users.sync).not.toHaveBeenCalled();
   });
