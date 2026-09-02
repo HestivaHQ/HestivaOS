@@ -90,6 +90,12 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(office, /Cleaning Job Templates native validation blocks an empty save/);
   assert.match(office, /Save template/);
   assert.match(office, /validity\.valid/);
+  assert.match(office, /Create Work Order reference searches stay read-only and invalid save is blocked/);
+  assert.match(office, /Search eligible technicians/);
+  assert.match(office, /Search primary services/);
+  assert.match(office, /Search add-ons/);
+  assert.match(office, /Save work order/);
+  assert.match(office, /requestNativeSubmit/);
 
   assert.match(profile, /production-safe profile interactions/);
   assert.match(profile, /Profile account controls expose read-only email and block empty submissions natively/);
