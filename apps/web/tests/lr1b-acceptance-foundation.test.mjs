@@ -53,7 +53,9 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.match(validator, /HESTIVA_LR1B_ACCEPTANCE_ENABLED/);
   assert.match(validator, /distinct email addresses/);
   assert.match(auth, /waitForHydratedLogin\(page\)/);
-  assert.match(auth, /Need an account\? Create one/);
+  assert.match(auth, /client login submit handler to prevent native form navigation/);
+  assert.match(auth, /page\.url\(\) === before/);
+  assert.doesNotMatch(auth, /Need an account\? Create one/);
   assert.match(auth, /Supabase password sign-in:/);
   assert.match(auth, /storageState\(\{ path: file \}\)/);
   assert.doesNotMatch(auth, /console\.log\(/);
