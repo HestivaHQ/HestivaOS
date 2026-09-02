@@ -51,12 +51,30 @@ async function setTechnicianStatus(page, email, status) {
   await expect(page.locator('.dataRow').filter({ hasText: email }).first()).toContainText(status);
 }
 
+async function searchEmployee(page, email, visibleName) {
+  const search = page.getByPlaceholder('Name, phone or email');
+  const response = page.waitForResponse((candidate) => {
+    try {
+      const url = new URL(candidate.url());
+      return candidate.request().method() === 'GET'
+        && url.pathname.endsWith('/employees')
+        && url.searchParams.get('search') === email;
+    } catch {
+      return false;
+    }
+  });
+  await search.fill(email);
+  await response;
+  return {
+    search,
+    card: page.locator('.employeeCard').filter({ hasText: visibleName }).first(),
+  };
+}
+
 async function ensureEmployee(page, { email, reference, firstName, lastName }) {
   await page.goto('/employees', { waitUntil: 'domcontentloaded' });
-  const search = page.getByPlaceholder('Name, phone or email');
-  await search.fill(email);
-  await page.waitForTimeout(350);
-  const card = page.locator('.employeeCard').filter({ hasText: email }).first();
+  const visibleName = `${firstName} ${lastName}`;
+  const { card } = await searchEmployee(page, email, visibleName);
   if (await card.count()) {
     await card.getByRole('button', { name: 'Manage' }).click();
   } else {
@@ -71,24 +89,17 @@ async function ensureEmployee(page, { email, reference, firstName, lastName }) {
   await form.getByLabel('Internal Notes').fill('Disposable LR-1B operational acceptance employee.').catch(() => {});
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('status')).toContainText(/Employee record (created|saved)\./);
-  await search.fill(email);
-  await page.waitForTimeout(350);
-  await expect(page.locator('.employeeCard').filter({ hasText: email }).first()).toContainText('ACTIVE');
+  await expect(page.locator('.employeeCard').filter({ hasText: visibleName }).first()).toContainText('ACTIVE');
 }
 
-async function setEmployeeStatus(page, email, status) {
-  const search = page.getByPlaceholder('Name, phone or email');
-  await search.fill(email);
-  await page.waitForTimeout(350);
-  const card = page.locator('.employeeCard').filter({ hasText: email }).first();
+async function setEmployeeStatus(page, email, visibleName, status) {
+  const { card } = await searchEmployee(page, email, visibleName);
   await card.getByRole('button', { name: 'Manage' }).click();
   const form = page.locator('form.employeeForm').first();
   await form.getByLabel('Employment status').selectOption(status);
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('status')).toContainText('Employee record saved.');
-  await search.fill(email);
-  await page.waitForTimeout(350);
-  await expect(page.locator('.employeeCard').filter({ hasText: email }).first()).toContainText(status);
+  await expect(page.locator('.employeeCard').filter({ hasText: visibleName }).first()).toContainText(status);
 }
 
 async function linkWorkforceIdentity(page, { email, reference, technicianName }) {
@@ -181,8 +192,8 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await saveTechnician(page, { email: member, firstName: 'LR1B Member', lastName: 'Technician', skills: 'Cleaning, Field execution, LR1B acceptance' });
 
       await ensureEmployee(page, { email: lead, reference: 'LR1B-TECH-LEAD', firstName: 'LR1B Lead', lastName: 'Technician' });
-      await setEmployeeStatus(page, lead, 'INACTIVE');
-      await setEmployeeStatus(page, lead, 'ACTIVE');
+      await setEmployeeStatus(page, lead, leadName, 'INACTIVE');
+      await setEmployeeStatus(page, lead, leadName, 'ACTIVE');
       await ensureEmployee(page, { email: member, reference: 'LR1B-TECH-MEMBER', firstName: 'LR1B Member', lastName: 'Technician' });
 
       await linkWorkforceIdentity(page, { email: lead, reference: 'LR1B-TECH-LEAD', technicianName: leadName });
