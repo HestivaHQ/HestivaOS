@@ -1,0 +1,63 @@
+name: Temporary Prisma security remediation
+
+on:
+  push:
+    branches:
+      - fix/prisma-deepmerge-security
+
+permissions:
+  contents: write
+
+jobs:
+  remediate-and-validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: hestiva_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hestiva_ci?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Regenerate lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Verify patched transitive dependency
+        run: node -e "const lock=require('./package-lock.json'); const p=lock.packages?.['node_modules/deepmerge-ts']?.version; console.log('deepmerge-ts',p); if(!p || Number(p.split('.')[0]) < 8) process.exit(1)"
+      - name: Install locked dependencies and generate Prisma Client
+        run: npm ci
+      - name: Audit dependency graph
+        run: npm audit --audit-level=high
+      - name: Type-check API
+        run: npm run typecheck --workspace @hestiva/api
+      - name: Run API tests
+        run: npm run test --workspace @hestiva/api
+      - name: Build API
+        run: npm run build --workspace @hestiva/api
+      - name: Replay migrations
+        run: npm run db:migrate:deploy
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "Regenerate lockfile for deepmerge-ts security override"
+          git push origin HEAD:fix/prisma-deepmerge-security
