@@ -44,14 +44,16 @@ A new public table that is absent from both the preserved and disposable classif
 
 ## Destructive authorization and concurrency
 
-The API is ADMIN-only through the existing authoritative role guard. A reset requires both:
+The API is ADMIN-only through the existing authoritative role guard. It is also server-gated by `HESTIVA_LAUNCH_BASELINE_RESET_ENABLED=true`. The variable is API-only and defaults to disabled when missing or anything other than the exact logical value `true`. Enable it only for a deliberate LR-1 acceptance/reset window and disable it again before live operations.
+
+A reset requires both:
 
 1. the exact phrase `RESET HESTIVAOS TO LAUNCH BASELINE`; and
 2. the exact SHA-256 fingerprint returned by the latest impact preview.
 
 The fingerprint covers the current public-table inventory, exact reset-table counts, exact known Storage paths and active blockers. If state changes between preview and execution, the request fails and the operator must preview again.
 
-The API never accepts caller-selected table names, SQL fragments, Storage buckets or arbitrary paths.
+The API never accepts caller-selected table names, SQL fragments, Storage buckets or arbitrary paths. When the runtime gate is disabled, preview remains read-only but reports the gate as a blocker and execution returns a conflict without mutating state.
 
 ## Storage contract
 
@@ -87,7 +89,7 @@ A reset is not successful merely because the destructive SQL returned successful
 
 If post-reset verification is not clean, the API returns failure and HestivaOS must not be treated as launch-ready.
 
-The final LR-1B acceptance run is followed by this verified reset before the first real operational record is created. Resetting the Work Order, Quote and enquiry daily counters is intentional so acceptance-test sequence allocation does not pollute the launch baseline.
+The final LR-1B acceptance run is followed by this verified reset before the first real operational record is created. Resetting the Work Order, Quote and enquiry daily counters is intentional so acceptance-test sequence allocation does not pollute the launch baseline. Immediately after the verified final reset, disable `HESTIVA_LAUNCH_BASELINE_RESET_ENABLED` before the first real operational mutation.
 
 ## Relationship to Customer Data Cleanup
 
