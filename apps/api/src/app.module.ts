@@ -14,6 +14,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { EnquiriesModule } from './enquiries/enquiries.module';
 import { ExecutionScopesModule } from './execution-scopes/execution-scopes.module';
 import { HealthController } from './health.controller';
+import { LaunchBaselineResetModule } from './launch-baseline-reset/launch-baseline-reset.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { RequestLoggingMiddleware } from './monitoring/request-logging.middleware';
 import { PropertiesModule } from './properties/properties.module';
@@ -31,7 +32,7 @@ import { WorkOrdersModule } from './work-orders/work-orders.module';
 import { SupabaseAuthGuard } from './users/supabase-auth.guard';
 
 @Module({
-  imports: [DatabaseModule, MessagingModule, CorrespondenceModule, AttentionModule, BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, EmployeesModule, EnquiriesModule, ExecutionScopesModule, UsersModule, CustomersModule, PropertiesModule, QuotesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, TechnicianJobsModule, CrewsModule, ShiftsModule],
+  imports: [DatabaseModule, MessagingModule, CorrespondenceModule, AttentionModule, BusinessListsModule, BusinessProfileModule, CustomerCleanupModule, LaunchBaselineResetModule, EmployeesModule, EnquiriesModule, ExecutionScopesModule, UsersModule, CustomersModule, PropertiesModule, QuotesModule, RecurringServiceAgreementsModule, ServicesModule, CleaningJobTemplatesModule, WorkOrdersModule, WorkOrderChecklistsModule, WorkOrderPhotosModule, WorkOrderCustomerSignOffsModule, DashboardModule, TechniciansModule, TechnicianJobsModule, CrewsModule, ShiftsModule],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: SupabaseAuthGuard }],
 })
