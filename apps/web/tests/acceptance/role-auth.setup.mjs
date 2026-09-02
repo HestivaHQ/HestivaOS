@@ -152,8 +152,8 @@ setup('ADMIN provisions LR-1B workforce roles and access through User Access', a
         await roleSelect.selectOption(desiredRole);
         await card.getByRole('button', { name: 'Save role' }).click();
         await expect(page.getByRole('status')).toHaveText('Application role updated.');
-        await expect(roleSelect).toHaveValue(desiredRole);
       }
+      await expect(roleSelect).toHaveValue(desiredRole);
 
       const enableAccess = card.getByRole('button', { name: 'Enable access' });
       if (await enableAccess.isVisible().catch(() => false)) {
