@@ -11,6 +11,7 @@ const sources = [
   'tests/acceptance/role-auth.setup.mjs',
   'tests/acceptance/acceptance-guard.mjs',
   'tests/acceptance/admin-interface.spec.mjs',
+  'tests/acceptance/admin-workforce.spec.mjs',
   'tests/acceptance/supervisor-interface.spec.mjs',
   'tests/acceptance/technician-lead-interface.spec.mjs',
   'tests/acceptance/technician-member-interface.spec.mjs',
@@ -23,13 +24,14 @@ test('LR-1B acceptance JavaScript sources are syntactically valid', () => {
 });
 
 test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-excluded', async () => {
-  const [workflow, config, validator, auth, guard, login] = await Promise.all([
+  const [workflow, config, validator, auth, guard, login, workforce] = await Promise.all([
     read('../../.github/workflows/lr1b-operational-acceptance.yml'),
     read('playwright.acceptance.config.mjs'),
     read('scripts/validate-lr1b-acceptance-env.mjs'),
     read('tests/acceptance/role-auth.setup.mjs'),
     read('tests/acceptance/acceptance-guard.mjs'),
     read('app/login/page.tsx'),
+    read('tests/acceptance/admin-workforce.spec.mjs'),
   ]);
 
   assert.match(workflow, /workflow_dispatch:/);
@@ -80,6 +82,19 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.match(login, /setHydrated\(true\)/);
   assert.match(login, /disabled=\{!interactive\}/);
   assert.match(login, /if \(!hydrated \|\| submissionInFlight\.current\) return/);
+
+  assert.match(workforce, /page\.goto\('\/technicians'/);
+  assert.match(workforce, /page\.goto\('\/employees'/);
+  assert.match(workforce, /Save workforce links/);
+  assert.match(workforce, /page\.goto\('\/crews'/);
+  assert.match(workforce, /Crew leader/);
+  assert.match(workforce, /page\.goto\('\/shifts'/);
+  assert.match(workforce, /Create shift/);
+  assert.match(workforce, /Copy/);
+  assert.match(workforce, /Delete/);
+  assert.match(workforce, /installAcceptanceSafetyGuard\(page\)/);
+  assert.doesNotMatch(workforce, /createClient\(|supabase|prisma|DATABASE_URL|fetch\(/i);
+  assert.doesNotMatch(workforce, /graph\.facebook\.com|whatsapp|messenger/i);
 
   assert.match(guard, /graph\.facebook\.com/);
   assert.match(guard, /manual-replies/);
