@@ -4,13 +4,14 @@ import { readFileSync, readdirSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('middleware verifies signed claims locally and fails protected routes closed', () => {
-  const middleware = read('middleware.ts');
-  assert.match(middleware, /auth\.getClaims\(\)/);
-  assert.doesNotMatch(middleware, /auth\.getUser\(\)/);
-  assert.match(middleware, /!authenticated && !isPublicRoute/);
-  assert.match(middleware, /pathname === '\/quote'/);
-  assert.match(middleware, /loginUrl\.pathname = '\/login'/);
+test('proxy verifies signed claims locally and fails protected routes closed', () => {
+  const proxy = read('proxy.ts');
+  assert.match(proxy, /export async function proxy\(/);
+  assert.match(proxy, /auth\.getClaims\(\)/);
+  assert.doesNotMatch(proxy, /auth\.getUser\(\)/);
+  assert.match(proxy, /!authenticated && !isPublicRoute/);
+  assert.match(proxy, /pathname === '\/quote'/);
+  assert.match(proxy, /loginUrl\.pathname = '\/login'/);
 });
 
 test('authenticated layout owns one persistent role-sensitive Homent shell', () => {
