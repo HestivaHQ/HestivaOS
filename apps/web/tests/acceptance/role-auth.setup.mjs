@@ -30,25 +30,13 @@ function describeStage(stage) {
   return 'request observed without a final HTTP status';
 }
 
-async function waitForHydratedLogin(page) {
-  // React attaches its delegated event listeners to the Next.js root document during
-  // hydration. Wait until a synthetic click on the sign-in submit button is prevented
-  // by the client handler while the required fields are empty. This proves handleSubmit
-  // is attached without changing modes, sending credentials, or depending on a second UI.
-  const signIn = page.getByRole('button', { name: 'Sign in' });
-  await expect(signIn).toBeVisible();
-
-  await expect
-    .poll(
-      async () => {
-        const before = page.url();
-        await signIn.click();
-        await page.waitForTimeout(50);
-        return page.url() === before && new URL(page.url()).pathname === '/login';
-      },
-      { timeout: 12_000, message: 'Waiting for the client login submit handler to prevent native form navigation.' },
-    )
-    .toBe(true);
+async function waitForLoginReady(page) {
+  // The product keeps login controls disabled until React hydration has completed.
+  // Waiting for the real controls to become enabled therefore observes the same
+  // readiness boundary a human user sees, without synthetic events or timing guesses.
+  await expect(page.getByLabel('Email address')).toBeEnabled({ timeout: 12_000 });
+  await expect(page.getByLabel('Password')).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeEnabled();
 }
 
 for (const [role, emailName, passwordName] of identities) {
@@ -85,7 +73,7 @@ for (const [role, emailName, passwordName] of identities) {
       `Supabase password sign-in: ${describeStage(diagnostics.supabaseAuth)}; HestivaOS user sync: ${describeStage(diagnostics.userSync)}.`;
 
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await waitForHydratedLogin(page);
+    await waitForLoginReady(page);
     await page.getByLabel('Email address').fill(email);
     await page.getByLabel('Password').fill(password);
     await page.getByRole('button', { name: 'Sign in' }).click();
