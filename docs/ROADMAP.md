@@ -82,6 +82,7 @@ Safety requirements:
 - ordered handling of restricted foreign keys and immutable-history boundaries instead of bypassing constraints;
 - explicit Storage deletion and post-delete verification rather than silently orphaning files;
 - external-provider guardrails so reset never pretends to unsend an email, WhatsApp message or Messenger message;
+- ordinary LR-1 acceptance runs must use test/sandbox recipients or outbound suppression for provider actions whose real-world effect cannot be reversed; separately approved live-provider smoke tests must be minimal and must never target real customers;
 - post-reset verification that no disposable acceptance-owned operational rows or Storage objects remain;
 - post-reset smoke check proving preserved configuration still supports a new clean Customer → Quote/Work Order journey;
 - recovery/runbook documentation for failed or partially completed reset operations.
