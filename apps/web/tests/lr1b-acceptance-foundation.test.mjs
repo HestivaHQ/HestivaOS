@@ -23,12 +23,13 @@ test('LR-1B acceptance JavaScript sources are syntactically valid', () => {
 });
 
 test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-excluded', async () => {
-  const [workflow, config, validator, auth, guard] = await Promise.all([
+  const [workflow, config, validator, auth, guard, login] = await Promise.all([
     read('../../.github/workflows/lr1b-operational-acceptance.yml'),
     read('playwright.acceptance.config.mjs'),
     read('scripts/validate-lr1b-acceptance-env.mjs'),
     read('tests/acceptance/role-auth.setup.mjs'),
     read('tests/acceptance/acceptance-guard.mjs'),
+    read('app/login/page.tsx'),
   ]);
 
   assert.match(workflow, /workflow_dispatch:/);
@@ -52,9 +53,9 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
 
   assert.match(validator, /HESTIVA_LR1B_ACCEPTANCE_ENABLED/);
   assert.match(validator, /distinct email addresses/);
-  assert.match(auth, /waitForHydratedLogin\(page\)/);
-  assert.match(auth, /client login submit handler to prevent native form navigation/);
-  assert.match(auth, /page\.url\(\) === before/);
+  assert.match(auth, /waitForLoginReady\(page\)/);
+  assert.match(auth, /toBeEnabled\(\{ timeout: 12_000 \}\)/);
+  assert.doesNotMatch(auth, /dispatchEvent/);
   assert.doesNotMatch(auth, /Need an account\? Create one/);
   assert.match(auth, /Supabase password sign-in:/);
   assert.match(auth, /storageState\(\{ path: file \}\)/);
@@ -62,6 +63,11 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.doesNotMatch(auth, /response\.text\(/);
   assert.doesNotMatch(auth, /response\.json\(/);
   assert.doesNotMatch(auth, /postData(?:JSON)?\(/);
+
+  assert.match(login, /useEffect\(\(\) => \{/);
+  assert.match(login, /setHydrated\(true\)/);
+  assert.match(login, /disabled=\{!interactive\}/);
+  assert.match(login, /if \(!hydrated \|\| submissionInFlight\.current\) return/);
 
   assert.match(guard, /graph\.facebook\.com/);
   assert.match(guard, /manual-replies/);
