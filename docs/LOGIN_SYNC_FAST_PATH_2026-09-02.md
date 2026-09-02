@@ -32,6 +32,8 @@ When those conditions hold, the controller returns the already-authorized user i
 
 The login form also owns an explicit client-readiness boundary. Server-rendered email, password, submit and sign-up/sign-in mode controls remain disabled until React hydration completes. A client effect marks the page hydrated, after which those controls become interactive. The submit handler independently refuses pre-hydration submission as defense in depth.
 
+This disabled pre-hydration state is intentional product behavior, not a test-only synchronization mechanism. It ensures the interface cannot advertise an actionable authentication control before the handler that owns that action is available.
+
 This prevents a fast browser or user from submitting the server-rendered form before React has attached the `onSubmit` and controlled-input handlers. Before this boundary existed, such an interaction could fall through to native form behavior and remain on `/login` without ever reaching Supabase password authentication.
 
 The readiness boundary does not change Supabase authentication, HestivaOS role/access authority, identity reconciliation, or provider configuration. Acceptance/browser automation should observe the product-owned readiness state by waiting for the real login controls to become enabled rather than inferring hydration from timing, URL stability, auxiliary UI toggles or synthetic submission probes.
