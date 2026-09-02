@@ -1,6 +1,6 @@
 # LR-1B Workforce Acceptance — S1 to S3
 
-Status: IMPLEMENTED IN HARNESS / AWAITING DEPLOYED ACCEPTANCE RUN
+Status: IMPLEMENTED IN HARNESS / S1 RERUN REQUIRED
 Date: 2026-09-02
 Canonical programme: `docs/LR1B_OPERATIONAL_ACCEPTANCE_V1.md`
 
@@ -10,6 +10,14 @@ This focused note records the implementation boundary for the next LR-1B operati
 
 It does not mark S1, S2 or S3 as passed. Only a successful manual LR-1B workflow run against the deployed merged head can provide that evidence, after which the canonical LR-1B ledger must be reconciled.
 
+## Run #9 evidence
+
+LR-1B run #9 executed on deployed `main` `e4cda2807f86abcb56f05bba474461be1043095f`. The existing authentication/role foundation remained healthy: all eight acceptance-auth setup tests passed, the ADMIN office-interface test passed, and the Supervisor plus both Technician role-interface checks passed.
+
+S1 then failed while verifying the first Employee Record after save. The Employee Records search supports email as a server-side search term, but `.employeeCard` intentionally renders the employee display name, job/crew context, OS-access summary and employment status rather than the contact email. The harness incorrectly searched by email and then required that same email to appear inside the returned card text. The correct Employee record therefore could not satisfy the locator even when the search result was present. S2 and S3 did not run because the S1-S3 suite is serial/fail-closed.
+
+The rerun fix keeps email as the real UI search key, waits for the corresponding Employee search response, and identifies the returned card by the deterministic visible Employee name/status. No production Employee API, persistence, authorization or UI behavior is changed for this defect.
+
 ## S1 — Technician and Employee records
 
 The ADMIN acceptance project now uses the real browser UI to establish the two controlled Technician identities required by later field execution. It:
@@ -18,6 +26,7 @@ The ADMIN acceptance project now uses the real browser UI to establish the two c
 - saves controlled skills and disposable acceptance notes;
 - mutates the Job Leader Technician from ACTIVE to INACTIVE and back to ACTIVE, proving the workforce-status mutation while leaving the final operational state usable;
 - creates or reuses deterministic Employee Records for the two Technician identities;
+- searches Employee Records by the controlled email address but verifies the returned card through its deterministic visible Employee name/status, matching the actual Employee-list presentation contract;
 - mutates the Job Leader Employee Record from ACTIVE to INACTIVE and back to ACTIVE;
 - uses the Employee Records **Workforce identity links** panel introduced by PR #278 to link each Employee Record to the existing HestivaOS User and authoritative Technician through the normal ADMIN UI;
 - reloads and verifies that the User and Technician links persist.
@@ -55,7 +64,7 @@ The final S3 state intentionally leaves no LR-1B acceptance shift residue. The E
 
 The slice remains inside the existing manual-only LR-1B workflow, separate authenticated ADMIN session, provider-edge request guard, no screenshot/trace/video policy and Meta exclusion. Deterministic record names/references make reruns reconcile existing acceptance workforce rather than intentionally multiplying fixtures. The tests are serial and fail closed: if S1 fails, S2/S3 do not become acceptance evidence.
 
-Normal pull-request CI does not execute production mutations. It syntax-checks the acceptance source and verifies source-level invariants requiring the real Technician, Employee, Crew and Shift browser routes while rejecting direct Supabase/Prisma/database/fetch/provider shortcuts in the workforce spec.
+Normal pull-request CI does not execute production mutations. It syntax-checks the acceptance source and verifies source-level invariants requiring the real Technician, Employee, Crew and Shift browser routes while rejecting direct Supabase/Prisma/database/fetch/provider shortcuts in the workforce spec. It also guards against regressing to the invalid assumption that the controlled email must be rendered inside an Employee card.
 
 ## Acceptance rule
 
