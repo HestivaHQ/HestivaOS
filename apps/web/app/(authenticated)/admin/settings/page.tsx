@@ -14,6 +14,7 @@ export default async function AdminSettingsPage() {
       <Link className="panel adminModuleLink" href="/admin/settings/business-profile"><h3>Business Profile</h3><p>Manage official Hestiva business information and sharing.</p><span className="statusPill">Manage business profile</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/business-lists"><h3>Business Lists</h3><p>Manage Job Titles, Departments, and Property Types.</p><span className="statusPill">Manage business lists</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/customer-data-cleanup"><h3>Customer Data Cleanup</h3><p>Preview and permanently remove a complete test customer file.</p><span className="statusPill">Data management</span></Link>
+      <Link className="panel adminModuleLink" href="/admin/settings/launch-baseline-reset"><h3>Reset OS to Launch Baseline</h3><p>Preview and remove all classified pre-launch operational/test state before live operations.</p><span className="statusPill">Destructive · launch gate</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/services"><h3>Services</h3><p>Manage canonical primary services and add-ons.</p><span className="statusPill">Manage services</span></Link>
       <Link className="panel adminModuleLink" href="/admin/settings/service-scopes"><h3>Service Scope Templates</h3><p>Manage versioned sections, requirements, evidence rules, and lifecycle.</p><span className="statusPill">Manage execution scopes</span></Link>
     </section>
