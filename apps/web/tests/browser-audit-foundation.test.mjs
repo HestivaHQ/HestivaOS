@@ -95,10 +95,13 @@ test('browser audit remains manual, read-only and credential-safe by constructio
   assert.match(profile, /Profile account controls expose read-only email and block empty submissions natively/);
   assert.match(profile, /Confirmed email/);
   assert.match(profile, /readOnly/);
+  assert.match(profile, /async function requestNativeSubmit/);
+  assert.match(profile, /requestSubmit\(button\)/);
   assert.match(profile, /Save personal information/);
   assert.match(profile, /Request email change/);
   assert.match(profile, /Change password/);
   assert.match(profile, /validity\.valid/);
+  assert.doesNotMatch(profile, /\.click\(\)/);
 
   assert.doesNotMatch(productionSafeSources, /response\.text\(/);
   assert.doesNotMatch(productionSafeSources, /response\.json\(/);
