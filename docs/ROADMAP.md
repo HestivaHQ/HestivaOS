@@ -36,13 +36,60 @@ For each implementation slice, use the three-stage workflow in `AGENTS.md` and A
 
 The following sequence is the current launch-readiness priority. Later product expansion remains recorded below but must not distract from proving and hardening the existing OS.
 
-### LR-1 — Full Operational Acceptance Test
+### LR-1A — Launch-baseline reset and acceptance-test safety
 
-**Priority: immediate.**
+**Priority: immediate prerequisite to exhaustive mutation testing.**
 
-The production-safe Browser Audit proves broad route/read/UI operativeness but intentionally does not prove the complete mutation lifecycle. HestivaOS must now run a coordinated full operational acceptance test using disposable test records.
+The existing ADMIN Customer Data Cleanup remains useful for deleting one selected Customer-owned operational file, but it is not the canonical whole-OS test reset. It currently does not remove every launch-domain record, intentionally preserves shared Shifts by detaching them, and does not delete Storage objects represented by deleted Work Order photo rows. It therefore must not be treated as proof that an exhaustive acceptance run leaves no residue.
 
-The Admin Settings test-data cleanup capability may be used to remove test operational data after an acceptance run, but its exact deletion scope, exclusions, authorization and safety behavior must be verified before relying on it as the test boundary. Do not assume that a cleanup button makes provider sends, credentials, external customer messages, Supabase identities, Storage objects or every persisted record disposable.
+Add a separate, explicit **Reset OS to Launch Baseline** capability. This is not a raw database wipe. Its contract is to return the deployed OS to the same clean operational state expected immediately before first real business use while preserving the system itself.
+
+The reset design must explicitly classify every durable record family as one of:
+
+- **RESET:** disposable operational/test state that must be removed for a clean launch;
+- **PRESERVE:** canonical system/business configuration required after reset;
+- **EXTERNAL / NON-REVERSIBLE:** provider-side effects that cannot be undone and therefore must be prevented, sandboxed or separately controlled during ordinary acceptance runs.
+
+The launch-baseline reset must remove or reconcile all acceptance-owned operational state, including where applicable:
+
+- Customers, Contacts, Properties and disposable customer identity/linkage state;
+- Quotes, revisions, line items, photos, activities, customer capabilities and accepted operational links;
+- Work Orders and their assignments, activities, checklist/execution state, execution-scope revisions, evidence, incidents, completion corrections, access-readiness state, temporary credentials and access-recovery state;
+- recurring-service agreements and test-generated visits;
+- test-created Shifts/Crew planning state where the records themselves belong to the acceptance run rather than merely detaching Work Orders;
+- disposable Correspondence render/delivery-attempt/provider-event state created by the acceptance run;
+- disposable Messaging Quote/linkage state and provider-neutral test records that are safe to remove;
+- database metadata and actual private Storage objects owned by disposable Quote/Work Order evidence, with a verified orphan check after reset;
+- any other launch-domain records created by the final LR-1 scenario matrix.
+
+The reset must preserve at minimum:
+
+- Prisma migration history and schema state;
+- Business Profile and approved launch business settings unless a specific field is explicitly classified as disposable;
+- canonical Service Catalogue, Business Lists, published Service Scope Templates and Cleaning Job Templates required for launch;
+- required application roles, authorized launch Users and approved employee/technician identities unless an identity is explicitly marked as disposable acceptance identity;
+- security configuration, authorization policy, environment/provider configuration and repository/deployment state;
+- immutable security/audit evidence whose deletion would undermine the system's audit model, unless a separately approved test-only audit partition makes removal safe;
+- canonical system configuration required for the first real Customer/Quote/Work Order.
+
+Safety requirements:
+
+- ADMIN-only with an explicit launch-reset permission boundary;
+- preview/dry-run that reports exact record/object counts by domain before mutation;
+- destructive confirmation materially stronger than typing one Customer name;
+- transactional database deletion/reconciliation wherever possible;
+- ordered handling of restricted foreign keys and immutable-history boundaries instead of bypassing constraints;
+- explicit Storage deletion and post-delete verification rather than silently orphaning files;
+- external-provider guardrails so reset never pretends to unsend an email, WhatsApp message or Messenger message;
+- post-reset verification that no disposable acceptance-owned operational rows or Storage objects remain;
+- post-reset smoke check proving preserved configuration still supports a new clean Customer → Quote/Work Order journey;
+- recovery/runbook documentation for failed or partially completed reset operations.
+
+The final pre-launch use of this capability must produce a verified **launch baseline**: no test Customers, Quotes, Work Orders, Shifts, recurring agreements, disposable messaging/correspondence records, test evidence or orphaned test Storage objects remain, while all canonical launch configuration and authorized identities remain intact.
+
+### LR-1B — Full Operational Acceptance Test
+
+The production-safe Browser Audit proves broad route/read/UI operativeness but intentionally does not prove the complete mutation lifecycle. After LR-1A establishes a genuinely disposable and verifiable acceptance boundary, HestivaOS must run a coordinated full operational acceptance test.
 
 Build and execute a documented scenario matrix covering at least:
 
@@ -57,12 +104,16 @@ Build and execute a documented scenario matrix covering at least:
 9. Employee, service, Cleaning Job Template, Service Scope and Admin-management mutations that are intended for launch;
 10. Profile/account mutations, including password changes and confirmed-email behavior;
 11. Customer Correspondence materialization/delivery boundaries without accidentally contacting real customers;
-12. Messaging/Quote boundaries with external provider side effects disabled or deliberately controlled;
+12. Messaging/Quote boundaries with external provider side effects disabled, sandboxed or deliberately controlled;
 13. negative authorization checks so each role is denied operations it must not perform;
 14. refresh/reload/idempotency/replay checks at critical mutation boundaries;
-15. cleanup verification proving disposable test data can be removed without deleting protected configuration, canonical templates, real data or required audit/security state.
+15. failure/retry/recovery paths at important operational boundaries;
+16. desktop and phone execution for the launch-critical paths appropriate to each role;
+17. launch-baseline reset after the run, followed by proof that disposable test data and Storage objects are gone and canonical configuration remains operational.
 
 A launch-readiness acceptance run is complete only when failures are captured as defects, fixed through normal focused PRs, and the affected scenarios are rerun. Passing source tests or route-open checks alone must not be recorded as full OS operativeness.
+
+After LR-1B is clean, perform a final launch-baseline reset before real operations begin.
 
 ### LR-2 — Complete authentication experience
 
@@ -130,6 +181,7 @@ After or safely in parallel with the preceding non-colliding slices:
 Before declaring HestivaOS launch-complete:
 
 - rerun the full operational acceptance matrix on the launch candidate;
+- run the launch-baseline reset and verify a clean operational slate;
 - run a repository-wide authorization/permission audit;
 - audit lifecycle/state-machine and idempotency consistency;
 - run clean and staged PostgreSQL migration replay;
