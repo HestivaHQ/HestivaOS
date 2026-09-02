@@ -1,0 +1,29 @@
+name: Temporary Next.js lockfile regeneration
+
+on:
+  push:
+    branches:
+      - fix/nextjs-security-patch
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Regenerate npm lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Verify Next.js lock entry
+        run: node -e "const lock=require('./package-lock.json'); if(lock.packages?.['node_modules/next']?.version!=='16.3.4') process.exit(1)"
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-16-3-4-lockfile
+          path: package-lock.json
+          if-no-files-found: error
