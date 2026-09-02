@@ -13,6 +13,14 @@ function requireAcceptanceIdentity(value, label) {
   return value;
 }
 
+async function selectOptionByText(select, text) {
+  const option = select.locator('option').filter({ hasText: text }).first();
+  await expect(option).toHaveCount(1);
+  const value = await option.getAttribute('value');
+  if (value === null) throw new Error(`Option matching ${String(text)} has no value.`);
+  await select.selectOption(value);
+}
+
 async function saveTechnician(page, { email, firstName, lastName, skills, status = 'ACTIVE' }) {
   await page.goto('/technicians', { waitUntil: 'domcontentloaded' });
   const search = page.getByPlaceholder('Search technicians');
@@ -21,9 +29,7 @@ async function saveTechnician(page, { email, firstName, lastName, skills, status
   const row = page.locator('.dataRow').filter({ hasText: email }).first();
   const exists = await row.count();
   const form = page.locator('form.resourceForm');
-  if (exists) {
-    await row.getByRole('button', { name: 'Edit' }).click();
-  }
+  if (exists) await row.getByRole('button', { name: 'Edit' }).click();
   await form.getByLabel('First name').fill(firstName);
   await form.getByLabel('Last name').fill(lastName);
   await form.getByLabel('Email').fill(email);
@@ -64,21 +70,9 @@ async function ensureEmployee(page, { email, reference, firstName, lastName }) {
   const visibleName = `${firstName} ${lastName}`;
   const links = page.locator('section[aria-labelledby="workforce-links-heading"]');
   await expect(links).toBeVisible();
-
-  // The workforce-link panel loads Employee, User and Technician options in one
-  // Promise.all. The controlled Technician was established earlier in S1, so
-  // its visible option is a real UI signal that this panel's data load has
-  // settled before we decide whether the Employee fixture already exists.
-  await expect(
-    links.getByLabel('Linked Technician').locator('option').filter({ hasText: visibleName }),
-  ).toHaveCount(1);
-
-  const employeeOption = links
-    .getByLabel('Employee record')
-    .locator('option')
-    .filter({ hasText: reference });
+  await expect(links.getByLabel('Linked Technician').locator('option').filter({ hasText: visibleName })).toHaveCount(1);
+  const employeeOption = links.getByLabel('Employee record').locator('option').filter({ hasText: reference });
   const exists = (await employeeOption.count()) === 1;
-
   if (exists) {
     const { card } = await searchEmployee(page, email, visibleName);
     await card.getByRole('button', { name: 'Manage' }).click();
@@ -111,14 +105,14 @@ async function linkWorkforceIdentity(page, { email, reference, technicianName })
   await page.goto('/employees', { waitUntil: 'domcontentloaded' });
   const panel = page.locator('section[aria-labelledby="workforce-links-heading"]');
   await expect(panel).toBeVisible();
-  await panel.getByLabel('Employee record').selectOption({ label: new RegExp(`^${reference} ·`) });
-  await panel.getByLabel('Linked OS user').selectOption({ label: new RegExp(email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) });
-  await panel.getByLabel('Linked Technician').selectOption({ label: new RegExp(`^${technicianName} · Active$`) });
+  await selectOptionByText(panel.getByLabel('Employee record'), new RegExp(`^${reference} ·`));
+  await selectOptionByText(panel.getByLabel('Linked OS user'), email);
+  await selectOptionByText(panel.getByLabel('Linked Technician'), `${technicianName} · Active`);
   await panel.getByRole('button', { name: 'Save workforce links' }).click();
   await expect(panel.getByRole('status')).toHaveText('Workforce identity links saved.');
   await page.reload({ waitUntil: 'domcontentloaded' });
   const reloaded = page.locator('section[aria-labelledby="workforce-links-heading"]');
-  await reloaded.getByLabel('Employee record').selectOption({ label: new RegExp(`^${reference} ·`) });
+  await selectOptionByText(reloaded.getByLabel('Employee record'), new RegExp(`^${reference} ·`));
   await expect(reloaded.getByLabel('Linked OS user').locator('option:checked')).toContainText(email);
   await expect(reloaded.getByLabel('Linked Technician').locator('option:checked')).toContainText(technicianName);
 }
@@ -130,11 +124,8 @@ async function normalizeCrew(page) {
   await page.waitForTimeout(400);
   const row = page.locator('.dataRow').filter({ hasText: crewName }).first();
   const form = page.locator('form.resourceForm');
-  if (await row.count()) {
-    await row.getByRole('button', { name: 'Edit crew' }).click();
-  } else {
-    await form.getByLabel('Crew name').fill(crewName);
-  }
+  if (await row.count()) await row.getByRole('button', { name: 'Edit crew' }).click();
+  else await form.getByLabel('Crew name').fill(crewName);
   await form.getByLabel('Crew name').fill(crewName);
   await form.getByLabel('Description').fill('Disposable LR-1B acceptance crew.');
   await form.getByLabel('Status').selectOption('ACTIVE');
@@ -190,17 +181,14 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
     await expectNoServerErrors(page, async () => {
       const lead = requireAcceptanceIdentity(leadEmail, 'Technician Lead email');
       const member = requireAcceptanceIdentity(memberEmail, 'Technician Member email');
-
       await saveTechnician(page, { email: lead, firstName: 'LR1B Lead', lastName: 'Technician', skills: 'Cleaning, LR1B acceptance' });
       await setTechnicianStatus(page, lead, 'INACTIVE');
       await setTechnicianStatus(page, lead, 'ACTIVE');
       await saveTechnician(page, { email: member, firstName: 'LR1B Member', lastName: 'Technician', skills: 'Cleaning, Field execution, LR1B acceptance' });
-
       await ensureEmployee(page, { email: lead, reference: 'LR1B-TECH-LEAD', firstName: 'LR1B Lead', lastName: 'Technician' });
       await setEmployeeStatus(page, lead, leadName, 'INACTIVE');
       await setEmployeeStatus(page, lead, leadName, 'ACTIVE');
       await ensureEmployee(page, { email: member, reference: 'LR1B-TECH-MEMBER', firstName: 'LR1B Member', lastName: 'Technician' });
-
       await linkWorkforceIdentity(page, { email: lead, reference: 'LR1B-TECH-LEAD', technicianName: leadName });
       await linkWorkforceIdentity(page, { email: member, reference: 'LR1B-TECH-MEMBER', technicianName: memberName });
     });
@@ -238,7 +226,6 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await form.getByLabel('Status').selectOption('SCHEDULED');
       await form.getByLabel('Management notes').fill('Disposable LR-1B acceptance shift.');
       await form.getByRole('button', { name: 'Save shift' }).click();
-
       let row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
       await expect(row).toContainText(crewName);
       await expect(row).toContainText('SCHEDULED');
@@ -250,7 +237,6 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await page.reload({ waitUntil: 'domcontentloaded' });
       row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
       await expect(row).toContainText('CONFIRMED');
-
       page.once('dialog', (dialog) => dialog.accept(tomorrow));
       await row.getByRole('button', { name: 'Copy' }).click();
       await expect(page.locator('.dataRow').filter({ hasText: shiftTitle })).toHaveCount(2);
