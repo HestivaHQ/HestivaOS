@@ -5,14 +5,45 @@ import { UpdateAccessInput, UpdateProfileInput, UpdateRoleInput, UsersService } 
 import { CurrentUser } from './current-user.decorator';
 import { Roles } from './roles.decorator';
 
-type AuthenticatedRequest = { supabaseUser: { id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> } };
+type AuthenticatedRequest = {
+  supabaseUser: {
+    id: string;
+    email?: string;
+    email_confirmed_at?: string | null;
+    user_metadata?: Record<string, unknown>;
+  };
+  currentUser?: User;
+};
 type InviteUserInput = { email?: string };
 type EmailChangeInput = { email?: string };
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService, private readonly supabaseAdmin: SupabaseAdminService) {}
-  @Post('sync') sync(@Req() request: AuthenticatedRequest) { return this.users.sync(request.supabaseUser); }
+
+  @Post('sync')
+  sync(@Req() request: AuthenticatedRequest) {
+    const authenticatedEmail = request.supabaseUser.email?.trim().toLowerCase();
+    const currentUser = request.currentUser;
+
+    // The global auth guard has already verified the Supabase token, loaded the
+    // canonical application User by this exact Auth UUID, and enforced ACTIVE
+    // access. Reuse that result for the normal returning-user login path instead
+    // of repeating identity queries inside the serializable reconciliation flow.
+    if (
+      currentUser &&
+      currentUser.authUserId === request.supabaseUser.id &&
+      authenticatedEmail &&
+      currentUser.email.trim().toLowerCase() === authenticatedEmail
+    ) {
+      return currentUser;
+    }
+
+    // New users, stale Auth UUIDs, provider email changes, and any mismatch keep
+    // the existing fail-closed reconciliation transaction.
+    return this.users.sync(request.supabaseUser);
+  }
+
   @Get('me') findMe(@CurrentUser() user: User) { return user; }
   @Patch('me/profile') updateProfile(@Req() request: AuthenticatedRequest, @Body() input: UpdateProfileInput) { return this.users.updateProfile(request.supabaseUser.id, input); }
   @Post('me/email-change/preflight') preflightEmailChange(@Req() request: AuthenticatedRequest, @Body() input: EmailChangeInput) { return this.users.preflightEmailChange(request.supabaseUser.id, input.email ?? ''); }
