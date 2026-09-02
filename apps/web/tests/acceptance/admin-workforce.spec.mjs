@@ -51,27 +51,9 @@ async function setTechnicianStatus(page, email, status) {
   await expect(page.locator('.dataRow').filter({ hasText: email }).first()).toContainText(status);
 }
 
-async function filterEmployees(page, email) {
-  const search = page.getByPlaceholder('Name, phone or email');
-  if (await search.inputValue() !== email) {
-    const response = page.waitForResponse((candidate) => {
-      try {
-        const url = new URL(candidate.url());
-        return candidate.request().method() === 'GET'
-          && url.pathname.endsWith('/employees')
-          && url.searchParams.get('search') === email;
-      } catch {
-        return false;
-      }
-    });
-    await search.fill(email);
-    await response;
-  }
-  return search;
-}
-
 async function searchEmployee(page, email, visibleName) {
-  const search = await filterEmployees(page, email);
+  const search = page.getByPlaceholder('Name, phone or email');
+  if (await search.inputValue() !== email) await search.fill(email);
   const card = page.locator('.employeeCard').filter({ hasText: visibleName }).first();
   await expect(card).toBeVisible();
   return { search, card };
@@ -80,9 +62,25 @@ async function searchEmployee(page, email, visibleName) {
 async function ensureEmployee(page, { email, reference, firstName, lastName }) {
   await page.goto('/employees', { waitUntil: 'domcontentloaded' });
   const visibleName = `${firstName} ${lastName}`;
-  await filterEmployees(page, email);
-  const card = page.locator('.employeeCard').filter({ hasText: visibleName }).first();
-  if (await card.count()) {
+  const links = page.locator('section[aria-labelledby="workforce-links-heading"]');
+  await expect(links).toBeVisible();
+
+  // The workforce-link panel loads Employee, User and Technician options in one
+  // Promise.all. The controlled Technician was established earlier in S1, so
+  // its visible option is a real UI signal that this panel's data load has
+  // settled before we decide whether the Employee fixture already exists.
+  await expect(
+    links.getByLabel('Linked Technician').locator('option').filter({ hasText: visibleName }),
+  ).toHaveCount(1);
+
+  const employeeOption = links
+    .getByLabel('Employee record')
+    .locator('option')
+    .filter({ hasText: reference });
+  const exists = (await employeeOption.count()) === 1;
+
+  if (exists) {
+    const { card } = await searchEmployee(page, email, visibleName);
     await card.getByRole('button', { name: 'Manage' }).click();
   } else {
     await page.getByRole('button', { name: 'New employee' }).click();
