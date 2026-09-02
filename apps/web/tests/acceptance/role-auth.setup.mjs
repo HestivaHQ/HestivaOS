@@ -31,17 +31,24 @@ function describeStage(stage) {
 }
 
 async function waitForHydratedLogin(page) {
-  // A click before React hydrates falls through to the browser's native GET form
-  // submission (`/login?`) instead of running handleSubmit. Exercise the harmless
-  // mode toggle first so acceptance never submits credentials until React handlers
-  // are demonstrably attached.
-  const createAccount = page.getByRole('button', { name: 'Need an account? Create one' });
-  await expect(createAccount).toBeVisible();
-  await createAccount.click();
-  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
+  // React attaches its delegated event listeners to the Next.js root document during
+  // hydration. Wait until a synthetic click on the sign-in submit button is prevented
+  // by the client handler while the required fields are empty. This proves handleSubmit
+  // is attached without changing modes, sending credentials, or depending on a second UI.
+  const signIn = page.getByRole('button', { name: 'Sign in' });
+  await expect(signIn).toBeVisible();
 
-  await page.getByRole('button', { name: 'Already have an account? Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        const before = page.url();
+        await signIn.click();
+        await page.waitForTimeout(50);
+        return page.url() === before && new URL(page.url()).pathname === '/login';
+      },
+      { timeout: 12_000, message: 'Waiting for the client login submit handler to prevent native form navigation.' },
+    )
+    .toBe(true);
 }
 
 for (const [role, emailName, passwordName] of identities) {
