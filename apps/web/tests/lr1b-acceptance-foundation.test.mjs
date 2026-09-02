@@ -18,9 +18,7 @@ const sources = [
 ];
 
 test('LR-1B acceptance JavaScript sources are syntactically valid', () => {
-  for (const path of sources) {
-    execFileSync(process.execPath, ['--check', new URL(`../${path}`, import.meta.url).pathname], { stdio: 'pipe' });
-  }
+  for (const path of sources) execFileSync(process.execPath, ['--check', new URL(`../${path}`, import.meta.url).pathname], { stdio: 'pipe' });
 });
 
 test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-excluded', async () => {
@@ -39,6 +37,10 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.doesNotMatch(workflow, /\npush:/);
   assert.doesNotMatch(workflow, /\nschedule:/);
   assert.match(workflow, /RUN LR1B ACCEPTANCE/);
+  assert.match(workflow, /actions\/checkout@v6/);
+  assert.match(workflow, /actions\/setup-node@v7/);
+  assert.match(workflow, /node-version: 24/);
+  assert.doesNotMatch(workflow, /actions\/(?:checkout|setup-node)@v4/);
   assert.match(workflow, /secrets\.HESTIVA_LR1B_ADMIN_EMAIL/);
   assert.match(workflow, /secrets\.HESTIVA_LR1B_SUPERVISOR_EMAIL/);
   assert.match(workflow, /secrets\.HESTIVA_LR1B_TECHNICIAN_LEAD_EMAIL/);
@@ -90,6 +92,9 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.match(workforce, /await expect\(card\)\.toBeVisible\(\)/);
   assert.doesNotMatch(workforce, /waitForResponse/);
   assert.doesNotMatch(workforce, /employeeCard[\s\S]{0,80}hasText: email/);
+  assert.match(workforce, /async function selectOptionByText/);
+  assert.match(workforce, /selectOptionByText\(panel\.getByLabel\('Employee record'\)/);
+  assert.doesNotMatch(workforce, /selectOption\(\{ label: new RegExp/);
   assert.match(workforce, /Save workforce links/);
   assert.match(workforce, /page\.goto\('\/crews'/);
   assert.match(workforce, /Crew leader/);
