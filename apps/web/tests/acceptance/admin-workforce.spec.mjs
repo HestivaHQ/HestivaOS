@@ -150,9 +150,15 @@ async function changeCrewLeader(page, leaderName) {
   const row = page.locator('.dataRow').filter({ hasText: crewName }).first();
   await row.getByRole('button', { name: 'Edit crew' }).click();
   const form = page.locator('form.resourceForm');
-  await form.getByLabel('Crew leader').selectOption({ label: leaderName });
-  await form.getByRole('button', { name: 'Save crew' }).click();
-  await search.fill(crewName);
+  const leader = form.getByLabel('Crew leader');
+  await selectOptionByText(leader, leaderName);
+  await expect(leader.locator('option:checked')).toHaveText(leaderName);
+  const save = form.getByRole('button', { name: 'Save crew' });
+  await save.click();
+  await expect(save).toBeEnabled();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const reloadedSearch = page.getByPlaceholder('Search crews');
+  await reloadedSearch.fill(crewName);
   await page.waitForTimeout(400);
   await expect(page.locator('.dataRow').filter({ hasText: crewName }).first()).toContainText(`Leader: ${leaderName}`);
 }
