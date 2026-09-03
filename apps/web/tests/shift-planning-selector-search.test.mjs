@@ -19,6 +19,18 @@ test('Shift Planning uses bounded debounced server-backed selector search', () =
   assert.doesNotMatch(manager, /api\.workOrders\('\?page=1&pageSize=100'\)/);
 });
 
+test('Shift Planning ignores stale selector responses after search criteria change', () => {
+  assert.match(manager, /const crewSearchRequest = useRef\(0\)/);
+  assert.match(manager, /const technicianSearchRequest = useRef\(0\)/);
+  assert.match(manager, /const workOrderSearchRequest = useRef\(0\)/);
+  assert.match(manager, /const requestId = \+\+crewSearchRequest\.current/);
+  assert.match(manager, /if \(requestId !== crewSearchRequest\.current\) return/);
+  assert.match(manager, /const requestId = \+\+technicianSearchRequest\.current/);
+  assert.match(manager, /if \(requestId !== technicianSearchRequest\.current\) return/);
+  assert.match(manager, /const requestId = \+\+workOrderSearchRequest\.current/);
+  assert.match(manager, /if \(requestId !== workOrderSearchRequest\.current\) return/);
+});
+
 test('Shift Planning preserves selected historical relationships while searches refresh', () => {
   assert.match(manager, /function mergeSelected/);
   assert.match(manager, /mergeSelected\(data\.items, current\.find\(\(crew\) => crew\.id === form\.crewId\)\)/);
