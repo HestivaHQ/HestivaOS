@@ -84,7 +84,10 @@ async function authenticateIdentity(page, role, emailName, passwordName) {
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
 
-  const loginStatus = page.getByRole('status');
+  // Only a message rendered by the login form itself represents an authentication
+  // failure. Authenticated route transitions can render their own global status UI
+  // while the browser URL still briefly reports /login.
+  const loginStatus = page.locator('form.loginForm .formMessage[role="status"]');
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     if (!new URL(page.url()).pathname.startsWith('/login')) break;
