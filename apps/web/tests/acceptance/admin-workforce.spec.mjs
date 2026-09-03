@@ -153,9 +153,8 @@ async function changeCrewLeader(page, leaderName) {
   const leader = form.getByLabel('Crew leader');
   await selectOptionByText(leader, leaderName);
   await expect(leader.locator('option:checked')).toHaveText(leaderName);
-  const save = form.getByRole('button', { name: 'Save crew' });
-  await save.click();
-  await expect(save).toBeEnabled();
+  await form.getByRole('button', { name: 'Save crew' }).click();
+  await expect(form.getByRole('heading', { name: 'New crew' })).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   const reloadedSearch = page.getByPlaceholder('Search crews');
   await reloadedSearch.fill(crewName);
