@@ -219,6 +219,7 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await removeVisibleShifts(page);
       await page.getByRole('button', { name: 'Create shift' }).click();
       const form = page.locator('form.resourceForm');
+      await expect(form.getByRole('heading', { name: 'New shift' })).toBeVisible();
       const today = localDate(0);
       const tomorrow = localDate(1);
       await form.getByLabel('Shift title').fill(shiftTitle);
@@ -226,11 +227,12 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await form.getByLabel('End').fill(`${today}T17:00`);
       await form.getByLabel('Unpaid break (minutes)').fill('30');
       await form.getByLabel('Search crews').fill(crewName);
-      await page.waitForTimeout(450);
-      await form.getByLabel('Crew', { exact: true }).selectOption({ label: crewName });
-      await form.getByLabel('Designated technician').selectOption({ label: leadName });
-      await form.getByLabel('Search work orders').fill('LR1B-NO-WORK-ORDER');
-      await page.waitForTimeout(400);
+      const crewSelect = form.getByLabel('Crew', { exact: true });
+      await selectOptionByText(crewSelect, crewName);
+      await expect(crewSelect.locator('option:checked')).toHaveText(crewName);
+      const technicianSelect = form.getByLabel('Designated technician');
+      await selectOptionByText(technicianSelect, leadName);
+      await expect(technicianSelect.locator('option:checked')).toHaveText(leadName);
       await form.getByLabel('Work order', { exact: true }).selectOption('');
       await form.getByLabel('Location').fill('LR1B acceptance location');
       await form.getByLabel('Status').selectOption('SCHEDULED');
