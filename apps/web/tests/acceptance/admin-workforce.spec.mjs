@@ -217,11 +217,11 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await form.getByLabel('Unpaid break (minutes)').fill('30');
       await form.getByLabel('Search crews').fill(crewName);
       await page.waitForTimeout(450);
-      await form.getByLabel('Crew').selectOption({ label: crewName });
+      await form.getByLabel('Crew', { exact: true }).selectOption({ label: crewName });
       await form.getByLabel('Designated technician').selectOption({ label: leadName });
       await form.getByLabel('Search work orders').fill('LR1B-NO-WORK-ORDER');
       await page.waitForTimeout(400);
-      await form.getByLabel('Work order').selectOption('');
+      await form.getByLabel('Work order', { exact: true }).selectOption('');
       await form.getByLabel('Location').fill('LR1B acceptance location');
       await form.getByLabel('Status').selectOption('SCHEDULED');
       await form.getByLabel('Management notes').fill('Disposable LR-1B acceptance shift.');
