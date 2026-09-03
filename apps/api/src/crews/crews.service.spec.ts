@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { CrewStatus, UserRole } from '@prisma/client';
 import { ROLES_KEY } from '../users/roles.decorator';
 import { CrewsController } from './crews.controller';
@@ -8,11 +8,31 @@ import { CrewsService } from './crews.service';
 type TechnicianFixture = { id: string; status: string; crewMembership: null };
 
 function harness(technicians: TechnicianFixture[] = [{ id: 'tech-1', status: 'ACTIVE', crewMembership: null }, { id: 'tech-2', status: 'ACTIVE', crewMembership: null }]) {
-  const prisma: any = {
-    crew: { findFirst: jest.fn(), create: jest.fn(({ data }: any) => ({ id: 'crew-1', ...data })) },
-    technician: { findMany: jest.fn().mockImplementation(() => Promise.resolve(technicians)) },
+  const existingCrew = {
+    id: 'crew-1',
+    name: 'Team',
+    description: null,
+    status: CrewStatus.ACTIVE,
+    leaderId: 'tech-1',
+    leader: null,
+    members: technicians.map((technician) => ({ technicianId: technician.id, technician })),
+    _count: { workOrders: 0 },
   };
-  return { service: new CrewsService(prisma), prisma };
+  const crewUpdate = jest.fn(({ data }: any) => ({ ...existingCrew, ...data }));
+  const tx: any = {
+    crew: { update: crewUpdate },
+    crewMember: { deleteMany: jest.fn(), createMany: jest.fn() },
+  };
+  const prisma: any = {
+    crew: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue(existingCrew),
+      create: jest.fn(({ data }: any) => ({ id: 'crew-1', ...data })),
+    },
+    technician: { findMany: jest.fn().mockImplementation(() => Promise.resolve(technicians)) },
+    $transaction: jest.fn().mockImplementation((operation: any) => typeof operation === 'function' ? operation(tx) : Promise.all(operation)),
+  };
+  return { service: new CrewsService(prisma), prisma, tx };
 }
 
 describe('Crew leadership', () => {
@@ -37,5 +57,23 @@ describe('Crew leadership', () => {
     await expect(service.create({ name: 'Team', memberIds: ['tech-1', 'tech-2'], leaderId: 'tech-3' })).rejects.toBeInstanceOf(BadRequestException);
     const inactive = harness([{ id: 'tech-1', status: 'INACTIVE', crewMembership: null }]);
     await expect(inactive.service.create({ name: 'Inactive', memberIds: ['tech-1'] })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('persists an explicit Crew Leader change while retaining the same members', async () => {
+    const { service, tx } = harness();
+
+    const updated = await service.update('crew-1', {
+      name: 'Team',
+      description: '',
+      status: CrewStatus.ACTIVE,
+      memberIds: ['tech-1', 'tech-2'],
+      leaderId: 'tech-2',
+    });
+
+    expect(tx.crew.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'crew-1' },
+      data: expect.objectContaining({ leaderId: 'tech-2' }),
+    }));
+    expect(updated).toEqual(expect.objectContaining({ leaderId: 'tech-2' }));
   });
 });
