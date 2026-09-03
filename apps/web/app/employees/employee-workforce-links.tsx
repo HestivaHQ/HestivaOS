@@ -139,7 +139,7 @@ export function EmployeeWorkforceLinks() {
               <option value="">No linked OS user</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.displayName || `${user.firstName} ${user.lastName}`.trim() || user.email} · {user.role} · {user.status === "ACTIVE" ? "Active" : "Disabled"}
+                  {user.displayName || `${user.firstName} ${user.lastName}`.trim() || user.email} · {user.email} · {user.role} · {user.status === "ACTIVE" ? "Active" : "Disabled"}
                 </option>
               ))}
             </select>
