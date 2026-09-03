@@ -26,7 +26,7 @@ function harness(technicians: TechnicianFixture[] = [{ id: 'tech-1', status: 'AC
   const prisma: any = {
     crew: {
       findFirst: jest.fn(),
-      findUnique: jest.fn().mockResolvedValue(existingCrew),
+      findUnique: jest.fn(async () => existingCrew),
       create: jest.fn(({ data }: any) => ({ id: 'crew-1', ...data })),
     },
     technician: { findMany: jest.fn().mockImplementation(() => Promise.resolve(technicians)) },
