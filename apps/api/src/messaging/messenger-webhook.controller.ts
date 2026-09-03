@@ -3,6 +3,7 @@ import { Public } from '../users/public.decorator';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 import { MessagingService } from './messaging.service';
+import { MessagingConversationControlService } from './messaging-conversation-control.service';
 import { MessengerPlatformAdapter } from './messenger-platform.adapter';
 
 type WebhookRequest = { body: unknown };
@@ -16,6 +17,7 @@ export class MessengerWebhookController {
     private readonly messaging: MessagingService,
     private readonly customerLinking: MessagingCustomerLinkingService,
     private readonly quoteOrchestrator: MessagingQuoteLiveOrchestratorService,
+    private readonly conversationControl: MessagingConversationControlService,
   ) {}
 
   @Get()
@@ -41,7 +43,9 @@ export class MessengerWebhookController {
     for (const event of events) {
       const message = await this.messaging.persistInbound(event);
       await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
-      await this.quoteOrchestrator.handleInbound(message.id);
+      if (await this.conversationControl.automationEnabled(message.conversationId)) {
+        await this.quoteOrchestrator.handleInbound(message.id);
+      }
     }
     return { received: true, normalizedEvents: events.length };
   }

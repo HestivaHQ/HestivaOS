@@ -201,6 +201,16 @@ Human review pauses **Quote-specific automated decisions and replies only**. The
 
 Quote automation resumes only after the conversation is deliberately handed back to automation.
 
+## Conversation authority and human takeover
+
+`MessagingConversation.controlState` is the provider-neutral conversation authority and is independent of Quote `HUMAN_REVIEW`. `AUTOMATION` is the safe default for existing and new conversations. An authenticated ADMIN can explicitly move a conversation to `HUMAN_TAKEOVER` or return it to `AUTOMATION`; each successful transition atomically appends an actor-attributed audit event with its prior and resulting state. Versioned transition requests fail closed when an operator acts on stale state.
+
+Authenticated provider ingestion, normalization, idempotent inbound persistence, identity resolution, and secured inbound-media handling continue while human takeover is active. The shared post-persistence orchestration boundary suppresses WhatsApp Flow handling and deterministic Quote processing, and the outbound Quote boundary rechecks authority immediately before a provider send. Consequently takeover-period inbound messages remain immutable operator-visible history but do not advance guided Quote state or trigger automated customer-facing replies.
+
+Returning to `AUTOMATION` is explicit and applies only to subsequent eligible inbound events. HestivaOS does not replay or reinterpret the takeover-period backlog. Neither direction of the conversation-control transition clears or resolves Quote `HUMAN_REVIEW`; that business-review lifecycle retains its own explicit rules.
+
+Human takeover is not a provider-policy bypass. Manual Messenger replies remain ADMIN-only, text-only, and constrained to the standard 24-hour response window. WhatsApp takeover provides visibility and automation suppression but does not create a new unrestricted operator-send path or change production Meta configuration.
+
 ## Quote-domain boundary
 
 Messaging must not submit to the Website integration as if it were the Website and must not claim `HESTIVA_WEBSITE` provenance or reuse `HESTIVA_WEBSITE_INTEGRATION_SECRET`.
@@ -217,7 +227,7 @@ ADR-0088 explicitly keeps the first production Flow simple: no AI, live pricing 
 
 Durable channel-neutral `MessagingConversation`, `MessagingMessage` and generic message-status-event persistence exists, including the bounded Work Order access-recovery extension described below. WhatsApp also has separate append-only provider-status history for exact `sent`, `delivered`, `read`, and `failed` evidence, and approved ordinary inbound media is secured outside immutable message history. Provider-event idempotency and immutable message history remain authoritative.
 
-Direct WhatsApp and Messenger provider edges are implemented within their current bounded policies. Deliberate provider-conversation to canonical Customer linking is implemented as a separate guarded extension. Deterministic guided Quote collection, review/confirmation, authoritative Messaging Quote submission and correction handling are implemented through the currently merged collector sections. WhatsApp Flow/session runtime, broad human takeover/operator handling and AI remain later Phase 3 slices.
+Direct WhatsApp and Messenger provider edges are implemented within their current bounded policies. Deliberate provider-conversation to canonical Customer linking is implemented as a separate guarded extension. Deterministic guided Quote collection, review/confirmation, authoritative Messaging Quote submission and correction handling are implemented through the currently merged collector sections. Conversation-level Human Takeover v1 is implemented through the existing admin messaging surface. Broader operator routing and AI remain later Phase 3 slices.
 
 ## 2026-08-19 Phase 3D access-recovery extension
 

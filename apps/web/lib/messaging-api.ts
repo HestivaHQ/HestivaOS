@@ -10,6 +10,8 @@ export type MessagingConversationSummary = {
   channel: 'MESSENGER' | 'WHATSAPP';
   provider: string;
   customerId: string | null;
+  controlState: 'AUTOMATION' | 'HUMAN_TAKEOVER';
+  controlVersion: number;
   customer: { id: string; name: string; contactName: string | null } | null;
   identityReview: {
     state: MessagingIdentityReviewState;
@@ -76,6 +78,14 @@ export function linkMessagingCustomer(accessToken: string, conversationId: strin
 
 export function trustMessagingIdentity(accessToken: string, conversationId: string, contactId: string) {
   return request(accessToken, `/messaging/conversations/${conversationId}/trusted-identity`, { method: 'PUT', body: JSON.stringify({ contactId }) });
+}
+
+export function takeOverMessagingConversation(accessToken: string, conversationId: string, expectedVersion: number) {
+  return request(accessToken, `/messaging/conversations/${conversationId}/takeover`, { method: 'POST', body: JSON.stringify({ requestId: crypto.randomUUID(), expectedVersion }) });
+}
+
+export function returnMessagingConversationToAutomation(accessToken: string, conversationId: string, expectedVersion: number) {
+  return request(accessToken, `/messaging/conversations/${conversationId}/return-to-automation`, { method: 'POST', body: JSON.stringify({ requestId: crypto.randomUUID(), expectedVersion }) });
 }
 
 export function sendManualMessengerReply(accessToken: string, conversationId: string, input: { requestId: string; text: string }): Promise<ManualMessengerReplyResult> {

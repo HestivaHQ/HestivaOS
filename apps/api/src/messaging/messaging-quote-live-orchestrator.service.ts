@@ -26,6 +26,7 @@ import { MessagingQuoteSubmissionService } from './messaging-quote-submission.se
 import { MessagingQuoteStateService } from './messaging-quote-state.service';
 import type { MessagingQuoteStateView } from './messaging-quote-state';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
+import { MessagingConversationControlService } from './messaging-conversation-control.service';
 
 const CORRECTION_MENU = [
   'Which section would you like to change?',
@@ -101,7 +102,12 @@ export class MessagingQuoteLiveOrchestratorService {
     private readonly messaging: MessagingService,
     private readonly quoteState: MessagingQuoteStateService,
     private readonly quoteSubmission: MessagingQuoteSubmissionService,
+    private readonly conversationControl: MessagingConversationControlService,
   ) {}
+
+  private automationEnabled(conversationId: string) {
+    return this.conversationControl.automationEnabled(conversationId);
+  }
 
   async handleInbound(messageId: string) {
     const inbound = await this.prisma.messagingMessage.findUnique({
@@ -122,6 +128,7 @@ export class MessagingQuoteLiveOrchestratorService {
       },
     });
     if (!inbound || inbound.direction !== MessagingDirection.INBOUND) return null;
+    if (!await this.automationEnabled(inbound.conversationId)) return null;
 
     let state = await this.quoteState.get(inbound.conversationId);
 
@@ -376,6 +383,7 @@ export class MessagingQuoteLiveOrchestratorService {
     idempotencyKey: string,
     text: string,
   ) {
+    if (!await this.automationEnabled(inbound.conversationId)) return null;
     let outbound = await this.prisma.messagingMessage.findUnique({ where: { idempotencyKey } });
 
     if (outbound) {
@@ -407,6 +415,9 @@ export class MessagingQuoteLiveOrchestratorService {
       });
     }
 
+    // Re-read authoritative control immediately before crossing the provider
+    // boundary; a takeover may have raced durable prompt preparation.
+    if (!await this.automationEnabled(inbound.conversationId)) return null;
     try {
       await this.messaging.send({
         channel: inbound.conversation.channel,

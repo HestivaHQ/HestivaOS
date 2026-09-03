@@ -3,6 +3,8 @@ import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind } fro
 import type { PrismaService } from '../prisma.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 
+const automationControl = { automationEnabled: jest.fn(async () => true) } as any;
+
 function inbound(contentText: string) {
   return {
     id: 'message-inbound',
@@ -54,6 +56,19 @@ function collectingState(overrides: Record<string, unknown> = {}) {
 }
 
 describe('MessagingQuoteLiveOrchestratorService', () => {
+  it('does not read or advance Quote state or send when human takeover is active', async () => {
+    const prisma = { messagingMessage: { findUnique: jest.fn(async () => inbound('answer while handled')) } } as unknown as PrismaService;
+    const messaging = { send: jest.fn() } as any;
+    const quoteState = { get: jest.fn(), updateDraft: jest.fn() } as any;
+    const control = { automationEnabled: jest.fn(async () => false) } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, control);
+
+    await expect(service.handleInbound('message-inbound')).resolves.toBeNull();
+    expect(quoteState.get).not.toHaveBeenCalled();
+    expect(quoteState.updateDraft).not.toHaveBeenCalled();
+    expect(messaging.send).not.toHaveBeenCalled();
+  });
+
   it('does not interpret a menu-like inbound value before the matching question was accepted', async () => {
     let createdText = '';
     const prisma = {
@@ -75,7 +90,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       get: jest.fn(async () => collectingState()),
       updateDraft: jest.fn(),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     const result = await service.handleInbound('message-inbound');
 
@@ -121,7 +136,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       get: jest.fn(async () => collectingState()),
       updateDraft: jest.fn(async () => updated),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     const result = await service.handleInbound('message-inbound');
 
@@ -165,7 +180,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       recordReviewPresented: jest.fn(async () => reviewState()),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn() } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission, automationControl);
 
     await service.handleInbound('message-inbound');
 
@@ -197,7 +212,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       confirmFromInboundMessage: jest.fn(async () => ready),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn(async () => ({ quoteId: 'quote-1' })) } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission, automationControl);
 
     const result = await service.handleInbound('message-inbound');
 
@@ -216,7 +231,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       confirmFromInboundMessage: jest.fn(),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn() } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission, automationControl);
 
     await service.handleInbound('message-inbound');
 
@@ -239,7 +254,7 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
       }),
     } as any;
     const quoteSubmission = { submitReadyQuote: jest.fn(async () => ({ quoteId: 'quote-1' })) } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, quoteSubmission, automationControl);
 
     await service.handleInbound('message-inbound');
 

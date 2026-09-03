@@ -3,6 +3,8 @@ import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind } fro
 import type { PrismaService } from '../prisma.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 
+const automationControl = { automationEnabled: jest.fn(async () => true) } as any;
+
 function inbound(contentText: string) {
   return {
     id: 'message-inbound',
@@ -73,7 +75,7 @@ describe('live Post-Event Messaging quote collection', () => {
       get: jest.fn(async () => postEventCollectingState()),
       updateDraft: jest.fn(),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     await service.handleInbound('message-inbound');
 
@@ -126,7 +128,7 @@ describe('live Post-Event Messaging quote collection', () => {
       get: jest.fn(async () => postEventCollectingState()),
       updateDraft: jest.fn(async () => updated),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     await service.handleInbound('message-inbound');
 
