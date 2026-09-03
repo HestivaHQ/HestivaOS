@@ -154,8 +154,13 @@ async function changeCrewLeader(page, leaderName) {
   await selectOptionByText(leader, leaderName);
   await expect(leader.locator('option:checked')).toHaveText(leaderName);
   const save = form.getByRole('button', { name: 'Save crew' });
+  const persisted = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return response.request().method() === 'PATCH' && /^\/crews\/[^/]+$/.test(url.pathname);
+  });
   await save.click();
-  await expect(save).toBeEnabled();
+  const response = await persisted;
+  expect(response.ok(), `Crew update failed with HTTP ${response.status()}.`).toBeTruthy();
   await page.reload({ waitUntil: 'domcontentloaded' });
   const reloadedSearch = page.getByPlaceholder('Search crews');
   await reloadedSearch.fill(crewName);
