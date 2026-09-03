@@ -136,11 +136,16 @@ async function normalizeCrew(page) {
   }
   await form.getByLabel('Crew leader').selectOption({ label: leadName });
   await form.getByRole('button', { name: 'Save crew' }).click();
-  await search.fill(crewName);
+  await expect(form.getByRole('heading', { name: 'New crew' })).toBeVisible();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const reloadedSearch = page.getByPlaceholder('Search crews');
+  await reloadedSearch.fill(crewName);
   await page.waitForTimeout(400);
   const saved = page.locator('.dataRow').filter({ hasText: crewName }).first();
   await expect(saved).toContainText(`Leader: ${leadName}`);
   await expect(saved).toContainText('2 Technicians');
+  await expect(saved).toContainText(leadName);
+  await expect(saved).toContainText(memberName);
 }
 
 async function changeCrewLeader(page, leaderName) {
