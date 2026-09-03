@@ -37,6 +37,9 @@ export function ShiftsManager({ initialItems, initialRange }: { initialItems: Sh
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const initialListLoad = useRef(true);
+  const crewSearchRequest = useRef(0);
+  const technicianSearchRequest = useRef(0);
+  const workOrderSearchRequest = useRef(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [crewSearch, setCrewSearch] = useState('');
@@ -61,29 +64,50 @@ export function ShiftsManager({ initialItems, initialRange }: { initialItems: Sh
     void loadShifts();
   }, [dateFrom, dateTo]);
   useEffect(() => {
+    const requestId = ++crewSearchRequest.current;
     if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.crews(`?page=1&pageSize=20&status=ACTIVE${crewSearch.trim() ? `&search=${encodeURIComponent(crewSearch.trim())}` : ''}`)
-        .then((data) => setCrews((current) => mergeSelected(data.items, current.find((crew) => crew.id === form.crewId))))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search crews.'));
+        .then((data) => {
+          if (requestId !== crewSearchRequest.current) return;
+          setCrews((current) => mergeSelected(data.items, current.find((crew) => crew.id === form.crewId)));
+        })
+        .catch((err) => {
+          if (requestId !== crewSearchRequest.current) return;
+          setError(err instanceof Error ? err.message : 'Unable to search crews.');
+        });
     }, 300);
     return () => window.clearTimeout(timer);
   }, [crewSearch, editorOpen, form.crewId]);
   useEffect(() => {
+    const requestId = ++technicianSearchRequest.current;
     if (!editorOpen || selectedCrew) return;
     const timer = window.setTimeout(() => {
       void api.technicians(`?page=1&pageSize=20&status=ACTIVE${technicianSearch.trim() ? `&search=${encodeURIComponent(technicianSearch.trim())}` : ''}`)
-        .then((data) => setTechnicians((current) => mergeSelected(data.items, current.find((technician) => technician.id === form.technicianId))))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search technicians.'));
+        .then((data) => {
+          if (requestId !== technicianSearchRequest.current) return;
+          setTechnicians((current) => mergeSelected(data.items, current.find((technician) => technician.id === form.technicianId)));
+        })
+        .catch((err) => {
+          if (requestId !== technicianSearchRequest.current) return;
+          setError(err instanceof Error ? err.message : 'Unable to search technicians.');
+        });
     }, 300);
     return () => window.clearTimeout(timer);
   }, [editorOpen, form.technicianId, selectedCrew, technicianSearch]);
   useEffect(() => {
+    const requestId = ++workOrderSearchRequest.current;
     if (!editorOpen) return;
     const timer = window.setTimeout(() => {
       void api.workOrders(`?page=1&pageSize=20${workOrderSearch.trim() ? `&search=${encodeURIComponent(workOrderSearch.trim())}` : ''}`)
-        .then((data) => setWorkOrders((current) => mergeSelected(data.items, current.find((workOrder) => workOrder.id === form.workOrderId))))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Unable to search work orders.'));
+        .then((data) => {
+          if (requestId !== workOrderSearchRequest.current) return;
+          setWorkOrders((current) => mergeSelected(data.items, current.find((workOrder) => workOrder.id === form.workOrderId)));
+        })
+        .catch((err) => {
+          if (requestId !== workOrderSearchRequest.current) return;
+          setError(err instanceof Error ? err.message : 'Unable to search work orders.');
+        });
     }, 300);
     return () => window.clearTimeout(timer);
   }, [editorOpen, form.workOrderId, workOrderSearch]);
