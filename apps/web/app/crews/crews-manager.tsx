@@ -37,11 +37,12 @@ export function CrewsManager({ initialItems = [], initialTechnicians = [] }: { i
     setForm({ ...form, memberIds, leaderId: memberIds.length === 1 ? memberIds[0] : (memberIds.includes(form.leaderId) ? form.leaderId : '') });
   }
 
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedLeaderId = (event.currentTarget.elements.namedItem('leaderId') as HTMLSelectElement | null)?.value ?? form.leaderId;
     setBusy(true);
     try {
-      const payload = { ...form, leaderId: form.leaderId || null };
+      const payload = { ...form, leaderId: submittedLeaderId || null };
       if (editingId) await api.updateCrew(editingId, payload);
       else await api.createCrew(payload);
       setForm(emptyForm);
@@ -72,7 +73,7 @@ export function CrewsManager({ initialItems = [], initialTechnicians = [] }: { i
         <label>Description<textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
         <label>Status<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Crew['status'] })}><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>
         <fieldset><legend>Members</legend><div className="dataList">{technicians.map((technician) => <label className="dataRow" key={technician.id}><span><input type="checkbox" checked={form.memberIds.includes(technician.id)} disabled={technician.status === 'INACTIVE' && !form.memberIds.includes(technician.id)} onChange={() => toggleMember(technician.id)} /> {technician.firstName} {technician.lastName}</span><span className="statusPill">{technician.status}</span></label>)}</div></fieldset>
-        <label>Crew leader<select value={form.leaderId} onChange={(e) => setForm({ ...form, leaderId: e.target.value })}><option value="">Select leader</option>{selectedMembers.map((technician) => <option key={technician.id} value={technician.id}>{technician.firstName} {technician.lastName}</option>)}</select></label>
+        <label>Crew leader<select name="leaderId" value={form.leaderId} onChange={(e) => setForm({ ...form, leaderId: e.target.value })}><option value="">Select leader</option>{selectedMembers.map((technician) => <option key={technician.id} value={technician.id}>{technician.firstName} {technician.lastName}</option>)}</select></label>
         <div className="formActions"><button className="primaryButton" disabled={busy}>{busy ? 'Saving…' : 'Save crew'}</button>{editingId ? <button type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button> : null}</div>
       </form>
       <section className="panel"><div className="panelHeader"><h3>Crew list</h3><input className="searchInput" placeholder="Search crews" value={search} onChange={(e) => setSearch(e.target.value)} /></div><div className="dataList">
