@@ -43,8 +43,12 @@ export function CrewsManager({ initialItems = [], initialTechnicians = [] }: { i
     setBusy(true);
     try {
       const payload = { ...form, leaderId: submittedLeaderId || null };
-      if (editingId) await api.updateCrew(editingId, payload);
-      else await api.createCrew(payload);
+      const savedCrew = editingId
+        ? await api.updateCrew(editingId, payload)
+        : await api.createCrew(payload);
+      if ((savedCrew.leaderId ?? null) !== payload.leaderId) {
+        throw new Error('The Crew Leader change was not persisted by the server. Please retry.');
+      }
       setForm(emptyForm);
       setEditingId(null);
       await loadCrews();
