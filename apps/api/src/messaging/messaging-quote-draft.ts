@@ -39,10 +39,34 @@ type DeepPartial<T> = T extends Array<infer Item>
  * A Messaging conversation may persist part of a canonical fact group while it
  * asks the remaining deterministic questions. This is workflow state only; the
  * authoritative Quote boundary still requires a complete MessagingQuoteDraft.
+ *
+ * `messagingMediaAssetIds` is Messaging-owned workflow provenance, not a
+ * Website-style Quote photo payload. It references already-secured private
+ * provider media until Quote creation atomically promotes that evidence into
+ * canonical QuotePhoto records.
  */
 export type MessagingQuoteDraftProgress = {
   [Key in keyof MessagingQuoteDraft]?: DeepPartial<MessagingQuoteDraft[Key]>;
+} & {
+  messagingMediaAssetIds?: string[];
 };
+
+export function messagingQuoteMediaAssetIds(draft: MessagingQuoteDraftProgress): string[] {
+  if (!Array.isArray(draft.messagingMediaAssetIds)) return [];
+  return [...new Set(draft.messagingMediaAssetIds.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())).map((value) => value.trim()))];
+}
+
+/** Keep Messaging-only workflow provenance outside channel-neutral validation. */
+export function canonicalMessagingQuoteDraftProgress(
+  draft: MessagingQuoteDraftProgress,
+): Omit<MessagingQuoteDraftProgress, 'messagingMediaAssetIds'> {
+  const canonical: Omit<MessagingQuoteDraftProgress, 'messagingMediaAssetIds'> = {};
+  for (const key of MESSAGING_QUOTE_REQUIRED_FACT_GROUPS) {
+    const value = draft[key];
+    if (value !== undefined) (canonical as Record<string, unknown>)[key] = value;
+  }
+  return canonical;
+}
 
 export const MESSAGING_QUOTE_SECTIONS = [
   'YOUR_HOME',

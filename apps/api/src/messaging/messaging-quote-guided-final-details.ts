@@ -1,4 +1,4 @@
-import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
+import { messagingQuoteMediaAssetIds, type MessagingQuoteDraftProgress } from './messaging-quote-draft';
 
 export type MessagingGuidedFinalDetailsQuestionId =
   | 'OFF_LIMITS_AREAS'
@@ -70,9 +70,12 @@ export function nextMessagingGuidedFinalDetailsQuestion(
   if (!has(notes, 'additionalNotes')) return optionalQuestion('ADDITIONAL_NOTES', 'Any other notes for the cleaning team?');
 
   if (!Array.isArray(draft.photos)) {
+    const selected = messagingQuoteMediaAssetIds(draft).length;
     return {
       id: 'PHOTOS',
-      text: 'Quote photos are optional. Reply 0 to continue without photos. Secure photo-to-Quote attachment is handled separately and is not yet automated in this guided flow.',
+      text: selected > 0
+        ? `${selected} quote photo${selected === 1 ? '' : 's'} added. On WhatsApp, send another image or reply DONE exactly when finished.`
+        : 'Quote photos are optional. On WhatsApp, send an image now, or reply 0 to continue without photos. Messenger photo attachment is not enabled yet.',
     };
   }
 
@@ -126,6 +129,11 @@ export function applyMessagingGuidedFinalDetailsAnswer(
   }
 
   if (question.id === 'PHOTOS') {
+    const selected = messagingQuoteMediaAssetIds(draft).length;
+    if (selected > 0) {
+      if (text !== 'DONE') return { kind: 'INVALID', question };
+      return { kind: 'ACCEPTED', patch: { photos: [] } };
+    }
     if (text !== '0') return { kind: 'INVALID', question };
     return { kind: 'ACCEPTED', patch: { photos: [] } };
   }
