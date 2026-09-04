@@ -23,7 +23,10 @@ import {
   type MessagingGuidedPostEventQuestion,
 } from './messaging-quote-guided-post-event';
 import { MessagingQuoteSubmissionService } from './messaging-quote-submission.service';
-import { MessagingQuoteStateService } from './messaging-quote-state.service';
+import {
+  MessagingAutomationAuthorityChangedError,
+  MessagingQuoteStateService,
+} from './messaging-quote-state.service';
 import type { MessagingQuoteStateView } from './messaging-quote-state';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
 import { MessagingConversationControlService } from './messaging-conversation-control.service';
@@ -92,6 +95,7 @@ type InboundForOrchestration = {
     channel: MessagingChannel;
     provider: string;
     providerIdentityId: string;
+    controlVersion: number;
   };
 };
 
@@ -123,6 +127,7 @@ export class MessagingQuoteLiveOrchestratorService {
             channel: true,
             provider: true,
             providerIdentityId: true,
+            controlVersion: true,
           },
         },
       },
@@ -130,6 +135,15 @@ export class MessagingQuoteLiveOrchestratorService {
     if (!inbound || inbound.direction !== MessagingDirection.INBOUND) return null;
     if (!await this.automationEnabled(inbound.conversationId)) return null;
 
+    try {
+      return await this.handleInboundUnderObservedAuthority(inbound);
+    } catch (error) {
+      if (error instanceof MessagingAutomationAuthorityChangedError) return null;
+      throw error;
+    }
+  }
+
+  private async handleInboundUnderObservedAuthority(inbound: InboundForOrchestration) {
     let state = await this.quoteState.get(inbound.conversationId);
 
     if (state.phase === 'SUBMITTED' || state.phase === 'HUMAN_REVIEW') return state;
@@ -137,7 +151,11 @@ export class MessagingQuoteLiveOrchestratorService {
     if (state.phase === 'COLLECTING') return this.handleGuidedCollection(inbound, state);
 
     if (state.phase === 'READY_TO_SUBMIT' || state.phase === 'SUBMITTING') {
-      await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
+      await this.quoteSubmission.submitReadyQuote(
+        inbound.conversationId,
+        state.version,
+        inbound.conversation.controlVersion,
+      );
       return this.quoteState.get(inbound.conversationId);
     }
 
@@ -151,6 +169,7 @@ export class MessagingQuoteLiveOrchestratorService {
         inbound.conversationId,
         state.version,
         outbound.id,
+        inbound.conversation.controlVersion,
       );
       return state;
     }
@@ -161,8 +180,13 @@ export class MessagingQuoteLiveOrchestratorService {
         inbound.conversationId,
         state.version,
         inbound.id,
+        inbound.conversation.controlVersion,
       );
-      await this.quoteSubmission.submitReadyQuote(inbound.conversationId, state.version);
+      await this.quoteSubmission.submitReadyQuote(
+        inbound.conversationId,
+        state.version,
+        inbound.conversation.controlVersion,
+      );
       return this.quoteState.get(inbound.conversationId);
     }
 
@@ -189,7 +213,12 @@ export class MessagingQuoteLiveOrchestratorService {
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, patch as any);
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      patch as any,
+      inbound.conversation.controlVersion,
+    );
     return this.handleGuidedCollection(inbound, updated);
   }
 
@@ -241,7 +270,12 @@ export class MessagingQuoteLiveOrchestratorService {
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      answer.patch,
+      inbound.conversation.controlVersion,
+    );
     const nextQuestion = nextMessagingGuidedHomeQuestion(updated.draft);
     if (nextQuestion) {
       await this.sendDurableText(
@@ -293,7 +327,12 @@ export class MessagingQuoteLiveOrchestratorService {
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      answer.patch,
+      inbound.conversation.controlVersion,
+    );
     const nextQuestion = nextMessagingGuidedCleaningQuestion(updated.draft);
     if (nextQuestion) {
       await this.sendDurableText(
@@ -345,7 +384,12 @@ export class MessagingQuoteLiveOrchestratorService {
       return state;
     }
 
-    const updated = await this.quoteState.updateDraft(inbound.conversationId, state.version, answer.patch);
+    const updated = await this.quoteState.updateDraft(
+      inbound.conversationId,
+      state.version,
+      answer.patch,
+      inbound.conversation.controlVersion,
+    );
     const nextQuestion = nextMessagingGuidedPostEventQuestion(updated.draft);
     if (nextQuestion) {
       await this.sendDurableText(
@@ -415,9 +459,16 @@ export class MessagingQuoteLiveOrchestratorService {
       });
     }
 
-    // Re-read authoritative control immediately before crossing the provider
-    // boundary; a takeover may have raced durable prompt preparation.
-    if (!await this.automationEnabled(inbound.conversationId)) return null;
+    const authority = await this.prisma.messagingConversation.findUnique({
+      where: { id: inbound.conversationId },
+      select: { controlState: true, controlVersion: true },
+    });
+    if (
+      !authority ||
+      authority.controlState !== 'AUTOMATION' ||
+      authority.controlVersion !== inbound.conversation.controlVersion
+    ) return null;
+
     try {
       await this.messaging.send({
         channel: inbound.conversation.channel,
