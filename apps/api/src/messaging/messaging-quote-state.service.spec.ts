@@ -1,7 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { MessagingDirection } from '@prisma/client';
+import { MessagingConversationControlState, MessagingDirection } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
-import { MessagingQuoteStateService } from './messaging-quote-state.service';
+import {
+  MessagingAutomationAuthorityChangedError,
+  MessagingQuoteStateService,
+} from './messaging-quote-state.service';
 
 const completeDraft = {
   customer: { fullName: 'Test Customer', email: 'test@example.com', mobile: '+27821234567', preferredContact: 'WHATSAPP' as const },
@@ -21,16 +24,42 @@ const completeDraft = {
   household: { hasPets: false }, safety: {}, notes: {}, photos: [],
 };
 
-type ConversationRow = { quoteState: unknown; quoteStateVersion: number };
+type ConversationRow = {
+  quoteState: unknown;
+  quoteStateVersion: number;
+  controlState?: MessagingConversationControlState;
+  controlVersion?: number;
+};
 
-function prismaFor(row: ConversationRow, options?: { updateCount?: number; messageDirection?: MessagingDirection }) {
-  let persisted: ConversationRow = { ...row };
+function prismaFor(
+  row: ConversationRow,
+  options?: {
+    updateCount?: number;
+    messageDirection?: MessagingDirection;
+    authorityAfterLock?: { state: MessagingConversationControlState; version: number };
+  },
+) {
+  let persisted = {
+    ...row,
+    controlState: row.controlState ?? MessagingConversationControlState.AUTOMATION,
+    controlVersion: row.controlVersion ?? 0,
+  };
   const tx = {
+    async $queryRaw() {
+      if (options?.authorityAfterLock) {
+        persisted = {
+          ...persisted,
+          controlState: options.authorityAfterLock.state,
+          controlVersion: options.authorityAfterLock.version,
+        };
+      }
+      return [{ id: 'conversation-1' }];
+    },
     messagingConversation: {
       async findUnique() { return persisted; },
       async updateMany(args: { data: { quoteState: unknown; quoteStateVersion: number } }) {
         if (options?.updateCount === 0) return { count: 0 };
-        persisted = { quoteState: args.data.quoteState, quoteStateVersion: args.data.quoteStateVersion };
+        persisted = { ...persisted, quoteState: args.data.quoteState, quoteStateVersion: args.data.quoteStateVersion };
         return { count: 1 };
       },
     },
@@ -64,16 +93,42 @@ describe('MessagingQuoteStateService', () => {
     await expect(service.get('conversation-1')).resolves.toEqual(expect.objectContaining({ version: 0, phase: 'COLLECTING' }));
   });
 
-  it('persists draft progress with optimistic version advancement', async () => {
-    const holder = prismaFor({ quoteState: null, quoteStateVersion: 0 });
+  it('persists inbound draft progress when automation authority still matches', async () => {
+    const holder = prismaFor({ quoteState: null, quoteStateVersion: 0, controlVersion: 0 });
     const service = new MessagingQuoteStateService(holder.prisma);
-    const result = await service.updateDraft('conversation-1', 0, completeDraft);
+    const result = await service.updateDraft('conversation-1', 0, completeDraft, 0);
     expect(result.version).toBe(1);
     expect(result.phase).toBe('REVIEW');
     expect(holder.read().quoteStateVersion).toBe(1);
   });
 
-  it('rejects stale callers before mutation', async () => {
+  it('rejects an inbound Quote mutation when takeover wins before the locked commit boundary', async () => {
+    const holder = prismaFor(
+      { quoteState: null, quoteStateVersion: 0, controlVersion: 0 },
+      { authorityAfterLock: { state: MessagingConversationControlState.HUMAN_TAKEOVER, version: 1 } },
+    );
+    const service = new MessagingQuoteStateService(holder.prisma);
+    await expect(service.updateDraft('conversation-1', 0, completeDraft, 0)).rejects.toBeInstanceOf(
+      MessagingAutomationAuthorityChangedError,
+    );
+    expect(holder.read().quoteStateVersion).toBe(0);
+  });
+
+  it('rejects stale takeover-period inbound after explicit handback to automation', async () => {
+    const holder = prismaFor({
+      quoteState: null,
+      quoteStateVersion: 0,
+      controlState: MessagingConversationControlState.AUTOMATION,
+      controlVersion: 2,
+    });
+    const service = new MessagingQuoteStateService(holder.prisma);
+    await expect(service.updateDraft('conversation-1', 0, completeDraft, 0)).rejects.toBeInstanceOf(
+      MessagingAutomationAuthorityChangedError,
+    );
+    expect(holder.read().quoteStateVersion).toBe(0);
+  });
+
+  it('rejects stale Quote-state callers before mutation', async () => {
     const holder = prismaFor({ quoteState: null, quoteStateVersion: 0 });
     const service = new MessagingQuoteStateService(holder.prisma);
     await expect(service.updateDraft('conversation-1', 1, completeDraft)).rejects.toThrow(

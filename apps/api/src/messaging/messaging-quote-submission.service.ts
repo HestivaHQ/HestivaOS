@@ -41,7 +41,11 @@ export class MessagingQuoteSubmissionService {
     private readonly quoteSubmissions: QuoteSubmissionService,
   ) {}
 
-  async submitReadyQuote(conversationId: string, expectedVersion: number) {
+  async submitReadyQuote(
+    conversationId: string,
+    expectedVersion: number,
+    observedControlVersion?: number,
+  ) {
     if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
       throw new ConflictException('A valid expected Messaging Quote state version is required.');
     }
@@ -124,6 +128,7 @@ export class MessagingQuoteSubmissionService {
         conversation.id,
         expectedVersion,
         prepared.value.submissionKey,
+        observedControlVersion,
       );
       reservedVersion = reserved.version;
     }
@@ -162,6 +167,7 @@ export class MessagingQuoteSubmissionService {
       conversation.id,
       reservedVersion,
       result.quoteId,
+      observedControlVersion,
     );
 
     return {

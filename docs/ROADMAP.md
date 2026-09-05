@@ -215,7 +215,7 @@ Continue from the merged provider-neutral messaging contracts, direct provider e
 - Deterministic Messaging Quote foundation: IMPLEMENTED.
 - WhatsApp Flow-first Quote intake: APPROVED / PLANNED under ADR-0088. HestivaOS remains the sole Quote/pricing/business authority; preserve versioned Flow/mapping semantics and explicit fallback **Flow → guided WhatsApp collector → Website where appropriate → human assistance**.
 - Flow PhotoPicker: PLANNED / OPTIONAL and must preserve private-media/security/replay principles before becoming Quote-owned evidence.
-- Add human takeover/operator handling.
+- Extend the implemented conversation-level Human Takeover v1 only through separately approved operator-routing or provider-safe reply slices.
 - Select/integrate an AI provider only after deterministic/Flow paths are production-proven and keep the AI boundary replaceable.
 
 Messaging coordination remains Issue #116. The Website integration remains a separate boundary and `HESTIVA_WEBSITE_INTEGRATION_SECRET` must not be reused for messaging.
