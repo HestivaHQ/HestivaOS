@@ -14,6 +14,7 @@ import {
 import { Public } from '../users/public.decorator';
 import { MessagingCustomerLinkingService } from './messaging-customer-linking.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
+import { MessagingAutomationAuthorityChangedError } from './messaging-quote-state.service';
 import { MessagingConversationControlService } from './messaging-conversation-control.service';
 import { MessagingService } from './messaging.service';
 import { WhatsAppCloudApiAdapter } from './whatsapp-cloud-api.adapter';
@@ -69,9 +70,14 @@ export class WhatsAppWebhookController {
       const message = await this.messaging.persistInbound(event);
       await this.customerLinking.resolveAndLinkTrustedIdentity(message.conversationId);
       await this.inboundMedia.secureInboundMedia(message.id, event);
-      if (await this.conversationControl.automationEnabled(message.conversationId)) {
-        const flowOwned = await this.quoteFlowInbound.handleInbound(message.id);
-        if (!flowOwned) await this.quoteOrchestrator.handleInbound(message.id);
+      const authority = await this.conversationControl.automationAuthority(message.conversationId);
+      if (authority) {
+        try {
+          const flowOwned = await this.quoteFlowInbound.handleInbound(message.id, authority.controlVersion);
+          if (!flowOwned) await this.quoteOrchestrator.handleInbound(message.id);
+        } catch (error) {
+          if (!(error instanceof MessagingAutomationAuthorityChangedError)) throw error;
+        }
       }
     }
     for (const event of statusEvents) {
