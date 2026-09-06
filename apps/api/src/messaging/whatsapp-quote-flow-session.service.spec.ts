@@ -1,6 +1,7 @@
 import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
-import { MessagingChannel } from '@prisma/client';
+import { MessagingChannel, MessagingConversationControlState } from '@prisma/client';
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { MessagingAutomationAuthorityChangedError } from './messaging-quote-state.service';
 import { HOMENT_QUOTE_FLOW_COMPLETION, HOMENT_QUOTE_FLOW_CONTRACT, HOMENT_QUOTE_FLOW_JSON_VERSION, HOMENT_QUOTE_FLOW_MAPPING, WhatsAppQuoteFlowSessionService } from './whatsapp-quote-flow-session.service';
 
 const ENV = ['META_WHATSAPP_QUOTE_FLOW_ID','META_WHATSAPP_QUOTE_FLOW_ENABLED'] as const;
@@ -14,6 +15,7 @@ const row = (extra: Record<string, unknown> = {}) => ({
   expires_at: new Date(Date.now() + 60_000), offered_at: new Date(), completed_at: null, launch_message_id: messageId,
   completion_message_id: null, provider_completion_event_key: null, completion_fingerprint: null, completion_evidence: null, ...extra,
 }) as any;
+const authority = (controlVersion = 0, controlState = MessagingConversationControlState.AUTOMATION) => ({ controlState, controlVersion });
 
 describe('WhatsAppQuoteFlowSessionService', () => {
   afterEach(() => { for (const name of ENV) delete process.env[name]; });
@@ -54,10 +56,42 @@ describe('WhatsAppQuoteFlowSessionService', () => {
   it('fails closed for wrong token, conversation, provider, version, or expired session', async () => {
     const cases = [null, row({ conversation_id: '99999999-9999-4999-8999-999999999999' }), row({ provider: 'other' }), row({ mapping_version: 'V2' }), row({ status: 'EXPIRED' })];
     for (const candidate of cases) {
-      const tx = { $executeRaw: jest.fn(async () => 1), $queryRaw: jest.fn(async () => candidate ? [candidate] : []) };
+      const tx = {
+        $executeRaw: jest.fn(async () => 1),
+        $queryRaw: jest.fn(async () => candidate ? [candidate] : []),
+        messagingConversation: { findUnique: jest.fn(async () => authority()) },
+      };
       const service = new WhatsAppQuoteFlowSessionService({ $transaction: jest.fn(async (fn: any) => fn(tx)) } as any, {} as any);
-      await expect(service.captureCompletion({ id: messageId, conversationId, providerEventKey: 'msg_evt_1' }, { flowToken: 'token', response: response() })).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.captureCompletion({ id: messageId, conversationId, providerEventKey: 'msg_evt_1' }, { flowToken: 'token', response: response() }, 0)).rejects.toBeInstanceOf(ConflictException);
     }
+  });
+
+  it('rejects Flow completion when takeover wins before the locked commit', async () => {
+    const tx = {
+      $executeRaw: jest.fn(async () => 1),
+      $queryRaw: jest.fn(async () => [row()]),
+      messagingConversation: { findUnique: jest.fn(async () => authority(1, MessagingConversationControlState.HUMAN_TAKEOVER)) },
+    };
+    const service = new WhatsAppQuoteFlowSessionService({ $transaction: jest.fn(async (fn: any) => fn(tx)) } as any, {} as any);
+    await expect(service.captureCompletion(
+      { id: messageId, conversationId, providerEventKey: 'msg_evt_1' },
+      { flowToken: 'token', response: response() },
+      0,
+    )).rejects.toBeInstanceOf(MessagingAutomationAuthorityChangedError);
+  });
+
+  it('rejects stale Flow completion after takeover and handback change the authority version', async () => {
+    const tx = {
+      $executeRaw: jest.fn(async () => 1),
+      $queryRaw: jest.fn(async () => [row()]),
+      messagingConversation: { findUnique: jest.fn(async () => authority(2)) },
+    };
+    const service = new WhatsAppQuoteFlowSessionService({ $transaction: jest.fn(async (fn: any) => fn(tx)) } as any, {} as any);
+    await expect(service.captureCompletion(
+      { id: messageId, conversationId, providerEventKey: 'msg_evt_1' },
+      { flowToken: 'token', response: response() },
+      0,
+    )).rejects.toBeInstanceOf(MessagingAutomationAuthorityChangedError);
   });
 
   it('records deliberate guided fallback', async () => {
