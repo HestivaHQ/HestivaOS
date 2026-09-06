@@ -3,6 +3,8 @@ import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind } fro
 import type { PrismaService } from '../prisma.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
 
+const automationControl = { automationEnabled: jest.fn(async () => true) } as any;
+
 function inbound(contentText: string) {
   return {
     id: 'message-inbound',
@@ -14,6 +16,7 @@ function inbound(contentText: string) {
       channel: 'WHATSAPP',
       provider: 'meta',
       providerIdentityId: '27821234567',
+      controlVersion: 0,
     },
   };
 }
@@ -51,6 +54,10 @@ function postEventCollectingState(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
+function authority() {
+  return { controlState: 'AUTOMATION', controlVersion: 0 };
+}
+
 describe('live Post-Event Messaging quote collection', () => {
   it('presents the first Post-Event question after base cleaning requirements are complete', async () => {
     let createdText = '';
@@ -58,6 +65,7 @@ describe('live Post-Event Messaging quote collection', () => {
       messagingMessage: {
         findUnique: jest.fn(async (args: any) => args.where.id ? inbound('hello') : null),
       },
+      messagingConversation: { findUnique: jest.fn(async () => authority()) },
       $transaction: jest.fn(async (callback: any) => callback({
         messagingMessage: {
           create: async (args: any) => {
@@ -73,7 +81,7 @@ describe('live Post-Event Messaging quote collection', () => {
       get: jest.fn(async () => postEventCollectingState()),
       updateDraft: jest.fn(),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     await service.handleInbound('message-inbound');
 
@@ -101,6 +109,7 @@ describe('live Post-Event Messaging quote collection', () => {
           return null;
         }),
       },
+      messagingConversation: { findUnique: jest.fn(async () => authority()) },
       $transaction: jest.fn(async (callback: any) => callback({
         messagingMessage: {
           create: async (args: any) => {
@@ -126,13 +135,13 @@ describe('live Post-Event Messaging quote collection', () => {
       get: jest.fn(async () => postEventCollectingState()),
       updateDraft: jest.fn(async () => updated),
     } as any;
-    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any);
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
 
     await service.handleInbound('message-inbound');
 
     expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 4, {
       request: { postEvent: { eventType: 'PARTY_BIRTHDAY' } },
-    });
+    }, 0);
     expect(createdText).toContain('Where did the event take place?');
   });
 });

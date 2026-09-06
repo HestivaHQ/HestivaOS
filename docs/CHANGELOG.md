@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-09-03 — Messaging Human Takeover v1
+
+### Added
+
+- Added an ADMIN-controlled, provider-neutral conversation authority switch with append-only actor-attributed transition history and optimistic stale-state protection.
+- Continued authenticated WhatsApp and Messenger inbound persistence during takeover while suppressing deterministic Quote/Flow processing and automated customer sends.
+- Extended the existing admin messaging surface with authoritative Take over and Return to automation actions.
+
+### Safety boundaries
+
+- Returning to automation affects only subsequent inbound events; takeover-period messages are not replayed, and Quote `HUMAN_REVIEW` remains independent.
+- Messenger manual replies remain text-only and subject to the standard 24-hour window. No new WhatsApp manual-send path, Meta configuration, provider credentials, Flow publication, or AI behavior was introduced.
+
 ## 2026-09-02 — Next.js security patch
 
 ### Security

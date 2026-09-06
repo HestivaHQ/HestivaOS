@@ -100,6 +100,16 @@ enum MessagingChannel {
   MESSENGER
 }
 
+enum MessagingConversationControlState {
+  AUTOMATION
+  HUMAN_TAKEOVER
+}
+
+enum MessagingConversationControlAction {
+  TAKE_OVER
+  RETURN_TO_AUTOMATION
+}
+
 enum MessagingDirection {
   INBOUND
   OUTBOUND
@@ -368,6 +378,7 @@ model User {
   temporaryAccessCredentialsCreated WorkOrderTemporaryAccessCredential[] @relation("TemporaryAccessCredentialCreator")
   temporaryAccessCredentialEvents WorkOrderTemporaryAccessCredentialEvent[] @relation("TemporaryAccessCredentialEventActor")
   accessRecoveriesInitiated WorkOrderAccessRecovery[] @relation("AccessRecoveryInitiator")
+  messagingControlEvents MessagingConversationControlEvent[] @relation("MessagingConversationControlActor")
   incidentReviews WorkOrderIncidentReview[] @relation("WorkOrderIncidentReviewActor")
   acknowledgedWorkOrderCompletions WorkOrder[] @relation("WorkOrderCompletionAcknowledgedBy")
   authorizedCompletionCorrections WorkOrderCompletionCorrection[] @relation("CompletionCorrectionAuthorizer")
@@ -1163,15 +1174,36 @@ model MessagingConversation {
   customerId String? @map("customer_id") @db.Uuid
   quoteState Json? @map("quote_state")
   quoteStateVersion Int @default(0) @map("quote_state_version")
+  controlState MessagingConversationControlState @default(AUTOMATION) @map("control_state")
+  controlVersion Int @default(0) @map("control_version")
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   messages MessagingMessage[]
   accessRecoveries WorkOrderAccessRecovery[]
+  controlEvents MessagingConversationControlEvent[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([channel, provider, providerIdentityId])
   @@index([customerId, channel])
   @@map("messaging_conversations")
+}
+
+model MessagingConversationControlEvent {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @map("conversation_id") @db.Uuid
+  action MessagingConversationControlAction
+  previousState MessagingConversationControlState @map("previous_state")
+  resultingState MessagingConversationControlState @map("resulting_state")
+  resultingVersion Int @map("resulting_version")
+  actorId String @map("actor_id") @db.Uuid
+  requestId String @unique @map("request_id") @db.Uuid
+  conversation MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  actor User @relation("MessagingConversationControlActor", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([conversationId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("messaging_conversation_control_events")
 }
 
 model MessagingMessage {

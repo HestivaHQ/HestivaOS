@@ -8,8 +8,10 @@ import {
   messagingConversations,
   messagingCustomerContacts,
   messagingCustomerOptions,
+  returnMessagingConversationToAutomation,
   sendManualMessengerReply,
   sendWhatsAppTemplateMessage,
+  takeOverMessagingConversation,
   trustMessagingIdentity,
   whatsappBusinessTemplates,
   type MessagingConversationSummary,
@@ -140,6 +142,23 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
     finally { setBusyId(null); }
   }
 
+  async function changeControl(row: MessagingConversationSummary) {
+    if (busyId) return;
+    const returning = row.controlState === 'HUMAN_TAKEOVER';
+    if (!window.confirm(returning
+      ? 'Return this conversation to automation? Only subsequent eligible inbound messages will be processed.'
+      : 'Take over this conversation and suppress automated customer replies?')) return;
+    setBusyId(row.id); setError(null);
+    try {
+      const token = await accessToken();
+      if (returning) await returnMessagingConversationToAutomation(token, row.id, row.controlVersion);
+      else await takeOverMessagingConversation(token, row.id, row.controlVersion);
+      setSuccess((current) => ({ ...current, [row.id]: returning ? 'Returned to automation.' : 'Human takeover is active.' }));
+      await refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unable to change conversation control.'); }
+    finally { setBusyId(null); }
+  }
+
   async function loadWhatsAppTemplates() {
     if (templatesBusy) return;
     setTemplatesBusy(true); setError(null);
@@ -216,6 +235,10 @@ export function MessagingManager({ ownerId }: { ownerId: string }) {
           <p><strong>Identity review:</strong> {row.identityReview.state}</p>
           {row.identityReview.contact ? <p><strong>Trusted contact:</strong> {row.identityReview.contact.name}</p> : null}
           <p><strong>Last inbound:</strong> {row.latestInboundAt ? new Date(row.latestInboundAt).toLocaleString() : 'None'}</p>
+          <p><strong>Conversation control:</strong> {row.controlState === 'HUMAN_TAKEOVER' ? 'Human handling — automation paused' : 'Automation'}</p>
+          <button className={row.controlState === 'AUTOMATION' ? 'primaryButton' : undefined} disabled={busyId === row.id} onClick={() => void changeControl(row)} type="button">
+            {busyId === row.id ? 'Working…' : row.controlState === 'AUTOMATION' ? 'Take over' : 'Return to automation'}
+          </button>
 
           {reviewable ? <div className="resourceForm">
             <label>Customer<select value={customerId} onChange={(event) => void chooseCustomer(row.id, event.target.value)}><option value="">Select customer…</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}{customer.contactName && customer.contactName !== customer.name ? ` — ${customer.contactName}` : ''}</option>)}</select></label>

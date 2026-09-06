@@ -34,6 +34,8 @@ export class MessagingAdminReplyService {
         provider: true,
         providerIdentityId: true,
         customerId: true,
+        controlState: true,
+        controlVersion: true,
         customer: { select: { id: true, name: true, accountType: true, contactName: true } },
         messages: {
           where: { direction: MessagingDirection.INBOUND },
@@ -99,6 +101,8 @@ export class MessagingAdminReplyService {
         provider: row.provider,
         customer: row.customer,
         customerId: row.customerId,
+        controlState: row.controlState,
+        controlVersion: row.controlVersion,
         identityReview: {
           state: reviewState,
           identityId: identity?.id ?? null,

@@ -1,9 +1,10 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MessagingConversationControlState, Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
 import { QuoteSubmissionService } from '../quotes/quote-submission.service';
 import { resolveMessagingQuoteReplay } from './messaging-quote-replay-resolution';
+import { MessagingAutomationAuthorityChangedError } from './messaging-quote-state.service';
 import { mapWhatsAppQuoteFlowV1, type FlowV1SessionEvidence } from './whatsapp-quote-flow-v1-mapper';
 
 type SessionRow = FlowV1SessionEvidence & {
@@ -47,7 +48,10 @@ function structuredFlowQuote(input: { session: SessionRow; draft: unknown; submi
 export class WhatsAppQuoteFlowSubmissionService {
   constructor(private readonly prisma: PrismaService, private readonly quoteSubmissions: QuoteSubmissionService) {}
 
-  async processCompletedSession(sessionId: string) {
+  async processCompletedSession(sessionId: string, observedControlVersion: number) {
+    if (!Number.isInteger(observedControlVersion) || observedControlVersion < 0) {
+      throw new ConflictException('A valid observed conversation-control version is required.');
+    }
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${sessionId}, 0))`);
       const rows = await tx.$queryRaw<SessionRow[]>(Prisma.sql`
@@ -62,6 +66,20 @@ export class WhatsAppQuoteFlowSubmissionService {
       `);
       const session = rows[0];
       if (!session) throw new NotFoundException('WhatsApp Quote Flow session not found.');
+
+      await tx.$queryRaw`SELECT id FROM messaging_conversations WHERE id = ${session.conversationId}::uuid FOR UPDATE`;
+      const authority = await tx.messagingConversation.findUnique({
+        where: { id: session.conversationId },
+        select: { controlState: true, controlVersion: true },
+      });
+      if (
+        !authority ||
+        authority.controlState !== MessagingConversationControlState.AUTOMATION ||
+        authority.controlVersion !== observedControlVersion
+      ) {
+        throw new MessagingAutomationAuthorityChangedError();
+      }
+
       if (session.submittedQuoteId) {
         const quote = await tx.quote.findUnique({ where: { id: session.submittedQuoteId }, select: { id: true, reference: true, status: true } });
         if (!quote) throw new ConflictException('Flow session Quote linkage is inconsistent and requires recovery.');

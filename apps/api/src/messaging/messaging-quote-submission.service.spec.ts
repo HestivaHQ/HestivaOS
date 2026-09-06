@@ -46,26 +46,15 @@ function harness(state = readyState()) {
     quoteStateVersion: state.version as number,
   };
   const prisma = {
-    messagingConversation: {
-      findUnique: jest.fn(async () => conversation),
-    },
-    quote: {
-      findUnique: jest.fn(async () => null),
-    },
+    messagingConversation: { findUnique: jest.fn(async () => conversation) },
+    quote: { findUnique: jest.fn(async () => null) },
   } as unknown as PrismaService;
 
   const beginSubmission = jest.fn(async (_conversationId: string, expectedVersion: number, submissionKey: string) => ({
-    ...state,
-    version: expectedVersion + 1,
-    submissionKey,
-    phase: 'SUBMITTING',
+    ...state, version: expectedVersion + 1, submissionKey, phase: 'SUBMITTING',
   }));
   const recordSubmittedQuote = jest.fn(async (_conversationId: string, expectedVersion: number, quoteId: string) => ({
-    ...state,
-    version: expectedVersion + 1,
-    submissionKey: 'reserved',
-    submittedQuoteId: quoteId,
-    phase: 'SUBMITTED',
+    ...state, version: expectedVersion + 1, submissionKey: 'reserved', submittedQuoteId: quoteId, phase: 'SUBMITTED',
   }));
   const quoteState = { beginSubmission, recordSubmittedQuote } as unknown as MessagingQuoteStateService;
 
@@ -80,24 +69,18 @@ function harness(state = readyState()) {
   }));
   const quoteSubmissions = { submit } as unknown as QuoteSubmissionService;
 
-  return {
-    service: new MessagingQuoteSubmissionService(prisma, quoteState, quoteSubmissions),
-    prisma,
-    beginSubmission,
-    recordSubmittedQuote,
-    submit,
-    conversation,
-  };
+  return { service: new MessagingQuoteSubmissionService(prisma, quoteState, quoteSubmissions), prisma, beginSubmission, recordSubmittedQuote, submit, conversation };
 }
 
 describe('MessagingQuoteSubmissionService', () => {
   it('reserves READY_TO_SUBMIT state before authoritative Quote creation and canonical linkage', async () => {
     const h = harness();
-    const result = await h.service.submitReadyQuote(h.conversation.id, 3);
+    const result = await h.service.submitReadyQuote(h.conversation.id, 3, 0);
 
     expect(h.beginSubmission).toHaveBeenCalledTimes(1);
     const stableKey = h.beginSubmission.mock.calls[0]?.[2];
     expect(stableKey).toMatch(/^messaging:[0-9a-f]{64}$/);
+    expect(h.beginSubmission).toHaveBeenCalledWith(h.conversation.id, 3, stableKey, 0);
 
     expect(h.submit).toHaveBeenCalledTimes(1);
     const input = h.submit.mock.calls[0]?.[0] as any;
@@ -105,99 +88,57 @@ describe('MessagingQuoteSubmissionService', () => {
     expect(input.submittedAt).toBe('2026-08-21T17:00:00.000Z');
     expect(input.pricingSubmission).toEqual(completeDraft);
     expect(input.structuredData).toEqual(expect.objectContaining({
-      schemaVersion: 'MESSAGING_QUOTE_V1',
-      source: 'HOMENT_MESSAGING',
-      submittedAt: '2026-08-21T17:00:00.000Z',
-      customer: completeDraft.customer,
-      messagingProvenance: expect.objectContaining({
-        channel: 'WHATSAPP',
-        provider: 'meta',
-        conversationId: h.conversation.id,
-        confirmationMessageId: 'message-confirm',
-      }),
+      schemaVersion: 'MESSAGING_QUOTE_V1', source: 'HOMENT_MESSAGING', submittedAt: '2026-08-21T17:00:00.000Z', customer: completeDraft.customer,
+      messagingProvenance: expect.objectContaining({ channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm' }),
     }));
     expect(input.submittedActivityMetadata).toEqual(expect.objectContaining({
-      source: 'HOMENT_MESSAGING',
-      channel: 'WHATSAPP',
-      provider: 'meta',
-      conversationId: h.conversation.id,
-      confirmationMessageId: 'message-confirm',
+      source: 'HOMENT_MESSAGING', channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm',
     }));
-    expect(h.recordSubmittedQuote).toHaveBeenCalledWith(
-      h.conversation.id,
-      4,
-      '22222222-2222-4222-8222-222222222222',
-    );
+    expect(h.recordSubmittedQuote).toHaveBeenCalledWith(h.conversation.id, 4, '22222222-2222-4222-8222-222222222222', 0);
     expect(result.messagingQuoteState.phase).toBe('SUBMITTED');
   });
 
   it('resumes an existing SUBMITTING reservation without reserving again', async () => {
     const initial = readyState();
     const first = harness(initial);
-    await first.service.submitReadyQuote(first.conversation.id, 3);
+    await first.service.submitReadyQuote(first.conversation.id, 3, 0);
     const stableKey = first.beginSubmission.mock.calls[0]?.[2] as string;
 
     const submitting = readyState({ version: 4, submissionKey: stableKey });
     const retry = harness(submitting);
     retry.conversation.quoteStateVersion = 4;
-    await retry.service.submitReadyQuote(retry.conversation.id, 4);
+    await retry.service.submitReadyQuote(retry.conversation.id, 4, 0);
 
     expect(retry.beginSubmission).not.toHaveBeenCalled();
     expect(retry.submit).toHaveBeenCalledTimes(1);
     expect((retry.submit.mock.calls[0]?.[0] as any).submissionKey).toBe(stableKey);
-    expect(retry.recordSubmittedQuote).toHaveBeenCalledWith(
-      retry.conversation.id,
-      4,
-      '22222222-2222-4222-8222-222222222222',
-    );
+    expect(retry.recordSubmittedQuote).toHaveBeenCalledWith(retry.conversation.id, 4, '22222222-2222-4222-8222-222222222222', 0);
   });
 
   it('fails closed when a stored reservation does not match confirmed provenance', async () => {
     const h = harness(readyState({ version: 4, submissionKey: 'messaging:wrong' }));
     h.conversation.quoteStateVersion = 4;
-    await expect(h.service.submitReadyQuote(h.conversation.id, 4)).rejects.toThrow(
-      'Messaging Quote submission reservation does not match confirmed provenance.',
-    );
+    await expect(h.service.submitReadyQuote(h.conversation.id, 4, 0)).rejects.toThrow('Messaging Quote submission reservation does not match confirmed provenance.');
     expect(h.submit).not.toHaveBeenCalled();
   });
 
   it('returns an already-linked canonical Quote without creating another one', async () => {
-    const submitted = readyState({
-      version: 5,
-      submissionKey: 'messaging:reserved',
-      submittedQuoteId: '22222222-2222-4222-8222-222222222222',
-    });
+    const submitted = readyState({ version: 5, submissionKey: 'messaging:reserved', submittedQuoteId: '22222222-2222-4222-8222-222222222222' });
     const h = harness(submitted);
     h.conversation.quoteStateVersion = 5;
-    (h.prisma.quote.findUnique as jest.Mock).mockResolvedValue({
-      id: '22222222-2222-4222-8222-222222222222',
-      reference: 'Q-20260823-0001',
-      status: QuoteStatus.SUBMITTED,
-    } as never);
+    (h.prisma.quote.findUnique as jest.Mock).mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', reference: 'Q-20260823-0001', status: QuoteStatus.SUBMITTED } as never);
 
-    const result = await h.service.submitReadyQuote(h.conversation.id, 5);
-    expect(result).toEqual(expect.objectContaining({
-      quoteId: '22222222-2222-4222-8222-222222222222',
-      quoteReference: 'Q-20260823-0001',
-      created: false,
-      replay: true,
-    }));
+    const result = await h.service.submitReadyQuote(h.conversation.id, 5, 0);
+    expect(result).toEqual(expect.objectContaining({ quoteId: '22222222-2222-4222-8222-222222222222', quoteReference: 'Q-20260823-0001', created: false, replay: true }));
     expect(h.beginSubmission).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.recordSubmittedQuote).not.toHaveBeenCalled();
   });
 
   it('refuses to create a Quote before explicit confirmation', async () => {
-    const h = harness(readyState({
-      version: 1,
-      reviewSummaryMessageId: null,
-      confirmationMessageId: null,
-      confirmedAt: null,
-    }));
+    const h = harness(readyState({ version: 1, reviewSummaryMessageId: null, confirmationMessageId: null, confirmedAt: null }));
     h.conversation.quoteStateVersion = 1;
-    await expect(h.service.submitReadyQuote(h.conversation.id, 1)).rejects.toThrow(
-      'Messaging Quote is not ready for submission. Current phase is REVIEW.',
-    );
+    await expect(h.service.submitReadyQuote(h.conversation.id, 1, 0)).rejects.toThrow('Messaging Quote is not ready for submission. Current phase is REVIEW.');
     expect(h.submit).not.toHaveBeenCalled();
   });
 });

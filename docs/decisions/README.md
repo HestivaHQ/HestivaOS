@@ -101,3 +101,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0091: Persist the authenticated web shell and separate login reconciliation from navigation](ADR-0091-persistent-authenticated-navigation.md)
 - [ADR-0092: Isolate launch-baseline reset behind a pre-launch destructive boundary](ADR-0092-launch-baseline-reset-boundary.md)
 - [ADR-0093: Close direct public-schema Data API access](ADR-0093-close-public-data-api-exposure.md)
+- [ADR-0094: Separate conversation authority from Quote human review](ADR-0094-conversation-authority-human-takeover.md)

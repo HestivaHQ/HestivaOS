@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   MessagingChannel,
+  MessagingConversationControlState,
   MessagingDeliveryStatus,
   MessagingDirection,
   MessagingMessageKind,
@@ -14,6 +15,7 @@ import {
 } from '@prisma/client';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma.service';
+import { MessagingAutomationAuthorityChangedError } from './messaging-quote-state.service';
 import { MessagingOutcomePendingReconciliationError, MessagingService } from './messaging.service';
 
 export const HOMENT_QUOTE_FLOW_CONTRACT = 'HOMENT_QUOTE_REQUEST_V1' as const;
@@ -203,12 +205,28 @@ export class WhatsAppQuoteFlowSessionService {
   async captureCompletion(
     message: { id: string; conversationId: string; providerEventKey: string | null },
     envelope: WhatsAppFlowCompletionEnvelope,
+    observedControlVersion: number,
   ) {
     if (!message.providerEventKey) throw new ConflictException('Flow completion is missing durable provider-event identity.');
+    if (!Number.isInteger(observedControlVersion) || observedControlVersion < 0) {
+      throw new ConflictException('A valid observed conversation-control version is required.');
+    }
     const tokenHash = tokenFingerprint(envelope.flowToken);
     const now = new Date();
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM messaging_conversations WHERE id = ${message.conversationId}::uuid FOR UPDATE`;
+      const authority = await tx.messagingConversation.findUnique({
+        where: { id: message.conversationId },
+        select: { controlState: true, controlVersion: true },
+      });
+      if (
+        !authority ||
+        authority.controlState !== MessagingConversationControlState.AUTOMATION ||
+        authority.controlVersion !== observedControlVersion
+      ) {
+        throw new MessagingAutomationAuthorityChangedError();
+      }
       await tx.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${tokenHash}, 0))`);
       const sessions = await tx.$queryRaw<FlowSessionRow[]>(Prisma.sql`
         SELECT * FROM messaging_quote_flow_sessions WHERE token_fingerprint = ${tokenHash} LIMIT 1

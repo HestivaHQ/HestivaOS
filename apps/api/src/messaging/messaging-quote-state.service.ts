@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { MessagingDirection, Prisma } from '@prisma/client';
+import { MessagingConversationControlState, MessagingDirection, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import type { MessagingQuoteDraftProgress } from './messaging-quote-draft';
 import {
@@ -13,6 +13,13 @@ import {
   viewMessagingQuoteState,
   type MessagingQuoteStateSnapshot,
 } from './messaging-quote-state';
+
+export class MessagingAutomationAuthorityChangedError extends Error {
+  constructor() {
+    super('Messaging automation authority changed before the Quote-state transition committed.');
+    this.name = 'MessagingAutomationAuthorityChangedError';
+  }
+}
 
 @Injectable()
 export class MessagingQuoteStateService {
@@ -33,8 +40,14 @@ export class MessagingQuoteStateService {
     conversationId: string,
     expectedVersion: number,
     patch: MessagingQuoteDraftProgress,
+    observedControlVersion?: number,
   ) {
-    return this.transition(conversationId, expectedVersion, (state) => updateMessagingQuoteDraft(state, patch));
+    return this.transition(
+      conversationId,
+      expectedVersion,
+      (state) => updateMessagingQuoteDraft(state, patch),
+      observedControlVersion,
+    );
   }
 
   async setHumanReview(conversationId: string, expectedVersion: number, required: boolean) {
@@ -45,12 +58,14 @@ export class MessagingQuoteStateService {
     conversationId: string,
     expectedVersion: number,
     reviewSummaryMessageId: string,
+    observedControlVersion?: number,
   ) {
     await this.requireConversationMessage(conversationId, reviewSummaryMessageId, MessagingDirection.OUTBOUND);
     return this.transition(
       conversationId,
       expectedVersion,
       (state) => markMessagingQuoteReviewPresented(state, reviewSummaryMessageId),
+      observedControlVersion,
     );
   }
 
@@ -58,6 +73,7 @@ export class MessagingQuoteStateService {
     conversationId: string,
     expectedVersion: number,
     confirmationMessageId: string,
+    observedControlVersion?: number,
   ) {
     const message = await this.requireConversationMessage(
       conversationId,
@@ -68,24 +84,37 @@ export class MessagingQuoteStateService {
       conversationId,
       expectedVersion,
       (state) => confirmMessagingQuoteReview(state, confirmationMessageId, message.occurredAt),
+      observedControlVersion,
     );
   }
 
-  async beginSubmission(conversationId: string, expectedVersion: number, submissionKey: string) {
+  async beginSubmission(
+    conversationId: string,
+    expectedVersion: number,
+    submissionKey: string,
+    observedControlVersion?: number,
+  ) {
     return this.transition(
       conversationId,
       expectedVersion,
       (state) => beginMessagingQuoteSubmission(state, submissionKey),
+      observedControlVersion,
     );
   }
 
-  async recordSubmittedQuote(conversationId: string, expectedVersion: number, quoteId: string) {
+  async recordSubmittedQuote(
+    conversationId: string,
+    expectedVersion: number,
+    quoteId: string,
+    observedControlVersion?: number,
+  ) {
     const quote = await this.prisma.quote.findUnique({ where: { id: quoteId }, select: { id: true } });
     if (!quote) throw new ConflictException('Canonical Quote does not exist.');
     return this.transition(
       conversationId,
       expectedVersion,
       (state) => markMessagingQuoteSubmitted(state, quote.id),
+      observedControlVersion,
     );
   }
 
@@ -110,17 +139,29 @@ export class MessagingQuoteStateService {
     conversationId: string,
     expectedVersion: number,
     apply: (state: MessagingQuoteStateSnapshot) => MessagingQuoteStateSnapshot,
+    observedControlVersion?: number,
   ) {
     if (!Number.isInteger(expectedVersion) || expectedVersion < 0) {
       throw new ConflictException('A valid expected Messaging Quote state version is required.');
     }
+    if (observedControlVersion !== undefined && (!Number.isInteger(observedControlVersion) || observedControlVersion < 0)) {
+      throw new ConflictException('A valid observed conversation-control version is required.');
+    }
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM messaging_conversations WHERE id = ${conversationId}::uuid FOR UPDATE`;
       const row = await tx.messagingConversation.findUnique({
         where: { id: conversationId },
-        select: { quoteState: true, quoteStateVersion: true },
+        select: { quoteState: true, quoteStateVersion: true, controlState: true, controlVersion: true },
       });
       if (!row) throw new NotFoundException('Messaging conversation not found.');
+
+      if (
+        observedControlVersion !== undefined &&
+        (row.controlState !== MessagingConversationControlState.AUTOMATION || row.controlVersion !== observedControlVersion)
+      ) {
+        throw new MessagingAutomationAuthorityChangedError();
+      }
       if (row.quoteStateVersion !== expectedVersion) {
         throw new ConflictException(`Messaging Quote state is stale. Current version is ${row.quoteStateVersion}.`);
       }
