@@ -15,7 +15,7 @@ const row = (extra: Record<string, unknown> = {}) => ({
   expires_at: new Date(Date.now() + 60_000), offered_at: new Date(), completed_at: null, launch_message_id: messageId,
   completion_message_id: null, provider_completion_event_key: null, completion_fingerprint: null, completion_evidence: null, ...extra,
 }) as any;
-const authority = (controlVersion = 0, controlState = MessagingConversationControlState.AUTOMATION) => ({ controlState, controlVersion });
+const authority = (controlVersion = 0, controlState: MessagingConversationControlState = MessagingConversationControlState.AUTOMATION) => ({ controlState, controlVersion });
 
 describe('WhatsAppQuoteFlowSessionService', () => {
   afterEach(() => { for (const name of ENV) delete process.env[name]; });
