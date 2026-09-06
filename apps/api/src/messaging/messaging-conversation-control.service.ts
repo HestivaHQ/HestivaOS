@@ -14,12 +14,17 @@ export type ConversationControlInput = { requestId: string; expectedVersion: num
 export class MessagingConversationControlService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async automationEnabled(conversationId: string) {
+  async automationAuthority(conversationId: string) {
     const conversation = await this.prisma.messagingConversation.findUnique({
       where: { id: conversationId },
-      select: { controlState: true },
+      select: { controlState: true, controlVersion: true },
     });
-    return conversation?.controlState === MessagingConversationControlState.AUTOMATION;
+    if (!conversation || conversation.controlState !== MessagingConversationControlState.AUTOMATION) return null;
+    return { controlVersion: conversation.controlVersion };
+  }
+
+  async automationEnabled(conversationId: string) {
+    return (await this.automationAuthority(conversationId)) !== null;
   }
 
   takeOver(conversationId: string, actorId: string, input: ConversationControlInput) {
