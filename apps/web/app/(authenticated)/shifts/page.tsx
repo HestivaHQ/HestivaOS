@@ -5,9 +5,10 @@ import { ShiftsManager } from '../../shifts/shifts-manager';
 export default async function ShiftsPage() {
   const authenticatedApi = await createAuthenticatedApi();
   const initialRange = defaultShiftDateRange();
-  const [, shifts] = await Promise.all([
+  const [, shifts, crews] = await Promise.all([
     authenticatedApi.currentUser(),
     authenticatedApi.shifts(shiftRangeQuery(initialRange)),
+    authenticatedApi.crews('?page=1&pageSize=20&status=ACTIVE'),
   ]);
-  return <div className="shiftWorkspace"><ShiftsManager initialItems={shifts.items} initialRange={initialRange} /></div>;
+  return <div className="shiftWorkspace"><ShiftsManager initialItems={shifts.items} initialRange={initialRange} initialCrews={crews.items} /></div>;
 }
