@@ -42,13 +42,16 @@ test('Shift Planning preserves selected historical relationships while searches 
   assert.match(manager, /inactive, historical/);
 });
 
-test('Shift Planning starts its deterministic range on the authenticated server without a mount reload', () => {
+test('Shift Planning starts its deterministic range and active Crew options on the authenticated server', () => {
   const page = readFileSync(new URL('../app/(authenticated)/shifts/page.tsx', import.meta.url), 'utf8');
   const range = readFileSync(new URL('../lib/shift-date-range.ts', import.meta.url), 'utf8');
   assert.match(page, /const initialRange = defaultShiftDateRange\(\)/);
   assert.match(page, /authenticatedApi\.shifts\(shiftRangeQuery\(initialRange\)\)/);
+  assert.match(page, /authenticatedApi\.crews\('\?page=1&pageSize=20&status=ACTIVE'\)/);
   assert.match(page, /initialItems=\{shifts\.items\}/);
+  assert.match(page, /initialCrews=\{crews\.items\}/);
   assert.match(manager, /useState<Shift\[]>\(initialItems\)/);
+  assert.match(manager, /useState<Crew\[]>\(initialCrews\)/);
   assert.match(manager, /if \(initialListLoad\.current\)/);
   assert.match(manager, /useState\(initialRange\.dateFrom\)/);
   assert.match(manager, /useState\(initialRange\.dateTo\)/);
