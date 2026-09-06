@@ -28,9 +28,9 @@ function mergeSelected<T extends { id: string }>(items: T[], selected?: T | null
   return selected && !items.some((item) => item.id === selected.id) ? [selected, ...items] : items;
 }
 
-export function ShiftsManager({ initialItems, initialRange }: { initialItems: Shift[]; initialRange: ShiftDateRange }) {
+export function ShiftsManager({ initialItems, initialRange, initialCrews }: { initialItems: Shift[]; initialRange: ShiftDateRange; initialCrews: Crew[] }) {
   const [items, setItems] = useState<Shift[]>(initialItems);
-  const [crews, setCrews] = useState<Crew[]>([]);
+  const [crews, setCrews] = useState<Crew[]>(initialCrews);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [form, setForm] = useState<ShiftForm>(emptyForm);
