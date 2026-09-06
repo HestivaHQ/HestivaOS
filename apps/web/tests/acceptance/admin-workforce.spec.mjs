@@ -21,6 +21,31 @@ async function selectOptionByText(select, text) {
   await select.selectOption(value);
 }
 
+function installCrewSearchDiagnostics(page) {
+  const isTargetCrewSearch = (requestUrl) => {
+    const url = new URL(requestUrl);
+    return url.pathname.endsWith('/api/v1/crews') && url.searchParams.get('search') === crewName;
+  };
+
+  page.on('requestfailed', (request) => {
+    if (!isTargetCrewSearch(request.url())) return;
+    console.log(`[LR1B S3 crew search request failed] ${request.failure()?.errorText ?? 'unknown browser failure'}`);
+  });
+
+  page.on('response', async (response) => {
+    if (!isTargetCrewSearch(response.url())) return;
+    try {
+      const body = await response.json();
+      const items = Array.isArray(body?.items)
+        ? body.items.map((item) => `${item.id}:${item.name}:${item.status}`).join(',')
+        : 'unavailable';
+      console.log(`[LR1B S3 crew search response] status=${response.status()} total=${body?.total ?? 'unknown'} items=${items}`);
+    } catch {
+      console.log(`[LR1B S3 crew search response] status=${response.status()} body=non-json`);
+    }
+  });
+}
+
 async function saveTechnician(page, { email, firstName, lastName, skills, status = 'ACTIVE' }) {
   await page.goto('/technicians', { waitUntil: 'domcontentloaded' });
   const search = page.getByPlaceholder('Search technicians');
@@ -215,6 +240,7 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
 
   test('S3 creates, edits, copies, reloads and deletes a crew shift', async ({ page }) => {
     await expectNoServerErrors(page, async () => {
+      installCrewSearchDiagnostics(page);
       await page.goto('/shifts', { waitUntil: 'domcontentloaded' });
       await removeVisibleShifts(page);
       await page.getByRole('button', { name: 'Create shift' }).click();
