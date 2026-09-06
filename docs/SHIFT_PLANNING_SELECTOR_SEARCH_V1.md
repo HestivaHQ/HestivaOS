@@ -1,6 +1,6 @@
 # Shift Planning selector search v1
 
-**Status:** Implemented on the Phase 1B branch; merge remains subject to exact-head PR quality gates.
+**Status:** Implemented; merge of subsequent changes remains subject to exact-head PR quality gates.
 
 ## Purpose
 
@@ -8,7 +8,8 @@ Shift Planning stores canonical Crew, Technician and Work Order relationships. T
 
 ## Implemented behavior
 
-- Crew selection uses the existing bounded Crew search API with a 20-record page and 300 ms debounce.
+- The authenticated `/shifts` server boundary loads the first bounded page of ACTIVE Crews alongside the initial Shift range and seeds the Crew selector with that result. This prevents the editor from beginning with an empty Crew catalogue while preserving the authenticated API as the authority.
+- Crew selection continues to use the existing bounded Crew search API with a 20-record page and 300 ms debounce after initial render.
 - When no Crew is selected, Technician selection uses the existing bounded active-Technician search API with a 20-record page and 300 ms debounce.
 - When a Crew is selected, the designated-Technician selector continues to use the Crew's authoritative member snapshot rather than an unrelated global search result.
 - Linked Work Order selection uses the existing bounded Work Order search API with a 20-record page and 300 ms debounce.
