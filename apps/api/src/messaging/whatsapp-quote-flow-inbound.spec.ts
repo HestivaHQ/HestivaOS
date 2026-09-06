@@ -13,20 +13,21 @@ function message(interactivePayload?: unknown) {
 }
 
 describe('WhatsAppQuoteFlowInboundService', () => {
-  it('captures and authoritatively processes a valid nfm_reply while keeping it out of guided collection', async () => {
+  it('carries observed authority through valid nfm_reply completion and submission', async () => {
     const response = { flow_token: 'opaque', homent_contract: 'HOMENT_QUOTE_REQUEST_V1', homent_mapping_version: 'HOMENT_QUOTE_REQUEST_MAPPING_V1', homent_completion_version: 'HOMENT_QUOTE_REQUEST_COMPLETION_V1', property_type: 'HOUSE' };
     const prisma = { messagingMessage: { findUnique: jest.fn(async () => message({ type: 'nfm_reply', nfm_reply: { response_json: JSON.stringify(response) } })) } };
     const sessions = { captureCompletion: jest.fn(async () => ({ sessionId:'session-1', completed: true })), hasActiveUnresolvedSession: jest.fn(async () => true) };
     const submissions = { processCompletedSession: jest.fn(async () => ({ kind:'QUOTE' })) };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any, submissions as any);
 
-    await expect(service.handleInbound('message-1')).resolves.toBe(true);
+    await expect(service.handleInbound('message-1', 7)).resolves.toBe(true);
     expect(sessions.hasActiveUnresolvedSession).toHaveBeenCalledWith('conversation-1');
     expect(sessions.captureCompletion).toHaveBeenCalledWith(
       { id: 'message-1', conversationId: 'conversation-1', providerEventKey: 'msg_evt_1' },
       { flowToken: 'opaque', response: expect.objectContaining({ property_type: 'HOUSE' }) },
+      7,
     );
-    expect(submissions.processCompletedSession).toHaveBeenCalledWith('session-1');
+    expect(submissions.processCompletedSession).toHaveBeenCalledWith('session-1', 7);
   });
 
   it('rejects malformed nfm_reply response_json before any guided mutation', async () => {
@@ -34,7 +35,7 @@ describe('WhatsAppQuoteFlowInboundService', () => {
     const sessions = { captureCompletion: jest.fn(), hasActiveUnresolvedSession: jest.fn() };
     const submissions = { processCompletedSession: jest.fn() };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any, submissions as any);
-    await expect(service.handleInbound('message-1')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.handleInbound('message-1', 0)).rejects.toBeInstanceOf(ConflictException);
     expect(sessions.captureCompletion).not.toHaveBeenCalled();
     expect(submissions.processCompletedSession).not.toHaveBeenCalled();
   });
@@ -43,7 +44,7 @@ describe('WhatsAppQuoteFlowInboundService', () => {
     const prisma = { messagingMessage: { findUnique: jest.fn(async () => message()) } };
     const sessions = { captureCompletion: jest.fn(), hasActiveUnresolvedSession: jest.fn(async () => true) };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any, {} as any);
-    await expect(service.handleInbound('message-1')).resolves.toBe(true);
+    await expect(service.handleInbound('message-1', 0)).resolves.toBe(true);
     expect(sessions.hasActiveUnresolvedSession).toHaveBeenCalledWith('conversation-1');
   });
 
@@ -51,7 +52,7 @@ describe('WhatsAppQuoteFlowInboundService', () => {
     const prisma = { messagingMessage: { findUnique: jest.fn(async () => message({ type: 'button', button_reply: { id: 'x' } })) } };
     const sessions = { captureCompletion: jest.fn(), hasActiveUnresolvedSession: jest.fn(async () => false) };
     const service = new WhatsAppQuoteFlowInboundService(prisma as any, sessions as any, {} as any);
-    await expect(service.handleInbound('message-1')).resolves.toBe(false);
+    await expect(service.handleInbound('message-1', 0)).resolves.toBe(false);
   });
 
   it('promotes a reconciled accepted launch and deliberately falls back on definite provider failure', async () => {
