@@ -23,6 +23,7 @@ Load context in this order:
 | Document | Authority |
 | --- | --- |
 | [`DOCUMENTATION_AUTHORITY.md`](DOCUMENTATION_AUTHORITY.md) | Documentation responsibilities, impact declaration, bounded context and reconciliation cadence. |
+| [`COMPANY_INFORMATION.md`](COMPANY_INFORMATION.md) | Verified, non-secret legal entity and corporate registration information for Hestiva (Pty) Ltd / Homent. |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Current cross-domain technical architecture and authority boundaries. |
 | [`WHY.md`](WHY.md) | Durable engineering/product rationale. |
 | [`ROADMAP.md`](ROADMAP.md) | Verified current future work and sequencing. |
