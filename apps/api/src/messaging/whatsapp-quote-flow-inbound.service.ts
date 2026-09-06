@@ -22,7 +22,7 @@ export class WhatsAppQuoteFlowInboundService {
    * Returns true when Flow-first orchestration owns this inbound message and
    * the deterministic guided Quote collector must not consume it.
    */
-  async handleInbound(messageId: string): Promise<boolean> {
+  async handleInbound(messageId: string, observedControlVersion: number): Promise<boolean> {
     const message = await this.prisma.messagingMessage.findUnique({
       where: { id: messageId },
       select: {
@@ -61,8 +61,9 @@ export class WhatsAppQuoteFlowInboundService {
       const completion = await this.sessions.captureCompletion(
         { id: message.id, conversationId: message.conversationId, providerEventKey: message.providerEventKey },
         { flowToken, response: businessResponse },
+        observedControlVersion,
       );
-      await this.submissions.processCompletedSession(completion.sessionId);
+      await this.submissions.processCompletedSession(completion.sessionId, observedControlVersion);
       return true;
     }
 
