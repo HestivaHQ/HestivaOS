@@ -22,26 +22,28 @@ async function selectOptionByText(select, text) {
 }
 
 function installCrewSearchDiagnostics(page) {
-  const isTargetCrewSearch = (requestUrl) => {
+  const crewRequest = (requestUrl) => {
     const url = new URL(requestUrl);
-    return url.pathname.endsWith('/api/v1/crews') && url.searchParams.get('search') === crewName;
+    return url.pathname.endsWith('/api/v1/crews') ? url : null;
   };
 
   page.on('requestfailed', (request) => {
-    if (!isTargetCrewSearch(request.url())) return;
-    console.log(`[LR1B S3 crew search request failed] ${request.failure()?.errorText ?? 'unknown browser failure'}`);
+    const url = crewRequest(request.url());
+    if (!url) return;
+    console.log(`[LR1B S3 crew request failed] search=${url.searchParams.get('search') ?? '<none>'} ${request.failure()?.errorText ?? 'unknown browser failure'}`);
   });
 
   page.on('response', async (response) => {
-    if (!isTargetCrewSearch(response.url())) return;
+    const url = crewRequest(response.url());
+    if (!url) return;
     try {
       const body = await response.json();
       const items = Array.isArray(body?.items)
         ? body.items.map((item) => `${item.id}:${item.name}:${item.status}`).join(',')
         : 'unavailable';
-      console.log(`[LR1B S3 crew search response] status=${response.status()} total=${body?.total ?? 'unknown'} items=${items}`);
+      console.log(`[LR1B S3 crew response] search=${url.searchParams.get('search') ?? '<none>'} status=${response.status()} total=${body?.total ?? 'unknown'} items=${items}`);
     } catch {
-      console.log(`[LR1B S3 crew search response] status=${response.status()} body=non-json`);
+      console.log(`[LR1B S3 crew response] search=${url.searchParams.get('search') ?? '<none>'} status=${response.status()} body=non-json`);
     }
   });
 }
@@ -246,6 +248,9 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await page.getByRole('button', { name: 'Create shift' }).click();
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New shift' })).toBeVisible();
+      const crewSelect = form.getByLabel('Crew', { exact: true });
+      const initialCrewOption = crewSelect.locator('option').filter({ hasText: crewName });
+      console.log(`[LR1B S3 crew selector before search] targetCount=${await initialCrewOption.count()} options=${JSON.stringify(await crewSelect.locator('option').allTextContents())}`);
       const today = localDate(0);
       const tomorrow = localDate(1);
       await form.getByLabel('Shift title').fill(shiftTitle);
@@ -253,7 +258,6 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await form.getByLabel('End').fill(`${today}T17:00`);
       await form.getByLabel('Unpaid break (minutes)').fill('30');
       await form.getByLabel('Search crews').fill(crewName);
-      const crewSelect = form.getByLabel('Crew', { exact: true });
       await selectOptionByText(crewSelect, crewName);
       await expect(crewSelect.locator('option:checked')).toHaveText(crewName);
       const technicianSelect = form.getByLabel('Designated technician');
