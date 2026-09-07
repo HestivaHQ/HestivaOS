@@ -110,7 +110,7 @@ async function selectFirstNonEmptyOption(select) {
 }
 
 function selectContainingOption(container, value) {
-  return container.getByRole('combobox').filter({ has: container.locator(`option[value="${value}"]`) });
+  return container.locator(`select:has(option[value="${value}"])`);
 }
 
 async function searchCustomer(page, name) {
