@@ -14,22 +14,30 @@ describe('HealthController', () => {
     delete process.env.SUPABASE_ANON_KEY;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    delete process.env.RAILWAY_GIT_COMMIT_SHA;
   });
 
   afterAll(() => {
     process.env = originalEnvironment;
   });
 
-  it('reports healthy process metadata', () => {
+  it('reports healthy process metadata and deployed revision', () => {
+    process.env.RAILWAY_GIT_COMMIT_SHA = 'abc123';
     const result = controller.getHealth();
 
     expect(result.status).toBe('healthy');
     expect(result.uptime).toEqual(expect.any(Number));
     expect(result.version).toBe(APPLICATION_VERSION);
+    expect(result.revision).toBe('abc123');
     expect(Number.isNaN(Date.parse(result.timestamp))).toBe(false);
   });
 
+  it('fails closed to an unknown revision when Railway metadata is unavailable', () => {
+    expect(controller.getHealth().revision).toBe('unknown');
+  });
+
   it('reports ready when the database succeeds and Supabase is not configured', async () => {
+    process.env.RAILWAY_GIT_COMMIT_SHA = 'ready-sha';
     queryRaw.mockResolvedValueOnce([{ '?column?': 1 }]);
     const response = { status: jest.fn() };
 
@@ -37,6 +45,7 @@ describe('HealthController', () => {
 
     expect(response.status).toHaveBeenCalledWith(200);
     expect(result.status).toBe('ready');
+    expect(result.revision).toBe('ready-sha');
     expect(result.checks).toEqual({
       process: 'healthy',
       database: 'connected',
