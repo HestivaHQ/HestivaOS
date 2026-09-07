@@ -1,5 +1,7 @@
 const required = [
   'HESTIVA_LR1B_BASE_URL',
+  'HESTIVA_LR1B_API_URL',
+  'HESTIVA_LR1B_WEBSITE_INTEGRATION_SECRET',
   'HESTIVA_LR1B_ADMIN_EMAIL',
   'HESTIVA_LR1B_ADMIN_PASSWORD',
   'HESTIVA_LR1B_SUPERVISOR_EMAIL',
@@ -20,6 +22,9 @@ for (const name of required) {
 
 const base = new URL(process.env.HESTIVA_LR1B_BASE_URL);
 if (base.protocol !== 'https:') throw new Error('HESTIVA_LR1B_BASE_URL must use HTTPS.');
+
+const apiBase = new URL(process.env.HESTIVA_LR1B_API_URL);
+if (apiBase.protocol !== 'https:') throw new Error('HESTIVA_LR1B_API_URL must use HTTPS.');
 
 const emails = [
   process.env.HESTIVA_LR1B_ADMIN_EMAIL,
