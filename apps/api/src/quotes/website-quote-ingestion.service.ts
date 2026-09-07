@@ -12,6 +12,7 @@ import {
   validateWebsiteQuoteSubmissionV2,
   type WebsiteQuoteSubmissionV2,
 } from './website-quote-contract-v2';
+import { WebsiteQuotePhotoStorageService } from './website-quote-photo-storage.service';
 import { resolveWebsiteQuoteReplay } from './website-quote-replay-resolution';
 
 export type WebsiteQuoteSubmission = WebsiteQuoteSubmissionV1 | WebsiteQuoteSubmissionV2;
@@ -21,10 +22,12 @@ export class WebsiteQuoteIngestionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly quoteSubmissions: QuoteSubmissionService,
+    private readonly quotePhotoStorage: WebsiteQuotePhotoStorageService,
   ) {}
 
   async ingest(payload: unknown) {
     const submission = this.validate(payload);
+    const photos = await this.quotePhotoStorage.store(submission.submissionId, submission.photos);
     const result = await this.quoteSubmissions.submit(
       {
         submissionKey: submission.submissionId,
@@ -34,7 +37,10 @@ export class WebsiteQuoteIngestionService {
         submittedActivityMetadata: {
           schemaVersion: submission.schemaVersion,
           submissionId: submission.submissionId,
+          quotePhotoCount: photos.length,
+          quotePhotoFailureCount: photos.filter((photo) => photo.status === 'FAILED').length,
         },
+        photos,
       },
       () => resolveWebsiteQuoteReplay(this.prisma, submission),
     );

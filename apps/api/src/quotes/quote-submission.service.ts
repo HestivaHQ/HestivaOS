@@ -96,8 +96,9 @@ export class QuoteSubmissionService {
     const pricingResult = costResolution.kind === 'READY'
       ? calculateWebsiteQuotePricing(input.pricingSubmission, costResolution.costs)
       : calculateWebsiteQuotePricing(input.pricingSubmission);
+    const failedPhotoCount = (input.photos ?? []).filter((photo) => photo.status === QuotePhotoStatus.FAILED).length;
     const quoteStatus =
-      costResolution.kind === 'NEEDS_ATTENTION' || pricingResult.attentionReasons.length
+      costResolution.kind === 'NEEDS_ATTENTION' || pricingResult.attentionReasons.length || failedPhotoCount > 0
         ? QuoteStatus.NEEDS_ATTENTION
         : QuoteStatus.SUBMITTED;
     const validUntil = new Date(input.submittedAt);
@@ -110,6 +111,10 @@ export class QuoteSubmissionService {
           provenance: costResolution.provenance,
         }
       : undefined;
+    const attentionReasons = [
+      ...pricingResult.attentionReasons,
+      ...(failedPhotoCount > 0 ? [`${failedPhotoCount} customer photo(s) require storage reconciliation.`] : []),
+    ];
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -180,8 +185,9 @@ export class QuoteSubmissionService {
                   type: QuoteActivityType.NEEDS_ATTENTION_SET,
                   newStatus: quoteStatus,
                   metadata: {
-                    reasons: pricingResult.attentionReasons,
+                    reasons: attentionReasons,
                     operationalCosts: operationalCostAttention,
+                    photoStorage: failedPhotoCount > 0 ? { failedCount: failedPhotoCount } : undefined,
                   } as Prisma.InputJsonValue,
                 }] : []),
                 ...(input.photos ?? []).map((photo) => ({
@@ -232,7 +238,7 @@ export class QuoteSubmissionService {
         created: true,
         replay: false,
         pricing: pricingResult.pricing,
-        attentionReasons: pricingResult.attentionReasons,
+        attentionReasons,
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

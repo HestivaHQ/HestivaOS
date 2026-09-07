@@ -1,6 +1,6 @@
 # Website Quote Submission Contract v1
 
-**Status:** Slice 5M-B implementation contract
+**Status:** Implemented backward-compatible Website → HestivaOS contract
 **Schema:** `1.0`
 **Authority:** HestivaOS Issue #73
 
@@ -9,14 +9,14 @@ The website email description is presentation only. Integration uses the version
 ## Transport
 
 - Server-to-server only; the browser never calls the private ingestion API.
-- Planned runtime route: `POST /api/integrations/website/quotes`.
+- Runtime route: `POST /api/integrations/website/quotes`.
 - Authentication: `Authorization: Bearer <HESTIVA_WEBSITE_INTEGRATION_SECRET>` from server-side secret stores only.
 - `submissionId` is a UUID generated once by the website and reused unchanged for every retry. It maps to the durable unique Quote submission identity; it is not the public Quote reference.
 - Same `submissionId` + same material payload returns the existing Quote/reference/pricing snapshot. Same ID + materially different payload is a conflict and creates nothing new.
 - `401`/`403` are auth failures, invalid/unsupported payload is non-retryable `4xx`, temporary server/infrastructure failure is retryable `5xx` with the same `submissionId`.
 - Customer-facing success happens only after HestivaOS returns the official `Q-YYYYMMDD-####` reference.
 
-Slice 5M-B defines the contract but deliberately does not expose the ingestion controller before atomic Quote persistence and authoritative pricing are implemented together.
+The guarded ingestion controller, atomic Quote persistence and authoritative pricing runtime are implemented. Contract v1 remains accepted for backward compatibility while the live Website uses contract v2.
 
 ## Payload
 
@@ -39,7 +39,13 @@ Access, household, safety, damage, attention-area and quote-note values remain f
 
 ## Customer Quote Photos
 
-V1 carries up to the website's current 10-photo bound. Each photo has stable `clientPhotoId`, file metadata, `sha256`, and base64 upload data. HestivaOS validates received bytes independently. Same ID + same hash reuses the stored evidence; same ID + different hash is a conflict. A failed photo does not discard a successfully persisted Quote; it creates a failed photo state and `NEEDS_ATTENTION`, and acceptance remains blocked until reconciliation.
+V1 carries up to the website's current 10-photo bound. Each photo has stable `clientPhotoId`, file metadata, `sha256`, and base64 upload data. HestivaOS validates received bytes independently before ingestion.
+
+The ingestion runtime now promotes each validated Website photo through the shared canonical `QuotePhoto` authority. The stable transfer identity is `website-photo:<submissionId>:<clientPhotoId>`. Bytes are stored by the API in the existing private Supabase evidence bucket under a Quote-specific `quote/<submissionId>/<clientPhotoId>` object path; `QuotePhoto.storagePath` records the bucket-qualified private locator and `url` remains null. The API reuses its existing Supabase service-role storage boundary; the browser never receives that credential.
+
+Storage upload is retry-safe at the stable object path. A storage failure does not discard the otherwise valid Quote: HestivaOS persists a `FAILED` customer `QuotePhoto`, marks the Quote `NEEDS_ATTENTION`, records only bounded failure provenance, and blocks normal acceptance through the existing `NEEDS_ATTENTION` boundary until reconciliation. Successful photos are persisted as `STORED` and attached to the immutable initial customer-submission revision in the same serializable Quote transaction.
+
+The original structured submission remains the replay/conflict authority, including the validated photo ID/hash/upload content. Same submission identity plus identical material payload remains a replay; materially different reuse remains a conflict.
 
 ## Authoritative pricing
 
