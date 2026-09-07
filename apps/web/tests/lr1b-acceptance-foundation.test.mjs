@@ -43,6 +43,7 @@ test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe an
     read('../../.github/workflows/lr1b-operational-acceptance.yml'),
     read('playwright.acceptance.config.mjs'),
     read('scripts/validate-lr1b-acceptance-env.mjs'),
+    read('scripts/wait-for-lr1b-deployment.mjs'),
     read('tests/acceptance/role-auth.setup.mjs'),
     read('tests/acceptance/acceptance-guard.mjs'),
     read('app/login/page.tsx'),
