@@ -111,7 +111,7 @@ describe('WebsiteQuoteIngestionService', () => {
     };
 
     const quoteSubmissions = new QuoteSubmissionService(prisma, costProvider);
-    const photoStorage = { async store() { return []; } } as WebsiteQuotePhotoStorageService;
+    const photoStorage = { async store() { return []; } } as unknown as WebsiteQuotePhotoStorageService;
     const service = new WebsiteQuoteIngestionService(prisma, quoteSubmissions, photoStorage);
     const result = await service.ingest(validReviewRequiredPayload());
 
@@ -181,7 +181,7 @@ describe('WebsiteQuoteIngestionService', () => {
         submittedPhotos = input.photos;
         return { quoteId: 'quote-id-1', quoteReference: 'Q-20260815-0001', quoteStatus: QuoteStatus.SUBMITTED, created: true, replay: false };
       },
-    } as QuoteSubmissionService;
+    } as unknown as QuoteSubmissionService;
     const photoStorage = {
       async store() {
         return [{
@@ -191,12 +191,12 @@ describe('WebsiteQuoteIngestionService', () => {
           originalFileName: 'kitchen.jpg',
           mimeType: 'image/jpeg',
           sizeBytes: 3,
-          storagePath: `quote-photos/website/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
+          storagePath: `work-order-photos/quote/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
           url: null,
           failureReason: null,
         }];
       },
-    } as WebsiteQuotePhotoStorageService;
+    } as unknown as WebsiteQuotePhotoStorageService;
     const service = new WebsiteQuoteIngestionService({} as PrismaService, quoteSubmissions, photoStorage);
 
     await service.ingest(payload);
@@ -206,7 +206,7 @@ describe('WebsiteQuoteIngestionService', () => {
         transferKey: `website-photo:${payload.submissionId}:${payload.photos[0].clientPhotoId}`,
         source: QuotePhotoSource.CUSTOMER,
         status: QuotePhotoStatus.STORED,
-        storagePath: `quote-photos/website/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
+        storagePath: `work-order-photos/quote/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
         url: null,
       }),
     ]);
