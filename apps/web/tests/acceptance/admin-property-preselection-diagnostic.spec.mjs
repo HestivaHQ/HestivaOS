@@ -16,6 +16,14 @@ async function searchCustomer(page, name) {
   return row;
 }
 
+async function readResponseBody(response) {
+  try {
+    return (await response.text()).slice(0, 4000);
+  } catch {
+    return '<unreadable>';
+  }
+}
+
 test.beforeEach(async ({ page }) => installAcceptanceSafetyGuard(page));
 
 test('C2 diagnostic proves the Customer-to-Property preselection boundary', async ({ page }) => {
@@ -46,34 +54,59 @@ test('C2 diagnostic proves the Customer-to-Property preselection boundary', asyn
     const selectorResponses = [];
     page.on('response', async (response) => {
       if (!response.url().includes('/customers/selector-options')) return;
-      let body = '';
-      try { body = await response.text(); } catch { body = '<unreadable>'; }
-      selectorResponses.push({ url: response.url(), status: response.status(), body: body.slice(0, 4000) });
+      selectorResponses.push({
+        url: response.url(),
+        status: response.status(),
+        body: await readResponseBody(response),
+      });
     });
 
     const targetUrl = `/properties?mode=create&customerId=${encodeURIComponent(customerId)}`;
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
     const propertyForm = page.locator('form.resourceForm');
     await expect(propertyForm.getByRole('heading', { name: 'New property' })).toBeVisible();
-
-    const select = propertyForm.getByLabel('Customer', { exact: true });
-    await expect(select).toBeVisible();
     await page.waitForTimeout(1000);
 
-    const state = await select.evaluate((element) => ({
-      value: element.value,
-      selectedIndex: element.selectedIndex,
-      options: Array.from(element.options).map((option) => ({ value: option.value, text: option.text, selected: option.selected })),
+    const renderState = await propertyForm.evaluate((element) => ({
+      text: element.innerText.slice(0, 6000),
+      labels: Array.from(element.querySelectorAll('label')).map((label) => ({
+        text: label.textContent?.trim() ?? '',
+        htmlFor: label.htmlFor,
+      })),
+      controls: Array.from(element.querySelectorAll('input, select, textarea, button')).map((control) => ({
+        tag: control.tagName,
+        type: control.getAttribute('type'),
+        id: control.id,
+        name: control.getAttribute('name'),
+        value: 'value' in control ? String(control.value) : null,
+        ariaLabel: control.getAttribute('aria-label'),
+        ariaLabelledBy: control.getAttribute('aria-labelledby'),
+        text: control.textContent?.trim().slice(0, 1000) ?? '',
+      })),
     }));
     const errorBanner = await page.locator('.errorBanner').allTextContents();
-    const targetOption = state.options.find((option) => option.value === customerId) ?? null;
+    const select = propertyForm.getByLabel('Customer', { exact: true });
+    const selectCount = await select.count();
+
+    let state = null;
+    if (selectCount > 0) {
+      state = await select.first().evaluate((element) => ({
+        value: element.value,
+        selectedIndex: element.selectedIndex,
+        options: Array.from(element.options).map((option) => ({ value: option.value, text: option.text, selected: option.selected })),
+      }));
+    }
+
+    const targetOption = state?.options.find((option) => option.value === customerId) ?? null;
     console.log(`[LR1B C2 diagnostic] targetUrl=${page.url()}`);
-    console.log(`[LR1B C2 diagnostic] customerId=${customerId} selectValue=${state.value} selectedIndex=${state.selectedIndex}`);
-    console.log(`[LR1B C2 diagnostic] targetOption=${JSON.stringify(targetOption)} optionCount=${state.options.length}`);
+    console.log(`[LR1B C2 diagnostic] customerId=${customerId} customerControlCount=${selectCount}`);
+    console.log(`[LR1B C2 diagnostic] renderState=${JSON.stringify(renderState)}`);
+    console.log(`[LR1B C2 diagnostic] selectState=${JSON.stringify(state)}`);
     console.log(`[LR1B C2 diagnostic] errors=${JSON.stringify(errorBanner)} selectorResponses=${JSON.stringify(selectorResponses)}`);
 
-    expect(targetOption, `Customer ${customerId} must exist in the Property selector. Diagnostic state: ${JSON.stringify({ state, errorBanner, selectorResponses })}`).not.toBeNull();
-    expect(state.value, `Property selector must select ${customerId}. Diagnostic state: ${JSON.stringify({ state, errorBanner, selectorResponses })}`).toBe(customerId);
-    expect(targetOption?.text, `Selected Customer label must reflect the persisted edit. Diagnostic state: ${JSON.stringify({ state, errorBanner, selectorResponses })}`).toContain(editedCustomerName);
+    expect(selectCount, `Property form must expose a Customer control. Diagnostic state: ${JSON.stringify({ renderState, errorBanner, selectorResponses })}`).toBeGreaterThan(0);
+    expect(targetOption, `Customer ${customerId} must exist in the Property selector. Diagnostic state: ${JSON.stringify({ state, renderState, errorBanner, selectorResponses })}`).not.toBeNull();
+    expect(state?.value, `Property selector must select ${customerId}. Diagnostic state: ${JSON.stringify({ state, renderState, errorBanner, selectorResponses })}`).toBe(customerId);
+    expect(targetOption?.text, `Selected Customer label must reflect the persisted edit. Diagnostic state: ${JSON.stringify({ state, renderState, errorBanner, selectorResponses })}`).toContain(editedCustomerName);
   });
 });
