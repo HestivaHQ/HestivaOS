@@ -11,6 +11,14 @@ on:
         description: 'Type RUN LR1B ACCEPTANCE to enable the destructive/mutating acceptance lane'
         required: true
         type: string
+      scope:
+        description: 'Run the full acceptance lane or a focused diagnostic after a known failure'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - c2-diagnostic
 
 permissions:
   contents: read
@@ -57,5 +65,10 @@ jobs:
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Run isolated role-interface acceptance foundation
-        run: npx playwright test --config apps/web/playwright.acceptance.config.mjs
+      - name: Run full LR-1B acceptance lane
+        if: ${{ inputs.scope == 'full' }}
+        run: npx playwright test --config apps/web/playwright.acceptance.config.mjs --grep-invert 'C2 diagnostic proves'
+
+      - name: Run targeted C2 diagnostic
+        if: ${{ inputs.scope == 'c2-diagnostic' }}
+        run: npx playwright test --config apps/web/playwright.acceptance.config.mjs --project=admin-desktop apps/web/tests/acceptance/admin-property-preselection-diagnostic.spec.mjs
