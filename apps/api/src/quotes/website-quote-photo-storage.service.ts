@@ -4,14 +4,14 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { AuthoritativeQuotePhotoInput } from './quote-submission.service';
 import type { QuotePhotoInput } from './website-quote-contract';
 
-const WEBSITE_QUOTE_PHOTO_BUCKET = 'quote-photos';
-
-function configuredStorage(): SupabaseClient | null {
+function configuredStorage(): { client: SupabaseClient; bucket: string } | null {
   const url = process.env.SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  return url && serviceRoleKey
-    ? createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
-    : null;
+  if (!url || !serviceRoleKey) return null;
+  return {
+    client: createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } }),
+    bucket: process.env.SUPABASE_WORK_ORDER_PHOTOS_BUCKET?.trim() || 'work-order-photos',
+  };
 }
 
 function safeFailureReason(error: unknown): string {
@@ -21,7 +21,7 @@ function safeFailureReason(error: unknown): string {
 
 @Injectable()
 export class WebsiteQuotePhotoStorageService {
-  private readonly storage: SupabaseClient | null;
+  private readonly storage: { client: SupabaseClient; bucket: string } | null;
 
   constructor() {
     this.storage = configuredStorage();
@@ -35,7 +35,7 @@ export class WebsiteQuotePhotoStorageService {
 
   private async storeOne(submissionId: string, photo: QuotePhotoInput): Promise<AuthoritativeQuotePhotoInput> {
     const transferKey = `website-photo:${submissionId}:${photo.clientPhotoId}`;
-    const storagePath = `website/${submissionId}/${photo.clientPhotoId}`;
+    const objectPath = `quote/${submissionId}/${photo.clientPhotoId}`;
     const base = {
       transferKey,
       source: QuotePhotoSource.CUSTOMER,
@@ -56,7 +56,7 @@ export class WebsiteQuotePhotoStorageService {
 
     try {
       const bytes = Buffer.from(photo.transfer.dataBase64, 'base64');
-      const { error } = await this.storage.storage.from(WEBSITE_QUOTE_PHOTO_BUCKET).upload(storagePath, bytes, {
+      const { error } = await this.storage.client.storage.from(this.storage.bucket).upload(objectPath, bytes, {
         contentType: photo.contentType,
         upsert: true,
       });
@@ -64,7 +64,7 @@ export class WebsiteQuotePhotoStorageService {
       return {
         ...base,
         status: QuotePhotoStatus.STORED,
-        storagePath: `${WEBSITE_QUOTE_PHOTO_BUCKET}/${storagePath}`,
+        storagePath: `${this.storage.bucket}/${objectPath}`,
         failureReason: null,
       };
     } catch (error) {
