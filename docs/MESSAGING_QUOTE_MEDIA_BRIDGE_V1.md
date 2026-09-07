@@ -20,6 +20,10 @@ The deterministic Messaging Quote final-details flow keeps photos optional. Whil
 
 A correction of the Safety / notes / photos section clears any prior selected Messaging media asset IDs together with the stale photo fact group.
 
+## Human takeover authority boundary
+
+Secured-photo collection preserves the existing Messaging conversation authority contract. The inbound conversation's observed `controlVersion` is carried into the Quote-state mutation that records selected media. If an Admin takes over, or takeover and handback changes authority before that mutation commits, the stale inbound attempt fails closed and does not update the Quote draft or send a new automated photo prompt. Messages received during human takeover are not replayed after handback.
+
 ## Canonical promotion
 
 Immediately before authoritative Quote creation, every selected asset is re-resolved from PostgreSQL and must still:
