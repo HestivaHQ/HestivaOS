@@ -8,6 +8,7 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const sources = [
   'playwright.acceptance.config.mjs',
   'scripts/validate-lr1b-acceptance-env.mjs',
+  'scripts/wait-for-lr1b-deployment.mjs',
   'tests/acceptance/role-auth.setup.mjs',
   'tests/acceptance/acceptance-guard.mjs',
   'tests/acceptance/admin-interface.spec.mjs',
@@ -35,11 +36,12 @@ test('Bundle 2 locates wrapped Customer and Property selects by form structure',
   assert.match(propertyDiagnostic, /locator\('label', \{ hasText: \/\^Customer\\b\/ \}\)\.locator\('select'\)/);
 });
 
-test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-excluded', async () => {
-  const [workflow, config, validator, auth, guard, login, workforce] = await Promise.all([
+test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe and Meta-excluded', async () => {
+  const [workflow, config, validator, deploymentVerifier, auth, guard, login, workforce] = await Promise.all([
     read('../../.github/workflows/lr1b-operational-acceptance.yml'),
     read('playwright.acceptance.config.mjs'),
     read('scripts/validate-lr1b-acceptance-env.mjs'),
+    read('scripts/wait-for-lr1b-deployment.mjs'),
     read('tests/acceptance/role-auth.setup.mjs'),
     read('tests/acceptance/acceptance-guard.mjs'),
     read('app/login/page.tsx'),
@@ -47,10 +49,17 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   ]);
 
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /push:[\s\S]{0,80}branches:[\s\S]{0,80}- main/);
   assert.doesNotMatch(workflow, /\npull_request:/);
-  assert.doesNotMatch(workflow, /\npush:/);
   assert.doesNotMatch(workflow, /\nschedule:/);
   assert.match(workflow, /RUN LR1B ACCEPTANCE/);
+  assert.match(workflow, /vars\.HESTIVA_LR1B_AUTOMATION_ENABLED == 'true'/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch' && inputs\.scope == 'full'/);
+  assert.match(workflow, /github\.event_name == 'push'/);
+  assert.match(workflow, /hestivaos-production-lr1b/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.match(workflow, /wait-for-lr1b-deployment\.mjs/);
+  assert.match(workflow, /retention-days: 3/);
   assert.match(workflow, /actions\/checkout@v6/);
   assert.match(workflow, /actions\/setup-node@v7/);
   assert.match(workflow, /node-version: 24/);
@@ -65,9 +74,16 @@ test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-exc
   assert.match(config, /name: 'supervisor-desktop'/);
   assert.match(config, /name: 'technician-lead-mobile'/);
   assert.match(config, /name: 'technician-member-mobile'/);
-  assert.match(config, /trace: 'off'/);
-  assert.match(config, /screenshot: 'off'/);
+  assert.match(config, /trace: 'retain-on-failure'/);
+  assert.match(config, /screenshot: 'only-on-failure'/);
   assert.match(config, /video: 'off'/);
+  assert.match(config, /workers: 1/);
+
+  assert.match(deploymentVerifier, /HESTIVA_LR1B_EXPECTED_SHA/);
+  assert.match(deploymentVerifier, /\/api\/revision/);
+  assert.match(deploymentVerifier, /\/api\/v1\/ready/);
+  assert.match(deploymentVerifier, /webRevision === expected && apiRevision === expected && apiReady/);
+  assert.doesNotMatch(deploymentVerifier, /password|token|secret/i);
 
   assert.match(validator, /HESTIVA_LR1B_ACCEPTANCE_ENABLED/);
   assert.match(validator, /distinct email addresses/);
