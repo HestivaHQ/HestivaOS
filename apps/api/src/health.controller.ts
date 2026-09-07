@@ -6,6 +6,10 @@ import { Public } from './users/public.decorator';
 type DependencyStatus = 'connected' | 'not_configured' | 'unavailable';
 type StatusResponse = { status(code: number): void };
 
+function deployedRevision() {
+  return process.env.RAILWAY_GIT_COMMIT_SHA?.trim() || 'unknown';
+}
+
 @Controller()
 @Public()
 export class HealthController {
@@ -17,6 +21,7 @@ export class HealthController {
       status: 'healthy',
       uptime: process.uptime(),
       version: APPLICATION_VERSION,
+      revision: deployedRevision(),
       timestamp: new Date().toISOString(),
     };
   }
@@ -32,6 +37,7 @@ export class HealthController {
     response.status(ready ? 200 : 503);
     return {
       status: ready ? 'ready' : 'not_ready',
+      revision: deployedRevision(),
       checks: {
         process: 'healthy',
         database,
