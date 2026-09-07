@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { installAcceptanceSafetyGuard, expectNoServerErrors } from './acceptance-guard.mjs';
 
-// Quote delivery scenarios stay out of this harness until their maintainer-owned test recipients are supplied through protected runtime configuration.
 const runId = process.env.GITHUB_RUN_ID ?? String(Date.now());
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT ?? '1';
 const fixtureSuffix = `${runId}-${runAttempt}`.replace(/[^0-9-]/g, '').slice(-18);
@@ -13,12 +12,92 @@ const acceptanceEmail = `lr1b-${fixtureSuffix.replaceAll('-', '')}@example.inval
 
 let customerId = '';
 let propertyId = '';
+let quoteId = '';
+let quoteReference = '';
 
 function tomorrowAt(hour = 9) {
   const value = new Date();
   value.setUTCDate(value.getUTCDate() + 1);
   value.setUTCHours(hour, 0, 0, 0);
   return value.toISOString().slice(0, 16);
+}
+
+function tomorrowDate() {
+  return tomorrowAt(9).slice(0, 10);
+}
+
+function websiteQuotePayload() {
+  return {
+    schemaVersion: '1.0',
+    submissionId: crypto.randomUUID(),
+    source: 'HESTIVA_WEBSITE',
+    submittedAt: new Date().toISOString(),
+    customer: {
+      fullName: editedCustomerName,
+      email: acceptanceEmail,
+      mobile: '+27110000000',
+      preferredContact: 'EMAIL',
+    },
+    property: {
+      propertyType: 'HOUSE',
+      addressLine1: '2 LR1B Acceptance Road',
+      suburb: 'Johannesburg',
+      postalCode: '2000',
+      country: 'South Africa',
+      location: { latitude: -26.2041, longitude: 28.0473, accuracyMetres: 100 },
+      floorSize: 'FROM_80_TO_99',
+      bedrooms: 'TWO',
+      bathrooms: 'ONE',
+      livingAreas: 'ONE',
+      storeys: 'ONE',
+      outdoorArea: 'NONE',
+      estateClassification: 'NONE',
+    },
+    request: {
+      primaryService: {
+        websiteValue: 'Regular Home Cleaning',
+        canonicalService: 'Regular Home Cleaning',
+      },
+      frequency: 'ONE_TIME',
+      homeCondition: 'STANDARD',
+      addOns: [
+        {
+          websiteValue: 'Inside oven',
+          canonicalService: 'Inside Oven Cleaning',
+          quantity: 1,
+        },
+      ],
+      ecoFriendlyProducts: false,
+    },
+    visit: {
+      preferredDate: tomorrowDate(),
+      preferredTime: 'MORNING',
+      flexibility: 'LR-1B controlled acceptance window.',
+      urgency: 'Routine acceptance fixture.',
+    },
+    access: {
+      complexAccess: 'NOT_APPLICABLE',
+      keyHandover: 'SOMEONE_WILL_OPEN',
+      someonePresent: true,
+    },
+    household: { hasPets: false },
+    safety: {},
+    notes: { additionalNotes: 'Disposable LR-1B Quote acceptance fixture.' },
+    photos: [],
+  };
+}
+
+async function postWebsiteQuote(payload, secret = process.env.HESTIVA_LR1B_WEBSITE_INTEGRATION_SECRET) {
+  const apiBase = process.env.HESTIVA_LR1B_API_URL?.trim().replace(/\/$/, '');
+  if (!apiBase || !secret) throw new Error('LR-1B Quote ingress configuration is unavailable.');
+  return fetch(`${apiBase}/api/v1/integrations/website/quotes`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${secret}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 async function selectFirstNonEmptyOption(select) {
@@ -176,6 +255,79 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       row = page.locator('.dataRow').filter({ hasText: editedPropertyName }).first();
       await expect(row).toBeVisible();
       await expect(row).toContainText(primaryServiceName);
+    });
+  });
+
+  test('Q1 ingests, replays, reviews and revises a controlled Website Quote without correspondence delivery', async ({ page }) => {
+    expect(customerId).toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i);
+    expect(propertyId).toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i);
+
+    const payload = websiteQuotePayload();
+    const denied = await postWebsiteQuote(payload, 'lr1b-invalid-integration-secret');
+    expect([401, 403]).toContain(denied.status);
+
+    const createdResponse = await postWebsiteQuote(payload);
+    expect(createdResponse.ok).toBe(true);
+    const created = await createdResponse.json();
+    expect(created.created).toBe(true);
+    expect(created.submissionId).toBe(payload.submissionId);
+    expect(created.quoteId).toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i);
+    expect(created.quoteReference).toMatch(/^Q-\d{8}-\d{4}$/);
+    quoteId = created.quoteId;
+    quoteReference = created.quoteReference;
+
+    const replayResponse = await postWebsiteQuote(payload);
+    expect(replayResponse.ok).toBe(true);
+    const replay = await replayResponse.json();
+    expect(replay.created).toBe(false);
+    expect(replay.quoteId).toBe(quoteId);
+    expect(replay.quoteReference).toBe(quoteReference);
+    expect(replay.pricing).toEqual(created.pricing);
+
+    await expectNoServerErrors(page, async () => {
+      await page.goto(`/quotes/${quoteId}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: quoteReference })).toBeVisible();
+      await expect(page.getByText('Inside Oven Cleaning', { exact: true }).first()).toBeVisible();
+      await page.getByRole('link', { name: 'Resolve pricing review' }).click();
+      await expect(page).toHaveURL(new RegExp(`/quotes/${quoteId}/pricing-review$`));
+      await page.getByLabel('Oven size').selectOption('STANDARD_SINGLE');
+      await page.getByRole('button', { name: 'Save details and recheck Quote' }).click();
+      await expect(page.getByRole('status')).toContainText(/Pricing review complete|Revision \d+ saved/);
+
+      await page.goto(`/quotes/${quoteId}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByText('Version').locator('strong')).toHaveText('2');
+      await expect(page.locator('.quoteTimeline')).toContainText('Quote revision created');
+    });
+  });
+
+  test('Q2 resolves the Quote to the acceptance Customer/Property and verifies accepted Work Order handoff', async ({ page }) => {
+    expect(quoteId).toMatch(/^[0-9a-f]{8}-[0-9a-f-]{27}$/i);
+    await expectNoServerErrors(page, async () => {
+      await page.goto(`/quotes/${quoteId}`, { waitUntil: 'domcontentloaded' });
+      const resolution = page.getByRole('form', { name: 'Customer and property decision' });
+      await resolution.getByLabel('Use an existing customer').check();
+      await resolution.getByLabel('Existing customer').selectOption(customerId);
+      await resolution.getByLabel('Use an existing property').check();
+      await resolution.getByLabel('Property').selectOption(propertyId);
+      await resolution.getByRole('button', { name: 'Save customer & property decision' }).click();
+      await expect(page.getByRole('status')).toContainText('Customer and property decision saved.');
+      await expect(page.getByRole('heading', { name: 'Ready to accept' })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Review acceptance' }).click();
+      const dialog = page.getByRole('dialog', { name: new RegExp(`Accept ${quoteReference}`) });
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('button', { name: 'Accept Quote' }).click();
+      await expect(page.getByRole('status')).toContainText('Quote accepted.');
+      await expect(page.getByRole('heading', { name: 'Accepted records' })).toBeVisible();
+      const workOrderLink = page.getByRole('link', { name: 'View work order' });
+      await expect(workOrderLink).toBeVisible();
+      const workOrderHref = await workOrderLink.getAttribute('href');
+      expect(workOrderHref).toMatch(/^\/work-orders\/[0-9a-f-]+$/i);
+
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.quoteStatus')).toContainText('Accepted');
+      await page.getByRole('link', { name: 'View work order' }).click();
+      await expect(page).toHaveURL(new RegExp(`${workOrderHref}$`));
     });
   });
 });
