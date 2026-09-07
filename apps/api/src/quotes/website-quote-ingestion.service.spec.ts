@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { QuoteActivityType, QuoteStatus } from '@prisma/client';
+import { QuoteActivityType, QuotePhotoSource, QuotePhotoStatus, QuoteStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import type { QuoteOperationalCostProvider } from './quote-operational-cost-source';
 import { QuoteSubmissionService } from './quote-submission.service';
@@ -8,6 +8,7 @@ import {
   WEBSITE_QUOTE_SOURCE,
   type WebsiteQuoteSubmissionV1,
 } from './website-quote-contract';
+import type { WebsiteQuotePhotoStorageService } from './website-quote-photo-storage.service';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
 
 function validReviewRequiredPayload(): WebsiteQuoteSubmissionV1 {
@@ -110,7 +111,8 @@ describe('WebsiteQuoteIngestionService', () => {
     };
 
     const quoteSubmissions = new QuoteSubmissionService(prisma, costProvider);
-    const service = new WebsiteQuoteIngestionService(prisma, quoteSubmissions);
+    const photoStorage = { async store() { return []; } } as WebsiteQuotePhotoStorageService;
+    const service = new WebsiteQuoteIngestionService(prisma, quoteSubmissions, photoStorage);
     const result = await service.ingest(validReviewRequiredPayload());
 
     expect(result).toEqual(
@@ -145,6 +147,8 @@ describe('WebsiteQuoteIngestionService', () => {
       expect.objectContaining({
         schemaVersion: WEBSITE_QUOTE_SCHEMA_VERSION,
         submissionId: validReviewRequiredPayload().submissionId,
+        quotePhotoCount: 0,
+        quotePhotoFailureCount: 0,
       }),
     );
 
@@ -158,5 +162,53 @@ describe('WebsiteQuoteIngestionService', () => {
         }),
       }),
     );
+  });
+
+  it('passes secured Website photo evidence into the canonical Quote submission authority', async () => {
+    const payload = validReviewRequiredPayload();
+    payload.photos = [{
+      clientPhotoId: '223e4567-e89b-42d3-a456-426614174000',
+      fileName: 'kitchen.jpg',
+      contentType: 'image/jpeg',
+      byteSize: 3,
+      sha256: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      transfer: { kind: 'UPLOAD', dataBase64: 'YWJj' },
+    }];
+
+    let submittedPhotos: unknown;
+    const quoteSubmissions = {
+      async submit(input: { photos?: unknown }) {
+        submittedPhotos = input.photos;
+        return { quoteId: 'quote-id-1', quoteReference: 'Q-20260815-0001', quoteStatus: QuoteStatus.SUBMITTED, created: true, replay: false };
+      },
+    } as QuoteSubmissionService;
+    const photoStorage = {
+      async store() {
+        return [{
+          transferKey: `website-photo:${payload.submissionId}:${payload.photos[0].clientPhotoId}`,
+          source: QuotePhotoSource.CUSTOMER,
+          status: QuotePhotoStatus.STORED,
+          originalFileName: 'kitchen.jpg',
+          mimeType: 'image/jpeg',
+          sizeBytes: 3,
+          storagePath: `quote-photos/website/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
+          url: null,
+          failureReason: null,
+        }];
+      },
+    } as WebsiteQuotePhotoStorageService;
+    const service = new WebsiteQuoteIngestionService({} as PrismaService, quoteSubmissions, photoStorage);
+
+    await service.ingest(payload);
+
+    expect(submittedPhotos).toEqual([
+      expect.objectContaining({
+        transferKey: `website-photo:${payload.submissionId}:${payload.photos[0].clientPhotoId}`,
+        source: QuotePhotoSource.CUSTOMER,
+        status: QuotePhotoStatus.STORED,
+        storagePath: `quote-photos/website/${payload.submissionId}/${payload.photos[0].clientPhotoId}`,
+        url: null,
+      }),
+    ]);
   });
 });
