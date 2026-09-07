@@ -65,7 +65,8 @@ test('C2 diagnostic proves the Customer-to-Property preselection boundary', asyn
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
     const propertyForm = page.locator('form.resourceForm');
     await expect(propertyForm.getByRole('heading', { name: 'New property' })).toBeVisible();
-    await page.waitForTimeout(1000);
+    const select = propertyForm.locator('label', { hasText: /^Customer\b/ }).locator('select');
+    await expect(select).toHaveValue(customerId);
 
     const renderState = await propertyForm.evaluate((element) => ({
       text: element.innerText.slice(0, 6000),
@@ -85,7 +86,6 @@ test('C2 diagnostic proves the Customer-to-Property preselection boundary', asyn
       })),
     }));
     const errorBanner = await page.locator('.errorBanner').allTextContents();
-    const select = propertyForm.getByLabel('Customer', { exact: true });
     const selectCount = await select.count();
 
     let state = null;
