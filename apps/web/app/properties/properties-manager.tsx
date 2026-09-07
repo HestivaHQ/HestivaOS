@@ -22,7 +22,35 @@ export function PropertiesManager({ initialItems, initialCustomers, initialPrope
   const [customerSearch, setCustomerSearch] = useState(''), [form, setForm] = useState<Form>(emptyForm), [editingId, setEditingId] = useState<string | null>(null), [error, setError] = useState('');
   const initialCustomerLoad = useRef(true);
   async function load() { try { setItems((await api.properties('?page=1&pageSize=100')).items); setError(''); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to load properties.'); } }
-  useEffect(() => { const valid = preselectedCustomerId && initialCustomers.some((customer) => customer.id === preselectedCustomerId); setForm((current) => current.customerId ? current : { ...current, customerId: valid ? preselectedCustomerId : (preselectedCustomerId ? '' : (initialCustomers[0]?.id ?? '')) }); if (preselectedCustomerId && !valid) setError('Validation failed. The selected customer is unavailable.'); }, [initialCustomers, preselectedCustomerId]);
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveInitialCustomer() {
+      if (!preselectedCustomerId) {
+        setForm((current) => current.customerId ? current : { ...current, customerId: initialCustomers[0]?.id ?? '' });
+        return;
+      }
+      let selected = initialCustomers.find((customer) => customer.id === preselectedCustomerId);
+      if (!selected) {
+        try {
+          const matches = await api.customerSelectorOptions(preselectedCustomerId);
+          selected = matches.find((customer) => customer.id === preselectedCustomerId);
+        } catch (err) {
+          if (!cancelled) setError(err instanceof Error ? err.message : 'Unable to load the selected customer.');
+          return;
+        }
+      }
+      if (cancelled) return;
+      if (!selected) {
+        setError('Validation failed. The selected customer is unavailable.');
+        return;
+      }
+      setCustomers((current) => current.some((customer) => customer.id === selected.id) ? current : [...current, selected]);
+      setForm((current) => current.customerId ? current : { ...current, customerId: selected.id });
+      setError('');
+    }
+    void resolveInitialCustomer();
+    return () => { cancelled = true; };
+  }, [initialCustomers, preselectedCustomerId]);
   useEffect(() => { if (initialCustomerLoad.current) { initialCustomerLoad.current = false; return; } const timeout = setTimeout(() => void api.customerSelectorOptions(customerSearch).then(setCustomers).catch((err) => setError(err instanceof Error ? err.message : 'Unable to search customers.')), 200); return () => clearTimeout(timeout); }, [customerSearch]);
   async function submit(event: FormEvent) { event.preventDefault(); try { const input = { ...form, isEstateOrComplex: booleanValue(form.isEstateOrComplex), requiresGateSecurityAccess: booleanValue(form.requiresGateSecurityAccess), hasPets: booleanValue(form.hasPets), hasCameras: booleanValue(form.hasCameras) } as PropertyInput; if (editingId) await api.updateProperty(editingId, input); else { const property = await api.createProperty(input); router.push(`/work-orders/new?customerId=${encodeURIComponent(property.customerId)}&propertyId=${encodeURIComponent(property.id)}`); return; } setEditingId(null); setForm({ ...emptyForm, customerId: customers[0]?.id ?? '' }); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to save property.'); } }
   function edit(p: Property) { setEditingId(p.id); setForm({ customerId: p.customerId, propertyTypeOptionId: p.propertyTypeOptionId ?? '', name: p.name, addressLine1: p.addressLine1, addressLine2: p.addressLine2 ?? '', city: p.city, postalCode: p.postalCode ?? '', country: p.country, accessNotes: p.accessNotes ?? '', bedrooms: p.bedrooms ?? null, bathrooms: p.bathrooms ?? null, livingAreas: p.livingAreas ?? null, storeys: p.storeys ?? null, floorSize: p.floorSize ?? null, outdoorArea: p.outdoorArea ?? null, estateClassification: p.estateClassification ?? null, unitFloor: p.unitFloor ?? null, isEstateOrComplex: booleanFormValue(p.isEstateOrComplex), requiresGateSecurityAccess: booleanFormValue(p.requiresGateSecurityAccess), parkingNotes: p.parkingNotes ?? '', hasPets: booleanFormValue(p.hasPets), petNotes: p.petNotes ?? '', hasCameras: booleanFormValue(p.hasCameras), offLimitsNotes: p.offLimitsNotes ?? '', fragileItemNotes: p.fragileItemNotes ?? '', productRestrictionNotes: p.productRestrictionNotes ?? '', allergyNotes: p.allergyNotes ?? '' }); }
