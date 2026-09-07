@@ -32,7 +32,6 @@ async function selectFirstNonEmptyOption(select) {
 async function searchCustomer(page, name) {
   const search = page.getByPlaceholder('Search customers');
   await search.fill(name);
-  await page.waitForTimeout(350);
   const row = page.locator('.dataRow').filter({ hasText: name }).first();
   await expect(row).toBeVisible();
   return row;
@@ -79,6 +78,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await editForm.getByLabel('Contact name').fill(editedCustomerName);
       await editForm.getByLabel('Notes').fill('Disposable LR-1B Bundle 2 acceptance customer — edited.');
       await editForm.getByRole('button', { name: 'Save customer' }).click();
+      await expect(editForm.getByRole('heading', { name: 'New customer' })).toBeVisible();
 
       row = await searchCustomer(page, editedCustomerName);
       await expect(row).toContainText(acceptanceEmail);
@@ -94,7 +94,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/properties?mode=create&customerId=${encodeURIComponent(customerId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New property' })).toBeVisible();
-      await expect(form.getByLabel('Customer').locator('option:checked')).toContainText(editedCustomerName);
+      await expect(form.getByLabel('Customer', { exact: true }).locator('option:checked')).toContainText(editedCustomerName);
 
       await form.getByLabel('Property name').fill(propertyName);
       await form.getByLabel('Address', { exact: true }).fill('1 LR1B Acceptance Road');
@@ -118,6 +118,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await editForm.getByLabel('Property name').fill(editedPropertyName);
       await editForm.getByLabel('Address', { exact: true }).fill('2 LR1B Acceptance Road');
       await editForm.getByRole('button', { name: 'Save property' }).click();
+      await expect(editForm.getByRole('heading', { name: 'New property' })).toBeVisible();
 
       row = await findProperty(page, editedPropertyName);
       await expect(row).toContainText('2 LR1B Acceptance Road');
@@ -135,8 +136,8 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/work-orders/new?customerId=${encodeURIComponent(customerId)}&propertyId=${encodeURIComponent(propertyId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New work order' })).toBeVisible();
-      await expect(form.getByLabel('Customer').locator('option:checked')).toContainText(editedCustomerName);
-      await expect(form.getByLabel('Property').locator('option:checked')).toHaveText(editedPropertyName);
+      await expect(form.getByLabel('Customer', { exact: true }).locator('option:checked')).toContainText(editedCustomerName);
+      await expect(form.getByLabel('Property', { exact: true }).locator('option:checked')).toHaveText(editedPropertyName);
 
       const primaryService = form.getByLabel('Primary Service');
       const primaryServiceName = (await selectFirstNonEmptyOption(primaryService))?.trim() ?? '';
@@ -147,7 +148,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await addOn.getByRole('checkbox').first().check();
       const quantity = addOn.getByLabel('Quantity');
       if (await quantity.count()) await quantity.fill('2');
-      const capacityCheck = addOn.getByText('Labour/time capacity checked for this job').locator('..').getByRole('checkbox');
+      const capacityCheck = addOn.getByLabel('Labour/time capacity checked for this job');
       if (await capacityCheck.count()) await capacityCheck.check();
       const addOnName = (await addOn.locator('span').first().textContent())?.trim() ?? '';
 
@@ -162,17 +163,15 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto('/work-orders', { waitUntil: 'domcontentloaded' });
       const search = page.getByPlaceholder('Reference, customer, property or service');
       await search.fill(editedPropertyName);
-      await page.waitForTimeout(350);
       let row = page.locator('.dataRow').filter({ hasText: editedPropertyName }).first();
       await expect(row).toBeVisible();
       await expect(row).toContainText(primaryServiceName);
       if (addOnName) await expect(row).toContainText(addOnName.split('Inactive')[0].trim());
-      await expect(row).toContainText('One time');
+      await expect(row).toContainText('One-time');
       await expect(row).toContainText('NEW');
 
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.getByPlaceholder('Reference, customer, property or service').fill(editedPropertyName);
-      await page.waitForTimeout(350);
       row = page.locator('.dataRow').filter({ hasText: editedPropertyName }).first();
       await expect(row).toBeVisible();
       await expect(row).toContainText(primaryServiceName);
