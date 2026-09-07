@@ -115,6 +115,20 @@ Build and execute a documented scenario matrix covering at least:
 16. desktop and phone execution for the launch-critical paths appropriate to each role;
 17. launch-baseline reset after the run, followed by proof that disposable test data and Storage objects are gone and canonical configuration remains operational.
 
+#### LR-1B acceptance work bundles
+
+To reduce deployment/run overhead without turning LR-1B into one undiagnosable change set, acceptance implementation and execution should be grouped by connected operating boundary. A bundle is the normal unit for harness expansion and acceptance reruns; an evidenced product defect discovered inside a bundle still opens a focused defect lane and is rerun with the affected bundle after the fix.
+
+- **Bundle 1 — Access and workforce foundation:** A1–A5 plus S1–S3. This establishes real role sessions, Technician/Employee links, Crew membership/leadership and Shift planning. This bundle is already proven by LR-1B run #35 on the launch-acceptance harness foundation.
+- **Bundle 2 — Office customer-to-work cycle:** C1, C2, Q1, Q2 and W1, with the applicable D1, N1, I1 and F1 checks embedded at their real mutation boundaries. Exercise one connected ADMIN journey from disposable Customer → Property → Quote review/revision/acceptance → accepted-Quote handoff, while also proving the separate direct Work Order create path. External customer delivery remains suppressed.
+- **Bundle 3 — Staffed field execution and operational review:** W2, T1–T5, O1 and O2, with the applicable D2–D5, N1, I1 and F1 checks. Reuse the accepted workforce foundation and a disposable staffed Work Order to prove scheduling, Technician mobile execution, Job Leader/non-leader authority, offline/evidence behavior and Supervisor/Admin review/correction/interruption/replacement handling as one operating cycle.
+- **Bundle 4 — Recurring and administrative master data:** R1 and M1–M5, with reversible/disposable mutations only and the applicable I1/F1/N1 checks. Keep canonical launch services/templates/configuration intact while proving supported management behavior.
+- **Bundle 5 — Profile and account boundaries:** P1–P3 with the applicable N1/I1/F1 checks. Keep this separate because password/email/session behavior is authentication-sensitive and should not be mixed into ordinary operational-domain debugging.
+- **Bundle 6 — Provider-neutral customer communication:** X1 and X2 with the applicable I1/F1/N1 checks. Correspondence may be materialized/rendered and internal Messaging/Quote state exercised only where provider escape is impossible. X3 remains explicitly excluded from LR-1B.
+- **Bundle 7 — Final launch-baseline proof:** Z1–Z3 only after Bundles 1–6 and all focused defect reruns are green. Preview the complete residue set, execute the guarded launch reset, verify removal/preservation, then run the clean post-reset smoke journey.
+
+Do not split a healthy bundle into one-assertion PRs merely to minimize diff size. Conversely, do not keep unrelated product fixes, schema/security changes or provider work inside an acceptance bundle just to reduce PR count. The repository three-stage workflow, current-main reconciliation and all four authoritative quality gates still apply to every implementation PR.
+
 A launch-readiness acceptance run is complete only when failures are captured as defects, fixed through normal focused PRs, and the affected scenarios are rerun. Passing source tests or route-open checks alone must not be recorded as full OS operativeness.
 
 After LR-1B is clean, perform a final launch-baseline reset before real operations begin.
