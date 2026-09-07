@@ -12,6 +12,7 @@ import { QuoteSubmissionService } from './quote-submission.service';
 import { WebsiteIntegrationHealthController } from './website-integration-health.controller';
 import { WebsiteQuoteIngestionController } from './website-quote-ingestion.controller';
 import { WebsiteQuoteIngestionService } from './website-quote-ingestion.service';
+import { WebsiteQuotePhotoStorageService } from './website-quote-photo-storage.service';
 import { QuoteReviewController } from './quote-review.controller';
 import { QuoteReviewService } from './quote-review.service';
 import { QuoteCustomerAccessAdminController, QuoteCustomerAccessPublicController } from './quote-customer-access.controller';
@@ -61,6 +62,7 @@ function configuredRouteDistanceResolver(): AllocatedRouteDistanceResolver {
   ],
   providers: [
     WebsiteQuoteIngestionService,
+    WebsiteQuotePhotoStorageService,
     QuoteReviewService,
     QuotePricingReviewService,
     QuoteSubmissionService,
