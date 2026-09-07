@@ -276,6 +276,9 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await editForm.getByLabel('Location').fill('LR1B acceptance location edited');
       await editForm.getByLabel('Status').selectOption('CONFIRMED');
       await editForm.getByRole('button', { name: 'Save shift' }).click();
+      await expect(editForm).toBeHidden();
+      row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
+      await expect(row).toContainText('CONFIRMED');
       await page.reload({ waitUntil: 'domcontentloaded' });
       row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
       await expect(row).toContainText('CONFIRMED');
