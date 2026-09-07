@@ -113,6 +113,14 @@ function selectContainingOption(container, value) {
   return container.locator(`select:has(option[value="${value}"])`);
 }
 
+async function openPropertySection(form, name) {
+  const section = form.locator('details.propertyFormSection').filter({ hasText: name });
+  await expect(section).toBeVisible();
+  if (!(await section.evaluate((element) => element.open))) await section.locator('summary').click();
+  await expect(section).toHaveJSProperty('open', true);
+  return section;
+}
+
 async function searchCustomer(page, name) {
   const search = page.getByPlaceholder('Search customers');
   await search.fill(name);
@@ -186,8 +194,9 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await form.getByLabel('Address', { exact: true }).fill('1 LR1B Acceptance Road');
       await form.getByLabel('City').fill('Johannesburg');
       await form.getByLabel('Postal code').fill('2000');
-      await form.getByLabel('Access notes').fill('Disposable LR-1B access note.');
-      await form.getByLabel('Parking notes').fill('Disposable LR-1B parking note.');
+      const accessSection = await openPropertySection(form, '4. Access & logistics');
+      await accessSection.getByLabel('Access notes').fill('Disposable LR-1B access note.');
+      await accessSection.getByLabel('Parking notes').fill('Disposable LR-1B parking note.');
       await form.getByRole('button', { name: 'Save property' }).click();
 
       await expect(page).toHaveURL(/\/work-orders\/new\?customerId=[0-9a-f-]+&propertyId=[0-9a-f-]+$/i);
@@ -203,6 +212,11 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       const editForm = page.locator('form.resourceForm');
       await editForm.getByLabel('Property name').fill(editedPropertyName);
       await editForm.getByLabel('Address', { exact: true }).fill('2 LR1B Acceptance Road');
+      const editAccessSection = await openPropertySection(editForm, '4. Access & logistics');
+      await expect(editAccessSection.getByLabel('Access notes')).toHaveValue('Disposable LR-1B access note.');
+      await expect(editAccessSection.getByLabel('Parking notes')).toHaveValue('Disposable LR-1B parking note.');
+      await editAccessSection.getByLabel('Access notes').fill('Disposable LR-1B access note — edited.');
+      await editAccessSection.getByLabel('Parking notes').fill('Disposable LR-1B parking note — edited.');
       await editForm.getByRole('button', { name: 'Save property' }).click();
       await expect(editForm.getByRole('heading', { name: 'New property' })).toBeVisible();
 
