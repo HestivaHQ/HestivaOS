@@ -24,7 +24,7 @@ test('LR-1B acceptance JavaScript sources are syntactically valid', () => {
   for (const path of sources) execFileSync(process.execPath, ['--check', new URL(`../${path}`, import.meta.url).pathname], { stdio: 'pipe' });
 });
 
-test('Bundle 2 locates wrapped Customer and Property selects by form structure', async () => {
+test('Bundle 2 locates Customer and Property comboboxes by canonical option identity', async () => {
   const [officeCycle, propertyDiagnostic] = await Promise.all([
     read('tests/acceptance/admin-office-cycle.spec.mjs'),
     read('tests/acceptance/admin-property-preselection-diagnostic.spec.mjs'),
@@ -32,8 +32,10 @@ test('Bundle 2 locates wrapped Customer and Property selects by form structure',
 
   assert.doesNotMatch(officeCycle, /getByLabel\(['"](?:Customer|Property)['"],\s*\{\s*exact:\s*true\s*\}\)/);
   assert.doesNotMatch(propertyDiagnostic, /getByLabel\(['"]Customer['"],\s*\{\s*exact:\s*true\s*\}\)/);
-  assert.match(officeCycle, /locator\('label', \{ hasText: new RegExp\(`/);
-  assert.match(propertyDiagnostic, /locator\('label', \{ hasText: \/\^Customer\\b\/ \}\)\.locator\('select'\)/);
+  assert.doesNotMatch(officeCycle, /locator\('label', \{ hasText:/);
+  assert.doesNotMatch(propertyDiagnostic, /locator\('label', \{ hasText:/);
+  assert.match(officeCycle, /getByRole\('combobox'\)\.filter\(\{ has: container\.locator\(`option\[value=/);
+  assert.match(propertyDiagnostic, /getByRole\('combobox'\)\.filter\(\{ has: propertyForm\.locator\(`option\[value=/);
 });
 
 test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe and Meta-excluded', async () => {

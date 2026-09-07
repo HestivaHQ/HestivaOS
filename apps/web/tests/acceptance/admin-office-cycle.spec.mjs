@@ -109,8 +109,8 @@ async function selectFirstNonEmptyOption(select) {
   return option.textContent();
 }
 
-function selectWrappedByLabel(container, label) {
-  return container.locator('label', { hasText: new RegExp(`^${label}\\b`) }).locator('select');
+function selectContainingOption(container, value) {
+  return container.getByRole('combobox').filter({ has: container.locator(`option[value="${value}"]`) });
 }
 
 async function searchCustomer(page, name) {
@@ -178,7 +178,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/properties?mode=create&customerId=${encodeURIComponent(customerId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New property' })).toBeVisible();
-      const customerSelect = selectWrappedByLabel(form, 'Customer');
+      const customerSelect = selectContainingOption(form, customerId);
       await expect(customerSelect).toHaveValue(customerId);
       await expect(customerSelect.locator('option:checked')).toContainText(editedCustomerName);
 
@@ -222,8 +222,8 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/work-orders/new?customerId=${encodeURIComponent(customerId)}&propertyId=${encodeURIComponent(propertyId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New work order' })).toBeVisible();
-      const customerSelect = selectWrappedByLabel(form, 'Customer');
-      const propertySelect = selectWrappedByLabel(form, 'Property');
+      const customerSelect = selectContainingOption(form, customerId);
+      const propertySelect = selectContainingOption(form, propertyId);
       await expect(customerSelect).toHaveValue(customerId);
       await expect(customerSelect.locator('option:checked')).toContainText(editedCustomerName);
       await expect(propertySelect).toHaveValue(propertyId);
