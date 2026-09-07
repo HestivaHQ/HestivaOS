@@ -18,8 +18,8 @@ export default defineConfig({
     baseURL,
     actionTimeout: 12_000,
     navigationTimeout: 25_000,
-    trace: 'off',
-    screenshot: 'off',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
     video: 'off',
   },
   projects: [
