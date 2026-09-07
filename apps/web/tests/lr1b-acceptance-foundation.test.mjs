@@ -34,8 +34,10 @@ test('Bundle 2 locates Customer and Property comboboxes by canonical option iden
   assert.doesNotMatch(propertyDiagnostic, /getByLabel\(['"]Customer['"],\s*\{\s*exact:\s*true\s*\}\)/);
   assert.doesNotMatch(officeCycle, /locator\('label', \{ hasText:/);
   assert.doesNotMatch(propertyDiagnostic, /locator\('label', \{ hasText:/);
-  assert.match(officeCycle, /getByRole\('combobox'\)\.filter\(\{ has: container\.locator\(`option\[value=/);
-  assert.match(propertyDiagnostic, /getByRole\('combobox'\)\.filter\(\{ has: propertyForm\.locator\(`option\[value=/);
+  assert.doesNotMatch(officeCycle, /getByRole\('combobox'\)\.filter\(\{ has:/);
+  assert.doesNotMatch(propertyDiagnostic, /getByRole\('combobox'\)\.filter\(\{ has:/);
+  assert.match(officeCycle, /container\.locator\(`select:has\(option\[value=/);
+  assert.match(propertyDiagnostic, /propertyForm\.locator\(`select:has\(option\[value=/);
 });
 
 test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe and Meta-excluded', async () => {
