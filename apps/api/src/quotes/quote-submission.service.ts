@@ -3,6 +3,8 @@ import {
   Prisma,
   QuoteActivityType,
   QuoteLineItemType,
+  QuotePhotoSource,
+  QuotePhotoStatus,
   QuoteRevisionOrigin,
   QuoteStatus,
 } from '@prisma/client';
@@ -23,12 +25,25 @@ export type QuoteSubmissionReplayResolution =
 
 export type QuoteSubmissionReplayResolver = () => Promise<QuoteSubmissionReplayResolution>;
 
+export type AuthoritativeQuotePhotoInput = {
+  transferKey: string;
+  source: QuotePhotoSource;
+  status: QuotePhotoStatus;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  storagePath: string | null;
+  url: string | null;
+  failureReason?: string | null;
+};
+
 export type AuthoritativeQuoteSubmissionInput = {
   submissionKey: string;
   submittedAt: string;
   pricingSubmission: QuotePricingSubmission;
   structuredData: Prisma.InputJsonValue;
   submittedActivityMetadata: Prisma.InputJsonObject;
+  photos?: AuthoritativeQuotePhotoInput[];
 };
 
 function johannesburgBusinessDate(now = new Date()): string {
@@ -109,7 +124,7 @@ export class QuoteSubmissionService {
         }
         const reference = `Q-${businessDate}-${String(counter.sequence).padStart(4, '0')}`;
 
-        return tx.quote.create({
+        const quote = await tx.quote.create({
           data: {
             reference,
             submissionKey: input.submissionKey,
@@ -169,6 +184,16 @@ export class QuoteSubmissionService {
                     operationalCosts: operationalCostAttention,
                   } as Prisma.InputJsonValue,
                 }] : []),
+                ...(input.photos ?? []).map((photo) => ({
+                  type: QuoteActivityType.PHOTO_ADDED,
+                  newStatus: quoteStatus,
+                  metadata: {
+                    transferKey: photo.transferKey,
+                    source: photo.source,
+                    mimeType: photo.mimeType,
+                    sizeBytes: photo.sizeBytes,
+                  } as Prisma.InputJsonValue,
+                })),
               ],
             },
           },
@@ -176,6 +201,28 @@ export class QuoteSubmissionService {
             revisions: { include: { lineItems: true } },
           },
         });
+
+        if (input.photos?.length) {
+          const revision = quote.revisions.find((item) => item.revisionNumber === 1);
+          if (!revision) throw new ConflictException('Created Quote revision is missing and requires recovery.');
+          await tx.quotePhoto.createMany({
+            data: input.photos.map((photo) => ({
+              quoteId: quote.id,
+              quoteRevisionId: revision.id,
+              transferKey: photo.transferKey,
+              source: photo.source,
+              status: photo.status,
+              originalFileName: photo.originalFileName,
+              mimeType: photo.mimeType,
+              sizeBytes: photo.sizeBytes,
+              storagePath: photo.storagePath,
+              url: photo.url,
+              failureReason: photo.failureReason ?? null,
+            })),
+          });
+        }
+
+        return quote;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       return {

@@ -1,6 +1,7 @@
 import { validateQuoteBusinessFacts } from '../quotes/quote-business-facts-validation';
 import type { WebsiteQuoteContractError } from '../quotes/website-quote-contract';
 import {
+  canonicalMessagingQuoteDraftProgress,
   MESSAGING_QUOTE_REQUIRED_FACT_GROUPS,
   type MessagingQuoteDraft,
   type MessagingQuoteDraftProgress,
@@ -30,7 +31,8 @@ function everyTopLevelFactGroupPresent(draft: MessagingQuoteDraftProgress): bool
 /**
  * Validate a completed Messaging Quote draft against channel-neutral canonical
  * business rules. Website transport identity, secrets, submission IDs and
- * provenance are not reused by this boundary.
+ * provenance are not reused by this boundary. Messaging-only secured-media
+ * references are deliberately stripped before shared Quote validation.
  */
 export function prepareMessagingQuoteSubmission(input: {
   draft: MessagingQuoteDraftProgress;
@@ -38,7 +40,8 @@ export function prepareMessagingQuoteSubmission(input: {
   humanReviewRequired?: boolean;
   submittedQuoteId?: string | null;
 }): MessagingQuoteSubmissionBoundaryResult {
-  const flow = evaluateMessagingQuoteFlow(input);
+  const canonicalDraft = canonicalMessagingQuoteDraftProgress(input.draft);
+  const flow = evaluateMessagingQuoteFlow({ ...input, draft: canonicalDraft });
 
   if (flow.phase === 'HUMAN_REVIEW' || flow.phase === 'SUBMITTED' || flow.phase === 'SUBMITTING') {
     return { kind: 'NOT_READY', phase: flow.phase };
@@ -47,8 +50,8 @@ export function prepareMessagingQuoteSubmission(input: {
   // A confirmed payload with every top-level fact group present is an attempted
   // complete submission. Preserve fail-closed INVALID behavior when nested
   // canonical facts are malformed rather than disguising it as still collecting.
-  if (input.customerConfirmed && everyTopLevelFactGroupPresent(input.draft)) {
-    const errors = validateQuoteBusinessFacts(input.draft);
+  if (input.customerConfirmed && everyTopLevelFactGroupPresent(canonicalDraft)) {
+    const errors = validateQuoteBusinessFacts(canonicalDraft);
     if (errors.length > 0) return { kind: 'INVALID', errors };
   }
 
@@ -56,7 +59,7 @@ export function prepareMessagingQuoteSubmission(input: {
     return { kind: 'NOT_READY', phase: flow.phase };
   }
 
-  const draft = input.draft as MessagingQuoteDraft;
+  const draft = canonicalDraft as MessagingQuoteDraft;
   const errors = validateQuoteBusinessFacts(draft);
   if (errors.length > 0) return { kind: 'INVALID', errors };
 

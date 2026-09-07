@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { MessagingDeliveryStatus, MessagingDirection, MessagingMessageKind } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import { MessagingQuoteLiveOrchestratorService } from './messaging-quote-live-orchestrator.service';
+import { MessagingAutomationAuthorityChangedError } from './messaging-quote-state.service';
 
 const automationControl = { automationEnabled: jest.fn(async () => true) } as any;
 
@@ -18,6 +19,15 @@ function inbound(contentText: string) {
       providerIdentityId: '27821234567',
       controlVersion: 0,
     },
+  };
+}
+
+function inboundMedia(channel: 'WHATSAPP' | 'MESSENGER' = 'WHATSAPP') {
+  return {
+    ...inbound(''),
+    kind: MessagingMessageKind.MEDIA,
+    contentText: null,
+    conversation: { ...inbound('').conversation, channel },
   };
 }
 
@@ -43,6 +53,60 @@ function reviewState(overrides: Record<string, unknown> = {}) {
     submittedQuoteId: null,
     ...overrides,
   } as any;
+}
+
+function photoReadyDraft() {
+  return {
+    property: {
+      propertyType: 'HOUSE',
+      addressLine1: '1 Test Street',
+      suburb: 'Johannesburg',
+      country: 'South Africa',
+      floorSize: 'FROM_80_TO_99',
+      bedrooms: 'THREE',
+      bathrooms: 'TWO',
+      livingAreas: 'ONE',
+      storeys: 'ONE',
+      outdoorArea: 'NONE',
+      estateClassification: 'NONE',
+    },
+    request: {
+      primaryService: { websiteValue: 'Deep Cleaning', canonicalService: 'Deep Cleaning' },
+      frequency: 'ONE_TIME',
+      homeCondition: 'STANDARD',
+      addOns: [],
+      ecoFriendlyProducts: false,
+    },
+    visit: {
+      preferredDate: '2026-08-25',
+      alternativeDate: '',
+      preferredTime: 'MORNING',
+      flexibility: 'Flexible',
+      urgency: 'Standard',
+      recurringNotes: '',
+    },
+    access: {
+      complexAccess: 'NOT_APPLICABLE',
+      securityInstructions: '',
+      parking: '',
+      keyHandover: 'SOMEONE_WILL_OPEN',
+      someonePresent: true,
+    },
+    household: { hasPets: false },
+    safety: {
+      offLimitsAreas: '',
+      fragileItems: '',
+      productRestrictions: '',
+      allergiesOrSensitivities: '',
+      existingDamage: '',
+    },
+    notes: {
+      attentionAreas: '',
+      renovationDust: '',
+      applianceNotes: '',
+      additionalNotes: '',
+    },
+  };
 }
 
 function collectingState(overrides: Record<string, unknown> = {}) {
@@ -116,6 +180,95 @@ describe('MessagingQuoteLiveOrchestratorService', () => {
     expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 0, { property: { propertyType: 'HOUSE' } }, 0);
     expect(createdText).toContain('What is the street address?');
     expect(result).toBe(updated);
+  });
+
+  it('records secured WhatsApp images with the observed automation control version', async () => {
+    const assetId = '11111111-1111-4111-8111-111111111111';
+    const acceptedPrompt = { id: 'prompt-photo', statusEvents: [{ status: MessagingDeliveryStatus.ACCEPTED }] };
+    let lookupCount = 0;
+    const prisma = {
+      messagingMessage: { findUnique: jest.fn(async (args: any) => { if (args.where.id) return inboundMedia(); lookupCount += 1; return lookupCount === 1 ? acceptedPrompt : null; }) },
+      messagingConversation: { findUnique: jest.fn(async () => authority()) },
+      $queryRaw: jest.fn(async () => [{
+        id: assetId,
+        message_id: 'message-inbound',
+        conversation_id: 'conversation-1',
+        provider: 'meta',
+        provider_media_id: 'media-1',
+        mime_type: 'image/jpeg',
+        file_name: 'kitchen.jpg',
+        provider_file_size: BigInt(1234),
+        storage_path: 'whatsapp/message-inbound/media-1',
+        status: 'STORED',
+      }]),
+      $transaction: jest.fn(async (callback: any) => callback({
+        messagingMessage: { create: async (args: any) => ({ id: 'prompt-next-photo', ...args.data }) },
+        messagingMessageStatusEvent: { create: async () => ({}) },
+      })),
+    } as unknown as PrismaService;
+    const state = collectingState({ version: 7, draft: photoReadyDraft() });
+    const updated = collectingState({ version: 8, draft: { ...photoReadyDraft(), messagingMediaAssetIds: [assetId] } });
+    const quoteState = { get: jest.fn(async () => state), updateDraft: jest.fn(async () => updated) } as any;
+    const messaging = { send: jest.fn(async () => ({ providerMessageId: 'wamid.photo-next', acceptedAt: '2026-08-23T12:02:00.000Z' })) } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
+
+    const result = await service.handleInbound('message-inbound');
+    expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 7, { messagingMediaAssetIds: [assetId] }, 0);
+    expect(result).toBe(updated);
+    expect(messaging.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed if takeover changes automation authority before a secured photo mutation commits', async () => {
+    const assetId = '11111111-1111-4111-8111-111111111111';
+    const acceptedPrompt = { id: 'prompt-photo', statusEvents: [{ status: MessagingDeliveryStatus.ACCEPTED }] };
+    const prisma = {
+      messagingMessage: { findUnique: jest.fn(async (args: any) => args.where.id ? inboundMedia() : acceptedPrompt) },
+      $queryRaw: jest.fn(async () => [{
+        id: assetId,
+        message_id: 'message-inbound',
+        conversation_id: 'conversation-1',
+        provider: 'meta',
+        provider_media_id: 'media-1',
+        mime_type: 'image/jpeg',
+        file_name: 'kitchen.jpg',
+        provider_file_size: BigInt(1234),
+        storage_path: 'whatsapp/message-inbound/media-1',
+        status: 'STORED',
+      }]),
+    } as unknown as PrismaService;
+    const state = collectingState({ version: 7, draft: photoReadyDraft() });
+    const quoteState = {
+      get: jest.fn(async () => state),
+      updateDraft: jest.fn(async () => { throw new MessagingAutomationAuthorityChangedError(); }),
+    } as any;
+    const messaging = { send: jest.fn() } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
+
+    await expect(service.handleInbound('message-inbound')).resolves.toBeNull();
+    expect(quoteState.updateDraft).toHaveBeenCalledWith('conversation-1', 7, { messagingMediaAssetIds: [assetId] }, 0);
+    expect(messaging.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps Messenger media disabled during guided Quote photo collection', async () => {
+    const acceptedPrompt = { id: 'prompt-photo', statusEvents: [{ status: MessagingDeliveryStatus.ACCEPTED }] };
+    let lookupCount = 0;
+    const prisma = {
+      messagingMessage: { findUnique: jest.fn(async (args: any) => { if (args.where.id) return inboundMedia('MESSENGER'); lookupCount += 1; return lookupCount === 1 ? acceptedPrompt : null; }) },
+      messagingConversation: { findUnique: jest.fn(async () => authority()) },
+      $queryRaw: jest.fn(),
+      $transaction: jest.fn(async (callback: any) => callback({
+        messagingMessage: { create: async (args: any) => ({ id: 'retry-photo', ...args.data }) },
+        messagingMessageStatusEvent: { create: async () => ({}) },
+      })),
+    } as unknown as PrismaService;
+    const quoteState = { get: jest.fn(async () => collectingState({ version: 7, draft: photoReadyDraft() })), updateDraft: jest.fn() } as any;
+    const messaging = { send: jest.fn(async () => ({ providerMessageId: 'mid.retry', acceptedAt: '2026-08-23T12:03:00.000Z' })) } as any;
+    const service = new MessagingQuoteLiveOrchestratorService(prisma, messaging, quoteState, { submitReadyQuote: jest.fn() } as any, automationControl);
+
+    await service.handleInbound('message-inbound');
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    expect(quoteState.updateDraft).not.toHaveBeenCalled();
+    expect(messaging.send).toHaveBeenCalledTimes(1);
   });
 
   it('sends and records one durable review summary when REVIEW has not been presented yet', async () => {

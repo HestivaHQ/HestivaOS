@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { MessagingChannel, QuoteStatus } from '@prisma/client';
+import { MessagingChannel, QuotePhotoSource, QuotePhotoStatus, QuoteStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma.service';
 import type { QuoteSubmissionService } from '../quotes/quote-submission.service';
 import type { MessagingQuoteStateService } from './messaging-quote-state.service';
@@ -45,9 +45,11 @@ function harness(state = readyState()) {
     quoteState: state,
     quoteStateVersion: state.version as number,
   };
+  const queryRaw = jest.fn(async () => [] as unknown[]);
   const prisma = {
     messagingConversation: { findUnique: jest.fn(async () => conversation) },
     quote: { findUnique: jest.fn(async () => null) },
+    $queryRaw: queryRaw,
   } as unknown as PrismaService;
 
   const beginSubmission = jest.fn(async (_conversationId: string, expectedVersion: number, submissionKey: string) => ({
@@ -69,7 +71,7 @@ function harness(state = readyState()) {
   }));
   const quoteSubmissions = { submit } as unknown as QuoteSubmissionService;
 
-  return { service: new MessagingQuoteSubmissionService(prisma, quoteState, quoteSubmissions), prisma, beginSubmission, recordSubmittedQuote, submit, conversation };
+  return { service: new MessagingQuoteSubmissionService(prisma, quoteState, quoteSubmissions), prisma, queryRaw, beginSubmission, recordSubmittedQuote, submit, conversation };
 }
 
 describe('MessagingQuoteSubmissionService', () => {
@@ -87,15 +89,60 @@ describe('MessagingQuoteSubmissionService', () => {
     expect(input.submissionKey).toBe(stableKey);
     expect(input.submittedAt).toBe('2026-08-21T17:00:00.000Z');
     expect(input.pricingSubmission).toEqual(completeDraft);
+    expect(input.photos).toEqual([]);
     expect(input.structuredData).toEqual(expect.objectContaining({
       schemaVersion: 'MESSAGING_QUOTE_V1', source: 'HOMENT_MESSAGING', submittedAt: '2026-08-21T17:00:00.000Z', customer: completeDraft.customer,
-      messagingProvenance: expect.objectContaining({ channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm' }),
+      messagingProvenance: expect.objectContaining({
+        channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm', quotePhotoTransferKeys: [],
+      }),
     }));
     expect(input.submittedActivityMetadata).toEqual(expect.objectContaining({
-      source: 'HOMENT_MESSAGING', channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm',
+      source: 'HOMENT_MESSAGING', channel: 'WHATSAPP', provider: 'meta', conversationId: h.conversation.id, confirmationMessageId: 'message-confirm', quotePhotoCount: 0,
     }));
     expect(h.recordSubmittedQuote).toHaveBeenCalledWith(h.conversation.id, 4, '22222222-2222-4222-8222-222222222222', 0);
     expect(result.messagingQuoteState.phase).toBe('SUBMITTED');
+  });
+
+  it('re-resolves selected secured media and sends canonical QuotePhoto inputs to the shared authority', async () => {
+    const assetId = '33333333-3333-4333-8333-333333333333';
+    const state = readyState({
+      draft: { ...completeDraft, messagingMediaAssetIds: [assetId] },
+    });
+    const h = harness(state);
+    h.queryRaw.mockResolvedValue([{
+      id: assetId,
+      message_id: '44444444-4444-4444-8444-444444444444',
+      conversation_id: h.conversation.id,
+      provider: 'meta',
+      provider_media_id: 'media-1',
+      mime_type: 'image/jpeg',
+      file_name: 'kitchen.jpg',
+      provider_file_size: BigInt(12345),
+      storage_path: 'whatsapp/44444444-4444-4444-8444-444444444444/media-1',
+      status: 'STORED',
+    }]);
+
+    await h.service.submitReadyQuote(h.conversation.id, 3, 0);
+
+    const input = h.submit.mock.calls[0]?.[0] as any;
+    expect(input.pricingSubmission).toEqual(completeDraft);
+    expect(input.pricingSubmission.messagingMediaAssetIds).toBeUndefined();
+    expect(input.photos).toEqual([{
+      transferKey: `messaging-media:${assetId}`,
+      source: QuotePhotoSource.CUSTOMER,
+      status: QuotePhotoStatus.STORED,
+      originalFileName: 'kitchen.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 12345,
+      storagePath: 'messaging-media/whatsapp/44444444-4444-4444-8444-444444444444/media-1',
+      url: null,
+    }]);
+    expect(input.structuredData.messagingProvenance.quotePhotoTransferKeys).toEqual([
+      `messaging-media:${assetId}`,
+    ]);
+    expect(input.submittedActivityMetadata.quotePhotoCount).toBe(1);
+    expect(h.beginSubmission).toHaveBeenCalledWith(h.conversation.id, 3, expect.any(String), 0);
+    expect(h.recordSubmittedQuote).toHaveBeenCalledWith(h.conversation.id, 4, '22222222-2222-4222-8222-222222222222', 0);
   });
 
   it('resumes an existing SUBMITTING reservation without reserving again', async () => {
