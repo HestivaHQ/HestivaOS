@@ -43,7 +43,6 @@ test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe an
     read('../../.github/workflows/lr1b-operational-acceptance.yml'),
     read('playwright.acceptance.config.mjs'),
     read('scripts/validate-lr1b-acceptance-env.mjs'),
-    read('scripts/wait-for-lr1b-deployment.mjs'),
     read('tests/acceptance/role-auth.setup.mjs'),
     read('tests/acceptance/acceptance-guard.mjs'),
     read('app/login/page.tsx'),
@@ -61,6 +60,7 @@ test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe an
   assert.match(workflow, /hestivaos-production-lr1b/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /wait-for-lr1b-deployment\.mjs/);
+  assert.match(workflow, /fetch-depth:\s*0/);
   assert.match(workflow, /retention-days: 3/);
   assert.match(workflow, /actions\/checkout@v6/);
   assert.match(workflow, /actions\/setup-node@v7/);
@@ -84,7 +84,11 @@ test('LR-1B acceptance stays deployment-gated, role-isolated, credential-safe an
   assert.match(deploymentVerifier, /HESTIVA_LR1B_EXPECTED_SHA/);
   assert.match(deploymentVerifier, /\/api\/revision/);
   assert.match(deploymentVerifier, /\/api\/v1\/ready/);
-  assert.match(deploymentVerifier, /webRevision === expected && apiRevision === expected && apiReady/);
+  assert.match(deploymentVerifier, /merge-base', '--is-ancestor'/);
+  assert.match(deploymentVerifier, /diff', '--name-only'/);
+  assert.match(deploymentVerifier, /apiLagSafePrefixes = \['apps\/web\/', 'docs\/', '\.github\/'\]/);
+  assert.match(deploymentVerifier, /webRevision === expected && apiReady && apiCompatibility\.compatible/);
+  assert.doesNotMatch(deploymentVerifier, /webRevision === expected && apiRevision === expected && apiReady/);
   assert.doesNotMatch(deploymentVerifier, /password|token|secret/i);
 
   assert.match(validator, /HESTIVA_LR1B_ACCEPTANCE_ENABLED/);
