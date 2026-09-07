@@ -201,11 +201,12 @@ function localDate(offsetDays = 0) {
 }
 
 async function removeVisibleShifts(page) {
-  while (await page.locator('.dataRow').filter({ hasText: shiftTitle }).count()) {
-    const row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
+  const shifts = page.locator('.dataRow').filter({ hasText: shiftTitle });
+  while (await shifts.count()) {
+    const countBeforeDelete = await shifts.count();
     page.once('dialog', (dialog) => dialog.accept());
-    await row.getByRole('button', { name: 'Delete' }).click();
-    await expect(row).toBeHidden();
+    await shifts.first().getByRole('button', { name: 'Delete' }).click();
+    await expect(shifts).toHaveCount(countBeforeDelete - 1);
   }
 }
 
