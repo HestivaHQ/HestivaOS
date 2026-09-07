@@ -4,6 +4,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { AuthoritativeQuotePhotoInput } from './quote-submission.service';
 import type { QuotePhotoInput } from './website-quote-contract';
 
+// Website photo bytes cross the private storage boundary only inside the API process.
 function configuredStorage(): { client: SupabaseClient; bucket: string } | null {
   const url = process.env.SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
