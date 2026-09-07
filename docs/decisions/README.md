@@ -102,3 +102,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0092: Isolate launch-baseline reset behind a pre-launch destructive boundary](ADR-0092-launch-baseline-reset-boundary.md)
 - [ADR-0093: Close direct public-schema Data API access](ADR-0093-close-public-data-api-exposure.md)
 - [ADR-0094: Separate conversation authority from Quote human review](ADR-0094-conversation-authority-human-takeover.md)
+- [ADR-0095: Use targeted diagnostics before repeating full LR-1B acceptance](ADR-0095-lr1b-targeted-diagnostics.md)
