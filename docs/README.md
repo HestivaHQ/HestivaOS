@@ -35,6 +35,7 @@ Load context in this order:
 | [`CROSS_SYSTEM_COORDINATION.md`](CROSS_SYSTEM_COORDINATION.md) | Routing for active cross-repository/provider coordination. |
 | [`OS_BROWSER_AUDIT_V1.md`](OS_BROWSER_AUDIT_V1.md) | Browser-level OS readiness, timing, production-safe interaction coverage, safety boundary and functional scenario matrix. |
 | [`LR1B_OPERATIONAL_ACCEPTANCE_V1.md`](LR1B_OPERATIONAL_ACCEPTANCE_V1.md) | Pre-launch whole-OS operational acceptance execution ledger, role topology, Meta exclusion and final reset sequencing. |
+| [`LR1B_DIAGNOSTIC_STRATEGY.md`](LR1B_DIAGNOSTIC_STRATEGY.md) | Targeted root-cause diagnostic loop used after an LR-1B scenario fails; it does not replace whole-OS acceptance evidence. |
 | [`decisions/README.md`](decisions/README.md) | ADR index and decision-history route. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Curated significant product/platform/security/cross-system milestones. |
 | [`TECHNICAL_WORK_LOG.md`](TECHNICAL_WORK_LOG.md) | Preserved historical engineering record through ADR-0069; no longer routine per-implementation bookkeeping. |
@@ -56,7 +57,7 @@ Use this table to identify the smallest safe context packet. Add or refine a row
 | Work Order access recovery | `WORK_ORDER_ACCESS_OPERATIONS_V1.md`, `WORK_ORDER_ACCESS_RECOVERY_V1.md` | Work Order access + messaging recovery | ADR-0058–0061; Issue #116 when provider/shared messaging changes |
 | Needs Attention / Supervisor operations | Needs Attention and Supervisor focused docs; Architecture current section | attention/dashboard/supervisor modules and UI | ADR-0053, ADR-0063 |
 | Finance | `FINANCIAL_ARCHITECTURE.md` and `financial/` policy documents | Finance runtime when implemented | financial ADRs/policy authority; provider decision when applicable |
-| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, `OS_BROWSER_AUDIT_V1.md`, `LR1B_OPERATIONAL_ACCEPTANCE_V1.md`, this router | `.github/workflows`, `scripts`, platform config, browser diagnostics/acceptance | ADR-0001–0012 as relevant, ADR-0067, ADR-0069 |
+| Platform / deployment / CI | `ARCHITECTURE.md`, `DEPLOYMENT.md`, `RECOVERY_GUIDE.md`, `OS_BROWSER_AUDIT_V1.md`, `LR1B_OPERATIONAL_ACCEPTANCE_V1.md`, `LR1B_DIAGNOSTIC_STRATEGY.md`, this router | `.github/workflows`, `scripts`, platform config, browser diagnostics/acceptance | ADR-0001–0012 as relevant, ADR-0067, ADR-0069, ADR-0095 |
 
 For a task not covered by the table, inspect this directory for the closest current-state domain authority and add a routing row only if the gap would recur.
 
@@ -70,13 +71,15 @@ The manual HestivaOS browser audit is an additional diagnostic layer documented 
 
 LR-1B operational acceptance is deliberately separate from that production-safe audit. `.github/workflows/lr1b-operational-acceptance.yml` is manual-only, requires the exact `RUN LR1B ACCEPTANCE` dispatch confirmation plus `HESTIVA_LR1B_ACCEPTANCE_ENABLED=true`, and uses distinct ADMIN, SUPERVISOR, Technician Job Leader and Technician member credentials with separate browser storage states. Its role setup is serial and follows the real product lifecycle: ADMIN authenticates first, controlled workforce identities bootstrap/synchronize through normal sign-in, ADMIN assigns/verifies their intended roles and ACTIVE access through `/admin/settings/user-access`, then fresh role-specific logins create the stored Supervisor/Technician sessions. A failure in any prerequisite stage blocks downstream role-interface scenarios. Its acceptance sources disable trace/screenshot/video capture and include a fail-closed Meta/provider-edge request guard. Bundle 2 Quote acceptance uses the real private Website Quote ingestion boundary directly from the CI runner, not the public Website correspondence path: `HESTIVA_LR1B_API_URL` and `HESTIVA_LR1B_WEBSITE_INTEGRATION_SECRET` are required protected workflow secrets, the fixture uses disposable customer data already created by the same acceptance run, and no customer/admin email is sent by that ingress step. The workflow uses Node 24 with Node-24-compatible GitHub checkout/setup actions so the manual acceptance lane does not depend on deprecated Node 20 action runtimes. The workflow must never become a pull-request, push or scheduled trigger and must not receive Meta provider credentials. Whole-OS mutation coverage is expanded only through the controlled pre-launch acceptance ledger in `LR1B_OPERATIONAL_ACCEPTANCE_V1.md`; the existing production-safe Browser Audit remains read-only.
 
+When an LR-1B scenario fails, use the targeted diagnostic loop in `LR1B_DIAGNOSTIC_STRATEGY.md` and ADR-0095 before making another product change. A targeted diagnostic must preserve LR-1B's real-authentication and provider-safety boundaries, emit only sanitized evidence for the failed boundary, and cannot mark the acceptance scenario PASS. After the boundary is proven and repaired, verify it with focused regression coverage and a targeted production check before spending another whole-OS LR-1B run.
+
 ## Historical and diagnostic material
 
 Historical records are preserved and must not be deleted or rewritten to make the past resemble present state. They are retrieved when relevant rather than loaded by default.
 
 Diagnostic documents such as `API_CONNECTIVITY_AUDIT.md` and focused historical implementation/audit documents remain useful evidence but are not automatically current authorities unless their own scope says so.
 
-The manual `Dependency security audit diagnostic`, `Next.js 16 migration validation`, and `HestivaOS Browser Audit` workflows are diagnostic tools; they are not replacements for required PR quality gates. LR-1B operational acceptance is a separately guarded pre-launch acceptance workflow, not a normal CI gate or production diagnostic.
+The manual `Dependency security audit diagnostic`, `Next.js 16 migration validation`, and `HestivaOS Browser Audit` workflows are diagnostic tools; they are not replacements for required PR quality gates. LR-1B operational acceptance is a separately guarded pre-launch acceptance workflow, not a normal CI gate or production diagnostic. Targeted LR-1B diagnostics are narrower failure-investigation scopes under the same manual safety boundary; they do not replace LR-1B acceptance evidence.
 
 ## Cross-system routes
 
