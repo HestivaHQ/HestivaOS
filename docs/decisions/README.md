@@ -98,3 +98,4 @@ ADRs preserve accepted engineering decisions, consequences, alternatives, and ex
 - [ADR-0094: Separate conversation authority from Quote human review](ADR-0094-conversation-authority-human-takeover.md)
 - [ADR-0095: Use targeted diagnostics before repeating full LR-1B acceptance](ADR-0095-lr1b-targeted-diagnostics.md)
 - [ADR-0096: Deployment-gated LR-1B testing pipeline v2](ADR-0096-lr1b-testing-pipeline-v2.md)
+- [ADR-0097: Surface-aware LR-1B deployment verification](ADR-0097-surface-aware-lr1b-deployment-verification.md)
