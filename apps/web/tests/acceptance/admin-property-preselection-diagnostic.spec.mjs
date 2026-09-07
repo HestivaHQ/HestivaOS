@@ -65,7 +65,7 @@ test('C2 diagnostic proves the Customer-to-Property preselection boundary', asyn
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
     const propertyForm = page.locator('form.resourceForm');
     await expect(propertyForm.getByRole('heading', { name: 'New property' })).toBeVisible();
-    const select = propertyForm.getByRole('combobox').filter({ has: propertyForm.locator(`option[value="${customerId}"]`) });
+    const select = propertyForm.locator(`select:has(option[value="${customerId}"])`);
     await expect(select).toHaveValue(customerId);
 
     const renderState = await propertyForm.evaluate((element) => ({
