@@ -55,11 +55,27 @@ describe('guided Messaging final details', () => {
     });
   });
 
-  it('requires an explicit no-photo choice and does not invent Quote photo metadata', () => {
+  it('requires an explicit no-photo choice when no secured image was selected', () => {
     const draft = { safety: safetyComplete(), notes: notesComplete() } as MessagingQuoteDraftProgress;
     expect(nextMessagingGuidedFinalDetailsQuestion(draft)?.id).toBe('PHOTOS');
+    expect(nextMessagingGuidedFinalDetailsQuestion(draft)?.text).toContain('On WhatsApp, send an image now');
     expect(applyMessagingGuidedFinalDetailsAnswer(draft, '1').kind).toBe('INVALID');
     expect(applyMessagingGuidedFinalDetailsAnswer(draft, '0')).toEqual({
+      kind: 'ACCEPTED',
+      patch: { photos: [] },
+    });
+  });
+
+  it('requires exact DONE after one or more secured WhatsApp images were selected', () => {
+    const draft = {
+      safety: safetyComplete(),
+      notes: notesComplete(),
+      messagingMediaAssetIds: ['11111111-1111-4111-8111-111111111111'],
+    } as MessagingQuoteDraftProgress;
+    expect(nextMessagingGuidedFinalDetailsQuestion(draft)?.text).toContain('1 quote photo added');
+    expect(applyMessagingGuidedFinalDetailsAnswer(draft, '0').kind).toBe('INVALID');
+    expect(applyMessagingGuidedFinalDetailsAnswer(draft, 'done').kind).toBe('INVALID');
+    expect(applyMessagingGuidedFinalDetailsAnswer(draft, 'DONE')).toEqual({
       kind: 'ACCEPTED',
       patch: { photos: [] },
     });
