@@ -58,6 +58,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -71,7 +73,7 @@ jobs:
       - name: Validate LR-1B acceptance configuration
         run: node apps/web/scripts/validate-lr1b-acceptance-env.mjs
 
-      - name: Verify exact revision is deployed on web and API
+      - name: Verify compatible revisions are deployed on web and API
         run: node apps/web/scripts/wait-for-lr1b-deployment.mjs
 
       - name: Install CI-only Playwright test runner
