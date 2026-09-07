@@ -16,7 +16,8 @@ export async function middleware(request: NextRequest) {
   const isLoginRoute = pathname.startsWith('/login');
   const isAuthCallbackRoute = pathname.startsWith('/auth/');
   const isPublicQuoteRoute = pathname === '/quote' || pathname.startsWith('/quote/');
-  const isPublicRoute = isLoginRoute || isAuthCallbackRoute || isPublicQuoteRoute;
+  const isRevisionRoute = pathname === '/api/revision';
+  const isPublicRoute = isLoginRoute || isAuthCallbackRoute || isPublicQuoteRoute || isRevisionRoute;
 
   const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
