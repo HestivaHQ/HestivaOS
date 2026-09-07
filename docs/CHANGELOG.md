@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-09-07 — LR-1B Testing Pipeline v2
+
+### Changed
+
+- Added exact deployed-revision proof across the Cloudflare web and Railway API surfaces before production LR-1B diagnostics can begin, using only platform-provided Git revision metadata.
+- Added a guarded automatic `main`-push C2 diagnostic lane behind repository variable `HESTIVA_LR1B_AUTOMATION_ENABLED=true`; the full LR-1B launch-certification lane remains separately manually authorized with the exact confirmation phrase.
+- Added one-at-a-time production LR-1B concurrency plus failure-only Playwright traces/screenshots with three-day retention; video remains disabled and browser auth-state files are not uploaded.
+
+### Preserved
+
+- The four authoritative PR gates, connected/full acceptance evidence, final human exploratory pass and launch-baseline reset sequencing remain required; targeted diagnostics cannot establish launch PASS.
+- Revision endpoints expose only commit identifiers and readiness state. No Meta/WhatsApp/Messenger credential, provider send/configuration authority, database fixture shortcut or launch-reset authority was added.
+
 ## 2026-09-03 — Messaging Human Takeover v1
 
 ### Added

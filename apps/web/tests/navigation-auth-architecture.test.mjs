@@ -10,7 +10,18 @@ test('middleware verifies signed claims locally and fails protected routes close
   assert.doesNotMatch(middleware, /auth\.getUser\(\)/);
   assert.match(middleware, /!authenticated && !isPublicRoute/);
   assert.match(middleware, /pathname === '\/quote'/);
+  assert.match(middleware, /pathname === '\/api\/revision'/);
   assert.match(middleware, /loginUrl\.pathname = '\/login'/);
+});
+
+test('deployment revision probe is public, non-secret and build-bound', () => {
+  const route = read('app/api/revision/route.ts');
+  const nextConfig = read('next.config.mjs');
+  assert.match(route, /HESTIVA_WEB_BUILD_REVISION/);
+  assert.match(route, /Cache-Control': 'no-store'/);
+  assert.match(nextConfig, /WORKERS_CI_COMMIT_SHA/);
+  assert.match(nextConfig, /GITHUB_SHA/);
+  assert.doesNotMatch(route, /token|secret|password/i);
 });
 
 test('authenticated layout owns one persistent role-sensitive Homent shell', () => {
