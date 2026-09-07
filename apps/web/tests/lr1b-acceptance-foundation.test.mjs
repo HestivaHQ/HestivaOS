@@ -11,6 +11,8 @@ const sources = [
   'tests/acceptance/role-auth.setup.mjs',
   'tests/acceptance/acceptance-guard.mjs',
   'tests/acceptance/admin-interface.spec.mjs',
+  'tests/acceptance/admin-office-cycle.spec.mjs',
+  'tests/acceptance/admin-property-preselection-diagnostic.spec.mjs',
   'tests/acceptance/admin-workforce.spec.mjs',
   'tests/acceptance/supervisor-interface.spec.mjs',
   'tests/acceptance/technician-lead-interface.spec.mjs',
@@ -19,6 +21,18 @@ const sources = [
 
 test('LR-1B acceptance JavaScript sources are syntactically valid', () => {
   for (const path of sources) execFileSync(process.execPath, ['--check', new URL(`../${path}`, import.meta.url).pathname], { stdio: 'pipe' });
+});
+
+test('Bundle 2 locates wrapped Customer and Property selects by form structure', async () => {
+  const [officeCycle, propertyDiagnostic] = await Promise.all([
+    read('tests/acceptance/admin-office-cycle.spec.mjs'),
+    read('tests/acceptance/admin-property-preselection-diagnostic.spec.mjs'),
+  ]);
+
+  assert.doesNotMatch(officeCycle, /getByLabel\(['"](?:Customer|Property)['"],\s*\{\s*exact:\s*true\s*\}\)/);
+  assert.doesNotMatch(propertyDiagnostic, /getByLabel\(['"]Customer['"],\s*\{\s*exact:\s*true\s*\}\)/);
+  assert.match(officeCycle, /locator\('label', \{ hasText: new RegExp\(`/);
+  assert.match(propertyDiagnostic, /locator\('label', \{ hasText: \/\^Customer\\b\/ \}\)\.locator\('select'\)/);
 });
 
 test('LR-1B acceptance stays manual, role-isolated, credential-safe and Meta-excluded', async () => {

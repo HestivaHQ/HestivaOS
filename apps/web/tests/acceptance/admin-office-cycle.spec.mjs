@@ -109,6 +109,10 @@ async function selectFirstNonEmptyOption(select) {
   return option.textContent();
 }
 
+function selectWrappedByLabel(container, label) {
+  return container.locator('label', { hasText: new RegExp(`^${label}\\b`) }).locator('select');
+}
+
 async function searchCustomer(page, name) {
   const search = page.getByPlaceholder('Search customers');
   await search.fill(name);
@@ -174,7 +178,9 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/properties?mode=create&customerId=${encodeURIComponent(customerId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New property' })).toBeVisible();
-      await expect(form.getByLabel('Customer', { exact: true }).locator('option:checked')).toContainText(editedCustomerName);
+      const customerSelect = selectWrappedByLabel(form, 'Customer');
+      await expect(customerSelect).toHaveValue(customerId);
+      await expect(customerSelect.locator('option:checked')).toContainText(editedCustomerName);
 
       await form.getByLabel('Property name').fill(propertyName);
       await form.getByLabel('Address', { exact: true }).fill('1 LR1B Acceptance Road');
@@ -216,8 +222,12 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await page.goto(`/work-orders/new?customerId=${encodeURIComponent(customerId)}&propertyId=${encodeURIComponent(propertyId)}`, { waitUntil: 'domcontentloaded' });
       const form = page.locator('form.resourceForm');
       await expect(form.getByRole('heading', { name: 'New work order' })).toBeVisible();
-      await expect(form.getByLabel('Customer', { exact: true }).locator('option:checked')).toContainText(editedCustomerName);
-      await expect(form.getByLabel('Property', { exact: true }).locator('option:checked')).toHaveText(editedPropertyName);
+      const customerSelect = selectWrappedByLabel(form, 'Customer');
+      const propertySelect = selectWrappedByLabel(form, 'Property');
+      await expect(customerSelect).toHaveValue(customerId);
+      await expect(customerSelect.locator('option:checked')).toContainText(editedCustomerName);
+      await expect(propertySelect).toHaveValue(propertyId);
+      await expect(propertySelect.locator('option:checked')).toHaveText(editedPropertyName);
 
       const primaryService = form.getByLabel('Primary Service');
       const primaryServiceName = (await selectFirstNonEmptyOption(primaryService))?.trim() ?? '';
