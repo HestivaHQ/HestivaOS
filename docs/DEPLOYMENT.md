@@ -1,5 +1,15 @@
 # Deployment
 
+## 2026-09-07 LR-1B Testing Pipeline v2 deployment identity
+
+LR-1B deployed diagnostics are gated by the exact Git revision served by both production surfaces. Railway exposes its Git-triggered revision through the platform-provided `RAILWAY_GIT_COMMIT_SHA`; HestivaOS includes that non-secret identifier in `/api/v1/health` and `/api/v1/ready`, or reports `unknown` when the platform value is unavailable. Cloudflare Workers Builds provides `WORKERS_CI_COMMIT_SHA`; the web build embeds that value as `HESTIVA_WEB_BUILD_REVISION` and exposes only the resulting revision through public `GET /api/revision` with `Cache-Control: no-store`. Neither endpoint exposes credentials, runtime secrets or provider configuration.
+
+The LR-1B workflow may start a deployed diagnostic from a `main` push only during an explicitly approved pre-launch automation window where repository Actions variable `HESTIVA_LR1B_AUTOMATION_ENABLED` is exactly `true`. Absence of the variable, any other value, an API readiness failure, `unknown` revision metadata, or any web/API SHA mismatch blocks Playwright before operational mutation begins. The workflow serializes production LR-1B runs through one concurrency group so acceptance fixtures cannot overlap.
+
+Automatic execution is diagnostic-only. The full LR-1B launch-certification scope remains manually dispatched and still requires exact `RUN LR1B ACCEPTANCE` confirmation. Failure-only Playwright traces/screenshots use short artifact retention; video remains disabled and browser auth-state files are not uploaded. No Meta credential, provider send/configuration authority or launch-baseline reset authority is introduced by Pipeline v2.
+
+When the approved diagnostic automation window ends, set/remove `HESTIVA_LR1B_AUTOMATION_ENABLED` so it is not exactly `true`. Before ordinary production operations begin, keep automatic mutating diagnostics disabled. To roll back Pipeline v2, disable that repository variable first, deploy a reviewed prior web/API revision through the existing Cloudflare/Railway authorities, and verify revision mismatch/absence prevents deployed diagnostics rather than bypassing the guard.
+
 ## 2026-09-02 Launch Baseline Reset V1
 
 Deploy the LR-1A API/web revision with `HESTIVA_LAUNCH_BASELINE_RESET_ENABLED` absent or set to `false`. The launch-baseline reset is a pre-launch destructive boundary, not an ordinary production ADMIN feature. Its API-only runtime switch must never be exposed to Cloudflare/browser code.
@@ -129,7 +139,7 @@ Production topology:
 
 No repository secret is required for production web deployment. The Cloudflare production binding is provider-owned in Cloudflare.
 
-Repository Actions may still contain validation-only configuration, but they must not become a hidden second deployer.
+Repository Actions may still contain validation-only configuration, but they must not become a hidden second deployer. During the approved pre-launch LR-1B diagnostic window, repository variable `HESTIVA_LR1B_AUTOMATION_ENABLED=true` authorizes only the deployment-gated targeted diagnostic lane described above; it is not a deployment credential and does not authorize the full LR-1B certification scope.
 
 ## Required Cloudflare Worker bindings
 
@@ -198,11 +208,13 @@ The API deployment path already runs `prisma migrate deploy` before starting the
 After deployment:
 
 1. confirm Railway migration deploy completed successfully;
-2. confirm the API health endpoint is healthy;
-3. confirm the API readiness endpoint reports `status: ready`;
-4. confirm the web app loads from Cloudflare;
+2. confirm the API health endpoint is healthy and reports the expected Railway Git revision when available;
+3. confirm the API readiness endpoint reports `status: ready` and the expected revision;
+4. confirm the web app loads from Cloudflare and `/api/revision` reports the same expected Git revision;
 5. confirm authenticated web requests reach the Railway API;
 6. confirm no secrets are present in browser-delivered configuration or logs.
+
+For an approved automatic LR-1B deployed diagnostic, do not treat release timing as proof: both revision responses must equal the exact merged `main` SHA before Playwright starts.
 
 ## Rollback
 
