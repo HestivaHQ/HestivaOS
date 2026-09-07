@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { installAcceptanceSafetyGuard, expectNoServerErrors } from './acceptance-guard.mjs';
 
+// Quote delivery scenarios stay out of this harness until their maintainer-owned test recipients are supplied through protected runtime configuration.
 const runId = process.env.GITHUB_RUN_ID ?? String(Date.now());
 const runAttempt = process.env.GITHUB_RUN_ATTEMPT ?? '1';
 const fixtureSuffix = `${runId}-${runAttempt}`.replace(/[^0-9-]/g, '').slice(-18);
