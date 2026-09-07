@@ -1,6 +1,9 @@
 name: HestivaOS LR-1B Operational Acceptance
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       base_url:
@@ -12,7 +15,7 @@ on:
         required: true
         type: string
       scope:
-        description: 'Run the full acceptance lane or a focused diagnostic after a known failure'
+        description: 'Run full acceptance or a focused deployed diagnostic'
         required: true
         default: 'full'
         type: choice
@@ -23,15 +26,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: hestivaos-production-lr1b
+  cancel-in-progress: false
+
 jobs:
   role-interface-foundation:
-    name: LR-1B role interface foundation
-    if: ${{ inputs.confirm_acceptance == 'RUN LR1B ACCEPTANCE' }}
+    name: LR-1B deployed acceptance
+    if: >-
+      ${{
+        (github.event_name == 'workflow_dispatch' && inputs.confirm_acceptance == 'RUN LR1B ACCEPTANCE') ||
+        (github.event_name == 'push' && vars.HESTIVA_LR1B_AUTOMATION_ENABLED == 'true')
+      }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       HESTIVA_LR1B_ACCEPTANCE_ENABLED: 'true'
-      HESTIVA_LR1B_BASE_URL: ${{ inputs.base_url }}
+      HESTIVA_LR1B_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://os.homent.co.za' }}
       HESTIVA_LR1B_API_URL: ${{ secrets.HESTIVA_LR1B_API_URL }}
       HESTIVA_LR1B_WEBSITE_INTEGRATION_SECRET: ${{ secrets.HESTIVA_LR1B_WEBSITE_INTEGRATION_SECRET }}
       HESTIVA_LR1B_ADMIN_EMAIL: ${{ secrets.HESTIVA_LR1B_ADMIN_EMAIL }}
@@ -42,6 +53,7 @@ jobs:
       HESTIVA_LR1B_TECHNICIAN_LEAD_PASSWORD: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_LEAD_PASSWORD }}
       HESTIVA_LR1B_TECHNICIAN_MEMBER_EMAIL: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_MEMBER_EMAIL }}
       HESTIVA_LR1B_TECHNICIAN_MEMBER_PASSWORD: ${{ secrets.HESTIVA_LR1B_TECHNICIAN_MEMBER_PASSWORD }}
+      HESTIVA_LR1B_EXPECTED_SHA: ${{ github.sha }}
 
     steps:
       - name: Check out repository
@@ -59,6 +71,9 @@ jobs:
       - name: Validate LR-1B acceptance configuration
         run: node apps/web/scripts/validate-lr1b-acceptance-env.mjs
 
+      - name: Verify exact revision is deployed on web and API
+        run: node apps/web/scripts/wait-for-lr1b-deployment.mjs
+
       - name: Install CI-only Playwright test runner
         run: npm install --no-save --ignore-scripts @playwright/test@1.54.2
 
@@ -66,9 +81,18 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run full LR-1B acceptance lane
-        if: ${{ inputs.scope == 'full' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.scope == 'full' }}
         run: npx playwright test --config apps/web/playwright.acceptance.config.mjs --grep-invert 'C2 diagnostic proves'
 
       - name: Run targeted C2 diagnostic
-        if: ${{ inputs.scope == 'c2-diagnostic' }}
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.scope == 'c2-diagnostic') || github.event_name == 'push' }}
         run: npx playwright test --config apps/web/playwright.acceptance.config.mjs --project=admin-desktop apps/web/tests/acceptance/admin-property-preselection-diagnostic.spec.mjs
+
+      - name: Retain bounded LR-1B failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lr1b-failure-${{ github.run_id }}
+          path: apps/web/test-results/lr1b-acceptance
+          if-no-files-found: ignore
+          retention-days: 3
