@@ -53,7 +53,7 @@ The website does not own pricing rules. HestivaOS calculates pricing from the co
 
 Pricing v1 uses `currency: "ZAR"`, integer-cent `subtotalMinor`, signed `adjustmentsMinor`, `totalMinor`, and line items containing stable `code`, human `label`, positive quantity, `unitAmountMinor`, and `lineAmountMinor`. Money never crosses the API as floating-point rand values.
 
-The persisted snapshot is immutable against later pricing-rule changes. An idempotent replay returns the same snapshot without recalculation. Later Admin price changes create privileged audited revisions. VAT remains dormant internally and is omitted from the customer-facing v1 response while disabled.
+The persisted snapshot is immutable against later pricing-rule changes. An idempotent replay returns the same snapshot without recalculation. Replay also returns the original `QUOTE_SUBMITTED` status (`SUBMITTED` or `NEEDS_ATTENTION`) rather than deriving the response from a later Quote lifecycle state. Later Admin price changes create privileged audited revisions. VAT remains dormant internally and is omitted from the customer-facing v1 response while disabled.
 
 ## Success response
 
