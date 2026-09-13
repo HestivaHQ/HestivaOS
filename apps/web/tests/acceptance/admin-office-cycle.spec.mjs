@@ -243,7 +243,7 @@ test.describe.serial('LR-1B Bundle 2 office customer-to-work acceptance', () => 
       await expect(propertySelect).toHaveValue(propertyId);
       await expect(propertySelect.locator('option:checked')).toHaveText(editedPropertyName);
 
-      const primaryService = form.getByLabel('Primary Service', { exact: true });
+      const primaryService = form.getByRole('combobox', { name: 'Primary Service', exact: true });
       const primaryServiceName = (await selectFirstNonEmptyOption(primaryService))?.trim() ?? '';
       expect(primaryServiceName.length).toBeGreaterThan(0);
 
