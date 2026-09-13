@@ -19,7 +19,7 @@ import { calculateWebsiteQuotePricing } from './website-quote-pricing';
 
 export type QuoteSubmissionReplayResolution =
   | { kind: 'NEW' }
-  | { kind: 'REPLAY'; quoteId: string; quoteReference: string }
+  | { kind: 'REPLAY'; quoteId: string; quoteReference: string; response?: Record<string, unknown> }
   | { kind: 'CONFLICT'; quoteId: string; quoteReference: string }
   | { kind: 'CORRUPT_EXISTING'; quoteId: string; quoteReference: string };
 
@@ -76,6 +76,7 @@ export class QuoteSubmissionService {
     const replay = await resolveReplay();
     if (replay.kind === 'REPLAY') {
       return {
+        ...(replay.response ?? {}),
         quoteId: replay.quoteId,
         quoteReference: replay.quoteReference,
         created: false,
@@ -245,6 +246,7 @@ export class QuoteSubmissionService {
         const concurrentReplay = await resolveReplay();
         if (concurrentReplay.kind === 'REPLAY') {
           return {
+            ...(concurrentReplay.response ?? {}),
             quoteId: concurrentReplay.quoteId,
             quoteReference: concurrentReplay.quoteReference,
             created: false,

@@ -245,6 +245,7 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
     await expectNoServerErrors(page, async () => {
       installCrewSearchDiagnostics(page);
       await page.goto('/shifts', { waitUntil: 'domcontentloaded' });
+      const visibleDateTo = await page.locator('input[type="date"]').nth(1).inputValue();
       await removeVisibleShifts(page);
       await page.getByRole('button', { name: 'Create shift' }).click();
       const form = page.locator('form.resourceForm');
@@ -253,7 +254,7 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       const initialCrewOption = crewSelect.locator('option').filter({ hasText: crewName });
       console.log(`[LR1B S3 crew selector before search] targetCount=${await initialCrewOption.count()} options=${JSON.stringify(await crewSelect.locator('option').allTextContents())}`);
       const today = localDate(0);
-      const tomorrow = localDate(1);
+      const copyDate = today === visibleDateTo ? localDate(-1) : localDate(1);
       await form.getByLabel('Shift title').fill(shiftTitle);
       await form.getByLabel('Start').fill(`${today}T09:00`);
       await form.getByLabel('End').fill(`${today}T17:00`);
@@ -283,7 +284,7 @@ test.describe.serial('LR-1B ADMIN workforce acceptance S1-S3', () => {
       await page.reload({ waitUntil: 'domcontentloaded' });
       row = page.locator('.dataRow').filter({ hasText: shiftTitle }).first();
       await expect(row).toContainText('CONFIRMED');
-      page.once('dialog', (dialog) => dialog.accept(tomorrow));
+      page.once('dialog', (dialog) => dialog.accept(copyDate));
       await row.getByRole('button', { name: 'Copy' }).click();
       await expect(page.locator('.dataRow').filter({ hasText: shiftTitle })).toHaveCount(2);
       await removeVisibleShifts(page);
