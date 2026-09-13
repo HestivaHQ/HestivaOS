@@ -70,9 +70,11 @@ export async function resolveWebsiteQuoteReplay(
 
   if (incomingFingerprint === storedFingerprint) {
     const submittedStatus = existing.activities[0].newStatus;
+    const pricingLineItems = originalSubmission.lineItems.filter((item) => item.type !== 'ADJUSTMENT');
     if (
       originalSubmission.currency !== 'ZAR'
       || (submittedStatus !== 'SUBMITTED' && submittedStatus !== 'NEEDS_ATTENTION')
+      || pricingLineItems.some((item) => item.code === null)
     ) {
       return {
         kind: 'CORRUPT_EXISTING',
@@ -82,15 +84,13 @@ export async function resolveWebsiteQuoteReplay(
     }
 
     const adjustmentLines = originalSubmission.lineItems.filter((item) => item.type === 'ADJUSTMENT');
-    const pricingLines = originalSubmission.lineItems
-      .filter((item) => item.type !== 'ADJUSTMENT')
-      .map((item) => ({
-        code: item.code,
-        label: item.label,
-        quantity: item.quantity,
-        unitAmountMinor: item.unitAmountMinor,
-        lineAmountMinor: item.lineTotalMinor,
-      }));
+    const pricingLines = pricingLineItems.map((item) => ({
+      code: item.code!,
+      label: item.label,
+      quantity: item.quantity,
+      unitAmountMinor: item.unitAmountMinor,
+      lineAmountMinor: item.lineTotalMinor,
+    }));
 
     return {
       kind: 'REPLAY',
