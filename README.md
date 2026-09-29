@@ -1,5 +1,7 @@
 # Hestiva OS
 
+> **Project status — parked (29 September 2026):** Active HestivaOS/Homent development and production hosting are intentionally parked. Railway deployments have been stopped and its Hobby subscription cancelled; Supabase and reusable external assets are retained for possible revival. See [Project parking checkpoint](docs/PROJECT_PARKING_2026-09-29.md) before attempting deployment or revival.
+
 Hestiva OS is a web application and API for running property service operations. It
 provides authentication and workflows for customers and properties, work orders,
 the service catalogue, cleaning job templates, crews, technicians, and shift
